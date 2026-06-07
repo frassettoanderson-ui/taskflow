@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     /* ── Logo ── */
     .logo{display:flex;flex-direction:column;align-items:center;margin-bottom:36px;animation:logoIn .8s cubic-bezier(.34,1.56,.64,1) both}
     @keyframes logoIn{from{opacity:0;transform:translateY(-30px) scale(.8)}to{opacity:1;transform:none}}
-    .logo-tesk{font-size:72px;font-weight:700;color:#F26522;letter-spacing:-3px;line-height:1;text-shadow:0 0 40px rgba(242,101,34,.3)}
+    .logo-task{font-size:72px;font-weight:700;color:#F26522;letter-spacing:-3px;line-height:1;text-shadow:0 0 40px rgba(242,101,34,.3)}
     .logo-flow{font-family:'Dancing Script',cursive;font-size:52px;color:rgba(255,255,255,.85);line-height:1;margin-top:-8px;text-shadow:0 0 20px rgba(255,255,255,.1)}
     
     /* ── Card ── */
@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <div class="page">
   <div class="logo">
-    <div class="logo-tesk">tesk</div>
+    <div class="logo-task">task</div>
     <div class="logo-flow">flow</div>
   </div>
 
