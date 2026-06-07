@@ -78,7 +78,8 @@ if ($method === 'GET') {
     $acao = $d['acao'] ?? 'criar';
 
     if ($acao === 'criar') {
-        $codigo = 'OC-' . str_pad($pdo->query("SELECT COUNT(*)+1 FROM ocorrencias")->fetchColumn(), 3, '0', STR_PAD_LEFT);
+        $pdo->beginTransaction();
+        $codigo = 'OC-' . str_pad($pdo->query("SELECT COUNT(*)+1 FROM ocorrencias FOR UPDATE")->fetchColumn(), 3, '0', STR_PAD_LEFT);
         $stmt = $pdo->prepare("INSERT INTO ocorrencias (codigo, tipo, descricao, nome_aluno, id_aluno, setor_responsavel, prioridade, status, criador_id) VALUES (?,?,?,?,?,?,?,?,?)");
         $stmt->execute([$codigo, $d['tipo'], $d['descricao'], $d['nome_aluno']??'', $d['id_aluno']??'', $d['setor'], $d['prioridade'], 'pendente', $u['id']]);
         $ocId = $pdo->lastInsertId();
@@ -92,6 +93,7 @@ if ($method === 'GET') {
             $pdo->prepare("INSERT INTO notificacoes (usuario_id, mensagem) VALUES (?,?)")->execute([$su['id'], "Nova ocorrência {$codigo}: {$d['tipo']}"]);
         }
 
+        $pdo->commit();
         echo json_encode(['ok'=>true,'codigo'=>$codigo,'id'=>$ocId]);
 
     } elseif ($acao === 'mover') {

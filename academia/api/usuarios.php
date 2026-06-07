@@ -19,7 +19,8 @@ if ($method === 'GET') {
         $check = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
         $check->execute([$d['email']]);
         if ($check->fetch()) { echo json_encode(['erro' => 'E-mail já cadastrado.']); exit; }
-        $senha = password_hash($d['senha'] ?? 'Academia@2025', PASSWORD_BCRYPT, ['cost' => 12]);
+        if (empty($d['senha'])) { echo json_encode(['erro' => 'Senha é obrigatória.']); exit; }
+        $senha = password_hash($d['senha'], PASSWORD_BCRYPT, ['cost' => 12]);
         $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, whatsapp, senha, nivel, setor) VALUES (?,?,?,?,?,?)");
         $stmt->execute([$d['nome'], $d['email'], $d['whatsapp'] ?? '', $senha, $d['nivel'], $d['setor']]);
         echo json_encode(['ok' => true]);
@@ -49,7 +50,7 @@ if ($method === 'GET') {
             $pdo->prepare("UPDATE ocorrencias SET criador_id=? WHERE criador_id=? AND concluida=0")->execute([$gerente['id'], $d['id']]);
             $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao) 
                 SELECT id, ?, 'Tarefa transferida — usuário excluído' FROM ocorrencias WHERE criador_id=? AND concluida=0"
-            )->execute([$gerente['id'], $gerente['id']]);
+            )->execute([$gerente['id'], $d['id']]);
         }
         
         $pdo->prepare("UPDATE usuarios SET ativo=0 WHERE id=?")->execute([$d['id']]);
