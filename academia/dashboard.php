@@ -44,7 +44,7 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
     .sb-brand{padding:0;border-bottom:1px solid var(--border);overflow:hidden;height:110px;display:flex;align-items:center;justify-content:center;position:relative;background:var(--surface2)}
     .sb-logo-light{display:none;width:100%;height:100%;object-fit:contain;padding:12px 20px}
     .sb-logo-dark{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:8px}
-    .logo-tesk{font-size:46px;font-weight:700;color:var(--accent);letter-spacing:-2px;line-height:1;text-shadow:0 0 30px rgba(242,101,34,.25)}
+    .logo-task{font-size:46px;font-weight:700;color:var(--accent);letter-spacing:-2px;line-height:1;text-shadow:0 0 30px rgba(242,101,34,.25)}
     .logo-flow{font-family:'Dancing Script',cursive;font-size:34px;color:var(--text2);line-height:1;margin-top:-6px}
     [data-theme="light"] .sb-logo-dark{display:none}
     [data-theme="light"] .sb-logo-light{display:block}
@@ -97,13 +97,19 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
 
     /* ══ CONTENT ══ */
     .content{flex:1;padding:18px 20px;overflow-y:auto;position:relative;z-index:1}
+    @keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
     .page-section{display:none}
-    .page-section.active{display:block}
+    .page-section.active{display:block;animation:pageIn .22s ease both}
 
     /* ══ DASHBOARD METRICS ══ */
     .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
-    .metric{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
-    .metric:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+    @keyframes metricIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    .metric{background:var(--card);border:1px solid var(--border);border-radius:var(--rlg);padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s;animation:metricIn .45s cubic-bezier(.34,1.2,.64,1) both}
+    .metric:nth-child(1){animation-delay:.04s}
+    .metric:nth-child(2){animation-delay:.1s}
+    .metric:nth-child(3){animation-delay:.16s}
+    .metric:nth-child(4){animation-delay:.22s}
+    .metric:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.35)}
     .metric::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--rlg) var(--rlg) 0 0}
     .metric-total::before{background:linear-gradient(90deg,var(--blue),var(--purple))}
     .metric-pend::before{background:linear-gradient(90deg,var(--red),#ff8c7a)}
@@ -167,14 +173,17 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
     .kcol-body{padding:8px;display:flex;flex-direction:column;gap:7px;flex:1;overflow-y:auto;min-height:200px;transition:background .2s}
     .kcol-body.drag-over{background:rgba(242,101,34,.07);outline:2px dashed var(--accent);border-radius:8px}
     .kcol-body.drop-ready{background:rgba(242,101,34,.04)}
-    .kcol-pendente .kcol-head{border-top:3px solid #888780}
-    .kcol-aceita .kcol-head{border-top:3px solid var(--blue)}
-    .kcol-andamento .kcol-head{border-top:3px solid var(--amber)}
-    .kcol-concluida .kcol-head{border-top:3px solid var(--green)}
+    .kcol-pendente .kcol-head{border-top:3px solid #888780;box-shadow:0 -1px 0 0 rgba(136,135,128,.15)}
+    .kcol-aceita .kcol-head{border-top:3px solid var(--blue);box-shadow:0 -1px 0 0 rgba(55,138,221,.18)}
+    .kcol-andamento .kcol-head{border-top:3px solid var(--amber);box-shadow:0 -1px 0 0 rgba(239,159,39,.18)}
+    .kcol-concluida .kcol-head{border-top:3px solid var(--green);box-shadow:0 -1px 0 0 rgba(29,158,117,.18)}
 
     /* ══ CARDS ══ */
-    .kcard{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:14px;cursor:pointer;transition:transform .18s,box-shadow .18s,opacity .18s;border-left:4px solid transparent;position:relative;user-select:none;-webkit-user-select:none}
-    .kcard:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+    .kcard{background:var(--card);border-radius:var(--r);border:1px solid var(--border);padding:14px;cursor:pointer;transition:transform .18s,box-shadow .18s,opacity .18s,border-color .18s;border-left:4px solid transparent;position:relative;user-select:none;-webkit-user-select:none}
+    .kcard:hover{transform:translateY(-3px)}
+    .kcard.prio-left-alta:hover{box-shadow:0 6px 24px rgba(226,75,74,.25);border-color:rgba(226,75,74,.25)}
+    .kcard.prio-left-media:hover{box-shadow:0 6px 24px rgba(239,159,39,.2);border-color:rgba(239,159,39,.2)}
+    .kcard.prio-left-baixa:hover{box-shadow:0 6px 24px rgba(99,153,34,.18);border-color:rgba(99,153,34,.18)}
     .kcard.dragging{opacity:.3;transform:scale(.95) rotate(1deg);box-shadow:0 8px 30px rgba(0,0,0,.4)}
     .kcard.drag-source{opacity:.4}
     .kcard.card-enter{animation:cardIn .3s cubic-bezier(.34,1.56,.64,1)}
@@ -241,19 +250,23 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
     .chat-main-header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0}
     .chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 130px)}
     .chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--surface2);border-radius:var(--rlg);margin-bottom:12px}
+    @keyframes msgInLeft{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+    @keyframes msgInRight{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
     .chat-msg{display:flex;flex-direction:column;max-width:68%}
-    .chat-msg.mine{align-self:flex-end;align-items:flex-end}
-    .chat-msg.other{align-self:flex-start}
+    .chat-msg.mine{align-self:flex-end;align-items:flex-end;animation:msgInRight .2s ease both}
+    .chat-msg.other{align-self:flex-start;animation:msgInLeft .2s ease both}
     .chat-msg-who{font-size:11px;color:var(--text3);margin-bottom:3px;font-weight:500}
     .chat-bubble{padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.5}
     .chat-msg.mine .chat-bubble{background:var(--accent);color:white;border-bottom-right-radius:4px}
     .chat-msg.other .chat-bubble{background:var(--card);border:1px solid var(--border);color:var(--text);border-bottom-left-radius:4px}
     .chat-time{font-size:10px;color:var(--text3);margin-top:3px}
     .chat-input-row{display:flex;gap:10px}
-    .chat-input{flex:1;padding:12px 16px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .2s}
-    .chat-input:focus{border-color:var(--accent)}
-    .chat-send{padding:12px 18px;background:var(--accent);color:white;border:none;border-radius:var(--r);font-size:14px;cursor:pointer;transition:all .2s}
-    .chat-send:hover{background:var(--accent-hover)}
+    .chat-input{flex:1;padding:12px 16px;border-radius:var(--r);border:1px solid var(--border);background:var(--card);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+    .chat-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,101,34,.1)}
+    .chat-input::placeholder{color:var(--text4)}
+    .chat-send{padding:12px 18px;background:var(--accent);color:white;border:none;border-radius:var(--r);font-size:14px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;font-family:'DM Sans',sans-serif;font-weight:500;box-shadow:0 2px 10px rgba(242,101,34,.3)}
+    .chat-send:hover{background:var(--accent-hover);transform:translateY(-1px);box-shadow:0 4px 16px rgba(242,101,34,.4)}
+    .chat-send:active{transform:scale(.97)}
     .chat-typing{font-size:11px;color:var(--text3);padding:4px 8px;min-height:20px}
 
     /* ══ RELATÓRIOS ══ */
@@ -358,12 +371,12 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
     <div class="sb-brand">
       <!-- Dark theme logo -->
       <div class="sb-logo-dark">
-        <div class="logo-tesk">tesk</div>
+        <div class="logo-task">task</div>
         <div class="logo-flow">flow</div>
       </div>
       <!-- Light theme: same but different color for flow -->
       <div class="sb-logo-light" style="display:none;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;padding:8px">
-        <div style="font-size:46px;font-weight:700;color:#F26522;letter-spacing:-2px;line-height:1">tesk</div>
+        <div style="font-size:46px;font-weight:700;color:#F26522;letter-spacing:-2px;line-height:1">task</div>
         <div style="font-family:'Dancing Script',cursive;font-size:34px;color:#444;line-height:1;margin-top:-6px">flow</div>
       </div>
     </div>
@@ -1465,7 +1478,9 @@ async function criarOcorrencia(){
 async function criarUsuario(){
   const nome=document.getElementById('u-nome').value.trim();const email=document.getElementById('u-email').value.trim();
   if(!nome||!email){alert('Preencha nome e e-mail.');return;}
-  const res=await api('usuarios.php',{acao:'criar',nome,email,whatsapp:document.getElementById('u-whats').value.trim(),senha:document.getElementById('u-senha').value.trim()||'Academia@2025',nivel:document.getElementById('u-nivel').value,setor:document.getElementById('u-setor').value});
+  const senha=document.getElementById('u-senha').value.trim();
+  if(!senha){alert('Informe uma senha para o novo usuário.');return;}
+  const res=await api('usuarios.php',{acao:'criar',nome,email,whatsapp:document.getElementById('u-whats').value.trim(),senha,nivel:document.getElementById('u-nivel').value,setor:document.getElementById('u-setor').value});
   if(res.erro){alert(res.erro);return;}fecharModal();carregarUsuarios();
 }
 
