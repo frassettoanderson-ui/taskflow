@@ -237,8 +237,20 @@ $maxHistIdInit = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencia_hi
     .icon-btn.danger:hover{color:var(--red);border-color:rgba(226,75,74,.3)}
 
     /* ══ CHAT MSN ══ */
-    .chat-msn-wrap{display:flex;height:calc(100vh - 130px);gap:0;background:var(--card);border-radius:var(--rlg);border:1px solid var(--border);overflow:hidden}
-    .chat-sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface2);overflow-y:auto}
+    /* ── Chat FAB ── */
+    .chat-fab{position:fixed;bottom:24px;right:24px;z-index:1100;width:56px;height:56px;border-radius:50%;background:var(--accent);color:white;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 20px rgba(242,101,34,.45);transition:transform .2s,box-shadow .2s}
+    .chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 28px rgba(242,101,34,.6)}
+    .chat-fab-badge{position:absolute;top:-4px;right:-4px;background:#e24b4a;color:white;font-size:11px;font-weight:700;min-width:20px;height:20px;border-radius:10px;display:none;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--surface)}
+    /* ── Chat Popup ── */
+    .chat-popup{position:fixed;bottom:90px;right:24px;z-index:1099;width:380px;height:540px;background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:0 16px 48px rgba(0,0,0,.35);display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateY(20px) scale(.97);pointer-events:none;transition:opacity .22s ease,transform .22s ease}
+    .chat-popup.open{opacity:1;transform:none;pointer-events:all}
+    .chat-popup-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0}
+    .chat-popup-title{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+    .chat-popup-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:4px;border-radius:6px;transition:all .15s;display:flex}
+    .chat-popup-close:hover{background:var(--surface3);color:var(--text)}
+    .chat-popup-body{display:flex;flex:1;min-height:0}
+    .chat-msn-wrap{display:flex;flex:1;min-height:0;gap:0;overflow:hidden}
+    .chat-sidebar{width:150px;flex-shrink:0;border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface2);overflow-y:auto}
     .chat-sidebar-title{padding:14px 14px 10px;font-size:13px;font-weight:600;color:var(--text2);display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border)}
     .chat-contact{display:flex;align-items:center;gap:9px;padding:10px 12px;border:none;background:transparent;width:100%;cursor:pointer;transition:all .15s;position:relative;font-family:'DM Sans',sans-serif}
     .chat-contact:hover{background:var(--surface3)}
@@ -251,8 +263,8 @@ $maxHistIdInit = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencia_hi
     .chat-divider{padding:8px 12px 4px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
     .chat-main{flex:1;display:flex;flex-direction:column;min-width:0}
     .chat-main-header{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0}
-    .chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 130px)}
-    .chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--surface2);border-radius:var(--rlg);margin-bottom:12px}
+    .chat-wrap{display:flex;flex-direction:column;flex:1;min-height:0}
+    .chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--surface2)}
     @keyframes msgInLeft{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
     @keyframes msgInRight{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
     .chat-msg{display:flex;flex-direction:column;max-width:68%}
@@ -370,6 +382,7 @@ $maxHistIdInit = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencia_hi
       .rel-kpis{grid-template-columns:repeat(2,1fr)}
     }
     @media(max-width:480px){.metrics{grid-template-columns:1fr}.rel-kpis{grid-template-columns:1fr 1fr}}
+    @media(max-width:480px){.chat-popup{width:calc(100vw - 24px);right:12px;bottom:80px;height:70vh}.chat-fab{bottom:16px;right:16px}}
   </style>
 </head>
 <body>
@@ -411,7 +424,6 @@ $maxHistIdInit = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencia_hi
       <button class="nav-item" onclick="showPage('usuarios',this)"><i class="ti ti-users"></i> Usuários</button>
       <?php endif; ?>
       <button class="nav-item" onclick="showPage('relatorios',this)"><i class="ti ti-chart-bar"></i> Relatórios</button>
-      <button class="nav-item" onclick="showPage('chat',this)"><i class="ti ti-message-2"></i> Chat <span class="nav-badge" id="badge-chat" style="display:none">0</span></button>
       <button class="nav-item" onclick="showPage('localizar',this)"><i class="ti ti-search"></i> Localizar</button>
       <button class="nav-item" onclick="showPage('configuracoes',this)"><i class="ti ti-settings"></i> Configurações</button>
     </nav>
@@ -483,34 +495,6 @@ $maxHistIdInit = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencia_hi
       <div class="page-section" id="page-relatorios"><div id="rel-content"></div></div>
 
       <!-- CHAT -->
-      <div class="page-section" id="page-chat">
-        <div class="chat-msn-wrap">
-          <!-- Sidebar contatos -->
-          <div class="chat-sidebar">
-            <div class="chat-sidebar-title"><i class="ti ti-message-2" style="color:var(--accent)"></i> Mensagens</div>
-            <button class="chat-contact active" id="contact-geral" onclick="abrirChat('geral',this)">
-              <div class="contact-av" style="background:var(--accent)"><i class="ti ti-users" style="font-size:14px;color:white"></i></div>
-              <div class="contact-info"><div class="contact-name">Chat Geral</div><div class="contact-sub" id="last-geral">Todos os usuários</div></div>
-              <span class="contact-badge" id="badge-geral" style="display:none">0</span>
-            </button>
-            <div class="chat-divider">Usuários</div>
-            <div id="contatos-list"></div>
-          </div>
-          <!-- Área do chat -->
-          <div class="chat-main">
-            <div class="chat-main-header" id="chat-header">
-              <div class="contact-av" style="background:var(--accent)" id="chat-av"><i class="ti ti-users" style="font-size:14px;color:white"></i></div>
-              <div><div style="font-size:14px;font-weight:600;color:var(--text)" id="chat-nome">Chat Geral</div><div style="font-size:12px;color:var(--text3)" id="chat-sub">Todos os usuários</div></div>
-            </div>
-            <div class="chat-messages" id="chat-msgs"></div>
-            <div class="chat-input-row">
-              <input class="chat-input" id="chat-input" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')enviarChatAtual()">
-              <button class="chat-send" onclick="enviarChatAtual()"><i class="ti ti-send"></i></button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- LOCALIZAR -->
       <div class="page-section" id="page-localizar">
         <div class="search-box">
@@ -591,6 +575,45 @@ $maxHistIdInit = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencia_hi
     <div id="notif-list"></div>
   </div>
   <div class="toast-container" id="toast-container"></div>
+
+  <!-- ── Chat FAB ── -->
+  <button class="chat-fab" id="chat-fab" onclick="toggleChatPopup()" title="Chat interno">
+    <i class="ti ti-message-2"></i>
+    <span class="chat-fab-badge" id="badge-chat">0</span>
+  </button>
+
+  <!-- ── Chat Popup ── -->
+  <div class="chat-popup" id="chat-popup">
+    <div class="chat-popup-header">
+      <div class="chat-popup-title"><i class="ti ti-message-2" style="color:var(--accent)"></i> Chat interno</div>
+      <button class="chat-popup-close" onclick="toggleChatPopup()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="chat-popup-body">
+      <div class="chat-msn-wrap">
+        <div class="chat-sidebar">
+          <div class="chat-sidebar-title" style="padding:10px 10px 8px;font-size:12px"><i class="ti ti-message-2" style="color:var(--accent)"></i> Canais</div>
+          <button class="chat-contact active" id="contact-geral" onclick="abrirChat('geral',this)">
+            <div class="contact-av" style="background:var(--accent);width:28px;height:28px;font-size:11px"><i class="ti ti-users" style="font-size:12px;color:white"></i></div>
+            <div class="contact-info"><div class="contact-name" style="font-size:12px">Geral</div></div>
+            <span class="contact-badge" id="badge-geral" style="display:none">0</span>
+          </button>
+          <div class="chat-divider">Usuários</div>
+          <div id="contatos-list"></div>
+        </div>
+        <div class="chat-main">
+          <div class="chat-main-header" id="chat-header" style="padding:10px 12px">
+            <div class="contact-av" style="background:var(--accent);width:28px;height:28px" id="chat-av"><i class="ti ti-users" style="font-size:12px;color:white"></i></div>
+            <div><div style="font-size:13px;font-weight:600;color:var(--text)" id="chat-nome">Chat Geral</div><div style="font-size:11px;color:var(--text3)" id="chat-sub">Todos</div></div>
+          </div>
+          <div class="chat-messages" id="chat-msgs"></div>
+          <div class="chat-input-row" style="padding:8px 10px;gap:8px;background:var(--surface2);border-top:1px solid var(--border)">
+            <input class="chat-input" id="chat-input" placeholder="Mensagem..." onkeydown="if(event.key==='Enter')enviarChatAtual()" style="font-size:13px;padding:9px 12px">
+            <button class="chat-send" onclick="enviarChatAtual()" style="padding:9px 14px"><i class="ti ti-send"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -673,7 +696,7 @@ function showPage(p,el){
   document.getElementById('page-title').textContent=titles[p]||p;
   if(p==='relatorios')renderRelatorio();
   if(p==='usuarios')carregarUsuarios();
-  if(p==='chat'){chatAberto=true;carregarChat();}else{chatAberto=false;}
+  // chat agora é popup flutuante, não página
   if(p==='configuracoes'){if(IS_GES_GER)carregarConfiguracoes();aplicarConfig();}
   closeSidebar();
 }
@@ -1245,6 +1268,25 @@ let chatLastMsg='';
 let chatPrivadoLastMsg='';
 let chatAtual='geral'; // 'geral' ou user id
 let usuariosChat=[];
+
+function toggleChatPopup(){
+  const popup=document.getElementById('chat-popup');
+  const isOpen=popup.classList.toggle('open');
+  chatAberto=isOpen;
+  if(isOpen){
+    carregarChat();
+    const b=document.getElementById('badge-chat');
+    b.style.display='none';
+  }
+}
+document.addEventListener('click',e=>{
+  const popup=document.getElementById('chat-popup');
+  const fab=document.getElementById('chat-fab');
+  if(chatAberto&&!popup.contains(e.target)&&!fab.contains(e.target)){
+    popup.classList.remove('open');
+    chatAberto=false;
+  }
+});
 
 async function carregarChat(){
   // Carrega usuários para lista de contatos
