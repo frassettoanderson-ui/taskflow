@@ -115,14 +115,25 @@ if ($method === 'GET') {
         echo json_encode(['ok'=>true]);
 
     } elseif ($acao === 'devolver') {
-        $stmt = $pdo->prepare("SELECT * FROM ocorrencias WHERE id=?");
+        // Busca a tarefa junto com o setor do criador
+        $stmt = $pdo->prepare("
+            SELECT o.*, u.setor AS criador_setor
+            FROM ocorrencias o
+            JOIN usuarios u ON u.id = o.criador_id
+            WHERE o.id = ?
+        ");
         $stmt->execute([$d['id']]);
         $oc = $stmt->fetch();
         $justificativa = $d['justificativa'] ?? '';
         if (empty(trim($justificativa))) { echo json_encode(['erro'=>'Justificativa obrigatória ao devolver.']); exit; }
-        $pdo->prepare("UPDATE ocorrencias SET status='pendente', atualizado_em=NOW() WHERE id=?")->execute([$d['id']]);
-        $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao, justificativa) VALUES (?,?,?,?)")->execute([$d['id'], $u['id'], 'Devolvida ao criador por '.$u['nome'], $justificativa]);
-        $pdo->prepare("INSERT INTO notificacoes (usuario_id, mensagem) VALUES (?,?)")->execute([$oc['criador_id'], "Sua tarefa {$oc['codigo']} foi devolvida: {$justificativa}"]);
+        // Volta setor_responsavel para o setor de quem criou
+        $pdo->prepare("UPDATE ocorrencias SET status='pendente', setor_responsavel=?, atualizado_em=NOW() WHERE id=?")->execute([$oc['criador_setor'], $d['id']]);
+        try {
+            $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao, justificativa) VALUES (?,?,?,?)")->execute([$d['id'], $u['id'], 'Devolvida por '.$u['nome'].' ('.$u['setor'].')', $justificativa]);
+        } catch(Exception $e) {
+            $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao) VALUES (?,?,?)")->execute([$d['id'], $u['id'], 'Devolvida por '.$u['nome'].': '.$justificativa]);
+        }
+        $pdo->prepare("INSERT INTO notificacoes (usuario_id, mensagem) VALUES (?,?)")->execute([$oc['criador_id'], "Sua tarefa {$oc['codigo']} foi devolvida — {$justificativa}"]);
         echo json_encode(['ok'=>true]);
 
     } elseif ($acao === 'concluir') {

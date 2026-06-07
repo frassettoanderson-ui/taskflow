@@ -992,7 +992,7 @@ async function abrirTarefa(id, readOnly=false){
   const isResp=(ME.setor===t.setor_responsavel&&!isMeu)||IS_GES_GER;
   const kanbanSetor=currentKanban==='setor';
   const podeTransferir=IS_GES_GER&&!readOnly&&kanbanSetor;
-  const podeDevolver=isResp&&t.status!=='pendente'&&!readOnly;
+  const podeDevolver=isResp&&t.status!=='concluida'&&!readOnly;
   const podeExcluir=isMeu&&!readOnly;
   const sl=SETOR_CL[t.setor_responsavel]||'s-adm';
   const mc=document.getElementById('modal-content');
@@ -1024,18 +1024,23 @@ async function abrirTarefa(id, readOnly=false){
       </div>
       <div class="task-chat-input"><input id="tmsg-${id}" placeholder="Mensagem..." onkeydown="if(event.key==='Enter')enviarMsgTarefa(${id})"><button onclick="enviarMsgTarefa(${id})"><i class="ti ti-send"></i></button></div>
     </div>`:''}
-    ${podeDevolver?`<div id="devolver-panel" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
-      <div class="field"><label>Motivo da devolução (obrigatório)</label><textarea id="devolver-just-${id}" style="width:100%;padding:8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);font-size:13px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;height:70px;outline:none" placeholder="Explique o motivo..."></textarea></div>
-      <div style="display:flex;gap:8px"><button class="btn-cancel" onclick="document.getElementById('devolver-panel').style.display='none'">Cancelar</button><button class="btn-cancel" onclick="devolverTarefa(${id})"><i class="ti ti-arrow-back-up"></i> Confirmar devolução</button></div>
+    ${podeDevolver?`<div id="devolver-panel" style="display:none;border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-top:12px;background:var(--surface2)">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px"><i class="ti ti-arrow-back-up"></i> Devolver tarefa</div>
+      <textarea id="devolver-just-${id}" style="width:100%;padding:10px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface3);font-size:13px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;height:80px;outline:none;display:block;margin-bottom:10px" placeholder="Explique o motivo da devolução..."></textarea>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-cancel" onclick="document.getElementById('devolver-panel').style.display='none'">Cancelar</button>
+        <button class="btn-ok" style="background:var(--orange,#f26522)" onclick="devolverTarefa(${id})"><i class="ti ti-arrow-back-up"></i> Confirmar devolução</button>
+      </div>
     </div>`:''}
-    ${podeTransferir?`<div id="transfer-panel" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
+    ${podeTransferir?`<div id="transfer-panel" style="display:none;border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-top:12px;background:var(--surface2)">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px"><i class="ti ti-arrows-transfer-up"></i> Transferir tarefa</div>
       <div class="field"><label>Transferir para</label><select id="transfer-user">${transferOpts}</select></div>
-      <div class="field"><label>Motivo da transferência</label><textarea id="transfer-motivo" style="width:100%;padding:8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);font-size:13px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;height:70px;outline:none" placeholder="Descreva o motivo..."></textarea></div>
-      <div style="display:flex;gap:8px"><button class="btn-cancel" onclick="document.getElementById('transfer-panel').style.display='none'">Cancelar</button><button class="btn-ok" onclick="transferirTarefa(${id})">Confirmar transferência</button></div>
+      <div class="field"><label>Motivo da transferência</label><textarea id="transfer-motivo" style="width:100%;padding:8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface3);font-size:13px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;height:70px;outline:none" placeholder="Descreva o motivo..."></textarea></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn-cancel" onclick="document.getElementById('transfer-panel').style.display='none'">Cancelar</button><button class="btn-ok" onclick="transferirTarefa(${id})">Confirmar transferência</button></div>
     </div>`:''}
     <div class="mfooter">
-      ${podeDevolver?`<button class="btn-cancel" onclick="const p=document.getElementById('devolver-panel');p.style.display=p.style.display==='none'?'block':'none'"><i class="ti ti-arrow-back-up"></i> Devolver</button>`:''}
-      ${podeTransferir?`<button class="btn-cancel" onclick="const p=document.getElementById('transfer-panel');p.style.display=p.style.display==='none'?'block':'none'"><i class="ti ti-arrows-transfer-up"></i> Transferir tarefa</button>`:''}
+      ${podeDevolver?`<button class="btn-cancel" onclick="const p=document.getElementById('devolver-panel');const t2=document.getElementById('transfer-panel');if(t2)t2.style.display='none';p.style.display=p.style.display==='none'?'block':'none';if(p.style.display==='block')document.getElementById('devolver-just-${id}').focus()"><i class="ti ti-arrow-back-up"></i> Devolver</button>`:''}
+      ${podeTransferir?`<button class="btn-cancel" onclick="const p=document.getElementById('transfer-panel');const d2=document.getElementById('devolver-panel');if(d2)d2.style.display='none';p.style.display=p.style.display==='none'?'block':'none'"><i class="ti ti-arrows-transfer-up"></i> Transferir tarefa</button>`:''}
       ${podeExcluir?`<button class="btn-danger" onclick="confirmarExcluir(${id})"><i class="ti ti-trash"></i> Excluir</button>`:''}
       <button class="btn-ok" style="margin-left:auto" onclick="fecharModal()">Fechar</button>
     </div>`;
