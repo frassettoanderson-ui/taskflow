@@ -41,6 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
     
+    $stmt_dest = $pdo->prepare("SELECT id FROM usuarios WHERE id=? AND ativo=1");
+    $stmt_dest->execute([$d['para_id']]);
+    if (!$stmt_dest->fetch()) { echo json_encode(['erro' => 'Usuário não encontrado.']); exit; }
+    if (strlen($d['mensagem'] ?? '') > 5000) { echo json_encode(['erro' => 'Mensagem muito longa.']); exit; }
+
     $pdo->prepare("INSERT INTO chat_privado (de_id, para_id, mensagem) VALUES (?,?,?)")->execute([$u['id'], $d['para_id'], $d['mensagem']]);
     
     // Notifica destinatário

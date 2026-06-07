@@ -21,7 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $d = json_decode(file_get_contents('php://input'), true);
     $pdo->prepare("INSERT INTO chat_geral (usuario_id, mensagem) VALUES (?,?)")->execute([$u['id'], $d['mensagem']]);
-    $outros = $pdo->query("SELECT id FROM usuarios WHERE id != {$u['id']} AND ativo = 1")->fetchAll();
+    $stmt_outros = $pdo->prepare("SELECT id FROM usuarios WHERE id != ? AND ativo = 1");
+    $stmt_outros->execute([$u['id']]);
+    $outros = $stmt_outros->fetchAll();
     foreach ($outros as $o) {
         $pdo->prepare("INSERT INTO chat_unread (usuario_id, qtd) VALUES (?,1) ON DUPLICATE KEY UPDATE qtd=qtd+1")->execute([$o['id']]);
     }
