@@ -22,9 +22,10 @@ if (isset($_SESSION['session_token'])) {
     } catch(Exception $e) {}
 }
 
-$since   = $_GET['since']       ?? date('Y-m-d H:i:s', strtotime('-5 seconds'));
-$lastId  = (int)($_GET['last_id']  ?? 0);
-$lastMsgId = (int)($_GET['last_msg_id'] ?? 0);
+$since      = $_GET['since']        ?? date('Y-m-d H:i:s', strtotime('-5 seconds'));
+$lastId     = (int)($_GET['last_id']   ?? 0);
+$lastMsgId  = (int)($_GET['last_msg_id']  ?? 0);
+$lastHistId = (int)($_GET['last_hist_id'] ?? 0);
 
 $setoresNivel = [
     'gestor'      => ['Direcao','Gerente','Financeiro','Administrativo'],
@@ -80,33 +81,37 @@ $novasMsgs->execute([$lastMsgId, $u['id'], $u['id']]);
 $msgNotifs = $novasMsgs->fetchAll();
 $maxMsgId  = $msgNotifs ? (int)max(array_column($msgNotifs, 'id')) : $lastMsgId;
 
-// Tarefas transferidas para o setor
+// Tarefas transferidas/devolvidas — usa ID do historico para evitar re-disparo
 $transferidas = $pdo->prepare("
-    SELECT o.*, u.nome as criador_nome
+    SELECT o.*, u.nome as criador_nome, h.id as hist_id
     FROM ocorrencia_historico h
     JOIN ocorrencias o ON o.id = h.ocorrencia_id
     JOIN usuarios u ON u.id = o.criador_id
-    WHERE h.criado_em > ?
+    WHERE h.id > ?
       AND h.acao LIKE 'Transferida%'
       AND o.setor_responsavel IN ($placeholders)
       AND o.criador_id != ?
 ");
-$transferidas->execute(array_merge([$since], $setores, [$u['id']]));
+$transferidas->execute(array_merge([$lastHistId], $setores, [$u['id']]));
 $transferidasArr = $transferidas->fetchAll();
 
 // Tarefas devolvidas para este usuário (ele é o criador)
 $devolvidas = $pdo->prepare("
-    SELECT o.*, u.nome as criador_nome
+    SELECT o.*, u.nome as criador_nome, h.id as hist_id
     FROM ocorrencia_historico h
     JOIN ocorrencias o ON o.id = h.ocorrencia_id
     JOIN usuarios u ON u.id = o.criador_id
-    WHERE h.criado_em > ?
+    WHERE h.id > ?
       AND h.acao LIKE 'Devolvida%'
       AND o.criador_id = ?
       AND o.concluida = 0
 ");
-$devolvidas->execute([$since, $u['id']]);
+$devolvidas->execute([$lastHistId, $u['id']]);
 $devolvidasArr = $devolvidas->fetchAll();
+
+// Maior ID do historico visto
+$allHistRows = array_merge($transferidasArr, $devolvidasArr);
+$maxHistId = $allHistRows ? (int)max(array_column($allHistRows, 'hist_id')) : $lastHistId;
 
 // Badge setor (unread)
 $badgeStmt = $pdo->prepare("
@@ -136,6 +141,7 @@ echo json_encode([
     'notif_count'    => $notifCount,
     'chat_count'     => $chatCount,
     'novas_tarefas'  => array_merge($novas, $transferidasArr, $devolvidasArr),
+    'max_hist_id'    => $maxHistId,
     'novas_msgs'     => $msgNotifs,
     'max_msg_id'     => $maxMsgId,
     'badge_setor'    => $badgeSetor,

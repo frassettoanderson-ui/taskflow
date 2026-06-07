@@ -608,6 +608,7 @@ let chatAberto=false;
 let lastPollTime=new Date(Date.now()-60000).toISOString().slice(0,19).replace('T',' ');
 let lastKnownId=0;
 let lastMsgId=0;
+let lastHistId=0;
 let lastChatTime=new Date(Date.now()-60000).toISOString().slice(0,19).replace('T',' ');
 let chatMsgCount=0;
 
@@ -702,7 +703,7 @@ function renderKanbanHeader(tipo){
 // ══ POLLING ══
 async function poll(){
   try{
-    const r=await fetch('api/polling.php?since='+encodeURIComponent(lastPollTime)+'&last_id='+lastKnownId+'&last_msg_id='+lastMsgId);
+    const r=await fetch('api/polling.php?since='+encodeURIComponent(lastPollTime)+'&last_id='+lastKnownId+'&last_msg_id='+lastMsgId+'&last_hist_id='+lastHistId);
     if(r.redirected||!r.ok){window.location.href='login.php';return;}
     const d=await r.json();
     // Sessão inválida (outro login detectado)
@@ -710,6 +711,7 @@ async function poll(){
     lastPollTime=d.timestamp;
     if(typeof d.max_id!=='undefined'&&d.max_id>lastKnownId)lastKnownId=d.max_id;
     if(typeof d.max_msg_id!=='undefined'&&d.max_msg_id>lastMsgId)lastMsgId=d.max_msg_id;
+    if(typeof d.max_hist_id!=='undefined'&&d.max_hist_id>lastHistId)lastHistId=d.max_hist_id;
     if(d.notif_count>0)document.getElementById('notif-dot').style.display='block';
     // Badge chat — usa contagem real do servidor (sem acumular)
     const bChat=document.getElementById('badge-chat');
