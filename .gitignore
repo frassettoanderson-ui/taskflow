@@ -1,0 +1,9 @@
+# Credenciais e configuração local
+academia/conexao.php
+
+# Arquivos de banco de dados
+*.sql
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
