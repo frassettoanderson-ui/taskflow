@@ -1,9 +1,12 @@
 <?php
 require 'auth.php';
+require 'conexao.php';
 $u = usuarioAtual();
 $nomes = explode(' ', $u['nome']);
 $ini = strtoupper(substr($nomes[0],0,1).(isset($nomes[1])?substr($nomes[1],0,1):''));
 $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
+// ID atual do historico — JS usa como ponto de partida para nao re-disparar eventos antigos
+$maxHistIdInit = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencia_historico")->fetchColumn();
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="dark">
@@ -608,7 +611,7 @@ let chatAberto=false;
 let lastPollTime=new Date(Date.now()-60000).toISOString().slice(0,19).replace('T',' ');
 let lastKnownId=0;
 let lastMsgId=0;
-let lastHistId=0;
+let lastHistId=<?= $maxHistIdInit ?>;
 let lastChatTime=new Date(Date.now()-60000).toISOString().slice(0,19).replace('T',' ');
 let chatMsgCount=0;
 
