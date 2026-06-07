@@ -68,12 +68,21 @@ if ($method === 'GET') {
         $novoU = $novoUsuario->fetch();
         
         $pdo->prepare("UPDATE ocorrencias SET setor_responsavel=? WHERE id=?")->execute([$novoU['setor'], $d['ocorrencia_id']]);
-        $motivo = isset($d['motivo']) ? ' — '.$d['motivo'] : '';
-        $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao, justificativa) VALUES (?,?,?,?)")->execute([
-            $d['ocorrencia_id'], $u['id'],
-            "Transferida para {$novoU['nome']} por {$u['nome']}",
-            $d['motivo'] ?? null
-        ]);
+        try {
+            $pdo->exec("ALTER TABLE ocorrencia_historico ADD COLUMN IF NOT EXISTS justificativa TEXT NULL DEFAULT NULL");
+        } catch(Exception $e) {}
+        try {
+            $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao, justificativa) VALUES (?,?,?,?)")->execute([
+                $d['ocorrencia_id'], $u['id'],
+                "Transferida para {$novoU['nome']} por {$u['nome']}",
+                $d['motivo'] ?? null
+            ]);
+        } catch(Exception $e) {
+            $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao) VALUES (?,?,?)")->execute([
+                $d['ocorrencia_id'], $u['id'],
+                "Transferida para {$novoU['nome']} por {$u['nome']}"
+            ]);
+        }
         $pdo->prepare("INSERT INTO notificacoes (usuario_id, mensagem) VALUES (?,?)")->execute([
             $d['usuario_id'],
             "Tarefa {$oc['codigo']} foi transferida para você"

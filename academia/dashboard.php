@@ -517,14 +517,9 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
             <div class="field"><label>ID do aluno</label><input type="text" id="s-alunoId" placeholder="Ex: A001"></div>
             <div class="field"><label>Setor</label><select id="s-setor"><option value="">Todos</option><option value="Financeiro">Financeiro</option><option value="Gerente">Gerente</option><option value="Direcao">Direção</option><option value="Administrativo">Administrativo</option></select></div>
             <div class="field"><label>Criador</label><input type="text" id="s-criador" placeholder="Nome do criador"></div>
+            <div class="field"><label>Status</label><select id="s-status"><option value="">Todos</option><option value="pendente">Pendente</option><option value="aceita">Aceita</option><option value="andamento">Em andamento</option><option value="concluida">Concluída</option></select></div>
             <div class="field"><label>Data início</label><input type="date" id="s-data-ini"></div>
             <div class="field"><label>Data fim</label><input type="date" id="s-data-fim"></div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--text2)">
-              <input type="checkbox" id="s-concluidas" style="width:16px;height:16px;accent-color:var(--accent)">
-              Incluir tarefas concluídas
-            </label>
           </div>
           <button class="btn-new" onclick="buscar()"><i class="ti ti-search"></i> <span class="btn-label">Buscar</span></button>
         </div>
@@ -708,6 +703,7 @@ function renderKanbanHeader(tipo){
 async function poll(){
   try{
     const r=await fetch('api/polling.php?since='+encodeURIComponent(lastPollTime)+'&last_id='+lastKnownId+'&last_msg_id='+lastMsgId);
+    if(r.redirected||!r.ok){window.location.href='login.php';return;}
     const d=await r.json();
     // Sessão inválida (outro login detectado)
     if(d.session_invalida){window.location.href='login.php';return;}
@@ -996,7 +992,7 @@ async function abrirTarefa(id, readOnly=false){
   const isResp=(ME.setor===t.setor_responsavel&&!isMeu)||IS_GES_GER;
   const kanbanSetor=currentKanban==='setor';
   const podeTransferir=IS_GES_GER&&!readOnly&&kanbanSetor;
-  const podeDevolver=isResp&&t.status!=='pendente'&&!readOnly&&kanbanSetor;
+  const podeDevolver=isResp&&t.status!=='pendente'&&!readOnly;
   const podeExcluir=isMeu&&!readOnly;
   const sl=SETOR_CL[t.setor_responsavel]||'s-adm';
   const mc=document.getElementById('modal-content');
@@ -1052,7 +1048,7 @@ async function transferirTarefa(id){
   if(!motivo){alert('Informe o motivo da transferência.');return;}
   await api('usuarios.php',{acao:'transferir_tarefa',ocorrencia_id:id,usuario_id:uid,motivo});
   tocarSomMSN();mostrarToast('✅ Transferida','Tarefa transferida com sucesso.');
-  fecharModal();await carregarTarefas();
+  fecharModal();await carregarTarefas();renderKanbanPage();
 }
 async function enviarMsgTarefa(id){
   const inp=document.getElementById('tmsg-'+id);if(!inp||!inp.value.trim())return;
@@ -1105,6 +1101,7 @@ function renderMetrics(){
   // Badge is updated by polling, not here
 }
 
+function cssColor(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()||'#888';}
 function renderCharts(){
   const sC=STATUS_ORDER.map(s=>tarefas.filter(t=>t.status===s).length);
   document.getElementById('leg-d').innerHTML=STATUS_ORDER.map((s,i)=>`<span class="leg-item"><span class="leg-sq" style="background:${STATUS_C[s]}"></span>${STATUS_L[s]} ${sC[i]}</span>`).join('');
@@ -1112,11 +1109,12 @@ function renderCharts(){
   chartD1=new Chart(document.getElementById('cd1'),{type:'doughnut',data:{labels:STATUS_ORDER.map(s=>STATUS_L[s]),datasets:[{data:sC,backgroundColor:STATUS_ORDER.map(s=>STATUS_C[s]),borderWidth:3,borderColor:'transparent',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
   const setores=['Financeiro','Gerente','Direcao','Administrativo'];
   if(chartD2)chartD2.destroy();
-  chartD2=new Chart(document.getElementById('cd2'),{type:'bar',data:{labels:['Financeiro','Gerente','Direção','Adm.'],datasets:[{data:setores.map(s=>tarefas.filter(t=>t.setor_responsavel===s).length),backgroundColor:['rgba(55,138,221,.8)','rgba(127,119,221,.8)','rgba(239,159,39,.8)','rgba(29,158,117,.8)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:12},color:'var(--text3)'}},y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11},color:'var(--text3)'},grid:{color:'rgba(255,255,255,.04)'}}}}});
+  const tickColor=cssColor('--text3');
+  chartD2=new Chart(document.getElementById('cd2'),{type:'bar',data:{labels:['Financeiro','Gerente','Direção','Adm.'],datasets:[{data:setores.map(s=>tarefas.filter(t=>t.setor_responsavel===s).length),backgroundColor:['rgba(55,138,221,.8)','rgba(127,119,221,.8)','rgba(239,159,39,.8)','rgba(29,158,117,.8)'],borderRadius:8,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:12},color:tickColor}},y:{beginAtZero:true,ticks:{stepSize:1,font:{size:11},color:tickColor},grid:{color:'rgba(128,128,128,.08)'}}}}});
   // Prioridade
   const pC=['alta','media','baixa'].map(p=>tarefas.filter(t=>t.prioridade===p).length);
   if(chartPrio)chartPrio.destroy();
-  chartPrio=new Chart(document.getElementById('cd-prio'),{type:'doughnut',data:{labels:['Alta','Média','Baixa'],datasets:[{data:pC,backgroundColor:['rgba(226,75,74,.8)','rgba(239,159,39,.8)','rgba(99,153,34,.8)'],borderWidth:3,borderColor:'transparent',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'var(--text2)',font:{size:12},padding:12}}}}});
+  chartPrio=new Chart(document.getElementById('cd-prio'),{type:'doughnut',data:{labels:['Alta','Média','Baixa'],datasets:[{data:pC,backgroundColor:['rgba(226,75,74,.8)','rgba(239,159,39,.8)','rgba(99,153,34,.8)'],borderWidth:3,borderColor:'transparent',hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:cssColor('--text2'),font:{size:12},padding:12}}}}});
   // Urgentes
   const urgentes=tarefas.filter(t=>t.prioridade==='alta'&&t.status!=='concluida').slice(0,4);
   document.getElementById('urgentes-list').innerHTML=urgentes.length?urgentes.map(t=>`<div class="urgente-item" onclick="abrirTarefa(${t.id})" style="cursor:pointer"><div class="urgente-dot"></div><div class="urgente-info"><div class="urgente-title">${t.codigo} — ${t.tipo}</div><div class="urgente-meta">${SETOR_L[t.setor_responsavel]||t.setor_responsavel} · ${STATUS_L[t.status]}</div></div></div>`).join(''):'<div style="font-size:13px;color:var(--text3);padding:12px 0;text-align:center"><i class="ti ti-check" style="font-size:20px;display:block;margin-bottom:4px;color:var(--green)"></i>Nenhuma urgente!</div>';
@@ -1412,15 +1410,17 @@ function buscar(){
   const al=document.getElementById('s-aluno').value.toLowerCase();
   const ai=document.getElementById('s-alunoId').value.toLowerCase();
   const st=document.getElementById('s-setor').value;
+  const status=document.getElementById('s-status').value;
   const cr=document.getElementById('s-criador').value.toLowerCase();
-  const inclConcl=document.getElementById('s-concluidas')?.checked;
   const dataIni=document.getElementById('s-data-ini').value;
   const dataFim=document.getElementById('s-data-fim').value;
-  const pool=inclConcl?[...tarefas,...tarefasConcluidas]:tarefas;
+  // Sempre inclui concluídas na busca (pool completo)
+  const pool=[...tarefas,...tarefasConcluidas.filter(t=>!tarefas.find(x=>x.id==t.id))];
   const res=pool.filter(t=>{
     if(al&&!(t.nome_aluno||'').toLowerCase().includes(al))return false;
     if(ai&&!(t.id_aluno||'').toLowerCase().includes(ai))return false;
     if(st&&t.setor_responsavel!==st)return false;
+    if(status&&t.status!==status)return false;
     if(cr&&!(t.criador_nome||'').toLowerCase().includes(cr))return false;
     if(dataIni&&(t.criado_em||'')<dataIni)return false;
     if(dataFim&&(t.criado_em||'')>dataFim+' 23:59:59')return false;
@@ -1458,7 +1458,7 @@ function abrirModal(tipo){
           <img id="img-preview" class="img-preview" style="display:none">
         </div>
       </div>
-      <div class="field"><label>Setor responsável</label><select id="f-setor"><option value="Financeiro">Financeiro</option><option value="Gerente">Gerente</option><option value="Direcao">Direção</option><option value="Administrativo">Administrativo</option></select></div>
+      <div class="field"><label>Setor responsável</label><select id="f-setor">${setoresList.filter(s=>s!==ME.setor).map(s=>`<option value="${s}">${SETOR_L[s]||s}</option>`).join('')}</select></div>
       <div class="field"><label>Prioridade</label><select id="f-prio"><option value="alta">Alta</option><option value="media" selected>Média</option><option value="baixa">Baixa</option></select></div>
       <div class="mfooter"><button class="btn-cancel" onclick="fecharModal()">Cancelar</button><button class="btn-ok" onclick="criarOcorrencia()">Registrar</button></div>`;
     autoSetor();
