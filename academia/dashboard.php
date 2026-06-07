@@ -18,7 +18,7 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
     :root,[data-theme="dark"]{
       --bg:#141414;--surface:#1e1e1e;--surface2:#252525;--surface3:#2e2e2e;
       --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
-      --text:#f0efe9;--text2:#aaa;--text3:#555;--text4:#333;
+      --text:#f0efe9;--text2:#b0b0b0;--text3:#777;--text4:#555;
       --accent:#F26522;--accent2:#ff8c4a;--accent-hover:#d4551a;
       --sidebar:#181818;--card:#1e1e1e;
       --green:#1D9E75;--blue:#378ADD;--amber:#EF9F27;--red:#E24B4A;--purple:#7F77DD;
@@ -303,6 +303,11 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
     .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);background:var(--surface3)}
     .field textarea{resize:vertical;min-height:80px}
     .mfooter{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+    .tipo-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)}
+    .tipo-row:last-child{border-bottom:none}
+    .tipo-nome{flex:1;font-size:14px;color:var(--text1)}
+    .icon-btn.danger{background:transparent;border:none;color:#e55;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background .2s}
+    .icon-btn.danger:hover{background:rgba(230,80,80,.12)}
     .btn-cancel{padding:10px 16px;border-radius:var(--r);border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
     .btn-cancel:hover{background:var(--surface2)}
     .btn-ok{padding:10px 16px;border-radius:var(--r);border:none;background:var(--accent);color:white;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .2s}
@@ -512,6 +517,8 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
             <div class="field"><label>ID do aluno</label><input type="text" id="s-alunoId" placeholder="Ex: A001"></div>
             <div class="field"><label>Setor</label><select id="s-setor"><option value="">Todos</option><option value="Financeiro">Financeiro</option><option value="Gerente">Gerente</option><option value="Direcao">Direção</option><option value="Administrativo">Administrativo</option></select></div>
             <div class="field"><label>Criador</label><input type="text" id="s-criador" placeholder="Nome do criador"></div>
+            <div class="field"><label>Data início</label><input type="date" id="s-data-ini"></div>
+            <div class="field"><label>Data fim</label><input type="date" id="s-data-fim"></div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px;color:var(--text2)">
@@ -529,8 +536,13 @@ $isGesGer = in_array($u['nivel'], ['gestor','gerente']);
       <div class="page-section" id="page-configuracoes">
         <div class="config-section">
           <div class="config-title"><i class="ti ti-tag" style="color:var(--accent)"></i> Tipos de ocorrência</div>
-          <div id="tipos-list"></div>
-          <button class="btn-new" style="margin-top:12px" onclick="abrirModal('novo-tipo-config')"><i class="ti ti-plus"></i> Novo tipo</button>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Gerencie os tipos disponíveis para abertura de ocorrências.</div>
+          <button class="btn-new" onclick="abrirTiposPopup()"><i class="ti ti-settings"></i> Alterar tipos de ocorrência</button>
+        </div>
+        <div class="config-section">
+          <div class="config-title"><i class="ti ti-building" style="color:var(--accent)"></i> Setores</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:14px">Crie novos setores para o sistema.</div>
+          <button class="btn-new" onclick="abrirSetoresPopup()"><i class="ti ti-settings"></i> Gerenciar setores</button>
         </div>
         <div class="config-section">
           <div class="config-title"><i class="ti ti-bell" style="color:var(--accent)"></i> Notificações</div>
@@ -593,13 +605,14 @@ const STATUS_C={pendente:'#888780',aceita:'#378ADD',andamento:'#EF9F27',concluid
 const STATUS_ORDER=['pendente','aceita','andamento','concluida'];
 const TIPO_SETOR_MAP={'Cancelamento de matrícula':'Financeiro','Solicitação de reembolso':'Financeiro','Pedido de desconto':'Financeiro','Reclamação de aluno':'Gerente','Problema com equipamento':'Administrativo','Solicitação de relatório':'Direcao','Contratação/demissão':'Direcao'};
 
-let tarefas=[],tarefasConcluidas=[],tiposList=[],usuariosList=[];
+let tarefas=[],tarefasConcluidas=[],tiposList=[],usuariosList=[],setoresList=['Financeiro','Gerente','Direcao','Administrativo'];
 let dragId=null,dragFromStatus=null;
 let chartD1=null,chartD2=null,chartPrio=null;
 let currentKanban='setor';
 let chatAberto=false;
 let lastPollTime=new Date(Date.now()-60000).toISOString().slice(0,19).replace('T',' ');
 let lastKnownId=0;
+let lastMsgId=0;
 let lastChatTime=new Date(Date.now()-60000).toISOString().slice(0,19).replace('T',' ');
 let chatMsgCount=0;
 
@@ -694,19 +707,19 @@ function renderKanbanHeader(tipo){
 // ══ POLLING ══
 async function poll(){
   try{
-    const r=await fetch('api/polling.php?since='+encodeURIComponent(lastPollTime)+'&last_id='+lastKnownId);
+    const r=await fetch('api/polling.php?since='+encodeURIComponent(lastPollTime)+'&last_id='+lastKnownId+'&last_msg_id='+lastMsgId);
     const d=await r.json();
+    // Sessão inválida (outro login detectado)
+    if(d.session_invalida){window.location.href='login.php';return;}
     lastPollTime=d.timestamp;
     if(typeof d.max_id!=='undefined'&&d.max_id>lastKnownId)lastKnownId=d.max_id;
+    if(typeof d.max_msg_id!=='undefined'&&d.max_msg_id>lastMsgId)lastMsgId=d.max_msg_id;
     if(d.notif_count>0)document.getElementById('notif-dot').style.display='block';
-    // Chat
-    if(d.chat_count>0&&!chatAberto){
-      const b=document.getElementById('badge-chat');
-      b.textContent=parseInt(b.textContent||0)+d.chat_count;
-      b.style.display='inline';
-    }
+    // Badge chat — usa contagem real do servidor (sem acumular)
+    const bChat=document.getElementById('badge-chat');
+    bChat.textContent=d.chat_count||0;
+    bChat.style.display=(d.chat_count>0&&!chatAberto)?'inline':'none';
     if(d.chat_count>0&&chatAberto)carregarChatSince();
-    // Private message badges
     if(chatAberto) atualizarBadgesPrivados();
     // Novas tarefas
     if(d.novas_tarefas&&d.novas_tarefas.length>0&&userConfig.notif_ativa){
@@ -717,8 +730,7 @@ async function poll(){
       await carregarTarefas();
       if(document.getElementById('page-kanban').classList.contains('active'))renderKanbanPage();
     }
-    // Badge setor — usa contagem do servidor (fonte da verdade)
-    // Mensagens internas respondidas → som + toast para criador
+    // Mensagens internas — usa ID para não repetir
     if(d.novas_msgs&&d.novas_msgs.length>0&&userConfig.notif_ativa){
       d.novas_msgs.forEach(m=>{
         mostrarToast('💬 Nova mensagem!',`Resposta na tarefa ${m.codigo} — ${m.tipo}`);
@@ -726,13 +738,12 @@ async function poll(){
       });
       await carregarTarefas();
     }
-    // Badge com cor por prioridade
+    // Badge setor — fonte da verdade é o servidor
     const bOc=document.getElementById('badge-oc');
     if(typeof d.badge_setor !== 'undefined'){
       bOc.textContent=d.badge_setor;
       bOc.style.display=d.badge_setor>0?'inline':'none';
       bOc.classList.toggle('blink',d.badge_setor>0);
-      // Laranja se tem alta prioridade, vermelho se normal
       bOc.style.background=d.tem_alta?'var(--accent)':'var(--red)';
     }
   }catch(e){}
@@ -817,7 +828,7 @@ function renderKanbanConcluidas(){
       </div>
       <div style="display:grid;grid-template-columns:1fr;gap:8px">
         ${euConclui.length?euConclui.map(t=>`
-          <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--green);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .2s" onclick="abrirTarefa(${t.id})">
+          <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--green);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .2s" onclick="abrirTarefa(${t.id},true)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
               <span style="font-size:11px;color:var(--text3)">${t.codigo}</span>
               <span style="font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(29,158,117,.15);color:var(--green);font-weight:500">Concluída</span>
@@ -836,7 +847,7 @@ function renderKanbanConcluidas(){
       </div>
       <div style="display:grid;grid-template-columns:1fr;gap:8px">
         ${euSolicitei.length?euSolicitei.map(t=>`
-          <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .2s" onclick="abrirTarefa(${t.id})">
+          <div style="background:var(--card);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:var(--r);padding:14px;cursor:pointer;transition:all .2s" onclick="abrirTarefa(${t.id},true)">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
               <span style="font-size:11px;color:var(--text3)">${t.codigo}</span>
               <span style="font-size:11px;padding:2px 8px;border-radius:8px;background:rgba(242,101,34,.15);color:var(--accent);font-weight:500">Concluída</span>
@@ -970,26 +981,29 @@ async function onDrop(e,novoStatus){
   else if(novoStatus!==dragFromStatus&&currentKanban!=='setor'){}// read only
 }
 
-async function abrirTarefa(id){
-  const t=tarefas.find(x=>x.id==id);if(!t)return;
-  if(t.tem_unread){
+async function abrirTarefa(id, readOnly=false){
+  const t=tarefas.find(x=>x.id==id)||tarefasConcluidas.find(x=>x.id==id);
+  if(!t)return;
+  if(t.tem_unread&&!readOnly){
     await api('ocorrencias.php',{acao:'marcar_lida',id});
     t.tem_unread=false;
     renderKanbanPage();
-    // Recount badge
     const nv=tarefas.filter(t=>t.setor_responsavel===ME.setor&&t.criador_id!=ME.id&&t.tem_unread).length;
     const bOc=document.getElementById('badge-oc');
     bOc.textContent=nv;bOc.style.display=nv>0?'inline':'none';
   }
   const isMeu=t.criador_id==ME.id;
   const isResp=(ME.setor===t.setor_responsavel&&!isMeu)||IS_GES_GER;
+  const kanbanSetor=currentKanban==='setor';
+  const podeTransferir=IS_GES_GER&&!readOnly&&kanbanSetor;
+  const podeDevolver=isResp&&t.status!=='pendente'&&!readOnly&&kanbanSetor;
+  const podeExcluir=isMeu&&!readOnly;
   const sl=SETOR_CL[t.setor_responsavel]||'s-adm';
   const mc=document.getElementById('modal-content');
-  let transferBtn='';
-  if(IS_GES_GER){
+  let transferOpts='';
+  if(podeTransferir){
     const users=await api('usuarios.php');
-    const opts=users.filter(u=>u.id!=ME.id).map(u=>`<option value="${u.id}">${u.nome.split(' ')[0]} — ${SETOR_L[u.setor]||u.setor}</option>`).join('');
-    transferBtn=`<div class="field"><label>Transferir tarefa</label><div style="display:flex;gap:6px"><select id="transfer-user" style="flex:1">${opts}</select><button class="btn-ok" onclick="transferirTarefa(${id})" style="padding:10px 12px;white-space:nowrap">Transferir</button></div></div>`;
+    transferOpts=users.filter(u=>u.id!=ME.id).map(u=>`<option value="${u.id}">${u.nome.split(' ')[0]} — ${SETOR_L[u.setor]||u.setor}</option>`).join('');
   }
   const imgSection=t.imagem?`<img src="uploads/ocorrencias/${t.imagem}" style="width:100%;max-height:200px;object-fit:cover;border-radius:var(--r);margin-bottom:12px;border:1px solid var(--border)" alt="Imagem da ocorrência">`:'';
   mc.innerHTML=`<h3><i class="ti ti-clipboard-text"></i> ${t.codigo} — ${t.tipo}</h3>
@@ -1002,22 +1016,31 @@ async function abrirTarefa(id){
     ${t.nome_aluno?`<div style="font-size:13px;color:var(--text2);margin-bottom:10px"><i class="ti ti-user"></i> ${t.nome_aluno}${t.id_aluno?' · ID: '+t.id_aluno:''}</div>`:''}
     ${imgSection}
     <div class="task-desc">${t.descricao}</div>
-    ${transferBtn}
     <div style="margin-bottom:12px">
       <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em">Histórico</div>
       ${(t.timeline||[]).map(tl=>`<div class="tl-item"><div class="tl-dot"></div><span>${tl}</span></div>`).join('')||'<div class="tl-item"><div class="tl-dot"></div><span>Sem histórico</span></div>'}
     </div>
     ${(t.vistas&&t.vistas.length>0)?`<div style="font-size:11px;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:5px"><i class="ti ti-eye" style="font-size:13px"></i> Visto por: ${t.vistas.map(v=>v.nome.split(' ')[0]+' ('+v.visto_em.substr(11,5)+')').join(', ')}</div>`:'<div style="font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:5px"><i class="ti ti-eye-off" style="font-size:13px"></i> Ainda não foi visto pelo responsável</div>'}
-    <div style="border-top:1px solid var(--border);padding-top:12px">
+    ${!readOnly?`<div style="border-top:1px solid var(--border);padding-top:12px">
       <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px"><i class="ti ti-message-dots" style="vertical-align:-2px;margin-right:4px"></i> Mensagens</div>
       <div class="task-msgs">
         ${(t.msgs||[]).length?(t.msgs||[]).map(m=>{const mine=m.usuario_id==ME.id;return`<div class="task-msg ${mine?'mine':'other'}"><div class="task-msg-who">${(m.nome||'').split(' ')[0]}</div>${m.mensagem}<div style="font-size:10px;margin-top:2px;opacity:.6">${(m.criado_em||'').substr(11,5)}</div></div>`}).join(''):'<div style="font-size:13px;color:var(--text3);text-align:center;padding:10px 0">Nenhuma mensagem ainda</div>'}
       </div>
       <div class="task-chat-input"><input id="tmsg-${id}" placeholder="Mensagem..." onkeydown="if(event.key==='Enter')enviarMsgTarefa(${id})"><button onclick="enviarMsgTarefa(${id})"><i class="ti ti-send"></i></button></div>
-    </div>
+    </div>`:''}
+    ${podeDevolver?`<div id="devolver-panel" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
+      <div class="field"><label>Motivo da devolução (obrigatório)</label><textarea id="devolver-just-${id}" style="width:100%;padding:8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);font-size:13px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;height:70px;outline:none" placeholder="Explique o motivo..."></textarea></div>
+      <div style="display:flex;gap:8px"><button class="btn-cancel" onclick="document.getElementById('devolver-panel').style.display='none'">Cancelar</button><button class="btn-cancel" onclick="devolverTarefa(${id})"><i class="ti ti-arrow-back-up"></i> Confirmar devolução</button></div>
+    </div>`:''}
+    ${podeTransferir?`<div id="transfer-panel" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
+      <div class="field"><label>Transferir para</label><select id="transfer-user">${transferOpts}</select></div>
+      <div class="field"><label>Motivo da transferência</label><textarea id="transfer-motivo" style="width:100%;padding:8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);font-size:13px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;height:70px;outline:none" placeholder="Descreva o motivo..."></textarea></div>
+      <div style="display:flex;gap:8px"><button class="btn-cancel" onclick="document.getElementById('transfer-panel').style.display='none'">Cancelar</button><button class="btn-ok" onclick="transferirTarefa(${id})">Confirmar transferência</button></div>
+    </div>`:''}
     <div class="mfooter">
-      ${isResp&&t.status!=='pendente'?`<div style="width:100%;margin-bottom:8px"><div class="field"><label style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:4px">Motivo da devolução (obrigatório)</label><textarea id="devolver-just-${id}" style="width:100%;padding:8px 12px;border-radius:var(--r);border:1px solid var(--border);background:var(--surface2);font-size:13px;font-family:DM Sans,sans-serif;color:var(--text);resize:none;height:60px;outline:none" placeholder="Explique o motivo..."></textarea></div><button class="btn-cancel" onclick="devolverTarefa(${id})"><i class="ti ti-arrow-back-up"></i> Devolver</button></div>`:''}
-      ${isMeu?`<button class="btn-danger" onclick="confirmarExcluir(${id})"><i class="ti ti-trash"></i> Excluir</button>`:''}
+      ${podeDevolver?`<button class="btn-cancel" onclick="const p=document.getElementById('devolver-panel');p.style.display=p.style.display==='none'?'block':'none'"><i class="ti ti-arrow-back-up"></i> Devolver</button>`:''}
+      ${podeTransferir?`<button class="btn-cancel" onclick="const p=document.getElementById('transfer-panel');p.style.display=p.style.display==='none'?'block':'none'"><i class="ti ti-arrows-transfer-up"></i> Transferir tarefa</button>`:''}
+      ${podeExcluir?`<button class="btn-danger" onclick="confirmarExcluir(${id})"><i class="ti ti-trash"></i> Excluir</button>`:''}
       <button class="btn-ok" style="margin-left:auto" onclick="fecharModal()">Fechar</button>
     </div>`;
   document.getElementById('modal-bg').classList.add('open');
@@ -1025,7 +1048,9 @@ async function abrirTarefa(id){
 
 async function transferirTarefa(id){
   const uid=document.getElementById('transfer-user').value;
-  await api('usuarios.php',{acao:'transferir_tarefa',ocorrencia_id:id,usuario_id:uid});
+  const motivo=(document.getElementById('transfer-motivo')?.value||'').trim();
+  if(!motivo){alert('Informe o motivo da transferência.');return;}
+  await api('usuarios.php',{acao:'transferir_tarefa',ocorrencia_id:id,usuario_id:uid,motivo});
   tocarSomMSN();mostrarToast('✅ Transferida','Tarefa transferida com sucesso.');
   fecharModal();await carregarTarefas();
 }
@@ -1103,10 +1128,13 @@ function renderCharts(){
 
 async function renderRelatorio(){
   const rc=document.getElementById('rel-content');
-  const total=tarefas.length;
-  const concl=tarefas.filter(t=>t.concluida==1).length;
-  const pend=tarefas.filter(t=>t.status==='pendente').length;
-  const alta=tarefas.filter(t=>t.prioridade==='alta'&&!t.concluida).length;
+  const hoje=new Date().toISOString().slice(0,10);
+  const pool=[...tarefas,...tarefasConcluidas.filter(t=>!tarefas.find(x=>x.id==t.id))];
+  const tarefasHoje=pool.filter(t=>(t.criado_em||'').startsWith(hoje));
+  const total=tarefasHoje.length;
+  const concl=tarefasHoje.filter(t=>t.concluida==1).length;
+  const pend=tarefasHoje.filter(t=>t.status==='pendente').length;
+  const alta=tarefasHoje.filter(t=>t.prioridade==='alta'&&!t.concluida).length;
   const taxaConc=total>0?Math.round(concl/total*100):0;
   if(IS_GES_GER){
     const users=await api('usuarios.php');
@@ -1273,6 +1301,7 @@ async function carregarMsgsGeral(){
   const msgs=await api('chat.php');
   chatLastMsg=msgs.length?msgs[msgs.length-1].criado_em:'';
   renderChatMsgs(msgs,'geral');
+  api('chat.php',{acao:'limpar_unread'});
 }
 
 async function carregarMsgsPrivado(userId){
@@ -1385,9 +1414,19 @@ function buscar(){
   const st=document.getElementById('s-setor').value;
   const cr=document.getElementById('s-criador').value.toLowerCase();
   const inclConcl=document.getElementById('s-concluidas')?.checked;
+  const dataIni=document.getElementById('s-data-ini').value;
+  const dataFim=document.getElementById('s-data-fim').value;
   const pool=inclConcl?[...tarefas,...tarefasConcluidas]:tarefas;
-  const res=pool.filter(t=>(!al||(t.nome_aluno||'').toLowerCase().includes(al))&&(!ai||(t.id_aluno||'').toLowerCase().includes(ai))&&(!st||t.setor_responsavel===st)&&(!cr||(t.criador_nome||'').toLowerCase().includes(cr)));
-  document.getElementById('search-results').innerHTML=res.length?res.map(t=>`<div class="result-card" onclick="abrirTarefa(${t.id})"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:14px;font-weight:600">${t.codigo} — ${t.tipo}</span><span style="font-size:12px;padding:3px 10px;border-radius:8px;background:${STATUS_C[t.status]};color:white">${STATUS_L[t.status]}</span></div>${t.nome_aluno?`<div style="font-size:13px;color:var(--text3);margin-bottom:5px"><i class="ti ti-user" style="font-size:12px"></i> ${t.nome_aluno}${t.id_aluno?' · '+t.id_aluno:''}</div>`:''}<div style="display:flex;gap:8px"><span class="kcard-setor ${SETOR_CL[t.setor_responsavel]||'s-adm'}">${SETOR_L[t.setor_responsavel]||t.setor_responsavel}</span><span style="font-size:12px;color:var(--text3)">Por: ${(t.criador_nome||'').split(' ')[0]}</span></div></div>`).join(''):'<div style="font-size:14px;color:var(--text3);text-align:center;padding:30px">Nenhum resultado.</div>';
+  const res=pool.filter(t=>{
+    if(al&&!(t.nome_aluno||'').toLowerCase().includes(al))return false;
+    if(ai&&!(t.id_aluno||'').toLowerCase().includes(ai))return false;
+    if(st&&t.setor_responsavel!==st)return false;
+    if(cr&&!(t.criador_nome||'').toLowerCase().includes(cr))return false;
+    if(dataIni&&(t.criado_em||'')<dataIni)return false;
+    if(dataFim&&(t.criado_em||'')>dataFim+' 23:59:59')return false;
+    return true;
+  });
+  document.getElementById('search-results').innerHTML=res.length?res.map(t=>`<div class="result-card" onclick="abrirTarefa(${t.id},true)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><span style="font-size:14px;font-weight:600">${t.codigo} — ${t.tipo}</span><span style="font-size:12px;padding:3px 10px;border-radius:8px;background:${STATUS_C[t.status]};color:white">${STATUS_L[t.status]}</span></div>${t.nome_aluno?`<div style="font-size:13px;color:var(--text3);margin-bottom:5px"><i class="ti ti-user" style="font-size:12px"></i> ${t.nome_aluno}${t.id_aluno?' · '+t.id_aluno:''}</div>`:''}<div style="display:flex;gap:8px"><span class="kcard-setor ${SETOR_CL[t.setor_responsavel]||'s-adm'}">${SETOR_L[t.setor_responsavel]||t.setor_responsavel}</span><span style="font-size:12px;color:var(--text3)">Por: ${(t.criador_nome||'').split(' ')[0]}</span><span style="font-size:12px;color:var(--text3)">${(t.criado_em||'').substr(0,10)}</span></div></div>`).join(''):'<div style="font-size:14px;color:var(--text3);text-align:center;padding:30px">Nenhum resultado.</div>';
 }
 
 // ══ NOTIFICAÇÕES ══
@@ -1484,6 +1523,87 @@ async function criarUsuario(){
   if(res.erro){alert(res.erro);return;}fecharModal();carregarUsuarios();
 }
 
+// ══ POPUP TIPOS ══
+async function abrirTiposPopup(){
+  const tipos=await api('configuracoes.php');
+  const sl={Financeiro:'s-fin',Gerente:'s-ger',Direcao:'s-dir',Administrativo:'s-adm'};
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`<h3><i class="ti ti-tag"></i> Tipos de ocorrência</h3>
+    <div id="tipos-popup-list" style="margin-bottom:16px">
+      ${tipos.map(t=>`<div class="tipo-row"><div class="tipo-nome">${t.nome}</div><span class="tipo-setor kcard-setor ${sl[t.setor]||'s-adm'}">${SETOR_L[t.setor]||t.setor}</span><button class="icon-btn danger" onclick="excluirTipoPopup(${t.id},'${t.nome.replace(/'/g,"\\'")}')" title="Excluir"><i class="ti ti-trash"></i></button></div>`).join('')||'<div style="font-size:13px;color:var(--text3);text-align:center;padding:12px">Nenhum tipo cadastrado</div>'}
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px">Novo tipo</div>
+      <div class="field"><label>Nome</label><input type="text" id="nt2-nome" placeholder="Ex: Troca de plano"></div>
+      <div class="field"><label>Setor padrão</label><select id="nt2-setor"><option value="Financeiro">Financeiro</option><option value="Gerente">Gerente</option><option value="Direcao">Direção</option><option value="Administrativo">Administrativo</option></select></div>
+      <button class="btn-ok" onclick="criarTipoPopup()"><i class="ti ti-plus"></i> Criar tipo</button>
+    </div>
+    <div class="mfooter"><button class="btn-ok" style="margin-left:auto" onclick="fecharModal()">Fechar</button></div>`;
+  document.getElementById('modal-bg').classList.add('open');
+}
+async function criarTipoPopup(){
+  const n=document.getElementById('nt2-nome').value.trim();
+  const s=document.getElementById('nt2-setor').value;
+  if(!n){alert('Digite o nome do tipo.');return;}
+  const res=await api('configuracoes.php',{acao:'criar',nome:n,setor:s});
+  if(res.erro){alert(res.erro);return;}
+  await carregarTipos();
+  abrirTiposPopup();
+}
+async function excluirTipoPopup(id,nome){
+  if(!confirm(`Excluir o tipo "${nome}"?`))return;
+  const res=await api('configuracoes.php',{acao:'excluir',id});
+  if(res.erro){alert(res.erro);return;}
+  await carregarTipos();
+  abrirTiposPopup();
+}
+
+// ══ POPUP SETORES ══
+async function abrirSetoresPopup(){
+  const setores=await api('configuracoes.php?tipo=setores');
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`<h3><i class="ti ti-building"></i> Setores</h3>
+    <div style="margin-bottom:16px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Setores padrão do sistema: Financeiro, Gerente, Direção, Administrativo</div>
+      ${setores.map(s=>`<div class="tipo-row"><div class="tipo-nome">${s.nome}</div><button class="icon-btn danger" onclick="excluirSetorPopup(${s.id},'${s.nome.replace(/'/g,"\\'")}')" title="Excluir"><i class="ti ti-trash"></i></button></div>`).join('')||'<div style="font-size:13px;color:var(--text3);padding:8px 0">Nenhum setor adicional cadastrado</div>'}
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:10px">Novo setor</div>
+      <div class="field"><label>Nome do setor</label><input type="text" id="ns-nome" placeholder="Ex: Recepção"></div>
+      <button class="btn-ok" onclick="criarSetorPopup()"><i class="ti ti-plus"></i> Criar setor</button>
+    </div>
+    <div class="mfooter"><button class="btn-ok" style="margin-left:auto" onclick="fecharModal()">Fechar</button></div>`;
+  document.getElementById('modal-bg').classList.add('open');
+}
+async function criarSetorPopup(){
+  const n=document.getElementById('ns-nome').value.trim();
+  if(!n){alert('Digite o nome do setor.');return;}
+  const res=await api('configuracoes.php',{acao:'criar_setor',nome:n});
+  if(res.erro){alert(res.erro);return;}
+  await carregarSetores();
+  abrirSetoresPopup();
+}
+async function excluirSetorPopup(id,nome){
+  if(!confirm(`Excluir o setor "${nome}"?`))return;
+  await api('configuracoes.php',{acao:'excluir_setor',id});
+  await carregarSetores();
+  abrirSetoresPopup();
+}
+
+// ══ SETORES DINÂMICOS ══
+async function carregarSetores(){
+  try{
+    const extras=await api('configuracoes.php?tipo=setores');
+    extras.forEach(s=>{
+      if(!setoresList.includes(s.nome)){
+        setoresList.push(s.nome);
+        SETOR_L[s.nome]=s.nome;
+        SETOR_CL[s.nome]='s-adm';
+      }
+    });
+  }catch(e){}
+}
+
 function renderAll(){renderMetrics();renderCharts();}
 function toggleConfig(tipo){
   if(tipo==='som'){
@@ -1516,6 +1636,7 @@ function filtrarRelatorio(){
 
 (async()=>{
   await carregarTipos();
+  await carregarSetores();
   await carregarTarefas();
   try{const cfg=await api('config_usuario.php');if(cfg){userConfig=cfg;aplicarConfig();}}catch(e){}
 })();

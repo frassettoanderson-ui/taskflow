@@ -78,6 +78,10 @@ if ($method === 'GET') {
     $acao = $d['acao'] ?? 'criar';
 
     if ($acao === 'criar') {
+        if (($d['setor'] ?? '') === $u['setor']) {
+            echo json_encode(['erro' => 'Não é permitido criar ocorrências para o próprio setor.']);
+            exit;
+        }
         $pdo->beginTransaction();
         $codigo = 'OC-' . str_pad($pdo->query("SELECT COUNT(*)+1 FROM ocorrencias FOR UPDATE")->fetchColumn(), 3, '0', STR_PAD_LEFT);
         $stmt = $pdo->prepare("INSERT INTO ocorrencias (codigo, tipo, descricao, nome_aluno, id_aluno, setor_responsavel, prioridade, status, criador_id) VALUES (?,?,?,?,?,?,?,?,?)");

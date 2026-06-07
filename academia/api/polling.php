@@ -6,8 +6,25 @@ header('Content-Type: application/json');
 header('Cache-Control: no-cache');
 
 $u = usuarioAtual();
-$since = $_GET['since'] ?? date('Y-m-d H:i:s', strtotime('-5 seconds'));
-$lastId = (int)($_GET['last_id'] ?? 0);
+
+// Sessão única: verifica se este token ainda é o ativo
+if (isset($_SESSION['session_token'])) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS sessoes_ativas (usuario_id INT PRIMARY KEY, token VARCHAR(64) NOT NULL, atualizado_em DATETIME)");
+        $sessStmt = $pdo->prepare("SELECT token FROM sessoes_ativas WHERE usuario_id=?");
+        $sessStmt->execute([$u['id']]);
+        $sessRow = $sessStmt->fetch();
+        if ($sessRow && $sessRow['token'] !== $_SESSION['session_token']) {
+            session_destroy();
+            echo json_encode(['session_invalida' => true]);
+            exit;
+        }
+    } catch(Exception $e) {}
+}
+
+$since   = $_GET['since']       ?? date('Y-m-d H:i:s', strtotime('-5 seconds'));
+$lastId  = (int)($_GET['last_id']  ?? 0);
+$lastMsgId = (int)($_GET['last_msg_id'] ?? 0);
 
 $setoresNivel = [
     'gestor'      => ['Direcao','Gerente','Financeiro','Administrativo'],
@@ -22,12 +39,19 @@ $notifs = $pdo->prepare("SELECT COUNT(*) FROM notificacoes WHERE usuario_id=? AN
 $notifs->execute([$u['id']]);
 $notifCount = (int)$notifs->fetchColumn();
 
-// Novas mensagens no chat
-$chat = $pdo->prepare("SELECT COUNT(*) FROM chat_geral WHERE criado_em > ? AND usuario_id != ?");
-$chat->execute([$since, $u['id']]);
-$chatCount = (int)$chat->fetchColumn();
+// Chat geral não lido (via tabela de contagem)
+$geralUnread = $pdo->prepare("SELECT COALESCE(SUM(qtd),0) FROM chat_unread WHERE usuario_id=?");
+$geralUnread->execute([$u['id']]);
+$geralCount = (int)$geralUnread->fetchColumn();
 
-// Novas tarefas para o setor (por ID — mais confiável que timestamp)
+// Chat privado não lido
+$privUnread = $pdo->prepare("SELECT COUNT(*) FROM chat_privado WHERE para_id=? AND lida=0");
+$privUnread->execute([$u['id']]);
+$privCount = (int)$privUnread->fetchColumn();
+
+$chatCount = $geralCount + $privCount;
+
+// Novas tarefas para o setor (por ID)
 $novasTarefas = $pdo->prepare("
     SELECT o.*, u.nome as criador_nome, o.prioridade
     FROM ocorrencias o
@@ -43,17 +67,18 @@ $novas = $novasTarefas->fetchAll();
 // Maior ID atual
 $maxId = (int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM ocorrencias")->fetchColumn();
 
-// Novas mensagens internas em tarefas (para toast/som ao criador)
+// Novas mensagens internas — por ID para evitar re-disparo infinito
 $novasMsgs = $pdo->prepare("
     SELECT m.*, o.codigo, o.tipo
     FROM ocorrencia_msgs m
     JOIN ocorrencias o ON o.id = m.ocorrencia_id
-    WHERE m.criado_em > ?
+    WHERE m.id > ?
       AND m.usuario_id != ?
       AND o.criador_id = ?
 ");
-$novasMsgs->execute([$since, $u['id'], $u['id']]);
+$novasMsgs->execute([$lastMsgId, $u['id'], $u['id']]);
 $msgNotifs = $novasMsgs->fetchAll();
+$maxMsgId  = $msgNotifs ? (int)max(array_column($msgNotifs, 'id')) : $lastMsgId;
 
 // Tarefas transferidas para o setor
 $transferidas = $pdo->prepare("
@@ -98,6 +123,7 @@ echo json_encode([
     'chat_count'     => $chatCount,
     'novas_tarefas'  => array_merge($novas, $transferidasArr),
     'novas_msgs'     => $msgNotifs,
+    'max_msg_id'     => $maxMsgId,
     'badge_setor'    => $badgeSetor,
     'tem_alta'       => $temAlta,
     'max_id'         => $maxId,

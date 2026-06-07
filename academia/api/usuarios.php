@@ -68,9 +68,11 @@ if ($method === 'GET') {
         $novoU = $novoUsuario->fetch();
         
         $pdo->prepare("UPDATE ocorrencias SET setor_responsavel=? WHERE id=?")->execute([$novoU['setor'], $d['ocorrencia_id']]);
-        $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao) VALUES (?,?,?)")->execute([
-            $d['ocorrencia_id'], $u['id'], 
-            "Transferida para {$novoU['nome']} por {$u['nome']}"
+        $motivo = isset($d['motivo']) ? ' — '.$d['motivo'] : '';
+        $pdo->prepare("INSERT INTO ocorrencia_historico (ocorrencia_id, usuario_id, acao, justificativa) VALUES (?,?,?,?)")->execute([
+            $d['ocorrencia_id'], $u['id'],
+            "Transferida para {$novoU['nome']} por {$u['nome']}",
+            $d['motivo'] ?? null
         ]);
         $pdo->prepare("INSERT INTO notificacoes (usuario_id, mensagem) VALUES (?,?)")->execute([
             $d['usuario_id'],

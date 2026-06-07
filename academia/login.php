@@ -24,6 +24,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['nivel']      = $usuario['nivel'];
                 $_SESSION['setor']      = $usuario['setor'];
                 $_SESSION['ini']        = strtoupper(substr($usuario['nome'],0,1).(strpos($usuario['nome'],' ')!==false?substr($usuario['nome'],strpos($usuario['nome'],' ')+1,1):''));
+                // Sessão única: invalida logins anteriores
+                $token = bin2hex(random_bytes(32));
+                $_SESSION['session_token'] = $token;
+                $pdo->exec("CREATE TABLE IF NOT EXISTS sessoes_ativas (usuario_id INT PRIMARY KEY, token VARCHAR(64) NOT NULL, atualizado_em DATETIME)");
+                $pdo->prepare("REPLACE INTO sessoes_ativas (usuario_id, token, atualizado_em) VALUES (?,?,NOW())")->execute([$usuario['id'], $token]);
                 header("Location: dashboard.php"); exit;
             } else { $erro = "E-mail ou senha incorretos."; }
         }
