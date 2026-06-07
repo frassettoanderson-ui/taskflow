@@ -94,6 +94,20 @@ $transferidas = $pdo->prepare("
 $transferidas->execute(array_merge([$since], $setores, [$u['id']]));
 $transferidasArr = $transferidas->fetchAll();
 
+// Tarefas devolvidas para este usuário (ele é o criador)
+$devolvidas = $pdo->prepare("
+    SELECT o.*, u.nome as criador_nome
+    FROM ocorrencia_historico h
+    JOIN ocorrencias o ON o.id = h.ocorrencia_id
+    JOIN usuarios u ON u.id = o.criador_id
+    WHERE h.criado_em > ?
+      AND h.acao LIKE 'Devolvida%'
+      AND o.criador_id = ?
+      AND o.concluida = 0
+");
+$devolvidas->execute([$since, $u['id']]);
+$devolvidasArr = $devolvidas->fetchAll();
+
 // Badge setor (unread)
 $badgeStmt = $pdo->prepare("
     SELECT COUNT(*) FROM ocorrencia_unread ou
@@ -121,7 +135,7 @@ $temAlta = (int)$altaStmt->fetchColumn() > 0;
 echo json_encode([
     'notif_count'    => $notifCount,
     'chat_count'     => $chatCount,
-    'novas_tarefas'  => array_merge($novas, $transferidasArr),
+    'novas_tarefas'  => array_merge($novas, $transferidasArr, $devolvidasArr),
     'novas_msgs'     => $msgNotifs,
     'max_msg_id'     => $maxMsgId,
     'badge_setor'    => $badgeSetor,

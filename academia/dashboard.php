@@ -801,7 +801,7 @@ function mostrarToast(titulo,msg){
 // ══ KANBAN ══
 function getListaKanban(){
   if(currentKanban==='minhas') return tarefas.filter(t=>t.criador_id==ME.id&&!t.concluida);
-  if(currentKanban==='setor')  return tarefas.filter(t=>t.setor_responsavel===ME.setor&&t.criador_id!=ME.id&&!t.concluida);
+  if(currentKanban==='setor')  return tarefas.filter(t=>t.setor_responsavel===ME.setor&&!t.concluida);
   if(currentKanban==='concluidas') return []; // handled separately with 2 boards
   return tarefas.filter(t=>!t.concluida);
 }
