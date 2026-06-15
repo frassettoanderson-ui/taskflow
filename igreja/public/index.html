@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema Financeiro — Igreja</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="layout">
+    <!-- ─── Menu lateral retrátil ─── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-top">
+        <span class="logo-mark">₲</span>
+        <span class="logo-text">Financeiro</span>
+      </div>
+      <nav class="menu" id="menu">
+        <a class="item" data-rota="dashboard"><span class="ic">▤</span><span class="tx">Dashboard</span></a>
+
+        <div class="grupo">
+          <button class="item grupo-head"><span class="ic">$</span><span class="tx">Financeiro</span><span class="seta">▸</span></button>
+          <div class="sub">
+            <a class="item" data-rota="entrada"><span class="tx">Lançar Dízimo/Oferta</span></a>
+            <a class="item" data-rota="despesa-fixa"><span class="tx">Despesa Fixa</span></a>
+            <a class="item" data-rota="despesa-variavel"><span class="tx">Despesa Variável</span></a>
+            <a class="item" data-rota="fornecedores"><span class="tx">Fornecedores</span></a>
+            <a class="item" data-rota="aprovar"><span class="tx">Aprovar Despesas</span></a>
+          </div>
+        </div>
+
+        <div class="grupo">
+          <button class="item grupo-head"><span class="ic">☺</span><span class="tx">Membresia</span><span class="seta">▸</span></button>
+          <div class="sub">
+            <a class="item" data-rota="membro-cadastrar"><span class="tx">Cadastrar</span></a>
+            <a class="item" data-rota="membro-consultar"><span class="tx">Consultar</span></a>
+          </div>
+        </div>
+
+        <div class="grupo">
+          <button class="item grupo-head"><span class="ic">⚙</span><span class="tx">Configuração</span><span class="seta">▸</span></button>
+          <div class="sub">
+            <a class="item" data-rota="centros-custo"><span class="tx">Centro de Custo</span></a>
+            <a class="item" data-rota="bancos"><span class="tx">Bancos</span></a>
+            <a class="item" data-rota="exportar"><span class="tx">Exportar Relatório</span></a>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- ─── Conteúdo ─── -->
+    <div class="principal">
+      <header class="topo">
+        <button id="btn-menu" class="ghost icone">☰</button>
+        <h1 id="titulo-pagina">Dashboard</h1>
+        <div class="topo-dir">
+          <span id="usuario-nome"></span>
+          <button id="btn-sair" class="ghost">Sair</button>
+        </div>
+      </header>
+      <main id="app" class="conteudo"></main>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

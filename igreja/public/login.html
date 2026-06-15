@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar — Sistema Financeiro</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="tela-login">
+  <form id="form-login" class="card-login">
+    <div class="logo-mark">₲</div>
+    <h1>Financeiro</h1>
+    <p class="sub">Acesse sua conta</p>
+    <label>E-mail<input type="email" id="email" required autocomplete="username" /></label>
+    <label>Senha<input type="password" id="senha" required autocomplete="current-password" /></label>
+    <button type="submit">Entrar</button>
+    <p id="erro" class="erro"></p>
+  </form>
+  <script>
+    const form = document.getElementById('form-login');
+    const erro = document.getElementById('erro');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      erro.textContent = '';
+      const r = await fetch('api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          senha: document.getElementById('senha').value,
+        }),
+      });
+      const data = await r.json();
+      if (r.ok) location.href = '.';
+      else erro.textContent = data.erro || 'Falha no login';
+    });
+  </script>
+</body>
+</html>
