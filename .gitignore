@@ -3,6 +3,8 @@ academia/conexao.php
 
 # Arquivos de banco de dados
 *.sql
+# exceto o schema do sistema da igreja (precisa ir pro repo/deploy)
+!igreja/schema.sql
 
 # Sistema operacional
 .DS_Store
