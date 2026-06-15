@@ -31,8 +31,8 @@ const CENTROS_EXEMPLO = ['Manutenção Geral', 'Energia', 'Internet', 'Aluguel',
 
     for (const c of CENTROS_EXEMPLO) {
       await db.query(
-        `INSERT INTO centros_custo (igreja_id, nome) SELECT $1, $2
-         WHERE NOT EXISTS (SELECT 1 FROM centros_custo WHERE igreja_id=$1 AND nome=$2)`,
+        `INSERT INTO centros_custo (igreja_id, nome) SELECT $1::int, $2::text
+         WHERE NOT EXISTS (SELECT 1 FROM centros_custo WHERE igreja_id=$1::int AND nome=$2::text)`,
         [igreja_id, c]
       );
     }

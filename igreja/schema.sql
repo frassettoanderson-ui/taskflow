@@ -112,9 +112,10 @@ CREATE INDEX IF NOT EXISTS idx_lanc_igreja_data ON lancamentos(igreja_id, data);
 CREATE INDEX IF NOT EXISTS idx_lanc_situacao    ON lancamentos(igreja_id, situacao);
 CREATE INDEX IF NOT EXISTS idx_lanc_tipo        ON lancamentos(igreja_id, tipo);
 
--- Evita gerar a mesma despesa fixa duas vezes no mesmo mês
+-- Evita gerar a mesma despesa fixa duas vezes no mesmo mês.
+-- date_trunc sobre timestamp (cast explícito) é IMMUTABLE e pode ir em índice.
 CREATE UNIQUE INDEX IF NOT EXISTS uq_fixa_mes
-  ON lancamentos (despesa_fixa_id, (date_trunc('month', data)))
+  ON lancamentos (despesa_fixa_id, (date_trunc('month', data::timestamp)))
   WHERE despesa_fixa_id IS NOT NULL;
 
 -- ─── Dados iniciais ───────────────────────────────
