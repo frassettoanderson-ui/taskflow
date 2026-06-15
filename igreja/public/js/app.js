@@ -69,13 +69,121 @@ function navegar(rota) {
 // ════════════════════════════════════════════════
 const VIEWS = {};
 
-// ─── Dashboard (placeholder — Fase 4) ───
-VIEWS.dashboard = () => {
-  app.innerHTML = `<div class="painel"><div class="placeholder">
-    <h2>📊 Dashboard</h2>
-    <p>Réplica do painel (cards, gráficos e seletor de meses) vem na <b>Fase 4</b>.</p>
-  </div></div>`;
+// ─── Dashboard (réplica cashtrack) ───
+let _charts = [];
+let _dashMes = mesISO();
+const nomeMes = (m) => ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1];
+const kfmt = (v) => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1).replace('.0', '') + 'K' : String(Math.round(v)));
+
+VIEWS.dashboard = async () => {
+  app.innerHTML = `<div class="dash">
+    <div class="month-strip" id="strip"></div>
+    <div class="dash-grid-1">
+      <div class="painel card-momento">
+        <h2>Até o momento <small id="lbl-mes"></small></h2>
+        <div class="momento-row">
+          <div class="momento-itens">
+            <div class="mi"><span class="seta up">↑</span><div><b>Entrou</b><small>Receitas</small></div><strong id="d-entrou" class="val-entrada"></strong></div>
+            <div class="mi"><span class="seta down">↓</span><div><b>Saiu</b><small>Despesas</small></div><strong id="d-saiu" class="val-saida"></strong></div>
+            <div class="mi"><span class="seta eq">→</span><div><b>Sobrou</b><small>Saldo</small></div><strong id="d-sobrou"></strong></div>
+          </div>
+          <div class="donut-wrap"><canvas id="g-donut"></canvas></div>
+        </div>
+      </div>
+      <div class="painel">
+        <h2>Comparação <small>com período anterior</small></h2>
+        <canvas id="g-comp" height="170"></canvas>
+      </div>
+      <div class="painel">
+        <h2>Para acontecer <small>a pagar</small></h2>
+        <div id="d-pendentes" class="lista-mini"></div>
+        <div class="saldo-total">Saldo total<strong id="d-saldo-total"></strong></div>
+      </div>
+    </div>
+    <div class="dash-grid-2">
+      <div class="painel">
+        <h2>Fluxo financeiro <small>últimos 6 meses</small></h2>
+        <canvas id="g-fluxo" height="120"></canvas>
+      </div>
+      <div class="painel">
+        <h2>Resumo</h2>
+        <div class="mini-card"><span>👥 Membros ativos</span><strong id="d-membros"></strong></div>
+        <div id="d-bancos"></div>
+      </div>
+    </div>
+  </div>`;
+  await carregarDashboard();
 };
+
+async function carregarDashboard() {
+  _charts.forEach((c) => c.destroy()); _charts = [];
+  const d = await getJSON('dashboard?mes=' + _dashMes);
+
+  // Régua de meses
+  document.getElementById('strip').innerHTML = d.meses.map((m) => {
+    const mm = Number(m.mes.split('-')[1]);
+    const ativo = m.mes === _dashMes ? ' ativo' : '';
+    return `<button class="ms${ativo}" data-mes="${m.mes}">
+      <span class="ms-nome">${nomeMes(mm)} ${String(d.ano).slice(2)}</span>
+      <span class="ms-tot"><span class="up">↑${kfmt(m.entradas)}</span> <span class="down">↓${kfmt(m.saidas)}</span></span>
+    </button>`;
+  }).join('');
+  document.querySelectorAll('.ms').forEach((b) => b.addEventListener('click', () => {
+    _dashMes = b.dataset.mes; carregarDashboard();
+  }));
+  const at = document.querySelector('.ms.ativo'); if (at) at.scrollIntoView({ inline: 'center', block: 'nearest' });
+
+  // Até o momento
+  document.getElementById('lbl-mes').textContent = nomeMes(Number(_dashMes.split('-')[1])) + ' ' + _dashMes.split('-')[0];
+  document.getElementById('d-entrou').textContent = brl(d.atual.entradas);
+  document.getElementById('d-saiu').textContent = '– ' + brl(d.atual.saidas);
+  document.getElementById('d-sobrou').textContent = brl(d.atual.saldo);
+  document.getElementById('d-membros').textContent = d.membros_ativos;
+  document.getElementById('d-saldo-total').textContent = brl(d.saldo_total);
+
+  // Bancos
+  document.getElementById('d-bancos').innerHTML = d.bancos.map((b) =>
+    `<div class="mini-card"><span>🏦 ${esc(b.nome)}</span><strong>${brl(b.saldo)}</strong></div>`).join('');
+
+  // Pendentes
+  document.getElementById('d-pendentes').innerHTML = d.pendentes.length
+    ? d.pendentes.slice(0, 6).map((p) =>
+        `<div class="lm-item"><span>${esc(p.fornecedor || '—')}${p.parcela_label ? ' ' + p.parcela_label : ''}</span><b class="val-saida">– ${brl(p.valor)}</b></div>`).join('')
+    : '<p class="vazio">Nada pendente. 🎉</p>';
+
+  // Donut
+  _charts.push(new Chart(document.getElementById('g-donut'), {
+    type: 'doughnut',
+    data: { labels: ['Entrou', 'Saiu'], datasets: [{ data: [d.atual.entradas, d.atual.saidas], backgroundColor: ['#16a34a', '#ef4444'], borderWidth: 0 }] },
+    options: { cutout: '70%', plugins: { legend: { display: false } } },
+  }));
+
+  // Comparação
+  _charts.push(new Chart(document.getElementById('g-comp'), {
+    type: 'bar',
+    data: {
+      labels: ['Anterior', 'Atual'],
+      datasets: [
+        { label: 'Entrou', data: [d.anterior.entradas, d.atual.entradas], backgroundColor: '#16a34a' },
+        { label: 'Saiu', data: [d.anterior.saidas, d.atual.saidas], backgroundColor: '#ef4444' },
+      ],
+    },
+    options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },
+  }));
+
+  // Fluxo 6 meses
+  _charts.push(new Chart(document.getElementById('g-fluxo'), {
+    type: 'bar',
+    data: {
+      labels: d.fluxo.map((f) => nomeMes(Number(f.mes.split('-')[1]))),
+      datasets: [
+        { label: 'Receita', data: d.fluxo.map((f) => f.receita), backgroundColor: '#16a34a' },
+        { label: 'Gasto', data: d.fluxo.map((f) => f.gasto), backgroundColor: '#ef4444' },
+      ],
+    },
+    options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },
+  }));
+}
 
 // ─── Lançar Dízimo / Oferta (entrada) ───
 VIEWS.entrada = async () => {
@@ -443,11 +551,163 @@ VIEWS['centros-custo'] = async () => {
   listar();
 };
 
-// ─── Placeholders das próximas fases ───
-const placeholder = (txt) => () => (app.innerHTML = `<div class="painel"><div class="placeholder"><p>${txt}</p></div></div>`);
-VIEWS['membro-cadastrar'] = placeholder('Cadastro de membros — Fase 2.');
-VIEWS['membro-consultar'] = placeholder('Consulta de membros — Fase 2.');
-VIEWS.exportar = placeholder('Exportar relatório contábil — Fase 3.');
+// ─── Membresia: Cadastrar ───
+VIEWS['membro-cadastrar'] = async () => {
+  const linkPublico = location.origin + location.pathname.replace(/\/$/, '') + '/cadastro.html';
+  app.innerHTML = `
+  <div class="painel">
+    <h2>Cadastrar membro</h2>
+    <form id="f" class="form-grid">
+      <label>Nome completo *<input type="text" id="nome" required></label>
+      <div class="linha">
+        <label>Telefone<input type="text" id="telefone" placeholder="(47) 99999-9999"></label>
+        <label>Data de nascimento<input type="date" id="nasc"></label>
+      </div>
+      <div class="linha">
+        <label>Sexo<select id="sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
+        <label>Endereço (opcional)<input type="text" id="endereco"></label>
+      </div>
+      <button type="submit">Salvar membro</button>
+      <p id="msg" class="erro"></p>
+    </form>
+  </div>
+  <div class="painel">
+    <h2>Formulário público</h2>
+    <p class="desc">Compartilhe este link para a pessoa se cadastrar sozinha pelo celular:</p>
+    <div class="toolbar">
+      <input class="cresce" id="link" value="${esc(linkPublico)}" readonly>
+      <button class="pequeno" id="copiar">Copiar link</button>
+    </div>
+  </div>`;
+
+  document.getElementById('copiar').addEventListener('click', () => {
+    navigator.clipboard.writeText(linkPublico);
+    document.getElementById('copiar').textContent = 'Copiado!';
+  });
+
+  document.getElementById('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('msg');
+    const r = await api('membros', { method: 'POST', body: JSON.stringify({
+      nome: document.getElementById('nome').value,
+      telefone: document.getElementById('telefone').value,
+      data_nascimento: document.getElementById('nasc').value || null,
+      sexo: document.getElementById('sexo').value || null,
+      endereco: document.getElementById('endereco').value,
+    }) });
+    const d = await r.json();
+    if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
+    msg.className = 'ok-msg'; msg.textContent = 'Membro cadastrado!';
+    document.getElementById('f').reset();
+  });
+};
+
+// ─── Membresia: Consultar (filtro + editar + ativar/inativar) ───
+VIEWS['membro-consultar'] = async () => {
+  app.innerHTML = `
+  <div class="painel">
+    <h2>Consultar membros</h2>
+    <div class="toolbar">
+      <input class="cresce" id="busca" placeholder="Buscar por nome...">
+      <select id="situacao"><option value="">Todos</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select>
+    </div>
+    <div id="lista"></div>
+  </div>
+  <div class="painel" id="painel-edit" style="display:none">
+    <h2>Editar membro</h2>
+    <form id="fe" class="form-grid">
+      <input type="hidden" id="e-id">
+      <label>Nome *<input type="text" id="e-nome" required></label>
+      <div class="linha">
+        <label>Telefone<input type="text" id="e-telefone"></label>
+        <label>Data de nascimento<input type="date" id="e-nasc"></label>
+      </div>
+      <div class="linha">
+        <label>Sexo<select id="e-sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
+        <label>Endereço<input type="text" id="e-endereco"></label>
+      </div>
+      <label class="check-linha"><input type="checkbox" id="e-ativo"> Membro ativo</label>
+      <div class="linha"><button type="submit">Salvar alterações</button><button type="button" class="ghost" id="cancelar">Cancelar</button></div>
+      <p id="e-msg" class="ok-msg"></p>
+    </form>
+  </div>`;
+
+  const buscar = () => listar();
+  document.getElementById('busca').addEventListener('input', buscar);
+  document.getElementById('situacao').addEventListener('change', buscar);
+  document.getElementById('cancelar').addEventListener('click', () =>
+    (document.getElementById('painel-edit').style.display = 'none'));
+
+  let cache = [];
+  async function listar() {
+    const busca = document.getElementById('busca').value;
+    const sit = document.getElementById('situacao').value;
+    cache = await getJSON(`membros?busca=${encodeURIComponent(busca)}&situacao=${sit}`);
+    document.getElementById('lista').innerHTML = tabela(cache, [
+      ['Nome', (m) => esc(m.nome)],
+      ['Telefone', (m) => esc(m.telefone || '—')],
+      ['Nascimento', (m) => dataBR(m.data_nascimento) || '—'],
+      ['Situação', (m) => `<span class="badge ${m.ativo ? 'ativo' : 'inativo'}">${m.ativo ? 'Ativo' : 'Inativo'}</span>`],
+      ['', (m) => `<button class="acao-link" data-edit="${m.id}">✎ Editar</button>
+                   <button class="acao-link" data-toggle="${m.id}">${m.ativo ? 'Inativar' : 'Ativar'}</button>`],
+    ]);
+    document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => abrirEdicao(b.dataset.edit)));
+    document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', async () => {
+      await api('membros/' + b.dataset.toggle + '/ativo', { method: 'PATCH' }); listar();
+    }));
+  }
+
+  function abrirEdicao(id) {
+    const m = cache.find((x) => String(x.id) === String(id));
+    document.getElementById('painel-edit').style.display = 'block';
+    document.getElementById('e-id').value = m.id;
+    document.getElementById('e-nome').value = m.nome;
+    document.getElementById('e-telefone').value = m.telefone || '';
+    document.getElementById('e-nasc').value = m.data_nascimento ? m.data_nascimento.slice(0, 10) : '';
+    document.getElementById('e-sexo').value = m.sexo || '';
+    document.getElementById('e-endereco').value = m.endereco || '';
+    document.getElementById('e-ativo').checked = m.ativo;
+    document.getElementById('painel-edit').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  document.getElementById('fe').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('e-id').value;
+    const r = await api('membros/' + id, { method: 'PUT', body: JSON.stringify({
+      nome: document.getElementById('e-nome').value,
+      telefone: document.getElementById('e-telefone').value,
+      data_nascimento: document.getElementById('e-nasc').value || null,
+      sexo: document.getElementById('e-sexo').value || null,
+      endereco: document.getElementById('e-endereco').value,
+      ativo: document.getElementById('e-ativo').checked,
+    }) });
+    const d = await r.json();
+    const msg = document.getElementById('e-msg');
+    if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
+    msg.className = 'ok-msg'; msg.textContent = 'Salvo!';
+    listar();
+  });
+
+  listar();
+};
+
+// ─── Exportar relatório (formato contábil) ───
+VIEWS.exportar = () => {
+  app.innerHTML = `
+  <div class="painel">
+    <h2>Exportar relatório contábil</h2>
+    <p class="desc">Gera a planilha no mesmo formato do envio para a contabilidade (12 colunas).</p>
+    <form id="f" class="form-grid">
+      <label>Mês de referência<input type="month" id="mes" value="${mesISO()}"></label>
+      <button type="submit">Baixar planilha (.xlsx)</button>
+    </form>
+  </div>`;
+  document.getElementById('f').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const mes = document.getElementById('mes').value;
+    window.location.href = 'api/exportar?mes=' + mes;
+  });
+};
 
 // ════════════════════════════════════════════════
 //  Utilitários de UI

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro de Membro</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="tela-login">
+  <form id="f" class="card-login" style="width:380px">
+    <div class="logo-mark" style="align-self:center">₲</div>
+    <h1 style="font-size:22px">Cadastro de Membro</h1>
+    <p class="sub">Preencha seus dados</p>
+    <label>Nome completo *<input type="text" id="nome" required></label>
+    <label>Telefone<input type="text" id="telefone" placeholder="(47) 99999-9999"></label>
+    <label>Data de nascimento<input type="date" id="data_nascimento"></label>
+    <label>Sexo
+      <select id="sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select>
+    </label>
+    <label>Endereço (opcional)<input type="text" id="endereco"></label>
+    <button type="submit">Enviar cadastro</button>
+    <p id="msg" class="erro"></p>
+  </form>
+  <script>
+    document.getElementById('f').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const msg = document.getElementById('msg');
+      const r = await fetch('api/publico/cadastro-membro', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome: document.getElementById('nome').value,
+          telefone: document.getElementById('telefone').value,
+          data_nascimento: document.getElementById('data_nascimento').value || null,
+          sexo: document.getElementById('sexo').value || null,
+          endereco: document.getElementById('endereco').value,
+        }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        document.getElementById('f').reset();
+        msg.className = 'ok-msg'; msg.textContent = '✓ Cadastro enviado! Obrigado.';
+      } else { msg.className = 'erro'; msg.textContent = d.erro || 'Erro ao enviar'; }
+    });
+  </script>
+</body>
+</html>
