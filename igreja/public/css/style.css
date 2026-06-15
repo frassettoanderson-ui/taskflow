@@ -80,9 +80,9 @@ button.pequeno { padding: 6px 10px; font-size: 13px; }
 }
 .menu .item:hover { background: rgba(255,255,255,.07); color: #fff; }
 .menu .item.ativo { background: var(--azul); color: #fff; }
-.menu .ic { width: 26px; text-align: center; font-size: 19px; flex-shrink: 0; }
+.menu .ic { width: 34px; text-align: center; font-size: 33px; flex-shrink: 0; line-height: 1; }
 .layout.recolhido .menu .item { justify-content: center; padding: 12px 0; }
-.layout.recolhido .menu .ic { width: auto; font-size: 21px; }
+.layout.recolhido .menu .ic { width: auto; font-size: 34px; }
 .grupo-head { font-weight: 600; color: #fff; }
 .grupo-head .seta { margin-left: auto; transition: transform .15s; font-size: 11px; }
 .grupo.aberto .grupo-head .seta { transform: rotate(90deg); }
@@ -158,14 +158,14 @@ tbody tr:hover { background: #f8fafc; }
 .month-strip::-webkit-scrollbar-thumb { background: var(--borda); border-radius: 3px; }
 .ms {
   flex: 0 0 auto; background: var(--card); border: 1px solid var(--borda); color: var(--texto);
-  border-radius: 10px; padding: 10px 16px; min-width: 92px; cursor: pointer;
-  display: flex; flex-direction: column; gap: 4px; align-items: center; font-weight: 600;
+  border-radius: 11px; padding: 13px 22px; min-width: 116px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 5px; align-items: center; font-weight: 600;
   transition: transform .12s, box-shadow .12s;
 }
 .ms:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.06); }
 .ms.ativo { background: var(--sidebar-bg); color: #fff; border-color: var(--sidebar-bg); }
-.ms-nome { font-size: 14px; }
-.ms-tot { font-size: 11px; font-weight: 600; display: flex; gap: 6px; }
+.ms-nome { font-size: 17px; }
+.ms-tot { font-size: 13px; font-weight: 600; display: flex; gap: 7px; }
 .ms .up { color: var(--verde); } .ms .down { color: var(--vermelho); }
 .ms.ativo .up { color: #4ade80; } .ms.ativo .down { color: #fca5a5; }
 
@@ -183,7 +183,10 @@ tbody tr:hover { background: #f8fafc; }
 
 .momento-row { display: flex; align-items: center; gap: 12px; }
 .momento-itens { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-.mi { display: flex; align-items: center; gap: 10px; }
+.mi { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 10px; }
+.mi-entrou { background: var(--verde-bg); }
+.mi-saiu { background: var(--vermelho-bg); }
+.mi-sobrou { background: #eef2ff; }
 .mi > div { flex: 1; display: flex; flex-direction: column; }
 .mi b { font-size: 14px; } .mi small { color: var(--cinza-claro); font-size: 11px; }
 .mi strong { font-size: 16px; }

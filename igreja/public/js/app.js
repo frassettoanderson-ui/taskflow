@@ -88,9 +88,9 @@ VIEWS.dashboard = async () => {
         <h2>Até o momento <small id="lbl-mes"></small></h2>
         <div class="momento-row">
           <div class="momento-itens">
-            <div class="mi"><span class="seta up">↑</span><div><b>Entrou</b><small>Receitas</small></div><strong id="d-entrou" class="val-entrada"></strong></div>
-            <div class="mi"><span class="seta down">↓</span><div><b>Saiu</b><small>Despesas</small></div><strong id="d-saiu" class="val-saida"></strong></div>
-            <div class="mi"><span class="seta eq">→</span><div><b>Sobrou</b><small>Saldo</small></div><strong id="d-sobrou"></strong></div>
+            <div class="mi mi-entrou"><span class="seta up">↑</span><div><b>Entrou</b><small>Receitas</small></div><strong id="d-entrou" class="val-entrada"></strong></div>
+            <div class="mi mi-saiu"><span class="seta down">↓</span><div><b>Saiu</b><small>Despesas</small></div><strong id="d-saiu" class="val-saida"></strong></div>
+            <div class="mi mi-sobrou"><span class="seta eq">→</span><div><b>Sobrou</b><small>Saldo</small></div><strong id="d-sobrou"></strong></div>
           </div>
           <div class="donut-wrap"><canvas id="g-donut"></canvas></div>
         </div>
