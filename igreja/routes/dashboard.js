@@ -34,13 +34,15 @@ router.get('/', async (req, res) => {
   const antAno = mes === 1 ? ano - 1 : ano;
   const anterior = await totaisMes(igreja_id, antAno, antMes);
 
-  // Fluxo dos últimos 6 meses até o mês selecionado
+  // Fluxo dos últimos 6 meses até o mês selecionado (+ consolidado acumulado)
   const fluxo = [];
+  let acumulado = 0;
   for (let i = 5; i >= 0; i--) {
     let y = ano, mm = mes - i;
     while (mm <= 0) { mm += 12; y -= 1; }
     const t = await totaisMes(igreja_id, y, mm);
-    fluxo.push({ mes: `${y}-${String(mm).padStart(2, '0')}`, receita: t.entradas, gasto: t.saidas });
+    acumulado += t.entradas - t.saidas;
+    fluxo.push({ mes: `${y}-${String(mm).padStart(2, '0')}`, receita: t.entradas, gasto: t.saidas, consolidado: acumulado });
   }
 
   // Membros ativos
@@ -57,12 +59,18 @@ router.get('/', async (req, res) => {
      WHERE b.igreja_id=$1 AND b.ativo=TRUE GROUP BY b.id ORDER BY b.nome`,
     [igreja_id]);
 
-  // Pendentes (despesas a pagar)
-  const { rows: pendentes } = await db.query(
+  // Para acontecer (futuras, a partir de hoje) e Pendentes (atrasadas, até hoje)
+  const { rows: aPagar } = await db.query(
     `SELECT l.id, l.valor, l.data, l.parcela_label, f.nome AS fornecedor
      FROM lancamentos l LEFT JOIN fornecedores f ON f.id=l.fornecedor_id
-     WHERE l.igreja_id=$1 AND l.tipo='saida' AND l.situacao='pendente'
+     WHERE l.igreja_id=$1 AND l.tipo='saida' AND l.situacao='pendente' AND l.data >= CURRENT_DATE
      ORDER BY l.data ASC LIMIT 25`, [igreja_id]);
+  const { rows: atrasados } = await db.query(
+    `SELECT l.id, l.valor, l.data, l.parcela_label, f.nome AS fornecedor
+     FROM lancamentos l LEFT JOIN fornecedores f ON f.id=l.fornecedor_id
+     WHERE l.igreja_id=$1 AND l.tipo='saida' AND l.situacao='pendente' AND l.data < CURRENT_DATE
+     ORDER BY l.data ASC LIMIT 25`, [igreja_id]);
+  const num = (arr) => arr.map((p) => ({ ...p, valor: Number(p.valor) }));
 
   const saldoTotal = bancos.reduce((s, b) => s + Number(b.saldo), 0);
 
@@ -75,8 +83,10 @@ router.get('/', async (req, res) => {
     membros_ativos: mb[0].n,
     bancos: bancos.map((b) => ({ nome: b.nome, saldo: Number(b.saldo) })),
     saldo_total: saldoTotal,
-    pendentes: pendentes.map((p) => ({ ...p, valor: Number(p.valor) })),
-    total_pendente: pendentes.reduce((s, p) => s + Number(p.valor), 0),
+    a_pagar: num(aPagar),
+    pendentes: num(atrasados),
+    total_a_pagar: aPagar.reduce((s, p) => s + Number(p.valor), 0),
+    total_pendente: atrasados.reduce((s, p) => s + Number(p.valor), 0),
   });
 });
 

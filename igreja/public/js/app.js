@@ -77,9 +77,14 @@ const kfmt = (v) => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1).replace('.0', '
 
 VIEWS.dashboard = async () => {
   app.innerHTML = `<div class="dash">
-    <div class="month-strip" id="strip"></div>
+    <div class="strip-wrap">
+      <button class="strip-arrow" id="strip-prev" title="Anterior">‹</button>
+      <div class="month-strip" id="strip"></div>
+      <button class="strip-arrow" id="strip-next" title="Próximo">›</button>
+    </div>
+
     <div class="dash-grid-1">
-      <div class="painel card-momento">
+      <div class="painel">
         <h2>Até o momento <small id="lbl-mes"></small></h2>
         <div class="momento-row">
           <div class="momento-itens">
@@ -92,28 +97,42 @@ VIEWS.dashboard = async () => {
       </div>
       <div class="painel">
         <h2>Comparação <small>com período anterior</small></h2>
-        <canvas id="g-comp" height="170"></canvas>
+        <canvas id="g-comp" height="200"></canvas>
       </div>
       <div class="painel">
-        <h2>Para acontecer <small>a pagar</small></h2>
-        <div id="d-pendentes" class="lista-mini"></div>
+        <h2>Para acontecer <small>despesas futuras</small></h2>
+        <div id="d-apagar" class="lista-mini"></div>
         <div class="saldo-total">Saldo total<strong id="d-saldo-total"></strong></div>
       </div>
     </div>
+
     <div class="dash-grid-2">
       <div class="painel">
-        <h2>Fluxo financeiro <small>últimos 6 meses</small></h2>
-        <canvas id="g-fluxo" height="120"></canvas>
+        <h2>Fluxo financeiro <small>evolução dos últimos 6 meses</small></h2>
+        <canvas id="g-fluxo" height="110"></canvas>
       </div>
       <div class="painel">
-        <h2>Resumo</h2>
-        <div class="mini-card"><span>👥 Membros ativos</span><strong id="d-membros"></strong></div>
-        <div id="d-bancos"></div>
+        <h2>Pendentes <small>despesas atrasadas</small></h2>
+        <div id="d-pendentes" class="lista-mini"></div>
+        <div class="saldo-total">Total pendente<strong id="d-total-pend" class="val-saida"></strong></div>
       </div>
     </div>
+
+    <div class="dash-kpis" id="d-kpis"></div>
   </div>`;
+
+  document.getElementById('strip-prev').addEventListener('click', () =>
+    document.getElementById('strip').scrollBy({ left: -260, behavior: 'smooth' }));
+  document.getElementById('strip-next').addEventListener('click', () =>
+    document.getElementById('strip').scrollBy({ left: 260, behavior: 'smooth' }));
+
   await carregarDashboard();
 };
+
+const listaMini = (arr, vazio) => arr.length
+  ? arr.slice(0, 6).map((p) =>
+      `<div class="lm-item"><span class="lm-nome">${esc(p.fornecedor || '—')}${p.parcela_label ? ' <small>' + p.parcela_label + '</small>' : ''}</span><b class="val-saida">– ${brl(p.valor)}</b></div>`).join('')
+  : `<p class="vazio">${vazio}</p>`;
 
 async function carregarDashboard() {
   _charts.forEach((c) => c.destroy()); _charts = [];
@@ -138,24 +157,23 @@ async function carregarDashboard() {
   document.getElementById('d-entrou').textContent = brl(d.atual.entradas);
   document.getElementById('d-saiu').textContent = '– ' + brl(d.atual.saidas);
   document.getElementById('d-sobrou').textContent = brl(d.atual.saldo);
-  document.getElementById('d-membros').textContent = d.membros_ativos;
   document.getElementById('d-saldo-total').textContent = brl(d.saldo_total);
+  document.getElementById('d-total-pend').textContent = '– ' + brl(d.total_pendente);
 
-  // Bancos
-  document.getElementById('d-bancos').innerHTML = d.bancos.map((b) =>
-    `<div class="mini-card"><span>🏦 ${esc(b.nome)}</span><strong>${brl(b.saldo)}</strong></div>`).join('');
+  // Listas
+  document.getElementById('d-apagar').innerHTML = listaMini(d.a_pagar, 'Nada futuro. 🎉');
+  document.getElementById('d-pendentes').innerHTML = listaMini(d.pendentes, 'Nada atrasado. 🎉');
 
-  // Pendentes
-  document.getElementById('d-pendentes').innerHTML = d.pendentes.length
-    ? d.pendentes.slice(0, 6).map((p) =>
-        `<div class="lm-item"><span>${esc(p.fornecedor || '—')}${p.parcela_label ? ' ' + p.parcela_label : ''}</span><b class="val-saida">– ${brl(p.valor)}</b></div>`).join('')
-    : '<p class="vazio">Nada pendente. 🎉</p>';
+  // KPIs da igreja (membros + bancos)
+  document.getElementById('d-kpis').innerHTML =
+    `<div class="kpi"><span>👥 Membros ativos</span><strong>${d.membros_ativos}</strong></div>` +
+    d.bancos.map((b) => `<div class="kpi"><span>🏦 ${esc(b.nome)}</span><strong>${brl(b.saldo)}</strong></div>`).join('');
 
   // Donut
   _charts.push(new Chart(document.getElementById('g-donut'), {
     type: 'doughnut',
     data: { labels: ['Entrou', 'Saiu'], datasets: [{ data: [d.atual.entradas, d.atual.saidas], backgroundColor: ['#16a34a', '#ef4444'], borderWidth: 0 }] },
-    options: { cutout: '70%', plugins: { legend: { display: false } } },
+    options: { cutout: '72%', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
   }));
 
   // Comparação
@@ -164,21 +182,25 @@ async function carregarDashboard() {
     data: {
       labels: ['Anterior', 'Atual'],
       datasets: [
-        { label: 'Entrou', data: [d.anterior.entradas, d.atual.entradas], backgroundColor: '#16a34a' },
-        { label: 'Saiu', data: [d.anterior.saidas, d.atual.saidas], backgroundColor: '#ef4444' },
+        { label: 'Entrou', data: [d.anterior.entradas, d.atual.entradas], backgroundColor: '#16a34a', borderRadius: 4 },
+        { label: 'Saiu', data: [d.anterior.saidas, d.atual.saidas], backgroundColor: '#ef4444', borderRadius: 4 },
       ],
     },
     options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },
   }));
 
-  // Fluxo 6 meses
+  // Fluxo 6 meses — barras Receita/Gasto + área azul "Consolidado" atrás
   _charts.push(new Chart(document.getElementById('g-fluxo'), {
-    type: 'bar',
     data: {
       labels: d.fluxo.map((f) => nomeMes(Number(f.mes.split('-')[1]))),
       datasets: [
-        { label: 'Receita', data: d.fluxo.map((f) => f.receita), backgroundColor: '#16a34a' },
-        { label: 'Gasto', data: d.fluxo.map((f) => f.gasto), backgroundColor: '#ef4444' },
+        {
+          type: 'line', label: 'Consolidado', data: d.fluxo.map((f) => f.consolidado),
+          borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,.18)',
+          fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0, order: 0,
+        },
+        { type: 'bar', label: 'Receita', data: d.fluxo.map((f) => f.receita), backgroundColor: '#16a34a', borderRadius: 4, order: 1 },
+        { type: 'bar', label: 'Gasto', data: d.fluxo.map((f) => f.gasto), backgroundColor: '#ef4444', borderRadius: 4, order: 1 },
       ],
     },
     options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },

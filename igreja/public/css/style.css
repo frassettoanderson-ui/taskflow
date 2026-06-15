@@ -80,7 +80,9 @@ button.pequeno { padding: 6px 10px; font-size: 13px; }
 }
 .menu .item:hover { background: rgba(255,255,255,.07); color: #fff; }
 .menu .item.ativo { background: var(--azul); color: #fff; }
-.menu .ic { width: 20px; text-align: center; font-size: 15px; }
+.menu .ic { width: 26px; text-align: center; font-size: 19px; flex-shrink: 0; }
+.layout.recolhido .menu .item { justify-content: center; padding: 12px 0; }
+.layout.recolhido .menu .ic { width: auto; font-size: 21px; }
 .grupo-head { font-weight: 600; color: #fff; }
 .grupo-head .seta { margin-left: auto; transition: transform .15s; font-size: 11px; }
 .grupo.aberto .grupo-head .seta { transform: rotate(90deg); }
@@ -97,7 +99,9 @@ button.pequeno { padding: 6px 10px; font-size: 13px; }
 }
 .topo h1 { font-size: 19px; margin: 0; }
 .topo-dir { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 14px; color: var(--cinza); }
-.conteudo { padding: 24px; max-width: 1200px; width: 100%; }
+.conteudo { padding: 24px; width: 100%; }
+/* telas de formulário/listas ficam mais confortáveis com largura limitada */
+.conteudo:not(:has(.dash)) { max-width: 1280px; }
 
 /* ─── Componentes ─── */
 .painel {
@@ -141,8 +145,14 @@ tbody tr:hover { background: #f8fafc; }
 /* ─── Dashboard ─── */
 .painel h2 small { color: var(--cinza-claro); font-weight: 400; font-size: 13px; margin-left: 6px; }
 
+.strip-wrap { display: flex; align-items: stretch; gap: 8px; margin-bottom: 18px; }
+.strip-arrow {
+  flex: 0 0 auto; width: 38px; background: var(--card); border: 1px solid var(--borda);
+  color: var(--cinza); font-size: 22px; border-radius: 10px; cursor: pointer; padding: 0;
+}
+.strip-arrow:hover { background: var(--fundo); color: var(--texto); }
 .month-strip {
-  display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 12px; margin-bottom: 18px;
+  display: flex; gap: 10px; overflow-x: auto; padding: 2px; flex: 1; scroll-behavior: smooth;
 }
 .month-strip::-webkit-scrollbar { height: 6px; }
 .month-strip::-webkit-scrollbar-thumb { background: var(--borda); border-radius: 3px; }
@@ -159,9 +169,17 @@ tbody tr:hover { background: #f8fafc; }
 .ms .up { color: var(--verde); } .ms .down { color: var(--vermelho); }
 .ms.ativo .up { color: #4ade80; } .ms.ativo .down { color: #fca5a5; }
 
-.dash-grid-1 { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
-.dash-grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; }
-.painel { margin-bottom: 0; }
+.dash-grid-1 { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 18px; margin-bottom: 18px; align-items: stretch; }
+.dash-grid-2 { display: grid; grid-template-columns: 1.7fr 1fr; gap: 18px; margin-bottom: 18px; align-items: stretch; }
+.dash .painel { margin-bottom: 0; display: flex; flex-direction: column; }
+.dash-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
+.kpi {
+  background: var(--card); border: 1px solid var(--borda); border-radius: 14px; padding: 18px 20px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.kpi span { color: var(--cinza); font-size: 14px; }
+.kpi strong { font-size: 22px; }
+.lm-nome small { color: var(--cinza-claro); }
 
 .momento-row { display: flex; align-items: center; gap: 12px; }
 .momento-itens { flex: 1; display: flex; flex-direction: column; gap: 10px; }
@@ -175,7 +193,7 @@ tbody tr:hover { background: #f8fafc; }
 .mi .seta.eq { background: #e0e7ff; color: var(--azul); }
 .donut-wrap { width: 130px; height: 130px; }
 
-.lista-mini { display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.lista-mini { display: flex; flex-direction: column; gap: 8px; min-height: 120px; flex: 1; }
 .lm-item { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px dashed var(--borda); }
 .saldo-total { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--borda); font-weight: 600; }
 .saldo-total strong { font-size: 18px; color: var(--azul); }
