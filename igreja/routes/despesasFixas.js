@@ -20,15 +20,15 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const { igreja_id } = req.session.usuario;
-  const { descricao, valor, dia_vencimento, fornecedor_id, centro_custo_id, banco_id, forma_pagamento } = req.body;
+  const { descricao, valor, dia_vencimento, fornecedor_id, centro_custo_id, banco_id, forma_pagamento, pago_padrao } = req.body;
   if (!valor || Number(valor) <= 0) return res.status(400).json({ erro: 'Informe um valor válido' });
   if (!banco_id) return res.status(400).json({ erro: 'Selecione o banco' });
   const { rows } = await db.query(
     `INSERT INTO despesas_fixas
-       (igreja_id, descricao, valor, dia_vencimento, fornecedor_id, centro_custo_id, banco_id, forma_pagamento)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+       (igreja_id, descricao, valor, dia_vencimento, fornecedor_id, centro_custo_id, banco_id, forma_pagamento, pago_padrao)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
     [igreja_id, descricao || '', valor, dia_vencimento || 1,
-     fornecedor_id || null, centro_custo_id || null, banco_id, forma_pagamento || 'Pix']
+     fornecedor_id || null, centro_custo_id || null, banco_id, forma_pagamento || 'Pix', !!pago_padrao]
   );
   res.status(201).json(rows[0]);
 });
@@ -54,14 +54,15 @@ router.post('/gerar', async (req, res) => {
   for (const f of fixas) {
     const dia = String(Math.min(f.dia_vencimento || 1, 28)).padStart(2, '0');
     const data = `${mes}-${dia}`;
+    const situacao = f.pago_padrao ? 'pago' : 'pendente';
     try {
       const r = await db.query(
         `INSERT INTO lancamentos
            (igreja_id, tipo, situacao, data, banco_id, valor, descricao, detalhes,
             forma_pagamento, parcelamento, fornecedor_id, centro_custo_id, tipo_gasto, despesa_fixa_id)
-         VALUES ($1,'saida','pendente',$2,$3,$4,'FORNECEDOR',$5,$6,'Recorrente',$7,$8,'Estrutura',$9)
+         VALUES ($1,'saida',$2,$3,$4,$5,'FORNECEDOR',$6,$7,'Recorrente',$8,$9,'Estrutura',$10)
          ON CONFLICT DO NOTHING RETURNING id`,
-        [igreja_id, data, f.banco_id, f.valor, f.descricao || '', f.forma_pagamento,
+        [igreja_id, situacao, data, f.banco_id, f.valor, f.descricao || '', f.forma_pagamento,
          f.fornecedor_id, f.centro_custo_id, f.id]
       );
       if (r.rows.length) gerados++;

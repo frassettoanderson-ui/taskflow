@@ -65,7 +65,7 @@ router.post('/saida', async (req, res) => {
   const { igreja_id, id: usuario_id } = req.session.usuario;
   const {
     fornecedor_id, banco_id, data, valor, centro_custo_id,
-    forma_pagamento, detalhes, parcelado, num_parcelas,
+    forma_pagamento, detalhes, parcelado, num_parcelas, pago,
   } = req.body;
 
   if (!fornecedor_id || !banco_id || !data || !valor)
@@ -77,6 +77,8 @@ router.post('/saida', async (req, res) => {
   const n = ehParcelado ? Number(num_parcelas) : 1;
   const valorParcela = Math.round((Number(valor) / n) * 100) / 100;
   const grupo = ehParcelado ? crypto.randomUUID() : null;
+  // Despesa avulsa pode já entrar paga; parcelada sempre começa pendente
+  const situacao = (!ehParcelado && pago) ? 'pago' : 'pendente';
 
   const criados = [];
   for (let i = 0; i < n; i++) {
@@ -89,9 +91,9 @@ router.post('/saida', async (req, res) => {
          (igreja_id, tipo, situacao, data, banco_id, valor, descricao, detalhes,
           forma_pagamento, parcelamento, parcela_label, fornecedor_id, centro_custo_id,
           tipo_gasto, grupo_parcela, usuario_id)
-       VALUES ($1,'saida','pendente',$2,$3,$4,'FORNECEDOR',$5,$6,$7,$8,$9,$10,'Venda',$11,$12)
+       VALUES ($1,'saida',$2,$3,$4,$5,'FORNECEDOR',$6,$7,$8,$9,$10,$11,'Venda',$12,$13)
        RETURNING *`,
-      [igreja_id, dataParcela, banco_id, valorParcela, detalhes || '', forma,
+      [igreja_id, situacao, dataParcela, banco_id, valorParcela, detalhes || '', forma,
        ehParcelado ? 'Sim' : 'À vista', label, fornecedor_id, centro_custo_id || null, grupo, usuario_id]
     );
     criados.push(rows[0]);

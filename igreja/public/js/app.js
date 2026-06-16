@@ -72,6 +72,7 @@ const TITULOS = {
   entrada: 'Lançar Dízimo / Oferta',
   despesas: 'Despesas',
   'contas-pagar': 'Contas a Pagar',
+  'contas-pagas': 'Contas Pagas',
   'membro-cadastrar': 'Cadastrar Membro',
   'membro-consultar': 'Consultar Membros',
   'membro-aniversariantes': 'Aniversariantes',
@@ -404,6 +405,7 @@ async function buildVariavel(host) {
         <label>Valor<input type="text" id="valor" required></label>
         <label>Banco<select id="banco" required><option value=""></option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
       </div>
+      <label class="check-linha"><input type="checkbox" id="pago"> Conta já paga (não vai para Contas a Pagar)</label>
       <div class="linha">
         <label>Data<input type="date" id="data" required></label>
         <label>Forma de pagamento<select id="forma" required>${optById(formas)}</select></label>
@@ -431,12 +433,13 @@ async function buildVariavel(host) {
         data: document.getElementById('data').value,
         forma_pagamento: document.getElementById('forma').value,
         parcelado: false,
+        pago: document.getElementById('pago').checked,
         detalhes: document.getElementById('detalhes').value,
       }),
     });
     const d = await r.json();
     if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
-    msg.className = 'ok-msg'; msg.textContent = 'Despesa lançada!';
+    msg.className = 'ok-msg'; msg.textContent = document.getElementById('pago').checked ? 'Despesa lançada como paga!' : 'Despesa lançada!';
     document.getElementById('f').reset();
   });
 }
@@ -489,6 +492,7 @@ async function buildFixa(host) {
         <label>Dia venc.<input type="number" min="1" max="28" id="dia" placeholder="5"></label>
         <label>Banco<select id="banco" required><option value=""></option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
       </div>
+      <label class="check-linha"><input type="checkbox" id="pago"> Conta já paga (ex.: débito automático) — gera os lançamentos do mês já como pagos</label>
       <button type="submit">Salvar despesa fixa</button>
       <p id="msg" class="erro"></p>
     </form>
@@ -518,6 +522,7 @@ async function buildFixa(host) {
         valor: parseMoeda(document.getElementById('valor').value),
         dia_vencimento: document.getElementById('dia').value,
         banco_id: document.getElementById('banco').value,
+        pago_padrao: document.getElementById('pago').checked,
       }),
     });
     const d = await r.json();
@@ -729,39 +734,79 @@ async function buildFornecedores(host) {
   listar();
 }
 
-// ─── Contas a Pagar (controle do mês: pagas, a vencer, vencidas) ───
+// Modal de edição de despesa (reusado em Contas a Pagar e Contas Pagas)
+function abrirEditarDespesa(l, refs, aoConcluir) {
+  const { fornecedores, centros, bancos, formas } = refs;
+  const m = abrirModal('Editar despesa', `
+    <form id="fed" class="form-grid" style="max-width:none">
+      <label>Fornecedor<select id="ed-forn"><option value=""></option>${optFornecedor(fornecedores)}</select></label>
+      <label>Centro de custo<select id="ed-centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
+      <div class="linha">
+        <label>Valor<input type="text" id="ed-valor"></label>
+        <label>Banco<select id="ed-banco">${optById(bancos)}</select></label>
+      </div>
+      <div class="linha">
+        <label>Vencimento<input type="date" id="ed-data"></label>
+        <label>Forma de pagamento<select id="ed-forma">${optById(formas)}</select></label>
+      </div>
+      <label>Descrição<input type="text" id="ed-detalhes" maxlength="255"></label>
+      <button type="submit">Salvar</button>
+      <p id="ed-msg" class="erro"></p>
+    </form>`);
+  const q = (id) => m.el.querySelector(id);
+  q('#ed-forn').value = l.fornecedor_id || '';
+  q('#ed-centro').value = l.centro_custo_id || '';
+  q('#ed-banco').value = l.banco_id || '';
+  q('#ed-data').value = l.data.slice(0, 10);
+  q('#ed-forma').value = l.forma_pagamento || '';
+  q('#ed-detalhes').value = l.detalhes || '';
+  maskMoeda(q('#ed-valor'), Number(l.valor));
+  q('#fed').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const r = await api('lancamentos/' + l.id, { method: 'PUT', body: JSON.stringify({
+      fornecedor_id: q('#ed-forn').value, centro_custo_id: q('#ed-centro').value,
+      banco_id: q('#ed-banco').value, valor: parseMoeda(q('#ed-valor').value),
+      data: q('#ed-data').value, forma_pagamento: q('#ed-forma').value,
+      detalhes: q('#ed-detalhes').value,
+    }) });
+    const d = await r.json();
+    if (!r.ok) { q('#ed-msg').textContent = d.erro; return; }
+    m.fechar(); aoConcluir();
+  });
+}
+
+// ─── Contas a Pagar (apenas pendentes: a vencer + vencidas) ───
 VIEWS['contas-pagar'] = async () => {
-  const [fornecedores, centros, bancos, formas] = await Promise.all([
-    getJSON('fornecedores'), getJSON('centros-custo'), getJSON('bancos'), getJSON('formas-pagamento'),
-  ]);
+  const refs = {
+    fornecedores: await getJSON('fornecedores'), centros: await getJSON('centros-custo'),
+    bancos: await getJSON('bancos'), formas: await getJSON('formas-pagamento'),
+  };
 
   app.innerHTML = `<div class="painel">
     <h2>Contas a Pagar</h2>
-    <p class="desc">Despesas do mês selecionado. Marque como <b>Pagar</b> quando efetuar o pagamento.</p>
+    <p class="desc">Despesas <b>pendentes</b> do mês. Marque como paga ao efetuar o pagamento — ela vai para "Contas Pagas".</p>
     <div class="toolbar">
       <label class="check-linha" style="margin:0">Mês <input type="month" id="mes" value="${mesISO()}" style="width:auto"></label>
       <select id="filtro">
-        <option value="">Todas</option>
-        <option value="avencer">A vencer</option>
+        <option value="">Todas pendentes</option>
         <option value="atrasada">Vencidas</option>
-        <option value="paga">Pagas</option>
+        <option value="avencer">A vencer</option>
       </select>
     </div>
     <div id="lista"></div>
   </div>`;
 
   const hoje = hojeISO();
-  const statusDe = (l) => (l.situacao === 'pago' ? 'paga' : (l.data.slice(0, 10) < hoje ? 'atrasada' : 'avencer'));
-  const badge = { paga: '<span class="badge pago">Paga</span>', atrasada: '<span class="badge inativo">Vencida</span>', avencer: '<span class="badge pendente">A vencer</span>' };
-
-  const ordem = { atrasada: 0, avencer: 1, paga: 2 }; // Vencidas → A vencer → Pagas
+  const statusDe = (l) => (l.data.slice(0, 10) < hoje ? 'atrasada' : 'avencer');
+  const badge = { atrasada: '<span class="badge inativo">Vencida</span>', avencer: '<span class="badge pendente">A vencer</span>' };
 
   async function listar() {
     const mes = document.getElementById('mes').value;
     const filtro = document.getElementById('filtro').value;
-    let ls = await getJSON('lancamentos?tipo=saida&mes=' + mes);
+    let ls = await getJSON('lancamentos?tipo=saida&situacao=pendente&mes=' + mes);
     if (filtro) ls = ls.filter((l) => statusDe(l) === filtro);
-    ls.sort((a, b) => (ordem[statusDe(a)] - ordem[statusDe(b)]) || a.data.localeCompare(b.data));
+    // Vencidas primeiro, depois a vencer; dentro de cada grupo por data
+    ls.sort((a, b) => (statusDe(a) === statusDe(b) ? a.data.localeCompare(b.data) : statusDe(a) === 'atrasada' ? -1 : 1));
 
     document.getElementById('lista').innerHTML = tabela(ls, [
       ['Vencimento', (l) => dataBR(l.data)],
@@ -772,68 +817,69 @@ VIEWS['contas-pagar'] = async () => {
       ['Banco', (l) => esc(l.banco_nome)],
       ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
       ['Ações', (l) => `<div class="acoes">
-        ${l.situacao === 'pago'
-          ? `<span class="btn-ico pago" title="Paga">${ICON.check}</span>`
-          : `<button class="btn-ico pagar" data-pagar="${l.id}" title="Marcar como paga">${ICON.check}</button>`}
+        <button class="btn-ico pagar" data-pagar="${l.id}" title="Marcar como paga">${ICON.check}</button>
         <button class="btn-ico" data-edit="${l.id}" title="Editar">${ICON.pencil}</button>
         <button class="btn-ico excluir" data-del="${l.id}" title="Excluir">${ICON.trash}</button>
       </div>`],
-    ], 'Nenhuma despesa neste mês.');
+    ], 'Nenhuma conta pendente neste mês. 🎉');
 
     document.querySelectorAll('[data-pagar]').forEach((b) =>
       b.addEventListener('click', async () => {
         await api('lancamentos/' + b.dataset.pagar + '/pagar', { method: 'PATCH' });
+        atualizarAvisoContas();
         listar();
       }));
     document.querySelectorAll('[data-edit]').forEach((b) =>
-      b.addEventListener('click', () => editarDespesa(ls.find((x) => String(x.id) === b.dataset.edit))));
-    ligarDelete('lancamentos', listar);
-  }
-
-  function editarDespesa(l) {
-    const m = abrirModal('Editar despesa', `
-      <form id="fed" class="form-grid" style="max-width:none">
-        <label>Fornecedor<select id="ed-forn"><option value=""></option>${optFornecedor(fornecedores)}</select></label>
-        <label>Centro de custo<select id="ed-centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
-        <div class="linha">
-          <label>Valor<input type="text" id="ed-valor"></label>
-          <label>Banco<select id="ed-banco">${optById(bancos)}</select></label>
-        </div>
-        <div class="linha">
-          <label>Vencimento<input type="date" id="ed-data"></label>
-          <label>Forma de pagamento<select id="ed-forma">${optById(formas)}</select></label>
-        </div>
-        <label>Descrição<input type="text" id="ed-detalhes" maxlength="255"></label>
-        <button type="submit">Salvar</button>
-        <p id="ed-msg" class="erro"></p>
-      </form>`);
-    const q = (id) => m.el.querySelector(id);
-    q('#ed-forn').value = l.fornecedor_id || '';
-    q('#ed-centro').value = l.centro_custo_id || '';
-    q('#ed-banco').value = l.banco_id || '';
-    q('#ed-data').value = l.data.slice(0, 10);
-    q('#ed-forma').value = l.forma_pagamento || '';
-    q('#ed-detalhes').value = l.detalhes || '';
-    maskMoeda(q('#ed-valor'), Number(l.valor));
-    q('#fed').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const r = await api('lancamentos/' + l.id, { method: 'PUT', body: JSON.stringify({
-        fornecedor_id: q('#ed-forn').value,
-        centro_custo_id: q('#ed-centro').value,
-        banco_id: q('#ed-banco').value,
-        valor: parseMoeda(q('#ed-valor').value),
-        data: q('#ed-data').value,
-        forma_pagamento: q('#ed-forma').value,
-        detalhes: q('#ed-detalhes').value,
-      }) });
-      const d = await r.json();
-      if (!r.ok) { q('#ed-msg').textContent = d.erro; return; }
-      m.fechar(); listar();
-    });
+      b.addEventListener('click', () => abrirEditarDespesa(ls.find((x) => String(x.id) === b.dataset.edit), refs, listar)));
+    ligarDelete('lancamentos', () => { atualizarAvisoContas(); listar(); });
   }
 
   document.getElementById('mes').addEventListener('change', listar);
   document.getElementById('filtro').addEventListener('change', listar);
+  listar();
+};
+
+// ─── Contas Pagas ───
+VIEWS['contas-pagas'] = async () => {
+  const refs = {
+    fornecedores: await getJSON('fornecedores'), centros: await getJSON('centros-custo'),
+    bancos: await getJSON('bancos'), formas: await getJSON('formas-pagamento'),
+  };
+
+  app.innerHTML = `<div class="painel">
+    <h2>Contas Pagas</h2>
+    <p class="desc">Despesas já pagas (lançadas como pagas ou quitadas em Contas a Pagar).</p>
+    <div class="toolbar">
+      <label class="check-linha" style="margin:0">Mês <input type="month" id="mes" value="${mesISO()}" style="width:auto"></label>
+    </div>
+    <div id="lista"></div>
+  </div>`;
+
+  async function listar() {
+    const mes = document.getElementById('mes').value;
+    const ls = await getJSON('lancamentos?tipo=saida&situacao=pago&mes=' + mes);
+    ls.sort((a, b) => b.data.localeCompare(a.data));
+
+    document.getElementById('lista').innerHTML = tabela(ls, [
+      ['Data', (l) => dataBR(l.data)],
+      ['Fornecedor', (l) => esc(l.fornecedor_nome || '—')],
+      ['Centro', (l) => esc(l.centro_custo_nome || '—')],
+      ['Parcela', (l) => l.parcela_label || (l.parcelamento === 'Recorrente' ? 'Recorrente' : 'À vista')],
+      ['Banco', (l) => esc(l.banco_nome)],
+      ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
+      ['Status', () => '<span class="badge pago">Paga</span>'],
+      ['Ações', (l) => `<div class="acoes">
+        <button class="btn-ico" data-edit="${l.id}" title="Editar">${ICON.pencil}</button>
+        <button class="btn-ico excluir" data-del="${l.id}" title="Excluir">${ICON.trash}</button>
+      </div>`],
+    ], 'Nenhuma conta paga neste mês.');
+
+    document.querySelectorAll('[data-edit]').forEach((b) =>
+      b.addEventListener('click', () => abrirEditarDespesa(ls.find((x) => String(x.id) === b.dataset.edit), refs, listar)));
+    ligarDelete('lancamentos', listar);
+  }
+
+  document.getElementById('mes').addEventListener('change', listar);
   listar();
 };
 
@@ -1401,6 +1447,23 @@ function versiculoDoDia() {
   ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
 }
 
+// Aviso no menu "Contas a Pagar" quando há conta vencida
+async function atualizarAvisoContas() {
+  try {
+    const pend = await getJSON('lancamentos?tipo=saida&situacao=pendente');
+    const hoje = hojeISO();
+    const vencidas = pend.filter((l) => String(l.data).slice(0, 10) < hoje).length;
+    const item = document.querySelector('.menu .item[data-rota="contas-pagar"]');
+    if (!item) return;
+    let badge = item.querySelector('.aviso-badge');
+    if (vencidas) {
+      if (!badge) { badge = document.createElement('span'); badge.className = 'aviso-badge'; item.appendChild(badge); }
+      badge.textContent = vencidas;
+      badge.title = `${vencidas} conta(s) vencida(s)`;
+    } else if (badge) { badge.remove(); }
+  } catch (e) { /* silencioso */ }
+}
+
 // Destaca "Membresia" no menu quando há aniversariante do dia
 function marcarAniversarioNoMenu(qtd) {
   document.querySelectorAll('.menu .grupo-head').forEach((h) => {
@@ -1430,4 +1493,6 @@ function marcarAniversarioNoMenu(qtd) {
     const hoje = aniv.filter((a) => a.hoje).length;
     if (hoje) marcarAniversarioNoMenu(hoje);
   } catch (e) { /* sem bloquear o app */ }
+
+  atualizarAvisoContas();
 })();

@@ -93,9 +93,11 @@ CREATE TABLE IF NOT EXISTS despesas_fixas (
   valor           NUMERIC(12,2) NOT NULL CHECK (valor > 0),
   dia_vencimento  INT NOT NULL DEFAULT 1, -- dia do mês
   forma_pagamento VARCHAR(30) DEFAULT 'Pix',
+  pago_padrao     BOOLEAN DEFAULT FALSE,  -- gera os lançamentos já como pagos
   ativo           BOOLEAN DEFAULT TRUE,
   criado_em       TIMESTAMP DEFAULT NOW()
 );
+ALTER TABLE despesas_fixas ADD COLUMN IF NOT EXISTS pago_padrao BOOLEAN DEFAULT FALSE;
 
 -- Lançamentos (entradas E saídas — espelha o export contábil)
 CREATE TABLE IF NOT EXISTS lancamentos (

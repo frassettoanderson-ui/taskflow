@@ -157,6 +157,16 @@ button.pequeno { padding: 7px 12px; font-size: 13px; }
 }
 .layout.recolhido .aniv-badge { display: none; }
 @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(251,191,36,.5); } 50% { box-shadow: 0 0 0 5px rgba(251,191,36,0); } }
+
+/* Aviso de conta vencida no item Contas a Pagar */
+.aviso-badge {
+  margin-left: auto; background: var(--vermelho); color: #fff; font-size: 10px; font-weight: 700;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  animation: pulse-red 1.8s ease-in-out infinite;
+}
+.layout.recolhido .aviso-badge { display: none; }
+@keyframes pulse-red { 0%,100% { box-shadow: 0 0 0 0 rgba(248,113,113,.5); } 50% { box-shadow: 0 0 0 5px rgba(248,113,113,0); } }
 .grupo-head .seta { margin-left: auto; transition: transform .18s; font-size: 11px; color: var(--faint); }
 .grupo.aberto .grupo-head .seta { transform: rotate(90deg); }
 .grupo .sub { display: none; flex-direction: column; padding-left: 16px; margin: 2px 0; }
