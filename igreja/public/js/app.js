@@ -1012,7 +1012,7 @@ VIEWS['membro-cadastrar'] = async () => {
       </div>
       <div class="linha">
         <label>Sexo<select id="sexo"><option value=""></option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
-        <label>Endereço (opcional)<input type="text" id="endereco"></label>
+        <label>Bairro<input type="text" id="endereco"></label>
       </div>
       <button type="submit">Salvar membro</button>
       <p id="msg" class="erro"></p>
@@ -1071,7 +1071,7 @@ VIEWS['membro-consultar'] = async () => {
       </div>
       <div class="linha">
         <label>Sexo<select id="e-sexo"><option value=""></option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
-        <label>Endereço<input type="text" id="e-endereco"></label>
+        <label>Bairro<input type="text" id="e-endereco"></label>
       </div>
       <label class="check-linha"><input type="checkbox" id="e-ativo"> Membro ativo</label>
       <div class="linha"><button type="submit">Salvar alterações</button><button type="button" class="ghost" id="cancelar">Cancelar</button></div>
