@@ -201,6 +201,22 @@ tbody tr:last-child td { border-bottom: none; }
 .acao-link:hover { background: var(--surface-3); color: var(--text); transform: none; }
 .acao-del:hover { color: var(--vermelho); }
 .acao-ok { color: var(--verde); font-weight: 600; }
+
+/* Botões quadrados de ação (Contas a Pagar etc.) */
+.acoes { display: flex; gap: 8px; align-items: center; }
+.btn-ico {
+  width: 34px; height: 34px; padding: 0; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 9px; background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--muted); box-shadow: none; cursor: pointer;
+  transition: background .14s, color .14s, border-color .14s, transform .12s;
+}
+.btn-ico:hover { background: var(--surface-3); color: var(--text); border-color: var(--border-2); transform: translateY(-1px); }
+.btn-ico.pagar { background: var(--verde-bg); border-color: rgba(74,222,128,.3); color: var(--verde); }
+.btn-ico.pagar:hover { background: var(--verde); border-color: var(--verde); color: #06140b; }
+.btn-ico.pago { background: var(--verde-bg); border-color: transparent; color: var(--verde); cursor: default; opacity: .65; }
+.btn-ico.pago:hover { transform: none; }
+.btn-ico.excluir:hover { background: var(--vermelho-bg); border-color: rgba(248,113,113,.3); color: var(--vermelho); }
 .vazio { color: var(--faint); padding: 20px 0; text-align: center; }
 
 /* ─── Badges ─── */

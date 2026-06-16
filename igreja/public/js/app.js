@@ -7,6 +7,13 @@ const hojeISO = () => new Date().toISOString().slice(0, 10);
 const mesISO = () => new Date().toISOString().slice(0, 7);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// Ícones SVG (estilo lucide)
+const ICON = {
+  check: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  pencil: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>',
+};
+
 async function api(path, opts = {}) {
   const r = await fetch('api/' + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (r.status === 401) { location.href = 'login.html'; throw new Error('nao autenticado'); }
@@ -731,12 +738,14 @@ VIEWS['contas-pagar'] = async () => {
   const statusDe = (l) => (l.situacao === 'pago' ? 'paga' : (l.data.slice(0, 10) < hoje ? 'atrasada' : 'avencer'));
   const badge = { paga: '<span class="badge pago">Paga</span>', atrasada: '<span class="badge inativo">Vencida</span>', avencer: '<span class="badge pendente">A vencer</span>' };
 
+  const ordem = { atrasada: 0, avencer: 1, paga: 2 }; // Vencidas → A vencer → Pagas
+
   async function listar() {
     const mes = document.getElementById('mes').value;
     const filtro = document.getElementById('filtro').value;
     let ls = await getJSON('lancamentos?tipo=saida&mes=' + mes);
     if (filtro) ls = ls.filter((l) => statusDe(l) === filtro);
-    ls.sort((a, b) => a.data.localeCompare(b.data));
+    ls.sort((a, b) => (ordem[statusDe(a)] - ordem[statusDe(b)]) || a.data.localeCompare(b.data));
 
     document.getElementById('lista').innerHTML = tabela(ls, [
       ['Vencimento', (l) => dataBR(l.data)],
@@ -746,9 +755,13 @@ VIEWS['contas-pagar'] = async () => {
       ['Parcela', (l) => l.parcela_label || (l.parcelamento === 'Recorrente' ? 'Recorrente' : 'À vista')],
       ['Banco', (l) => esc(l.banco_nome)],
       ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
-      ['', (l) => `${l.situacao === 'pendente' ? `<button class="acao-link acao-ok" data-pagar="${l.id}">✓ Pagar</button>` : ''}
-                   <button class="acao-link" data-edit="${l.id}">✎ Editar</button>
-                   <button class="acao-link acao-del" data-del="${l.id}">✕</button>`],
+      ['Ações', (l) => `<div class="acoes">
+        ${l.situacao === 'pago'
+          ? `<span class="btn-ico pago" title="Paga">${ICON.check}</span>`
+          : `<button class="btn-ico pagar" data-pagar="${l.id}" title="Marcar como paga">${ICON.check}</button>`}
+        <button class="btn-ico" data-edit="${l.id}" title="Editar">${ICON.pencil}</button>
+        <button class="btn-ico excluir" data-del="${l.id}" title="Excluir">${ICON.trash}</button>
+      </div>`],
     ], 'Nenhuma despesa neste mês.');
 
     document.querySelectorAll('[data-pagar]').forEach((b) =>
