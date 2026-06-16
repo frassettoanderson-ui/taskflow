@@ -372,10 +372,70 @@ VIEWS.entrada = async () => {
       ['Tipo', (l) => l.tipo_gasto],
       ['Banco', (l) => esc(l.banco_nome)],
       ['Valor', (l) => `<span class="val-entrada">${brl(l.valor)}</span>`],
-      ['', (l) => `<button class="acao-link acao-del" data-del="${l.id}">✕</button>`],
+      ['Ações', (l) => `<div class="acoes">
+        <button class="btn-ico" data-edit="${l.id}" title="Editar">${ICON.pencil}</button>
+        <button class="btn-ico excluir" data-del="${l.id}" title="Excluir">${ICON.trash}</button>
+      </div>`],
     ]);
+    document.querySelectorAll('[data-edit]').forEach((b) =>
+      b.addEventListener('click', () => editarEntrada(ls.find((x) => String(x.id) === b.dataset.edit))));
     ligarDelete('lancamentos', listarEntradas);
   }
+
+  function editarEntrada(l) {
+    const m = abrirModal('Editar entrada', `
+      <form id="fee" class="form-grid" style="max-width:none">
+        <label class="check-linha"><input type="checkbox" id="ee-visit"> Visitante (somente oferta)</label>
+        <label id="ee-wrap-membro">Membro
+          <select id="ee-membro"><option value=""></option>${membros.map((x) => `<option value="${x.id}">${esc(x.nome)}</option>`).join('')}</select>
+        </label>
+        <div class="linha">
+          <label id="ee-wrap-tipo">Tipo<select id="ee-tipo"><option value="DIZIMO">Dízimo</option><option value="OFERTA">Oferta</option></select></label>
+          <label>Valor<input type="text" id="ee-valor"></label>
+        </div>
+        <div class="linha">
+          <label>Banco<select id="ee-banco">${optById(bancos)}</select></label>
+          <label>Data<input type="date" id="ee-data"></label>
+        </div>
+        <label>Observação<input type="text" id="ee-detalhes" maxlength="255"></label>
+        <button type="submit">Salvar</button>
+        <p id="ee-msg" class="erro"></p>
+      </form>`);
+    const q = (id) => m.el.querySelector(id);
+    q('#ee-membro').value = l.membro_id || '';
+    q('#ee-tipo').value = l.tipo_gasto || 'DIZIMO';
+    q('#ee-banco').value = l.banco_id || '';
+    q('#ee-data').value = l.data.slice(0, 10);
+    q('#ee-detalhes').value = l.detalhes || '';
+    q('#ee-visit').checked = !!l.visitante;
+    maskMoeda(q('#ee-valor'), Number(l.valor));
+
+    const aplicarVisit = () => {
+      const v = q('#ee-visit').checked;
+      q('#ee-wrap-membro').style.display = v ? 'none' : 'flex';
+      q('#ee-wrap-tipo').style.display = v ? 'none' : 'flex';
+      if (v) q('#ee-tipo').value = 'OFERTA';
+    };
+    q('#ee-visit').addEventListener('change', aplicarVisit);
+    aplicarVisit();
+
+    q('#fee').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await api('lancamentos/entrada/' + l.id, { method: 'PUT', body: JSON.stringify({
+        visitante: q('#ee-visit').checked,
+        membro_id: q('#ee-visit').checked ? null : q('#ee-membro').value,
+        tipo_gasto: q('#ee-tipo').value,
+        valor: parseMoeda(q('#ee-valor').value),
+        banco_id: q('#ee-banco').value,
+        data: q('#ee-data').value,
+        detalhes: q('#ee-detalhes').value,
+      }) });
+      const d = await r.json();
+      if (!r.ok) { q('#ee-msg').textContent = d.erro; return; }
+      m.fechar(); listarEntradas();
+    });
+  }
+
   listarEntradas();
 };
 

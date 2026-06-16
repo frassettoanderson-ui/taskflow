@@ -59,6 +59,28 @@ router.post('/entrada', async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
+// ─── Editar ENTRADA ─────────────────────────────────
+router.put('/entrada/:id', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  const { banco_id, data, valor, tipo_gasto, membro_id, visitante, detalhes } = req.body;
+  const tg = String(tipo_gasto || '').toUpperCase();
+  if (!banco_id || !data || !valor) return res.status(400).json({ erro: 'Banco, data e valor são obrigatórios' });
+  if (!['DIZIMO', 'OFERTA'].includes(tg)) return res.status(400).json({ erro: 'Selecione Dízimo ou Oferta' });
+  if (Number(valor) <= 0) return res.status(400).json({ erro: 'Valor deve ser maior que zero' });
+  const ehVisitante = !!visitante;
+  if (ehVisitante && tg === 'DIZIMO') return res.status(400).json({ erro: 'Visitante só pode lançar Oferta' });
+  if (!ehVisitante && !membro_id) return res.status(400).json({ erro: 'Selecione o membro ou marque Visitante' });
+
+  await db.query(
+    `UPDATE lancamentos SET banco_id=$1, data=$2, valor=$3, tipo_gasto=$4,
+       membro_id=$5, visitante=$6, detalhes=$7
+     WHERE id=$8 AND igreja_id=$9 AND tipo='entrada'`,
+    [banco_id, data, valor, tg, ehVisitante ? null : membro_id, ehVisitante, detalhes || '',
+     req.params.id, igreja_id]
+  );
+  res.json({ ok: true });
+});
+
 // ─── SAÍDA: despesa (à vista ou parcelada) ──────────
 // Entra como PENDENTE; vira "pago" ao aprovar.
 router.post('/saida', async (req, res) => {
