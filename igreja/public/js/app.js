@@ -244,19 +244,19 @@ VIEWS.entrada = async () => {
       <label class="check-linha"><input type="checkbox" id="visitante"> Visitante (somente oferta)</label>
       <label id="wrap-membro">Membro
         <div class="inline-add">
-          <select id="membro">${membros.map((m) => `<option value="${m.id}">${esc(m.nome)}</option>`).join('')}</select>
+          <select id="membro"><option value="">— Selecione o membro —</option>${membros.map((m) => `<option value="${m.id}">${esc(m.nome)}</option>`).join('')}</select>
           <button type="button" class="ghost pequeno" id="add-membro" title="Cadastrar novo membro">+ Novo membro</button>
         </div>
       </label>
       <div class="linha">
         <label>Tipo
-          <select id="tipo_gasto"><option value="DIZIMO">Dízimo</option><option value="OFERTA">Oferta</option></select>
+          <select id="tipo_gasto" required><option value="">— Selecione —</option><option value="DIZIMO">Dízimo</option><option value="OFERTA">Oferta</option></select>
         </label>
         <label>Valor<input type="text" id="valor" required></label>
       </div>
       <div class="linha">
-        <label>Banco<select id="banco">${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
-        <label>Data<input type="date" id="data" value="${hojeISO()}" required></label>
+        <label>Banco<select id="banco" required><option value="">— Selecione o banco —</option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
+        <label>Data<input type="date" id="data" required></label>
       </div>
       <label>Observação<input type="text" id="detalhes" maxlength="255"></label>
       <button type="submit">Lançar entrada</button>
@@ -359,17 +359,17 @@ async function buildVariavel(host) {
     <p class="desc">A despesa entra como <b>pendente</b> e aparece em "Contas a Pagar" para você dar o OK quando for paga.</p>
     <form id="f" class="form-grid">
       <div class="linha">
-        <label>Fornecedor<select id="fornecedor">${optFornecedor(fornecedores)}</select></label>
+        <label>Fornecedor<select id="fornecedor" required><option value="">— Selecione o fornecedor —</option>${optFornecedor(fornecedores)}</select></label>
         <label>Centro de custo<select id="centro"><option value="">—</option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha">
         <label>Valor total<input type="text" id="valor" required></label>
-        <label>Banco<select id="banco">${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
+        <label>Banco<select id="banco" required><option value="">— Selecione o banco —</option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha">
-        <label>Data<input type="date" id="data" value="${hojeISO()}" required></label>
+        <label>Data<input type="date" id="data" required></label>
         <label>Forma de pagamento
-          <select id="forma"><option>Pix</option><option>Cartão</option><option>Débito automático</option></select>
+          <select id="forma" required><option value="">— Selecione —</option><option>Pix</option><option>Cartão</option><option>Débito automático</option></select>
         </label>
       </div>
       <label class="check-linha"><input type="checkbox" id="parcelado"> Parcelado</label>
@@ -432,8 +432,8 @@ async function buildFixa(host) {
       </div>
       <div class="linha-3">
         <label>Valor<input type="text" id="valor" required></label>
-        <label>Dia venc.<input type="number" min="1" max="28" id="dia" value="5"></label>
-        <label>Banco<select id="banco">${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
+        <label>Dia venc.<input type="number" min="1" max="28" id="dia" placeholder="5"></label>
+        <label>Banco<select id="banco" required><option value="">— Selecione —</option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
       </div>
       <button type="submit">Salvar despesa fixa</button>
       <p id="msg" class="erro"></p>
@@ -467,7 +467,6 @@ async function buildFixa(host) {
     const d = await r.json();
     if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
     document.getElementById('f').reset();
-    document.getElementById('dia').value = 5;
     listar();
   });
 
