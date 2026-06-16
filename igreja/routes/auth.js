@@ -23,6 +23,7 @@ router.post('/login', async (req, res) => {
       nome: user.nome,
       papel: user.papel,
       igreja_id: user.igreja_id,
+      senha_provisoria: user.senha_provisoria,
     };
     res.json({ ok: true, usuario: req.session.usuario });
   } catch (e) {
@@ -40,6 +41,25 @@ router.post('/logout', (req, res) => {
 router.get('/me', (req, res) => {
   if (!req.session.usuario) return res.status(401).json({ erro: 'Nao autenticado' });
   res.json({ usuario: req.session.usuario });
+});
+
+// POST /api/auth/trocar-senha  { senha_nova } — limpa a flag de senha provisória
+router.post('/trocar-senha', async (req, res) => {
+  if (!req.session.usuario) return res.status(401).json({ erro: 'Nao autenticado' });
+  const { senha_nova } = req.body;
+  if (!senha_nova || senha_nova.length < 4) {
+    return res.status(400).json({ erro: 'A senha deve ter pelo menos 4 caracteres' });
+  }
+  try {
+    const hash = await bcrypt.hash(senha_nova, 10);
+    await db.query('UPDATE usuarios SET senha=$1, senha_provisoria=FALSE WHERE id=$2',
+      [hash, req.session.usuario.id]);
+    req.session.usuario.senha_provisoria = false;
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ erro: 'Erro ao trocar a senha' });
+  }
 });
 
 module.exports = router;

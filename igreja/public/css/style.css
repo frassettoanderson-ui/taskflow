@@ -263,6 +263,14 @@ tbody tr:last-child td { border-bottom: none; }
 
 .placeholder { text-align: center; color: var(--faint); padding: 60px 20px; }
 
+/* ─── Versículo do dia ─── */
+.versiculo-box { max-width: 460px; }
+.versiculo { text-align: center; padding: 30px 28px 26px; }
+.vs-saud { font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 22px; color: #fff; margin-bottom: 18px; }
+.vs-frase { margin: 0 0 12px; font-size: 18px; line-height: 1.6; font-style: italic; color: var(--text); }
+.vs-ref { color: var(--muted); font-size: 13px; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 24px; }
+.vs-fechar { width: 100%; padding: 13px; font-size: 16px; }
+
 /* ════════════════════════════════════════════════
    Dashboard
    ════════════════════════════════════════════════ */

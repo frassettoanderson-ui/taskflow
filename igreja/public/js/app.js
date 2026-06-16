@@ -1256,6 +1256,87 @@ function quickCadastro(titulo, endpoint, campos) {
 }
 
 // ════════════════════════════════════════════════
+//  Troca de senha obrigatória (senha provisória)
+// ════════════════════════════════════════════════
+function trocaSenhaObrigatoria(aoConcluir) {
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.innerHTML = `<div class="modal-box">
+    <div class="modal-head"><h2>Crie uma nova senha</h2></div>
+    <div class="modal-body">
+      <p class="desc" style="margin:0 0 16px">Você está usando uma senha provisória. Defina uma nova senha para continuar.</p>
+      <form id="ts" class="form-grid" style="max-width:none">
+        <label>Nova senha<input type="password" id="ts-1" required autocomplete="new-password"></label>
+        <label>Confirmar nova senha<input type="password" id="ts-2" required autocomplete="new-password"></label>
+        <button type="submit">Salvar nova senha</button>
+        <p id="ts-msg" class="erro"></p>
+      </form>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#ts').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const s1 = ov.querySelector('#ts-1').value, s2 = ov.querySelector('#ts-2').value;
+    const msg = ov.querySelector('#ts-msg');
+    if (s1.length < 4) { msg.textContent = 'Use pelo menos 4 caracteres.'; return; }
+    if (s1 !== s2) { msg.textContent = 'As senhas não conferem.'; return; }
+    const r = await api('auth/trocar-senha', { method: 'POST', body: JSON.stringify({ senha_nova: s1 }) });
+    const d = await r.json();
+    if (!r.ok) { msg.textContent = d.erro; return; }
+    ov.remove();
+    if (aoConcluir) aoConcluir();
+  });
+}
+
+// ════════════════════════════════════════════════
+//  Versículo do dia
+// ════════════════════════════════════════════════
+const VERSICULOS = [
+  { t: 'O Senhor é o meu pastor; nada me faltará.', r: 'Salmos 23:1' },
+  { t: 'Tudo posso naquele que me fortalece.', r: 'Filipenses 4:13' },
+  { t: 'Entrega o teu caminho ao Senhor; confia nele, e ele tudo fará.', r: 'Salmos 37:5' },
+  { t: 'Porque para Deus nada é impossível.', r: 'Lucas 1:37' },
+  { t: 'O choro pode durar uma noite, mas a alegria vem pela manhã.', r: 'Salmos 30:5' },
+  { t: 'Buscai primeiro o reino de Deus, e a sua justiça, e todas estas coisas vos serão acrescentadas.', r: 'Mateus 6:33' },
+  { t: 'Posso todas as coisas por meio de Cristo; nada me detém.', r: 'Filipenses 4:13' },
+  { t: 'Lança o teu pão sobre as águas, porque depois de muitos dias o acharás.', r: 'Eclesiastes 11:1' },
+  { t: 'O Senhor é a minha força e o meu escudo; nele confiou o meu coração.', r: 'Salmos 28:7' },
+  { t: 'Sede fortes e corajosos; não temais, porque o Senhor vai convosco.', r: 'Deuteronômio 31:6' },
+  { t: 'Bem-aventurado o homem que confia no Senhor.', r: 'Jeremias 17:7' },
+  { t: 'A alegria do Senhor é a vossa força.', r: 'Neemias 8:10' },
+  { t: 'Deus é o nosso refúgio e fortaleza, socorro bem presente na angústia.', r: 'Salmos 46:1' },
+  { t: 'Aquietai-vos e sabei que eu sou Deus.', r: 'Salmos 46:10' },
+  { t: 'E conhecereis a verdade, e a verdade vos libertará.', r: 'João 8:32' },
+];
+const BOTOES_AMEM = ['Amém', 'Aleluia', 'Glória a Deus', 'Tencaraixova'];
+
+function versiculoDoDia() {
+  const hojeStr = new Date().toISOString().slice(0, 10);
+  if (localStorage.getItem('versiculo_dia') === hojeStr) return;
+  localStorage.setItem('versiculo_dia', hojeStr);
+
+  const h = new Date().getHours();
+  const saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  const v = VERSICULOS[Math.floor(Math.random() * VERSICULOS.length)];
+  const btn = BOTOES_AMEM[Math.floor(Math.random() * BOTOES_AMEM.length)];
+
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.innerHTML = `<div class="modal-box versiculo-box">
+    <div class="modal-body versiculo">
+      <div class="vs-saud">${saud}, Pastor!</div>
+      <blockquote class="vs-frase">"${v.t}"</blockquote>
+      <div class="vs-ref">${v.r}</div>
+      <button class="vs-fechar">${btn}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const fechar = () => ov.remove();
+  ov.querySelector('.vs-fechar').addEventListener('click', fechar);
+  ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
+}
+
+// ════════════════════════════════════════════════
 //  Init
 // ════════════════════════════════════════════════
 (async function () {
@@ -1263,4 +1344,6 @@ function quickCadastro(titulo, endpoint, campos) {
   document.getElementById('usuario-nome').textContent = me.usuario.nome;
   initShell();
   navegar('dashboard');
+  if (me.usuario.senha_provisoria) trocaSenhaObrigatoria(() => versiculoDoDia());
+  else versiculoDoDia();
 })();

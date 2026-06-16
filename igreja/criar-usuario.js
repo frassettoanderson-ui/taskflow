@@ -1,16 +1,20 @@
-// Cria o primeiro usuario admin (e alguns centros de custo de exemplo).
-// Uso: node criar-usuario.js "Nome" email@exemplo.com senha123
+// Cria/atualiza um usuário do sistema.
+// Uso:    node criar-usuario.js "Nome" email@exemplo.com senha [papel] [--provisoria]
+// Exemplos:
+//   node criar-usuario.js "Anderson" admin@igreja.com igreja123
+//   node criar-usuario.js "Pr. Mário Cesar Gaspar" prmariocesargaspar@gmail.com 123456 pastor --provisoria
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const db = require('./db');
 
-const [, , nome, email, senha] = process.argv;
+const args = process.argv.slice(2);
+const provisoria = args.includes('--provisoria');
+const [nome, email, senha, papel] = args.filter((a) => a !== '--provisoria');
+
 if (!nome || !email || !senha) {
-  console.log('Uso: node criar-usuario.js "Nome" email@exemplo.com senha');
+  console.log('Uso: node criar-usuario.js "Nome" email@exemplo.com senha [papel] [--provisoria]');
   process.exit(1);
 }
-
-const CENTROS_EXEMPLO = ['Manutenção Geral', 'Energia', 'Internet', 'Aluguel', 'Pastoral'];
 
 (async () => {
   try {
@@ -23,21 +27,15 @@ const CENTROS_EXEMPLO = ['Manutenção Geral', 'Energia', 'Internet', 'Aluguel',
     const hash = await bcrypt.hash(senha, 10);
 
     await db.query(
-      `INSERT INTO usuarios (igreja_id, nome, email, senha, papel)
-       VALUES ($1,$2,$3,$4,'admin')
-       ON CONFLICT (email) DO UPDATE SET senha = EXCLUDED.senha, nome = EXCLUDED.nome`,
-      [igreja_id, nome, email.toLowerCase().trim(), hash]
+      `INSERT INTO usuarios (igreja_id, nome, email, senha, papel, senha_provisoria)
+       VALUES ($1,$2,$3,$4,$5,$6)
+       ON CONFLICT (email) DO UPDATE
+         SET senha = EXCLUDED.senha, nome = EXCLUDED.nome,
+             papel = EXCLUDED.papel, senha_provisoria = EXCLUDED.senha_provisoria`,
+      [igreja_id, nome, email.toLowerCase().trim(), hash, papel || 'admin', provisoria]
     );
 
-    for (const c of CENTROS_EXEMPLO) {
-      await db.query(
-        `INSERT INTO centros_custo (igreja_id, nome) SELECT $1::int, $2::text
-         WHERE NOT EXISTS (SELECT 1 FROM centros_custo WHERE igreja_id=$1::int AND nome=$2::text)`,
-        [igreja_id, c]
-      );
-    }
-
-    console.log(`✓ Usuario "${email}" criado. Centros de custo de exemplo adicionados.`);
+    console.log(`✓ Usuário "${email}" criado/atualizado (papel: ${papel || 'admin'}${provisoria ? ', senha provisória' : ''}).`);
     process.exit(0);
   } catch (e) {
     console.error('Erro:', e.message);

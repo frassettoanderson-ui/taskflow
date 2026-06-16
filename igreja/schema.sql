@@ -18,9 +18,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
   email     VARCHAR(150) NOT NULL UNIQUE,
   senha     VARCHAR(255) NOT NULL,
   papel     VARCHAR(20)  NOT NULL DEFAULT 'admin',
+  senha_provisoria BOOLEAN DEFAULT FALSE,
   ativo     BOOLEAN DEFAULT TRUE,
   criado_em TIMESTAMP DEFAULT NOW()
 );
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS senha_provisoria BOOLEAN DEFAULT FALSE;
 
 -- Bancos / contas (SICOBE, CREDIFOZ...)
 CREATE TABLE IF NOT EXISTS bancos (
