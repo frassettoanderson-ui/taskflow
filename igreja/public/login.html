@@ -3,10 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Entrar — Sistema Financeiro</title>
+  <title>Entrar — abarim Financeiro</title>
   <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    #dots { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    .tela-login .card-login { position: relative; z-index: 1; }
+    /* brilho sutil atrás do card */
+    .glow {
+      position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%);
+      width: 620px; height: 620px; border-radius: 50%; z-index: 0; pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(255,255,255,.07), transparent 60%);
+      filter: blur(30px);
+    }
+  </style>
 </head>
 <body class="tela-login">
+  <div id="dots"></div>
+  <div class="glow"></div>
+
   <form id="form-login" class="card-login">
     <div class="logo-mark">a</div>
     <h1 class="brand-word" style="font-size:28px;text-align:center;letter-spacing:.14em">abarim</h1>
@@ -16,7 +31,9 @@
     <button type="submit">Entrar</button>
     <p id="erro" class="erro"></p>
   </form>
+
   <script>
+    // Login
     const form = document.getElementById('form-login');
     const erro = document.getElementById('erro');
     form.addEventListener('submit', async (e) => {
@@ -34,6 +51,71 @@
       if (r.ok) location.href = '.';
       else erro.textContent = data.erro || 'Falha no login';
     });
+  </script>
+
+  <script>
+    // ─── Dotted Surface (three.js) — fundo animado de pontos em onda ───
+    (function () {
+      if (!window.THREE || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const container = document.getElementById('dots');
+      const SEPARATION = 150, AMOUNTX = 40, AMOUNTY = 60;
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.Fog(0x000000, 2000, 10000);
+
+      const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 1, 10000);
+      camera.position.set(0, 355, 1220);
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.setClearColor(0x000000, 0);
+      container.appendChild(renderer.domElement);
+
+      const positions = [], colors = [];
+      const geometry = new THREE.BufferGeometry();
+      for (let ix = 0; ix < AMOUNTX; ix++) {
+        for (let iy = 0; iy < AMOUNTY; iy++) {
+          positions.push(
+            ix * SEPARATION - (AMOUNTX * SEPARATION) / 2,
+            0,
+            iy * SEPARATION - (AMOUNTY * SEPARATION) / 2
+          );
+          colors.push(0.62, 0.62, 0.62); // pontos cinza-claros (tema escuro)
+        }
+      }
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+      const material = new THREE.PointsMaterial({
+        size: 8, vertexColors: true, transparent: true, opacity: 0.85, sizeAttenuation: true,
+      });
+      const points = new THREE.Points(geometry, material);
+      scene.add(points);
+
+      let count = 0;
+      const arr = geometry.attributes.position.array;
+      function animate() {
+        requestAnimationFrame(animate);
+        let i = 0;
+        for (let ix = 0; ix < AMOUNTX; ix++) {
+          for (let iy = 0; iy < AMOUNTY; iy++) {
+            arr[i * 3 + 1] = Math.sin((ix + count) * 0.3) * 50 + Math.sin((iy + count) * 0.5) * 50;
+            i++;
+          }
+        }
+        geometry.attributes.position.needsUpdate = true;
+        renderer.render(scene, camera);
+        count += 0.1;
+      }
+      animate();
+
+      window.addEventListener('resize', () => {
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+    })();
   </script>
 </body>
 </html>
