@@ -286,7 +286,7 @@ VIEWS.entrada = async () => {
         <label>Nome completo *<input type="text" id="m-nome" required></label>
         <div class="linha">
           <label>Telefone<input type="text" id="m-tel"></label>
-          <label>Sexo<select id="m-sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
+          <label>Sexo<select id="m-sexo"><option value=""></option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
         </div>
         <label>Data de nascimento<input type="date" id="m-nasc"></label>
         <button type="submit">Salvar e selecionar</button>
@@ -360,7 +360,7 @@ async function buildVariavel(host) {
     <form id="f" class="form-grid">
       <div class="linha">
         <label>Fornecedor<select id="fornecedor" required><option value=""></option>${optFornecedor(fornecedores)}</select></label>
-        <label>Centro de custo<select id="centro"><option value="">—</option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
+        <label>Centro de custo<select id="centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha">
         <label>Valor total<input type="text" id="valor" required></label>
@@ -427,8 +427,8 @@ async function buildFixa(host) {
     <form id="f" class="form-grid">
       <label>Descrição<input type="text" id="descricao" placeholder="Ex.: Aluguel apto pastoral" maxlength="255"></label>
       <div class="linha">
-        <label>Fornecedor<select id="fornecedor"><option value="">—</option>${optFornecedor(fornecedores, true)}</select></label>
-        <label>Centro de custo<select id="centro"><option value="">—</option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
+        <label>Fornecedor<select id="fornecedor"><option value=""></option>${optFornecedor(fornecedores, true)}</select></label>
+        <label>Centro de custo<select id="centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha-3">
         <label>Valor<input type="text" id="valor" required></label>
@@ -769,7 +769,7 @@ VIEWS['membro-cadastrar'] = async () => {
         <label>Data de nascimento<input type="date" id="nasc"></label>
       </div>
       <div class="linha">
-        <label>Sexo<select id="sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
+        <label>Sexo<select id="sexo"><option value=""></option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
         <label>Endereço (opcional)<input type="text" id="endereco"></label>
       </div>
       <button type="submit">Salvar membro</button>
@@ -828,7 +828,7 @@ VIEWS['membro-consultar'] = async () => {
         <label>Data de nascimento<input type="date" id="e-nasc"></label>
       </div>
       <div class="linha">
-        <label>Sexo<select id="e-sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
+        <label>Sexo<select id="e-sexo"><option value=""></option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
         <label>Endereço<input type="text" id="e-endereco"></label>
       </div>
       <label class="check-linha"><input type="checkbox" id="e-ativo"> Membro ativo</label>
