@@ -66,6 +66,7 @@ function abrirModal(titulo, corpoHTML) {
 
 const app = document.getElementById('app');
 const titulo = document.getElementById('titulo-pagina');
+let USUARIO = null; // usuário logado (preenchido no init)
 
 const TITULOS = {
   dashboard: 'Dashboard',
@@ -1488,6 +1489,9 @@ function versiculoDoDia() {
 
   const h = new Date().getHours();
   const saud = h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+  // Tratamento: pastor → "Pastor"; demais → primeiro nome
+  const primeiro = ((USUARIO && USUARIO.nome) || '').trim().split(/\s+/)[0] || 'irmão';
+  const tratamento = (USUARIO && USUARIO.papel === 'pastor') ? 'Pastor' : primeiro;
   const v = VERSICULOS[Math.floor(Math.random() * VERSICULOS.length)];
   const btn = BOTOES_AMEM[Math.floor(Math.random() * BOTOES_AMEM.length)];
 
@@ -1495,7 +1499,7 @@ function versiculoDoDia() {
   ov.className = 'modal-overlay';
   ov.innerHTML = `<div class="modal-box versiculo-box">
     <div class="modal-body versiculo">
-      <div class="vs-saud">${saud}, Pastor!</div>
+      <div class="vs-saud">${saud}, ${esc(tratamento)}!</div>
       <blockquote class="vs-frase">"${v.t}"</blockquote>
       <div class="vs-ref">${v.r}</div>
       <button class="vs-fechar">${btn}</button>
@@ -1542,6 +1546,7 @@ function marcarAniversarioNoMenu(qtd) {
 // ════════════════════════════════════════════════
 (async function () {
   const me = await getJSON('auth/me');
+  USUARIO = me.usuario;
   document.getElementById('usuario-nome').textContent = me.usuario.nome;
   initShell();
   navegar('dashboard');
