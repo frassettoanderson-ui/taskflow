@@ -124,6 +124,11 @@ button.pequeno { padding: 7px 12px; font-size: 13px; }
 }
 .brand-text { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
 .layout.recolhido .brand-text { display: none; }
+/* Logo oficial no menu */
+.sidebar-top .brand-logo { width: 152px; height: auto; display: block; }
+.sidebar-top .logo-mark.mini { display: none; }
+.layout.recolhido .sidebar-top .brand-logo { display: none; }
+.layout.recolhido .sidebar-top .logo-mark.mini { display: inline-flex; }
 
 .menu { padding: 12px 10px; display: flex; flex-direction: column; gap: 3px; overflow-y: auto; }
 .menu .item {
