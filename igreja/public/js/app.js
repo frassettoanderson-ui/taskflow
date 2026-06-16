@@ -14,6 +14,34 @@ async function api(path, opts = {}) {
 }
 const getJSON = async (p) => (await api(p)).json();
 
+// ─── Moeda: máscara R$ 0,00 (apenas números) ───
+const fmtMoeda = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-br', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const parseMoeda = (str) => { const n = String(str).replace(/\D/g, ''); return n ? Number(n) / 100 : 0; };
+function maskMoeda(el, valorInicial) {
+  el.setAttribute('inputmode', 'numeric');
+  el.placeholder = 'R$ 0,00';
+  if (valorInicial != null) el.value = valorInicial ? fmtMoeda(valorInicial) : '';
+  el.addEventListener('input', () => {
+    el.value = el.value.replace(/\D/g, '') ? fmtMoeda(parseMoeda(el.value)) : '';
+  });
+}
+const aplicarMoeda = (...ids) => ids.forEach((id) => { const el = document.getElementById(id); if (el) maskMoeda(el); });
+
+// ─── Modal genérico ───
+function abrirModal(titulo, corpoHTML) {
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.innerHTML = `<div class="modal-box">
+    <div class="modal-head"><h2>${titulo}</h2><button class="modal-x" title="Fechar">✕</button></div>
+    <div class="modal-body">${corpoHTML}</div>
+  </div>`;
+  document.body.appendChild(ov);
+  const fechar = () => ov.remove();
+  ov.querySelector('.modal-x').addEventListener('click', fechar);
+  ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
+  return { el: ov, fechar };
+}
+
 const app = document.getElementById('app');
 const titulo = document.getElementById('titulo-pagina');
 
@@ -215,13 +243,16 @@ VIEWS.entrada = async () => {
     <form id="f" class="form-grid">
       <label class="check-linha"><input type="checkbox" id="visitante"> Visitante (somente oferta)</label>
       <label id="wrap-membro">Membro
-        <select id="membro">${membros.map((m) => `<option value="${m.id}">${esc(m.nome)}</option>`).join('')}</select>
+        <div class="inline-add">
+          <select id="membro">${membros.map((m) => `<option value="${m.id}">${esc(m.nome)}</option>`).join('')}</select>
+          <button type="button" class="ghost pequeno" id="add-membro" title="Cadastrar novo membro">+ Novo membro</button>
+        </div>
       </label>
       <div class="linha">
         <label>Tipo
           <select id="tipo_gasto"><option value="DIZIMO">Dízimo</option><option value="OFERTA">Oferta</option></select>
         </label>
-        <label>Valor (R$)<input type="number" step="0.01" min="0.01" id="valor" required></label>
+        <label>Valor<input type="text" id="valor" required></label>
       </div>
       <div class="linha">
         <label>Banco<select id="banco">${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
@@ -237,6 +268,8 @@ VIEWS.entrada = async () => {
     <div id="lista"></div>
   </div>`;
 
+  aplicarMoeda('valor');
+
   const visit = document.getElementById('visitante');
   const tipoSel = document.getElementById('tipo_gasto');
   const wrapMembro = document.getElementById('wrap-membro');
@@ -244,6 +277,38 @@ VIEWS.entrada = async () => {
     wrapMembro.style.display = visit.checked ? 'none' : 'flex';
     if (visit.checked) { tipoSel.value = 'OFERTA'; tipoSel.querySelector('[value=DIZIMO]').disabled = true; }
     else tipoSel.querySelector('[value=DIZIMO]').disabled = false;
+  });
+
+  // + Novo membro (cadastro rápido em modal)
+  document.getElementById('add-membro').addEventListener('click', () => {
+    const m = abrirModal('Cadastro rápido de membro', `
+      <form id="fm" class="form-grid" style="max-width:none">
+        <label>Nome completo *<input type="text" id="m-nome" required></label>
+        <div class="linha">
+          <label>Telefone<input type="text" id="m-tel"></label>
+          <label>Sexo<select id="m-sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
+        </div>
+        <label>Data de nascimento<input type="date" id="m-nasc"></label>
+        <button type="submit">Salvar e selecionar</button>
+        <p id="m-msg" class="erro"></p>
+      </form>`);
+    m.el.querySelector('#fm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await api('membros', { method: 'POST', body: JSON.stringify({
+        nome: m.el.querySelector('#m-nome').value,
+        telefone: m.el.querySelector('#m-tel').value,
+        sexo: m.el.querySelector('#m-sexo').value || null,
+        data_nascimento: m.el.querySelector('#m-nasc').value || null,
+      }) });
+      const d = await r.json();
+      if (!r.ok) { m.el.querySelector('#m-msg').textContent = d.erro; return; }
+      // recarrega o select e já seleciona o novo membro
+      const novos = await getJSON('membros?situacao=ativo');
+      const sel = document.getElementById('membro');
+      sel.innerHTML = novos.map((x) => `<option value="${x.id}">${esc(x.nome)}</option>`).join('');
+      sel.value = d.id;
+      m.fechar();
+    });
   });
 
   document.getElementById('f').addEventListener('submit', async (e) => {
@@ -255,7 +320,7 @@ VIEWS.entrada = async () => {
         visitante: visit.checked,
         membro_id: visit.checked ? null : document.getElementById('membro').value,
         tipo_gasto: tipoSel.value,
-        valor: document.getElementById('valor').value,
+        valor: parseMoeda(document.getElementById('valor').value),
         banco_id: document.getElementById('banco').value,
         data: document.getElementById('data').value,
         detalhes: document.getElementById('detalhes').value,
@@ -298,7 +363,7 @@ async function buildVariavel(host) {
         <label>Centro de custo<select id="centro"><option value="">—</option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha">
-        <label>Valor total (R$)<input type="number" step="0.01" min="0.01" id="valor" required></label>
+        <label>Valor total<input type="text" id="valor" required></label>
         <label>Banco<select id="banco">${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha">
@@ -317,6 +382,7 @@ async function buildVariavel(host) {
     </form>
   </div>`;
 
+  aplicarMoeda('valor');
   const parc = document.getElementById('parcelado');
   parc.addEventListener('change', () =>
     (document.getElementById('wrap-parcelas').style.display = parc.checked ? 'flex' : 'none')
@@ -330,7 +396,7 @@ async function buildVariavel(host) {
       body: JSON.stringify({
         fornecedor_id: document.getElementById('fornecedor').value,
         centro_custo_id: document.getElementById('centro').value,
-        valor: document.getElementById('valor').value,
+        valor: parseMoeda(document.getElementById('valor').value),
         banco_id: document.getElementById('banco').value,
         data: document.getElementById('data').value,
         forma_pagamento: document.getElementById('forma').value,
@@ -365,7 +431,7 @@ async function buildFixa(host) {
         <label>Centro de custo<select id="centro"><option value="">—</option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha-3">
-        <label>Valor (R$)<input type="number" step="0.01" min="0.01" id="valor" required></label>
+        <label>Valor<input type="text" id="valor" required></label>
         <label>Dia venc.<input type="number" min="1" max="28" id="dia" value="5"></label>
         <label>Banco<select id="banco">${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
       </div>
@@ -383,6 +449,7 @@ async function buildFixa(host) {
     <div id="lista"></div>
   </div>`;
 
+  aplicarMoeda('valor');
   document.getElementById('f').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('msg');
@@ -392,7 +459,7 @@ async function buildFixa(host) {
         descricao: document.getElementById('descricao').value,
         fornecedor_id: document.getElementById('fornecedor').value,
         centro_custo_id: document.getElementById('centro').value,
-        valor: document.getElementById('valor').value,
+        valor: parseMoeda(document.getElementById('valor').value),
         dia_vencimento: document.getElementById('dia').value,
         banco_id: document.getElementById('banco').value,
       }),
@@ -572,7 +639,7 @@ VIEWS.bancos = async () => {
     <form id="f" class="form-grid">
       <div class="linha">
         <label>Nome *<input type="text" id="nome" required></label>
-        <label>Saldo inicial (R$)<input type="number" step="0.01" id="saldo" value="0"></label>
+        <label>Saldo inicial<input type="text" id="saldo"></label>
       </div>
       <button type="submit">Salvar</button><p id="msg" class="erro"></p>
     </form>
@@ -584,7 +651,7 @@ VIEWS.bancos = async () => {
       <input type="hidden" id="e-id">
       <div class="linha">
         <label>Nome *<input type="text" id="e-nome" required></label>
-        <label>Saldo inicial (R$)<input type="number" step="0.01" id="e-saldo"></label>
+        <label>Saldo inicial<input type="text" id="e-saldo"></label>
       </div>
       <div class="linha">
         <label>Agência<input type="text" id="e-agencia" placeholder="0001"></label>
@@ -596,11 +663,13 @@ VIEWS.bancos = async () => {
     </form>
   </div>`;
 
+  aplicarMoeda('saldo', 'e-saldo'); // saldo (novo) e e-saldo (edição)
+
   document.getElementById('f').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('msg');
     const r = await api('bancos', { method: 'POST', body: JSON.stringify({
-      nome: document.getElementById('nome').value, saldo_inicial: document.getElementById('saldo').value }) });
+      nome: document.getElementById('nome').value, saldo_inicial: parseMoeda(document.getElementById('saldo').value) }) });
     const d = await r.json();
     if (!r.ok) { msg.textContent = d.erro; return; }
     document.getElementById('f').reset(); listar();
@@ -631,7 +700,7 @@ VIEWS.bancos = async () => {
     document.getElementById('painel-edit').style.display = 'block';
     document.getElementById('e-id').value = b.id;
     document.getElementById('e-nome').value = b.nome;
-    document.getElementById('e-saldo').value = b.saldo_inicial;
+    document.getElementById('e-saldo').value = Number(b.saldo_inicial) ? fmtMoeda(b.saldo_inicial) : '';
     document.getElementById('e-agencia').value = b.agencia || '';
     document.getElementById('e-conta').value = b.conta || '';
     document.getElementById('e-pix').value = b.chave_pix || '';
@@ -644,7 +713,7 @@ VIEWS.bancos = async () => {
     const id = document.getElementById('e-id').value;
     const r = await api('bancos/' + id, { method: 'PUT', body: JSON.stringify({
       nome: document.getElementById('e-nome').value,
-      saldo_inicial: document.getElementById('e-saldo').value,
+      saldo_inicial: parseMoeda(document.getElementById('e-saldo').value),
       agencia: document.getElementById('e-agencia').value,
       conta: document.getElementById('e-conta').value,
       chave_pix: document.getElementById('e-pix').value,

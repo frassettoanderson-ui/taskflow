@@ -142,6 +142,28 @@ tbody tr:hover { background: #f8fafc; }
 
 .placeholder { text-align: center; color: var(--cinza-claro); padding: 60px 20px; }
 
+/* ─── Inline add (select + botão) ─── */
+.inline-add { display: flex; gap: 8px; align-items: stretch; }
+.inline-add select { flex: 1; }
+.inline-add button { white-space: nowrap; }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+  animation: fadein .15s ease;
+}
+.modal-box {
+  background: var(--card); border-radius: 14px; width: 100%; max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25); animation: slideup .2s ease;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--borda); }
+.modal-head h2 { margin: 0; font-size: 17px; }
+.modal-x { background: none; border: none; color: var(--cinza); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+.modal-body { padding: 20px; }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideup { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
 /* ─── Abas ─── */
 .tabs { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 2px solid var(--borda); }
 .tab {
