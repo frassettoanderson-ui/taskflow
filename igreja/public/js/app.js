@@ -20,10 +20,9 @@ const titulo = document.getElementById('titulo-pagina');
 const TITULOS = {
   dashboard: 'Dashboard',
   entrada: 'Lançar Dízimo / Oferta',
-  'despesa-fixa': 'Despesa Fixa',
-  'despesa-variavel': 'Despesa Variável',
+  despesas: 'Despesas',
   fornecedores: 'Fornecedores',
-  aprovar: 'Aprovar Despesas',
+  'contas-pagar': 'Contas a Pagar',
   'membro-cadastrar': 'Cadastrar Membro',
   'membro-consultar': 'Consultar Membros',
   'centros-custo': 'Centros de Custo',
@@ -284,15 +283,15 @@ VIEWS.entrada = async () => {
   listarEntradas();
 };
 
-// ─── Despesa Variável (saída avulsa, à vista ou parcelada) ───
-VIEWS['despesa-variavel'] = async () => {
+// ─── Despesas: aba Variáveis ───
+async function buildVariavel(host) {
   const [bancos, fornecedores, centros] = await Promise.all([
     getJSON('bancos'), getJSON('fornecedores'), getJSON('centros-custo'),
   ]);
-  app.innerHTML = `
+  host.innerHTML = `
   <div class="painel">
     <h2>Nova despesa variável</h2>
-    <p class="desc">A despesa entra como <b>pendente</b> e precisa ser aprovada em "Aprovar Despesas".</p>
+    <p class="desc">A despesa entra como <b>pendente</b> e aparece em "Contas a Pagar" para você dar o OK quando for paga.</p>
     <form id="f" class="form-grid">
       <div class="linha">
         <label>Fornecedor<select id="fornecedor">${optFornecedor(fornecedores)}</select></label>
@@ -348,14 +347,14 @@ VIEWS['despesa-variavel'] = async () => {
     document.getElementById('data').value = hojeISO();
     document.getElementById('wrap-parcelas').style.display = 'none';
   });
-};
+}
 
-// ─── Despesa Fixa (recorrente) ───
-VIEWS['despesa-fixa'] = async () => {
+// ─── Despesas: aba Fixas ───
+async function buildFixa(host) {
   const [bancos, fornecedores, centros] = await Promise.all([
     getJSON('bancos'), getJSON('fornecedores'), getJSON('centros-custo'),
   ]);
-  app.innerHTML = `
+  host.innerHTML = `
   <div class="painel">
     <h2>Nova despesa fixa</h2>
     <p class="desc">Modelo recorrente. Gere os lançamentos do mês com o botão abaixo (entram como pendentes).</p>
@@ -424,6 +423,44 @@ VIEWS['despesa-fixa'] = async () => {
     ligarDelete('despesas-fixas', listar);
   }
   listar();
+}
+
+// ─── Despesas: aba Parcelamentos (acompanhar parcelas) ───
+async function buildParcelamentos(host) {
+  host.innerHTML = `<div class="painel"><h2>Parcelamentos</h2>
+    <p class="desc">Despesas parceladas e o andamento de cada parcela.</p><div id="lista"></div></div>`;
+  const ls = await getJSON('lancamentos?tipo=saida');
+  const parcelas = ls.filter((l) => l.parcela_label).sort((a, b) => a.data.localeCompare(b.data));
+  document.getElementById('lista').innerHTML = tabela(parcelas, [
+    ['Fornecedor', (l) => esc(l.fornecedor_nome || '—')],
+    ['Parcela', (l) => `<b>${l.parcela_label}</b>`],
+    ['Vencimento', (l) => dataBR(l.data)],
+    ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
+    ['Situação', (l) => `<span class="badge ${l.situacao}">${l.situacao === 'pago' ? 'Pago' : 'Pendente'}</span>`],
+  ], 'Nenhuma despesa parcelada ainda.');
+}
+
+// ─── Despesas (tela única com abas) ───
+VIEWS.despesas = () => {
+  app.innerHTML = `
+  <div class="tabs">
+    <button class="tab ativo" data-tab="variaveis">Variáveis</button>
+    <button class="tab" data-tab="fixas">Fixas</button>
+    <button class="tab" data-tab="parcelamentos">Parcelamentos</button>
+  </div>
+  <div id="tab-content"></div>`;
+
+  const content = document.getElementById('tab-content');
+  const builders = { variaveis: buildVariavel, fixas: buildFixa, parcelamentos: buildParcelamentos };
+
+  document.querySelectorAll('.tab').forEach((t) =>
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((x) => x.classList.remove('ativo'));
+      t.classList.add('ativo');
+      builders[t.dataset.tab](content);
+    })
+  );
+  buildVariavel(content);
 };
 
 // ─── Fornecedores ───
@@ -482,12 +519,30 @@ VIEWS.fornecedores = async () => {
 };
 
 // ─── Aprovar Despesas (pendentes → pago) ───
-VIEWS.aprovar = async () => {
-  app.innerHTML = `<div class="painel"><h2>Despesas pendentes</h2><div id="lista"></div></div>`;
+VIEWS['contas-pagar'] = async () => {
+  app.innerHTML = `<div class="painel">
+    <h2>Contas a Pagar</h2>
+    <p class="desc">Despesas a pagar. Quando efetuar o pagamento, clique em <b>Dar OK</b> para confirmar.</p>
+    <div class="toolbar">
+      <select id="filtro"><option value="">Todas pendentes</option><option value="atrasada">Só atrasadas</option><option value="avencer">Só a vencer</option></select>
+    </div>
+    <div id="lista"></div>
+  </div>`;
+
+  const hoje = hojeISO();
+  const statusVenc = (l) => (l.data.slice(0, 10) < hoje ? 'atrasada' : 'avencer');
+
   async function listar() {
-    const ls = await getJSON('lancamentos?tipo=saida&situacao=pendente');
+    const filtro = document.getElementById('filtro').value;
+    let ls = await getJSON('lancamentos?tipo=saida&situacao=pendente');
+    if (filtro) ls = ls.filter((l) => statusVenc(l) === filtro);
+    ls.sort((a, b) => a.data.localeCompare(b.data));
+
     document.getElementById('lista').innerHTML = tabela(ls, [
-      ['Data', (l) => dataBR(l.data)],
+      ['Vencimento', (l) => dataBR(l.data)],
+      ['Status', (l) => statusVenc(l) === 'atrasada'
+        ? '<span class="badge inativo">Atrasada</span>'
+        : '<span class="badge pendente">A vencer</span>'],
       ['Fornecedor', (l) => esc(l.fornecedor_nome || '—')],
       ['Centro', (l) => esc(l.centro_custo_nome || '—')],
       ['Parcela', (l) => l.parcela_label || (l.parcelamento === 'Recorrente' ? 'Recorrente' : 'À vista')],
@@ -495,7 +550,7 @@ VIEWS.aprovar = async () => {
       ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
       ['', (l) => `<button class="acao-link acao-ok" data-ok="${l.id}">✓ Dar OK</button>
                    <button class="acao-link acao-del" data-del="${l.id}">✕</button>`],
-    ], 'Nenhuma despesa pendente. 🎉');
+    ], 'Nenhuma despesa a pagar. 🎉');
 
     document.querySelectorAll('[data-ok]').forEach((b) =>
       b.addEventListener('click', async () => {
@@ -505,6 +560,7 @@ VIEWS.aprovar = async () => {
     );
     ligarDelete('lancamentos', listar);
   }
+  document.getElementById('filtro').addEventListener('change', listar);
   listar();
 };
 
