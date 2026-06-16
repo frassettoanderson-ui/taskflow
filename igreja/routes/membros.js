@@ -15,6 +15,29 @@ router.get('/', async (req, res) => {
   res.json(rows);
 });
 
+// Aniversariantes ativos, ordenados pelo mais próximo de aniversariar (a partir de hoje)
+router.get('/aniversariantes', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  const { rows } = await db.query(
+    `SELECT id, nome, telefone, to_char(data_nascimento,'YYYY-MM-DD') AS nasc
+     FROM membros
+     WHERE igreja_id=$1 AND ativo=TRUE AND data_nascimento IS NOT NULL`,
+    [igreja_id]
+  );
+
+  const hoje = new Date();
+  const hojeZero = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  const lista = rows.map((m) => {
+    const [, mes, dia] = m.nasc.split('-').map(Number);
+    let prox = new Date(hojeZero.getFullYear(), mes - 1, dia);
+    if (prox < hojeZero) prox = new Date(hojeZero.getFullYear() + 1, mes - 1, dia);
+    const dias = Math.round((prox - hojeZero) / 86400000);
+    return { id: m.id, nome: m.nome, telefone: m.telefone, nasc: m.nasc, dia, mes, dias, hoje: dias === 0 };
+  });
+  lista.sort((a, b) => a.dias - b.dias);
+  res.json(lista);
+});
+
 router.post('/', async (req, res) => {
   const { igreja_id } = req.session.usuario;
   const { nome, telefone, endereco, data_nascimento, sexo } = req.body;

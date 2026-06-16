@@ -59,6 +59,7 @@ const TITULOS = {
   'contas-pagar': 'Contas a Pagar',
   'membro-cadastrar': 'Cadastrar Membro',
   'membro-consultar': 'Consultar Membros',
+  'membro-aniversariantes': 'Aniversariantes',
   cadastros: 'Cadastros',
   exportar: 'Exportar Relatório',
 };
@@ -1157,6 +1158,25 @@ VIEWS['membro-consultar'] = async () => {
   listar();
 };
 
+// ─── Membresia: Aniversariantes ───
+VIEWS['membro-aniversariantes'] = async () => {
+  app.innerHTML = `<div class="painel">
+    <h2>Aniversariantes</h2>
+    <p class="desc">Ordenados de quem aniversaria primeiro, a partir de hoje.</p>
+    <div id="lista"></div>
+  </div>`;
+  const lista = await getJSON('membros/aniversariantes');
+  const quando = (a) => a.dias === 0
+    ? '<span class="badge ativo">Hoje 🎂</span>'
+    : a.dias === 1 ? '<span class="badge pendente">Amanhã</span>' : `Em ${a.dias} dias`;
+  document.getElementById('lista').innerHTML = tabela(lista, [
+    ['Nome', (a) => esc(a.nome)],
+    ['Telefone', (a) => esc(a.telefone || '—')],
+    ['Aniversário', (a) => `${String(a.dia).padStart(2, '0')}/${String(a.mes).padStart(2, '0')}`],
+    ['Quando', (a) => quando(a)],
+  ], 'Nenhum membro com data de nascimento cadastrada.');
+};
+
 // ─── Exportar relatório (formato contábil) ───
 VIEWS.exportar = () => {
   app.innerHTML = `
@@ -1366,6 +1386,19 @@ function versiculoDoDia() {
   ov.addEventListener('click', (e) => { if (e.target === ov) fechar(); });
 }
 
+// Destaca "Membresia" no menu quando há aniversariante do dia
+function marcarAniversarioNoMenu(qtd) {
+  document.querySelectorAll('.menu .grupo-head').forEach((h) => {
+    if (h.textContent.includes('Membresia') && !h.querySelector('.aniv-badge')) {
+      h.classList.add('com-aniv');
+      const b = document.createElement('span');
+      b.className = 'aniv-badge';
+      b.textContent = qtd + ' 🎂';
+      h.insertBefore(b, h.querySelector('.seta'));
+    }
+  });
+}
+
 // ════════════════════════════════════════════════
 //  Init
 // ════════════════════════════════════════════════
@@ -1376,4 +1409,10 @@ function versiculoDoDia() {
   navegar('dashboard');
   if (me.usuario.senha_provisoria) trocaSenhaObrigatoria(() => versiculoDoDia());
   else versiculoDoDia();
+
+  try {
+    const aniv = await getJSON('membros/aniversariantes');
+    const hoje = aniv.filter((a) => a.hoje).length;
+    if (hoje) marcarAniversarioNoMenu(hoje);
+  } catch (e) { /* sem bloquear o app */ }
 })();
