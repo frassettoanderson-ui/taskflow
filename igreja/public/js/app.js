@@ -97,6 +97,12 @@ const VIEWS = {};
 // ─── Dashboard (réplica cashtrack) ───
 let _charts = [];
 let _dashMes = mesISO();
+// Tema escuro para os gráficos
+if (window.Chart) {
+  Chart.defaults.color = '#9aa3b6';
+  Chart.defaults.borderColor = 'rgba(154,163,182,.12)';
+  Chart.defaults.font.family = "'Inter', sans-serif";
+}
 const nomeMes = (m) => ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1];
 const kfmt = (v) => (Math.abs(v) >= 1000 ? (v / 1000).toFixed(1).replace('.0', '') + 'K' : String(Math.round(v)));
 
