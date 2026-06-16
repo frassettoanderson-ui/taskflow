@@ -936,12 +936,18 @@ async function buildCentros(host) {
     if (!r.ok) { msg.textContent = d.erro; return; }
     document.getElementById('f').reset(); listar();
   });
+  let cache = [];
   async function listar() {
-    const cs = await getJSON('centros-custo');
-    document.getElementById('lista').innerHTML = tabela(cs, [
+    cache = await getJSON('centros-custo');
+    document.getElementById('lista').innerHTML = tabela(cache, [
       ['Nome', (c) => esc(c.nome)],
-      ['', (c) => `<button class="acao-link acao-del" data-del="${c.id}">✕</button>`],
+      ['', (c) => `<button class="acao-link" data-edit="${c.id}">✎ Editar</button>
+                   <button class="acao-link acao-del" data-del="${c.id}">✕</button>`],
     ]);
+    document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
+      const c = cache.find((x) => String(x.id) === b.dataset.edit);
+      editarNomeModal('Editar centro de custo', 'centros-custo', c.id, c.nome, listar);
+    }));
     ligarDelete('centros-custo', listar);
   }
   listar();
@@ -966,12 +972,18 @@ async function buildFormas(host) {
     if (!r.ok) { msg.textContent = d.erro; return; }
     document.getElementById('f').reset(); listar();
   });
+  let cache = [];
   async function listar() {
-    const fs = await getJSON('formas-pagamento');
-    document.getElementById('lista').innerHTML = tabela(fs, [
+    cache = await getJSON('formas-pagamento');
+    document.getElementById('lista').innerHTML = tabela(cache, [
       ['Nome', (f) => esc(f.nome)],
-      ['', (f) => `<button class="acao-link acao-del" data-del="${f.id}">✕</button>`],
+      ['', (f) => `<button class="acao-link" data-edit="${f.id}">✎ Editar</button>
+                   <button class="acao-link acao-del" data-del="${f.id}">✕</button>`],
     ]);
+    document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => {
+      const f = cache.find((x) => String(x.id) === b.dataset.edit);
+      editarNomeModal('Editar forma de pagamento', 'formas-pagamento', f.id, f.nome, listar);
+    }));
     ligarDelete('formas-pagamento', listar);
   }
   listar();
@@ -1223,6 +1235,24 @@ function ligarDelete(recurso, recarregar) {
 }
 const optFornecedor = (fs) => fs.map((f) => `<option value="${f.id}">${esc(f.nome)}</option>`).join('');
 const optById = (arr) => '<option value=""></option>' + arr.map((x) => `<option value="${x.id}">${esc(x.nome)}</option>`).join('');
+
+// Modal simples para editar só o nome de um cadastro (centro de custo, forma de pagamento...)
+function editarNomeModal(titulo, endpoint, id, valorAtual, aoConcluir) {
+  const m = abrirModal(titulo, `
+    <form id="en" class="form-grid" style="max-width:none">
+      <label>Nome *<input type="text" id="en-nome" required value="${esc(valorAtual)}"></label>
+      <button type="submit">Salvar</button>
+      <p id="en-msg" class="erro"></p>
+    </form>`);
+  m.el.querySelector('#en-nome').focus();
+  m.el.querySelector('#en').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const r = await api(endpoint + '/' + id, { method: 'PUT', body: JSON.stringify({ nome: m.el.querySelector('#en-nome').value }) });
+    const d = await r.json();
+    if (!r.ok) { m.el.querySelector('#en-msg').textContent = d.erro; return; }
+    m.fechar(); aoConcluir();
+  });
+}
 
 // Recarrega as opções de um <select> a partir de um endpoint, mantendo "em branco" no topo.
 async function refreshSelect(selectId, endpoint, selecionar) {
