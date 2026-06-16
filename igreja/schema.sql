@@ -46,6 +46,14 @@ CREATE TABLE IF NOT EXISTS centros_custo (
   ativo     BOOLEAN DEFAULT TRUE
 );
 
+-- Formas de pagamento (configuráveis)
+CREATE TABLE IF NOT EXISTS formas_pagamento (
+  id        SERIAL PRIMARY KEY,
+  igreja_id INT NOT NULL REFERENCES igrejas(id),
+  nome      VARCHAR(60) NOT NULL,
+  ativo     BOOLEAN DEFAULT TRUE
+);
+
 -- Membros
 CREATE TABLE IF NOT EXISTS membros (
   id              SERIAL PRIMARY KEY,
@@ -134,3 +142,8 @@ INSERT INTO bancos (igreja_id, nome)
 
 -- Corrige o nome que estava errado (SICOBE -> Sicoob)
 UPDATE bancos SET nome = 'Sicoob' WHERE nome IN ('SICOBE', 'SICOOB', 'Sicobe');
+
+-- Formas de pagamento padrão
+INSERT INTO formas_pagamento (igreja_id, nome)
+  SELECT 1, f FROM (VALUES ('Pix'), ('Cartão'), ('Débito automático'), ('Dinheiro')) AS t(f)
+  WHERE NOT EXISTS (SELECT 1 FROM formas_pagamento WHERE igreja_id = 1);

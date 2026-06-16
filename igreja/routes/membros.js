@@ -50,4 +50,19 @@ router.patch('/:id/ativo', async (req, res) => {
   res.json({ ok: true });
 });
 
+// Exclui (bloqueia se houver lançamentos vinculados)
+router.delete('/:id', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  try {
+    await db.query('DELETE FROM membros WHERE id=$1 AND igreja_id=$2', [req.params.id, igreja_id]);
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.code === '23503') {
+      return res.status(409).json({ erro: 'Este membro tem lançamentos e não pode ser excluído. Use "Inativar".' });
+    }
+    console.error(e);
+    res.status(500).json({ erro: 'Erro ao excluir' });
+  }
+});
+
 module.exports = router;

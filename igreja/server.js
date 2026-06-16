@@ -33,6 +33,7 @@ router.use('/api/publico', require('./routes/publico'));
 
 router.use('/api/bancos', requireLogin, require('./routes/bancos'));
 router.use('/api/centros-custo', requireLogin, require('./routes/centrosCusto'));
+router.use('/api/formas-pagamento', requireLogin, require('./routes/formasPagamento'));
 router.use('/api/fornecedores', requireLogin, require('./routes/fornecedores'));
 router.use('/api/membros', requireLogin, require('./routes/membros'));
 router.use('/api/lancamentos', requireLogin, require('./routes/lancamentos'));

@@ -49,12 +49,10 @@ const TITULOS = {
   dashboard: 'Dashboard',
   entrada: 'Lançar Dízimo / Oferta',
   despesas: 'Despesas',
-  fornecedores: 'Fornecedores',
   'contas-pagar': 'Contas a Pagar',
   'membro-cadastrar': 'Cadastrar Membro',
   'membro-consultar': 'Consultar Membros',
-  'centros-custo': 'Centros de Custo',
-  bancos: 'Bancos',
+  cadastros: 'Cadastros',
   exportar: 'Exportar Relatório',
 };
 
@@ -249,7 +247,7 @@ VIEWS.entrada = async () => {
         </div>
       </label>
       <div class="linha">
-        <label>Tipo
+        <label id="wrap-tipo">Tipo
           <select id="tipo_gasto" required><option value=""></option><option value="DIZIMO">Dízimo</option><option value="OFERTA">Oferta</option></select>
         </label>
         <label>Valor<input type="text" id="valor" required></label>
@@ -273,10 +271,13 @@ VIEWS.entrada = async () => {
   const visit = document.getElementById('visitante');
   const tipoSel = document.getElementById('tipo_gasto');
   const wrapMembro = document.getElementById('wrap-membro');
+  const wrapTipo = document.getElementById('wrap-tipo');
   visit.addEventListener('change', () => {
+    // Visitante: esconde Membro e Tipo (sempre Oferta)
     wrapMembro.style.display = visit.checked ? 'none' : 'flex';
-    if (visit.checked) { tipoSel.value = 'OFERTA'; tipoSel.querySelector('[value=DIZIMO]').disabled = true; }
-    else tipoSel.querySelector('[value=DIZIMO]').disabled = false;
+    wrapTipo.style.display = visit.checked ? 'none' : 'flex';
+    if (visit.checked) tipoSel.value = 'OFERTA';
+    else tipoSel.value = '';
   });
 
   // + Novo membro (cadastro rápido em modal)
@@ -350,32 +351,34 @@ VIEWS.entrada = async () => {
 
 // ─── Despesas: aba Variáveis ───
 async function buildVariavel(host) {
-  const [bancos, fornecedores, centros] = await Promise.all([
-    getJSON('bancos'), getJSON('fornecedores'), getJSON('centros-custo'),
+  const [bancos, fornecedores, centros, formas] = await Promise.all([
+    getJSON('bancos'), getJSON('fornecedores'), getJSON('centros-custo'), getJSON('formas-pagamento'),
   ]);
   host.innerHTML = `
   <div class="painel">
     <h2>Nova despesa variável</h2>
-    <p class="desc">A despesa entra como <b>pendente</b> e aparece em "Contas a Pagar" para você dar o OK quando for paga.</p>
+    <p class="desc">A despesa entra como <b>pendente</b> e aparece em "Contas a Pagar" para você marcar como paga. Para despesas parceladas, use a aba <b>Parcelamentos</b>.</p>
     <form id="f" class="form-grid">
+      <label>Fornecedor
+        <div class="inline-add">
+          <select id="fornecedor" required><option value=""></option>${optFornecedor(fornecedores)}</select>
+          <button type="button" class="ghost pequeno" id="add-fornecedor" title="Novo fornecedor">+</button>
+        </div>
+      </label>
+      <label>Centro de custo
+        <div class="inline-add">
+          <select id="centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select>
+          <button type="button" class="ghost pequeno" id="add-centro" title="Novo centro de custo">+</button>
+        </div>
+      </label>
       <div class="linha">
-        <label>Fornecedor<select id="fornecedor" required><option value=""></option>${optFornecedor(fornecedores)}</select></label>
-        <label>Centro de custo<select id="centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
-      </div>
-      <div class="linha">
-        <label>Valor total<input type="text" id="valor" required></label>
+        <label>Valor<input type="text" id="valor" required></label>
         <label>Banco<select id="banco" required><option value=""></option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
       </div>
       <div class="linha">
         <label>Data<input type="date" id="data" required></label>
-        <label>Forma de pagamento
-          <select id="forma" required><option value=""></option><option>Pix</option><option>Cartão</option><option>Débito automático</option></select>
-        </label>
+        <label>Forma de pagamento<select id="forma" required>${optById(formas)}</select></label>
       </div>
-      <label class="check-linha"><input type="checkbox" id="parcelado"> Parcelado</label>
-      <label id="wrap-parcelas" style="display:none">Quantidade de parcelas
-        <input type="number" min="2" max="48" id="num_parcelas" value="2">
-      </label>
       <label>Descrição<input type="text" id="detalhes" maxlength="255"></label>
       <button type="submit">Lançar despesa</button>
       <p id="msg" class="erro"></p>
@@ -383,10 +386,8 @@ async function buildVariavel(host) {
   </div>`;
 
   aplicarMoeda('valor');
-  const parc = document.getElementById('parcelado');
-  parc.addEventListener('change', () =>
-    (document.getElementById('wrap-parcelas').style.display = parc.checked ? 'flex' : 'none')
-  );
+  ligarAddFornecedor('add-fornecedor', 'fornecedor');
+  ligarAddCentro('add-centro', 'centro');
 
   document.getElementById('f').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -400,18 +401,32 @@ async function buildVariavel(host) {
         banco_id: document.getElementById('banco').value,
         data: document.getElementById('data').value,
         forma_pagamento: document.getElementById('forma').value,
-        parcelado: parc.checked,
-        num_parcelas: document.getElementById('num_parcelas').value,
+        parcelado: false,
         detalhes: document.getElementById('detalhes').value,
       }),
     });
     const d = await r.json();
     if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
-    msg.className = 'ok-msg';
-    msg.textContent = d.parcelas > 1 ? `Despesa lançada em ${d.parcelas} parcelas!` : 'Despesa lançada!';
+    msg.className = 'ok-msg'; msg.textContent = 'Despesa lançada!';
     document.getElementById('f').reset();
-    document.getElementById('data').value = hojeISO();
-    document.getElementById('wrap-parcelas').style.display = 'none';
+  });
+}
+
+// Helpers de cadastro rápido reutilizados nas telas de despesa
+function ligarAddFornecedor(btnId, selectId) {
+  document.getElementById(btnId).addEventListener('click', async () => {
+    const novo = await quickCadastro('Novo fornecedor', 'fornecedores', [
+      { id: 'nome', label: 'Nome', req: true }, { id: 'telefone', label: 'Telefone' },
+    ]);
+    if (novo) await refreshSelect(selectId, 'fornecedores', novo.id);
+  });
+}
+function ligarAddCentro(btnId, selectId) {
+  document.getElementById(btnId).addEventListener('click', async () => {
+    const novo = await quickCadastro('Novo centro de custo', 'centros-custo', [
+      { id: 'nome', label: 'Nome', req: true },
+    ]);
+    if (novo) await refreshSelect(selectId, 'centros-custo', novo.id);
   });
 }
 
@@ -427,8 +442,18 @@ async function buildFixa(host) {
     <form id="f" class="form-grid">
       <label>Descrição<input type="text" id="descricao" placeholder="Ex.: Aluguel apto pastoral" maxlength="255"></label>
       <div class="linha">
-        <label>Fornecedor<select id="fornecedor"><option value=""></option>${optFornecedor(fornecedores, true)}</select></label>
-        <label>Centro de custo<select id="centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
+        <label>Fornecedor
+          <div class="inline-add">
+            <select id="fornecedor"><option value=""></option>${optFornecedor(fornecedores)}</select>
+            <button type="button" class="ghost pequeno" id="add-fornecedor" title="Novo fornecedor">+</button>
+          </div>
+        </label>
+        <label>Centro de custo
+          <div class="inline-add">
+            <select id="centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select>
+            <button type="button" class="ghost pequeno" id="add-centro" title="Novo centro de custo">+</button>
+          </div>
+        </label>
       </div>
       <div class="linha-3">
         <label>Valor<input type="text" id="valor" required></label>
@@ -450,6 +475,8 @@ async function buildFixa(host) {
   </div>`;
 
   aplicarMoeda('valor');
+  ligarAddFornecedor('add-fornecedor', 'fornecedor');
+  ligarAddCentro('add-centro', 'centro');
   document.getElementById('f').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('msg');
@@ -491,19 +518,81 @@ async function buildFixa(host) {
   listar();
 }
 
-// ─── Despesas: aba Parcelamentos (acompanhar parcelas) ───
+// ─── Despesas: aba Parcelamentos (criar + acompanhar) ───
 async function buildParcelamentos(host) {
-  host.innerHTML = `<div class="painel"><h2>Parcelamentos</h2>
-    <p class="desc">Despesas parceladas e o andamento de cada parcela.</p><div id="lista"></div></div>`;
-  const ls = await getJSON('lancamentos?tipo=saida');
-  const parcelas = ls.filter((l) => l.parcela_label).sort((a, b) => a.data.localeCompare(b.data));
-  document.getElementById('lista').innerHTML = tabela(parcelas, [
-    ['Fornecedor', (l) => esc(l.fornecedor_nome || '—')],
-    ['Parcela', (l) => `<b>${l.parcela_label}</b>`],
-    ['Vencimento', (l) => dataBR(l.data)],
-    ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
-    ['Situação', (l) => `<span class="badge ${l.situacao}">${l.situacao === 'pago' ? 'Pago' : 'Pendente'}</span>`],
-  ], 'Nenhuma despesa parcelada ainda.');
+  const [bancos, fornecedores, centros, formas] = await Promise.all([
+    getJSON('bancos'), getJSON('fornecedores'), getJSON('centros-custo'), getJSON('formas-pagamento'),
+  ]);
+  host.innerHTML = `
+  <div class="painel">
+    <h2>Nova despesa parcelada</h2>
+    <p class="desc">Informe o valor total e a quantidade de parcelas. As parcelas futuras são geradas automaticamente (uma por mês) como pendentes.</p>
+    <form id="f" class="form-grid">
+      <label>Fornecedor
+        <div class="inline-add">
+          <select id="fornecedor" required><option value=""></option>${optFornecedor(fornecedores)}</select>
+          <button type="button" class="ghost pequeno" id="add-fornecedor" title="Novo fornecedor">+</button>
+        </div>
+      </label>
+      <label>Centro de custo
+        <div class="inline-add">
+          <select id="centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select>
+          <button type="button" class="ghost pequeno" id="add-centro" title="Novo centro de custo">+</button>
+        </div>
+      </label>
+      <div class="linha-3">
+        <label>Valor total<input type="text" id="valor" required></label>
+        <label>Nº de parcelas<input type="number" min="2" max="48" id="num_parcelas" value="2" required></label>
+        <label>Banco<select id="banco" required><option value=""></option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select></label>
+      </div>
+      <div class="linha">
+        <label>Data da 1ª parcela<input type="date" id="data" required></label>
+        <label>Forma de pagamento<select id="forma" required>${optById(formas)}</select></label>
+      </div>
+      <label>Descrição<input type="text" id="detalhes" maxlength="255"></label>
+      <button type="submit">Lançar parcelamento</button>
+      <p id="msg" class="erro"></p>
+    </form>
+  </div>
+  <div class="painel"><h2>Parcelas lançadas</h2><div id="lista"></div></div>`;
+
+  aplicarMoeda('valor');
+  ligarAddFornecedor('add-fornecedor', 'fornecedor');
+  ligarAddCentro('add-centro', 'centro');
+
+  document.getElementById('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('msg');
+    const r = await api('lancamentos/saida', { method: 'POST', body: JSON.stringify({
+      fornecedor_id: document.getElementById('fornecedor').value,
+      centro_custo_id: document.getElementById('centro').value,
+      valor: parseMoeda(document.getElementById('valor').value),
+      banco_id: document.getElementById('banco').value,
+      data: document.getElementById('data').value,
+      forma_pagamento: document.getElementById('forma').value,
+      parcelado: true,
+      num_parcelas: document.getElementById('num_parcelas').value,
+      detalhes: document.getElementById('detalhes').value,
+    }) });
+    const d = await r.json();
+    if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
+    msg.className = 'ok-msg'; msg.textContent = `Parcelamento lançado em ${d.parcelas} parcelas!`;
+    document.getElementById('f').reset();
+    listar();
+  });
+
+  async function listar() {
+    const ls = await getJSON('lancamentos?tipo=saida');
+    const parcelas = ls.filter((l) => l.parcela_label).sort((a, b) => a.data.localeCompare(b.data));
+    document.getElementById('lista').innerHTML = tabela(parcelas, [
+      ['Fornecedor', (l) => esc(l.fornecedor_nome || '—')],
+      ['Parcela', (l) => `<b>${l.parcela_label}</b>`],
+      ['Vencimento', (l) => dataBR(l.data)],
+      ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
+      ['Situação', (l) => `<span class="badge ${l.situacao}">${l.situacao === 'pago' ? 'Pago' : 'Pendente'}</span>`],
+    ], 'Nenhuma despesa parcelada ainda.');
+  }
+  listar();
 }
 
 // ─── Despesas (tela única com abas) ───
@@ -529,9 +618,9 @@ VIEWS.despesas = () => {
   buildVariavel(content);
 };
 
-// ─── Fornecedores ───
-VIEWS.fornecedores = async () => {
-  app.innerHTML = `
+// ─── Fornecedores (cadastro) ───
+async function buildFornecedores(host) {
+  host.innerHTML = `
   <div class="painel">
     <h2>Novo fornecedor</h2>
     <form id="f" class="form-grid">
@@ -554,15 +643,12 @@ VIEWS.fornecedores = async () => {
   document.getElementById('f').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('msg');
-    const r = await api('fornecedores', {
-      method: 'POST',
-      body: JSON.stringify({
-        nome: document.getElementById('nome').value,
-        telefone: document.getElementById('telefone').value,
-        documento: document.getElementById('documento').value,
-        observacao: document.getElementById('observacao').value,
-      }),
-    });
+    const r = await api('fornecedores', { method: 'POST', body: JSON.stringify({
+      nome: document.getElementById('nome').value,
+      telefone: document.getElementById('telefone').value,
+      documento: document.getElementById('documento').value,
+      observacao: document.getElementById('observacao').value,
+    }) });
     const d = await r.json();
     if (!r.ok) { msg.textContent = d.erro; return; }
     document.getElementById('f').reset();
@@ -571,68 +657,154 @@ VIEWS.fornecedores = async () => {
 
   document.getElementById('busca').addEventListener('input', (e) => listar(e.target.value));
 
+  let cache = [];
   async function listar(busca = '') {
-    const fs = await getJSON('fornecedores?busca=' + encodeURIComponent(busca));
-    document.getElementById('lista').innerHTML = tabela(fs, [
+    cache = await getJSON('fornecedores?busca=' + encodeURIComponent(busca));
+    document.getElementById('lista').innerHTML = tabela(cache, [
       ['Nome', (f) => esc(f.nome)],
       ['Telefone', (f) => esc(f.telefone || '—')],
       ['CPF/CNPJ', (f) => esc(f.documento || '—')],
-      ['', (f) => `<button class="acao-link acao-del" data-del="${f.id}">✕</button>`],
+      ['', (f) => `<button class="acao-link" data-edit="${f.id}">✎ Editar</button>
+                   <button class="acao-link acao-del" data-del="${f.id}">✕</button>`],
     ]);
+    document.querySelectorAll('[data-edit]').forEach((b) =>
+      b.addEventListener('click', () => editar(cache.find((x) => String(x.id) === b.dataset.edit))));
     ligarDelete('fornecedores', () => listar(busca));
   }
-  listar();
-};
 
-// ─── Aprovar Despesas (pendentes → pago) ───
+  function editar(f) {
+    const m = abrirModal('Editar fornecedor', `
+      <form id="fe" class="form-grid" style="max-width:none">
+        <label>Nome *<input type="text" id="fe-nome" required value="${esc(f.nome)}"></label>
+        <div class="linha">
+          <label>Telefone<input type="text" id="fe-tel" value="${esc(f.telefone || '')}"></label>
+          <label>CPF/CNPJ<input type="text" id="fe-doc" value="${esc(f.documento || '')}"></label>
+        </div>
+        <label>Observação<input type="text" id="fe-obs" value="${esc(f.observacao || '')}"></label>
+        <button type="submit">Salvar</button>
+        <p id="fe-msg" class="erro"></p>
+      </form>`);
+    m.el.querySelector('#fe').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await api('fornecedores/' + f.id, { method: 'PUT', body: JSON.stringify({
+        nome: m.el.querySelector('#fe-nome').value,
+        telefone: m.el.querySelector('#fe-tel').value,
+        documento: m.el.querySelector('#fe-doc').value,
+        observacao: m.el.querySelector('#fe-obs').value,
+      }) });
+      const d = await r.json();
+      if (!r.ok) { m.el.querySelector('#fe-msg').textContent = d.erro; return; }
+      m.fechar(); listar();
+    });
+  }
+  listar();
+}
+
+// ─── Contas a Pagar (controle do mês: pagas, a vencer, vencidas) ───
 VIEWS['contas-pagar'] = async () => {
+  const [fornecedores, centros, bancos, formas] = await Promise.all([
+    getJSON('fornecedores'), getJSON('centros-custo'), getJSON('bancos'), getJSON('formas-pagamento'),
+  ]);
+
   app.innerHTML = `<div class="painel">
     <h2>Contas a Pagar</h2>
-    <p class="desc">Despesas a pagar. Quando efetuar o pagamento, clique em <b>Dar OK</b> para confirmar.</p>
+    <p class="desc">Despesas do mês selecionado. Marque como <b>Pagar</b> quando efetuar o pagamento.</p>
     <div class="toolbar">
-      <select id="filtro"><option value="">Todas pendentes</option><option value="atrasada">Só atrasadas</option><option value="avencer">Só a vencer</option></select>
+      <label class="check-linha" style="margin:0">Mês <input type="month" id="mes" value="${mesISO()}" style="width:auto"></label>
+      <select id="filtro">
+        <option value="">Todas</option>
+        <option value="avencer">A vencer</option>
+        <option value="atrasada">Vencidas</option>
+        <option value="paga">Pagas</option>
+      </select>
     </div>
     <div id="lista"></div>
   </div>`;
 
   const hoje = hojeISO();
-  const statusVenc = (l) => (l.data.slice(0, 10) < hoje ? 'atrasada' : 'avencer');
+  const statusDe = (l) => (l.situacao === 'pago' ? 'paga' : (l.data.slice(0, 10) < hoje ? 'atrasada' : 'avencer'));
+  const badge = { paga: '<span class="badge pago">Paga</span>', atrasada: '<span class="badge inativo">Vencida</span>', avencer: '<span class="badge pendente">A vencer</span>' };
 
   async function listar() {
+    const mes = document.getElementById('mes').value;
     const filtro = document.getElementById('filtro').value;
-    let ls = await getJSON('lancamentos?tipo=saida&situacao=pendente');
-    if (filtro) ls = ls.filter((l) => statusVenc(l) === filtro);
+    let ls = await getJSON('lancamentos?tipo=saida&mes=' + mes);
+    if (filtro) ls = ls.filter((l) => statusDe(l) === filtro);
     ls.sort((a, b) => a.data.localeCompare(b.data));
 
     document.getElementById('lista').innerHTML = tabela(ls, [
       ['Vencimento', (l) => dataBR(l.data)],
-      ['Status', (l) => statusVenc(l) === 'atrasada'
-        ? '<span class="badge inativo">Atrasada</span>'
-        : '<span class="badge pendente">A vencer</span>'],
+      ['Status', (l) => badge[statusDe(l)]],
       ['Fornecedor', (l) => esc(l.fornecedor_nome || '—')],
       ['Centro', (l) => esc(l.centro_custo_nome || '—')],
       ['Parcela', (l) => l.parcela_label || (l.parcelamento === 'Recorrente' ? 'Recorrente' : 'À vista')],
       ['Banco', (l) => esc(l.banco_nome)],
       ['Valor', (l) => `<span class="val-saida">${brl(l.valor)}</span>`],
-      ['', (l) => `<button class="acao-link acao-ok" data-ok="${l.id}">✓ Dar OK</button>
+      ['', (l) => `${l.situacao === 'pendente' ? `<button class="acao-link acao-ok" data-pagar="${l.id}">✓ Pagar</button>` : ''}
+                   <button class="acao-link" data-edit="${l.id}">✎ Editar</button>
                    <button class="acao-link acao-del" data-del="${l.id}">✕</button>`],
-    ], 'Nenhuma despesa a pagar. 🎉');
+    ], 'Nenhuma despesa neste mês.');
 
-    document.querySelectorAll('[data-ok]').forEach((b) =>
+    document.querySelectorAll('[data-pagar]').forEach((b) =>
       b.addEventListener('click', async () => {
-        await api('lancamentos/' + b.dataset.ok + '/aprovar', { method: 'PATCH' });
+        await api('lancamentos/' + b.dataset.pagar + '/pagar', { method: 'PATCH' });
         listar();
-      })
-    );
+      }));
+    document.querySelectorAll('[data-edit]').forEach((b) =>
+      b.addEventListener('click', () => editarDespesa(ls.find((x) => String(x.id) === b.dataset.edit))));
     ligarDelete('lancamentos', listar);
   }
+
+  function editarDespesa(l) {
+    const m = abrirModal('Editar despesa', `
+      <form id="fed" class="form-grid" style="max-width:none">
+        <label>Fornecedor<select id="ed-forn"><option value=""></option>${optFornecedor(fornecedores)}</select></label>
+        <label>Centro de custo<select id="ed-centro"><option value=""></option>${centros.map((c) => `<option value="${c.id}">${esc(c.nome)}</option>`).join('')}</select></label>
+        <div class="linha">
+          <label>Valor<input type="text" id="ed-valor"></label>
+          <label>Banco<select id="ed-banco">${optById(bancos)}</select></label>
+        </div>
+        <div class="linha">
+          <label>Vencimento<input type="date" id="ed-data"></label>
+          <label>Forma de pagamento<select id="ed-forma">${optById(formas)}</select></label>
+        </div>
+        <label>Descrição<input type="text" id="ed-detalhes" maxlength="255"></label>
+        <button type="submit">Salvar</button>
+        <p id="ed-msg" class="erro"></p>
+      </form>`);
+    const q = (id) => m.el.querySelector(id);
+    q('#ed-forn').value = l.fornecedor_id || '';
+    q('#ed-centro').value = l.centro_custo_id || '';
+    q('#ed-banco').value = l.banco_id || '';
+    q('#ed-data').value = l.data.slice(0, 10);
+    q('#ed-forma').value = l.forma_pagamento || '';
+    q('#ed-detalhes').value = l.detalhes || '';
+    maskMoeda(q('#ed-valor'), Number(l.valor));
+    q('#fed').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await api('lancamentos/' + l.id, { method: 'PUT', body: JSON.stringify({
+        fornecedor_id: q('#ed-forn').value,
+        centro_custo_id: q('#ed-centro').value,
+        banco_id: q('#ed-banco').value,
+        valor: parseMoeda(q('#ed-valor').value),
+        data: q('#ed-data').value,
+        forma_pagamento: q('#ed-forma').value,
+        detalhes: q('#ed-detalhes').value,
+      }) });
+      const d = await r.json();
+      if (!r.ok) { q('#ed-msg').textContent = d.erro; return; }
+      m.fechar(); listar();
+    });
+  }
+
+  document.getElementById('mes').addEventListener('change', listar);
   document.getElementById('filtro').addEventListener('change', listar);
   listar();
 };
 
-// ─── Bancos (config) ───
-VIEWS.bancos = async () => {
-  app.innerHTML = `
+// ─── Bancos (cadastro) ───
+async function buildBancos(host) {
+  host.innerHTML = `
   <div class="painel">
     <h2>Novo banco</h2>
     <form id="f" class="form-grid">
@@ -724,11 +896,11 @@ VIEWS.bancos = async () => {
   });
 
   listar();
-};
+}
 
-// ─── Centros de custo (config) ───
-VIEWS['centros-custo'] = async () => {
-  app.innerHTML = `
+// ─── Centros de custo (cadastro) ───
+async function buildCentros(host) {
+  host.innerHTML = `
   <div class="painel">
     <h2>Novo centro de custo</h2>
     <form id="f" class="form-grid">
@@ -754,6 +926,57 @@ VIEWS['centros-custo'] = async () => {
     ligarDelete('centros-custo', listar);
   }
   listar();
+}
+
+// ─── Formas de pagamento (cadastro) ───
+async function buildFormas(host) {
+  host.innerHTML = `
+  <div class="painel">
+    <h2>Nova forma de pagamento</h2>
+    <form id="f" class="form-grid">
+      <label>Nome *<input type="text" id="nome" required placeholder="Ex.: Boleto"></label>
+      <button type="submit">Salvar</button><p id="msg" class="erro"></p>
+    </form>
+  </div>
+  <div class="painel"><h2>Formas de pagamento</h2><div id="lista"></div></div>`;
+  document.getElementById('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('msg');
+    const r = await api('formas-pagamento', { method: 'POST', body: JSON.stringify({ nome: document.getElementById('nome').value }) });
+    const d = await r.json();
+    if (!r.ok) { msg.textContent = d.erro; return; }
+    document.getElementById('f').reset(); listar();
+  });
+  async function listar() {
+    const fs = await getJSON('formas-pagamento');
+    document.getElementById('lista').innerHTML = tabela(fs, [
+      ['Nome', (f) => esc(f.nome)],
+      ['', (f) => `<button class="acao-link acao-del" data-del="${f.id}">✕</button>`],
+    ]);
+    ligarDelete('formas-pagamento', listar);
+  }
+  listar();
+}
+
+// ─── Cadastros (tela única com abas) ───
+VIEWS.cadastros = () => {
+  app.innerHTML = `
+  <div class="tabs">
+    <button class="tab ativo" data-tab="bancos">Bancos</button>
+    <button class="tab" data-tab="fornecedores">Fornecedores</button>
+    <button class="tab" data-tab="formas">Formas de pagamento</button>
+    <button class="tab" data-tab="centros">Centros de custo</button>
+  </div>
+  <div id="tab-content"></div>`;
+  const content = document.getElementById('tab-content');
+  const builders = { bancos: buildBancos, fornecedores: buildFornecedores, formas: buildFormas, centros: buildCentros };
+  document.querySelectorAll('.tab').forEach((t) =>
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((x) => x.classList.remove('ativo'));
+      t.classList.add('ativo');
+      builders[t.dataset.tab](content);
+    }));
+  buildBancos(content);
 };
 
 // ─── Membresia: Cadastrar ───
@@ -854,11 +1077,18 @@ VIEWS['membro-consultar'] = async () => {
       ['Nascimento', (m) => dataBR(m.data_nascimento) || '—'],
       ['Situação', (m) => `<span class="badge ${m.ativo ? 'ativo' : 'inativo'}">${m.ativo ? 'Ativo' : 'Inativo'}</span>`],
       ['', (m) => `<button class="acao-link" data-edit="${m.id}">✎ Editar</button>
-                   <button class="acao-link" data-toggle="${m.id}">${m.ativo ? 'Inativar' : 'Ativar'}</button>`],
+                   <button class="acao-link" data-toggle="${m.id}">${m.ativo ? 'Inativar' : 'Ativar'}</button>
+                   <button class="acao-link acao-del" data-delmembro="${m.id}">✕ Excluir</button>`],
     ]);
     document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => abrirEdicao(b.dataset.edit)));
     document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', async () => {
       await api('membros/' + b.dataset.toggle + '/ativo', { method: 'PATCH' }); listar();
+    }));
+    document.querySelectorAll('[data-delmembro]').forEach((b) => b.addEventListener('click', async () => {
+      if (!confirm('Excluir este membro? (se tiver lançamentos, use Inativar)')) return;
+      const r = await api('membros/' + b.dataset.delmembro, { method: 'DELETE' });
+      if (!r.ok) { const d = await r.json(); alert(d.erro || 'Não foi possível excluir'); return; }
+      listar();
     }));
   }
 
@@ -933,6 +1163,38 @@ function ligarDelete(recurso, recarregar) {
   );
 }
 const optFornecedor = (fs) => fs.map((f) => `<option value="${f.id}">${esc(f.nome)}</option>`).join('');
+const optById = (arr) => '<option value=""></option>' + arr.map((x) => `<option value="${x.id}">${esc(x.nome)}</option>`).join('');
+
+// Recarrega as opções de um <select> a partir de um endpoint, mantendo "em branco" no topo.
+async function refreshSelect(selectId, endpoint, selecionar) {
+  const arr = await getJSON(endpoint);
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML = optById(arr);
+  if (selecionar) sel.value = selecionar;
+}
+
+// Modal genérico de cadastro rápido. `campos`: [{id, label, req, type}]. Resolve com o registro criado (ou null).
+function quickCadastro(titulo, endpoint, campos) {
+  return new Promise((resolve) => {
+    const m = abrirModal(titulo, `
+      <form id="qf" class="form-grid" style="max-width:none">
+        ${campos.map((c) => `<label>${c.label}${c.req ? ' *' : ''}<input type="${c.type || 'text'}" id="qf-${c.id}" ${c.req ? 'required' : ''}></label>`).join('')}
+        <button type="submit">Salvar</button>
+        <p id="qf-msg" class="erro"></p>
+      </form>`);
+    m.el.querySelector('#qf').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const body = {};
+      campos.forEach((c) => { body[c.id] = m.el.querySelector('#qf-' + c.id).value; });
+      const r = await api(endpoint, { method: 'POST', body: JSON.stringify(body) });
+      const d = await r.json();
+      if (!r.ok) { m.el.querySelector('#qf-msg').textContent = d.erro; return; }
+      m.fechar(); resolve(d);
+    });
+    m.el.querySelector('.modal-x').addEventListener('click', () => resolve(null));
+  });
+}
 
 // ════════════════════════════════════════════════
 //  Init

@@ -99,13 +99,39 @@ router.post('/saida', async (req, res) => {
   res.status(201).json({ ok: true, parcelas: criados.length, lancamentos: criados });
 });
 
-// ─── Aprovar despesa ("dar OK" → pago) ──────────────
+// ─── Marcar despesa como paga (botão "Pagar") ───────
+router.patch('/:id/pagar', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  await db.query(
+    `UPDATE lancamentos SET situacao='pago'
+     WHERE id=$1 AND igreja_id=$2 AND tipo='saida' AND situacao='pendente'`,
+    [req.params.id, igreja_id]
+  );
+  res.json({ ok: true });
+});
+// alias antigo (compatibilidade)
 router.patch('/:id/aprovar', async (req, res) => {
   const { igreja_id } = req.session.usuario;
   await db.query(
     `UPDATE lancamentos SET situacao='pago'
      WHERE id=$1 AND igreja_id=$2 AND tipo='saida' AND situacao='pendente'`,
     [req.params.id, igreja_id]
+  );
+  res.json({ ok: true });
+});
+
+// ─── Editar despesa ─────────────────────────────────
+router.put('/:id', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  const { fornecedor_id, centro_custo_id, banco_id, valor, data, forma_pagamento, detalhes } = req.body;
+  if (!banco_id || !data || !valor) return res.status(400).json({ erro: 'Banco, data e valor são obrigatórios' });
+  if (Number(valor) <= 0) return res.status(400).json({ erro: 'Valor deve ser maior que zero' });
+  await db.query(
+    `UPDATE lancamentos SET fornecedor_id=$1, centro_custo_id=$2, banco_id=$3,
+       valor=$4, data=$5, forma_pagamento=$6, detalhes=$7
+     WHERE id=$8 AND igreja_id=$9 AND tipo='saida'`,
+    [fornecedor_id || null, centro_custo_id || null, banco_id, valor, data,
+     forma_pagamento || 'Pix', detalhes || '', req.params.id, igreja_id]
   );
   res.json({ ok: true });
 });
