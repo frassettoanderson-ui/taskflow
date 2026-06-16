@@ -19,6 +19,17 @@ router.post('/', async (req, res) => {
   const { igreja_id } = req.session.usuario;
   const { nome, telefone, endereco, data_nascimento, sexo } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome é obrigatório' });
+
+  // Trava: não permite mesmo nome + mesmo telefone
+  const dup = await db.query(
+    `SELECT 1 FROM membros WHERE igreja_id=$1
+       AND lower(btrim(nome)) = lower(btrim($2))
+       AND regexp_replace(coalesce(telefone,''),'\\D','','g') = regexp_replace($3,'\\D','','g')
+     LIMIT 1`,
+    [igreja_id, nome, telefone || '']
+  );
+  if (dup.rows.length) return res.status(409).json({ erro: 'Já existe um membro com este nome e telefone.' });
+
   const { rows } = await db.query(
     `INSERT INTO membros (igreja_id, nome, telefone, endereco, data_nascimento, sexo, origem)
      VALUES ($1,$2,$3,$4,$5,$6,'interno') RETURNING *`,
