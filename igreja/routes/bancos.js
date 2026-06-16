@@ -30,6 +30,18 @@ router.post('/', async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
+router.put('/:id', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  const { nome, agencia, conta, chave_pix, saldo_inicial } = req.body;
+  if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome do banco' });
+  await db.query(
+    `UPDATE bancos SET nome=$1, agencia=$2, conta=$3, chave_pix=$4, saldo_inicial=$5
+     WHERE id=$6 AND igreja_id=$7`,
+    [nome.trim(), agencia || '', conta || '', chave_pix || '', saldo_inicial || 0, req.params.id, igreja_id]
+  );
+  res.json({ ok: true });
+});
+
 router.delete('/:id', async (req, res) => {
   const { igreja_id } = req.session.usuario;
   await db.query('UPDATE bancos SET ativo=FALSE WHERE id=$1 AND igreja_id=$2', [req.params.id, igreja_id]);

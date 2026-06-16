@@ -27,9 +27,16 @@ CREATE TABLE IF NOT EXISTS bancos (
   id            SERIAL PRIMARY KEY,
   igreja_id     INT NOT NULL REFERENCES igrejas(id),
   nome          VARCHAR(100) NOT NULL,
+  agencia       VARCHAR(20)  DEFAULT '',
+  conta         VARCHAR(30)  DEFAULT '',
+  chave_pix     VARCHAR(150) DEFAULT '',
   saldo_inicial NUMERIC(12,2) NOT NULL DEFAULT 0,
   ativo         BOOLEAN DEFAULT TRUE
 );
+-- Migração para bancos já existentes:
+ALTER TABLE bancos ADD COLUMN IF NOT EXISTS agencia   VARCHAR(20)  DEFAULT '';
+ALTER TABLE bancos ADD COLUMN IF NOT EXISTS conta     VARCHAR(30)  DEFAULT '';
+ALTER TABLE bancos ADD COLUMN IF NOT EXISTS chave_pix VARCHAR(150) DEFAULT '';
 
 -- Centros de custo (só para despesas)
 CREATE TABLE IF NOT EXISTS centros_custo (
@@ -122,5 +129,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_fixa_mes
 INSERT INTO igrejas (nome) VALUES ('Minha Igreja') ON CONFLICT DO NOTHING;
 
 INSERT INTO bancos (igreja_id, nome)
-  SELECT 1, b FROM (VALUES ('SICOBE'), ('CREDIFOZ')) AS t(b)
+  SELECT 1, b FROM (VALUES ('Sicoob'), ('CREDIFOZ')) AS t(b)
   WHERE NOT EXISTS (SELECT 1 FROM bancos WHERE igreja_id = 1);
+
+-- Corrige o nome que estava errado (SICOBE -> Sicoob)
+UPDATE bancos SET nome = 'Sicoob' WHERE nome IN ('SICOBE', 'SICOOB', 'Sicobe');

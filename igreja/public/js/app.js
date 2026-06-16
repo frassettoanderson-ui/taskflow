@@ -577,7 +577,25 @@ VIEWS.bancos = async () => {
       <button type="submit">Salvar</button><p id="msg" class="erro"></p>
     </form>
   </div>
-  <div class="painel"><h2>Bancos</h2><div id="lista"></div></div>`;
+  <div class="painel"><h2>Bancos</h2><p class="desc">Clique em um banco para editar os dados (agência, conta e chave PIX são opcionais).</p><div id="lista"></div></div>
+  <div class="painel" id="painel-edit" style="display:none">
+    <h2>Editar banco</h2>
+    <form id="fe" class="form-grid">
+      <input type="hidden" id="e-id">
+      <div class="linha">
+        <label>Nome *<input type="text" id="e-nome" required></label>
+        <label>Saldo inicial (R$)<input type="number" step="0.01" id="e-saldo"></label>
+      </div>
+      <div class="linha">
+        <label>Agência<input type="text" id="e-agencia" placeholder="0001"></label>
+        <label>Conta<input type="text" id="e-conta" placeholder="12345-6"></label>
+      </div>
+      <label>Chave PIX<input type="text" id="e-pix" placeholder="CNPJ, telefone, e-mail ou aleatória"></label>
+      <div class="linha"><button type="submit">Salvar alterações</button><button type="button" class="ghost" id="cancelar">Cancelar</button></div>
+      <p id="e-msg" class="ok-msg"></p>
+    </form>
+  </div>`;
+
   document.getElementById('f').addEventListener('submit', async (e) => {
     e.preventDefault();
     const msg = document.getElementById('msg');
@@ -587,15 +605,56 @@ VIEWS.bancos = async () => {
     if (!r.ok) { msg.textContent = d.erro; return; }
     document.getElementById('f').reset(); listar();
   });
+
+  document.getElementById('cancelar').addEventListener('click', () =>
+    (document.getElementById('painel-edit').style.display = 'none'));
+
+  let cache = [];
   async function listar() {
-    const bs = await getJSON('bancos');
-    document.getElementById('lista').innerHTML = tabela(bs, [
-      ['Banco', (b) => esc(b.nome)],
+    cache = await getJSON('bancos');
+    document.getElementById('lista').innerHTML = tabela(cache, [
+      ['Banco', (b) => `<button class="acao-link" data-edit="${b.id}" style="font-weight:600">${esc(b.nome)}</button>`],
+      ['Agência', (b) => esc(b.agencia || '—')],
+      ['Conta', (b) => esc(b.conta || '—')],
+      ['Chave PIX', (b) => esc(b.chave_pix || '—')],
       ['Saldo atual', (b) => `<b>${brl(b.saldo_atual)}</b>`],
-      ['', (b) => `<button class="acao-link acao-del" data-del="${b.id}">✕</button>`],
+      ['', (b) => `<button class="acao-link" data-edit="${b.id}">✎ Editar</button>
+                   <button class="acao-link acao-del" data-del="${b.id}">✕</button>`],
     ]);
+    document.querySelectorAll('[data-edit]').forEach((btn) =>
+      btn.addEventListener('click', () => abrirEdicao(btn.dataset.edit)));
     ligarDelete('bancos', listar);
   }
+
+  function abrirEdicao(id) {
+    const b = cache.find((x) => String(x.id) === String(id));
+    document.getElementById('painel-edit').style.display = 'block';
+    document.getElementById('e-id').value = b.id;
+    document.getElementById('e-nome').value = b.nome;
+    document.getElementById('e-saldo').value = b.saldo_inicial;
+    document.getElementById('e-agencia').value = b.agencia || '';
+    document.getElementById('e-conta').value = b.conta || '';
+    document.getElementById('e-pix').value = b.chave_pix || '';
+    document.getElementById('painel-edit').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  document.getElementById('fe').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('e-msg');
+    const id = document.getElementById('e-id').value;
+    const r = await api('bancos/' + id, { method: 'PUT', body: JSON.stringify({
+      nome: document.getElementById('e-nome').value,
+      saldo_inicial: document.getElementById('e-saldo').value,
+      agencia: document.getElementById('e-agencia').value,
+      conta: document.getElementById('e-conta').value,
+      chave_pix: document.getElementById('e-pix').value,
+    }) });
+    const d = await r.json();
+    if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
+    msg.className = 'ok-msg'; msg.textContent = 'Banco atualizado!';
+    listar();
+  });
+
   listar();
 };
 
