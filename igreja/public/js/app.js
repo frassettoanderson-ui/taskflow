@@ -1131,16 +1131,56 @@ VIEWS.exportar = () => {
   app.innerHTML = `
   <div class="painel">
     <h2>Exportar relatório contábil</h2>
-    <p class="desc">Gera a planilha no mesmo formato do envio para a contabilidade (12 colunas).</p>
+    <p class="desc">Gera o relatório no mesmo formato do envio para a contabilidade. Escolha um mês cheio ou um período específico.</p>
     <form id="f" class="form-grid">
-      <label>Mês de referência<input type="month" id="mes" value="${mesISO()}"></label>
-      <button type="submit">Baixar planilha (.xlsx)</button>
+      <div class="tabs" style="margin-bottom:4px">
+        <button type="button" class="tab ativo" data-modo="mes">Mês cheio</button>
+        <button type="button" class="tab" data-modo="periodo">Período</button>
+      </div>
+
+      <div id="bloco-mes">
+        <label>Mês de referência<input type="month" id="mes" value="${mesISO()}"></label>
+      </div>
+      <div id="bloco-periodo" style="display:none">
+        <div class="linha">
+          <label>De<input type="date" id="inicio"></label>
+          <label>Até<input type="date" id="fim"></label>
+        </div>
+      </div>
+
+      <label>Formato
+        <select id="formato"><option value="xlsx">Planilha (.xlsx)</option><option value="pdf">PDF (.pdf)</option></select>
+      </label>
+      <button type="submit">Baixar relatório</button>
+      <p id="msg" class="erro"></p>
     </form>
   </div>`;
+
+  let modo = 'mes';
+  document.querySelectorAll('[data-modo]').forEach((t) => t.addEventListener('click', () => {
+    modo = t.dataset.modo;
+    document.querySelectorAll('[data-modo]').forEach((x) => x.classList.remove('ativo'));
+    t.classList.add('ativo');
+    document.getElementById('bloco-mes').style.display = modo === 'mes' ? 'block' : 'none';
+    document.getElementById('bloco-periodo').style.display = modo === 'periodo' ? 'block' : 'none';
+  }));
+
   document.getElementById('f').addEventListener('submit', (e) => {
     e.preventDefault();
-    const mes = document.getElementById('mes').value;
-    window.location.href = 'api/exportar?mes=' + mes;
+    const msg = document.getElementById('msg');
+    const formato = document.getElementById('formato').value;
+    let qs;
+    if (modo === 'mes') {
+      qs = 'mes=' + document.getElementById('mes').value;
+    } else {
+      const ini = document.getElementById('inicio').value;
+      const fim = document.getElementById('fim').value;
+      if (!ini || !fim) { msg.textContent = 'Informe as duas datas do período.'; return; }
+      if (ini > fim) { msg.textContent = 'A data inicial não pode ser maior que a final.'; return; }
+      qs = `inicio=${ini}&fim=${fim}`;
+    }
+    msg.textContent = '';
+    window.location.href = `api/exportar?${qs}&formato=${formato}`;
   });
 };
 

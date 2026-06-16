@@ -13,6 +13,7 @@
     "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "express-session": "^1.18.0",
+    "pdfkit": "^0.15.0",
     "pg": "^8.11.5"
   }
 }
