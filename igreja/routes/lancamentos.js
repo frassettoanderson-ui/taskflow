@@ -102,11 +102,11 @@ router.post('/saida', async (req, res) => {
   // Despesa avulsa pode já entrar paga; parcelada sempre começa pendente
   const situacao = (!ehParcelado && pago) ? 'pago' : 'pendente';
 
+  const [yy, mm, dd] = data.split('-').map(Number);
   const criados = [];
   for (let i = 0; i < n; i++) {
-    const d = new Date(data + 'T00:00:00');
-    d.setMonth(d.getMonth() + i); // parcelas nos meses seguintes
-    const dataParcela = d.toISOString().slice(0, 10);
+    // parcelas nos meses seguintes — construído em UTC para não deslocar o dia
+    const dataParcela = new Date(Date.UTC(yy, (mm - 1) + i, dd)).toISOString().slice(0, 10);
     const label = ehParcelado ? `${i + 1}/${n}` : '';
     const { rows } = await db.query(
       `INSERT INTO lancamentos
