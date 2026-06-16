@@ -34,6 +34,21 @@ function maskMoeda(el, valorInicial) {
 }
 const aplicarMoeda = (...ids) => ids.forEach((id) => { const el = document.getElementById(id); if (el) maskMoeda(el); });
 
+// ─── Telefone: máscara padrão BR (XX) XXXXX-XXXX (máx. 11 dígitos) ───
+function fmtTelefone(digits) {
+  digits = digits.replace(/\D/g, '').slice(0, 11);
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return '(' + digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+// Formata qualquer input[data-tel] (cobre também os criados dinamicamente em modais)
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (el && el.matches && el.matches('input[data-tel]')) el.value = fmtTelefone(el.value);
+});
+
 // ─── Modal genérico ───
 function abrirModal(titulo, corpoHTML) {
   const ov = document.createElement('div');
@@ -300,7 +315,7 @@ VIEWS.entrada = async () => {
       <form id="fm" class="form-grid" style="max-width:none">
         <label>Nome completo *<input type="text" id="m-nome" required></label>
         <div class="linha">
-          <label>Telefone<input type="text" id="m-tel"></label>
+          <label>Telefone<input type="text" id="m-tel" data-tel maxlength="16" inputmode="numeric"></label>
           <label>Sexo<select id="m-sexo"><option value=""></option><option value="M">Masculino</option><option value="F">Feminino</option></select></label>
         </div>
         <label>Data de nascimento<input type="date" id="m-nasc"></label>
@@ -430,7 +445,7 @@ async function buildVariavel(host) {
 function ligarAddFornecedor(btnId, selectId) {
   document.getElementById(btnId).addEventListener('click', async () => {
     const novo = await quickCadastro('Novo fornecedor', 'fornecedores', [
-      { id: 'nome', label: 'Nome', req: true }, { id: 'telefone', label: 'Telefone' },
+      { id: 'nome', label: 'Nome', req: true }, { id: 'telefone', label: 'Telefone', tel: true },
     ]);
     if (novo) await refreshSelect(selectId, 'fornecedores', novo.id);
   });
@@ -640,7 +655,7 @@ async function buildFornecedores(host) {
     <form id="f" class="form-grid">
       <label>Nome *<input type="text" id="nome" required></label>
       <div class="linha">
-        <label>Telefone<input type="text" id="telefone"></label>
+        <label>Telefone<input type="text" id="telefone" data-tel maxlength="16" inputmode="numeric"></label>
         <label>CPF/CNPJ<input type="text" id="documento"></label>
       </div>
       <label>Observação<input type="text" id="observacao"></label>
@@ -691,7 +706,7 @@ async function buildFornecedores(host) {
       <form id="fe" class="form-grid" style="max-width:none">
         <label>Nome *<input type="text" id="fe-nome" required value="${esc(f.nome)}"></label>
         <div class="linha">
-          <label>Telefone<input type="text" id="fe-tel" value="${esc(f.telefone || '')}"></label>
+          <label>Telefone<input type="text" id="fe-tel" data-tel maxlength="16" inputmode="numeric" value="${esc(f.telefone || '')}"></label>
           <label>CPF/CNPJ<input type="text" id="fe-doc" value="${esc(f.documento || '')}"></label>
         </div>
         <label>Observação<input type="text" id="fe-obs" value="${esc(f.observacao || '')}"></label>
@@ -1020,7 +1035,7 @@ VIEWS['membro-cadastrar'] = async () => {
     <form id="f" class="form-grid">
       <label>Nome completo *<input type="text" id="nome" required></label>
       <div class="linha">
-        <label>Telefone<input type="text" id="telefone" placeholder="(47) 99999-9999"></label>
+        <label>Telefone<input type="text" id="telefone" data-tel maxlength="16" inputmode="numeric" placeholder="(47) 99999-9999"></label>
         <label>Data de nascimento<input type="date" id="nasc"></label>
       </div>
       <div class="linha">
@@ -1079,7 +1094,7 @@ VIEWS['membro-consultar'] = async () => {
       <input type="hidden" id="e-id">
       <label>Nome *<input type="text" id="e-nome" required></label>
       <div class="linha">
-        <label>Telefone<input type="text" id="e-telefone"></label>
+        <label>Telefone<input type="text" id="e-telefone" data-tel maxlength="16" inputmode="numeric"></label>
         <label>Data de nascimento<input type="date" id="e-nasc"></label>
       </div>
       <div class="linha">
@@ -1288,7 +1303,7 @@ function quickCadastro(titulo, endpoint, campos) {
   return new Promise((resolve) => {
     const m = abrirModal(titulo, `
       <form id="qf" class="form-grid" style="max-width:none">
-        ${campos.map((c) => `<label>${c.label}${c.req ? ' *' : ''}<input type="${c.type || 'text'}" id="qf-${c.id}" ${c.req ? 'required' : ''}></label>`).join('')}
+        ${campos.map((c) => `<label>${c.label}${c.req ? ' *' : ''}<input type="${c.type || 'text'}" id="qf-${c.id}" ${c.req ? 'required' : ''} ${c.tel ? 'data-tel maxlength="16" inputmode="numeric"' : ''}></label>`).join('')}
         <button type="submit">Salvar</button>
         <p id="qf-msg" class="erro"></p>
       </form>`);

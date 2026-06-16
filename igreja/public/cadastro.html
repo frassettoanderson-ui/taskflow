@@ -12,7 +12,7 @@
     <h1 style="font-size:22px">Cadastro de Membro</h1>
     <p class="sub">Preencha seus dados</p>
     <label>Nome completo *<input type="text" id="nome" required></label>
-    <label>Telefone<input type="text" id="telefone" placeholder="(47) 99999-9999"></label>
+    <label>Telefone<input type="text" id="telefone" maxlength="16" inputmode="numeric" placeholder="(47) 99999-9999"></label>
     <label>Data de nascimento<input type="date" id="data_nascimento"></label>
     <label>Sexo
       <select id="sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select>
@@ -40,6 +40,17 @@
         document.getElementById('f').reset();
         msg.className = 'ok-msg'; msg.textContent = '✓ Cadastro enviado! Obrigado.';
       } else { msg.className = 'erro'; msg.textContent = d.erro || 'Erro ao enviar'; }
+    });
+
+    // Máscara de telefone (padrão BR)
+    const tel = document.getElementById('telefone');
+    tel.addEventListener('input', () => {
+      let d = tel.value.replace(/\D/g, '').slice(0, 11);
+      tel.value = d.length === 0 ? ''
+        : d.length <= 2 ? '(' + d
+        : d.length <= 6 ? `(${d.slice(0,2)}) ${d.slice(2)}`
+        : d.length <= 10 ? `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`
+        : `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
     });
   </script>
 </body>
