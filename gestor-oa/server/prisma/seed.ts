@@ -64,14 +64,21 @@ async function main() {
     where: { nome: 'Escritorio Demo Contabilidade' },
   });
   if (existente) {
-    await prisma.escritorio.delete({ where: { id: existente.id } }).catch(async () => {
-      // se houver FKs sem cascade, limpa manualmente
-      await prisma.sessao.deleteMany({ where: { escritorioId: existente.id } });
-      await prisma.passwordResetToken.deleteMany({ where: { escritorioId: existente.id } });
-      await prisma.logAuditoria.deleteMany({ where: { escritorioId: existente.id } });
-      await prisma.usuario.deleteMany({ where: { escritorioId: existente.id } });
-      await prisma.escritorio.delete({ where: { id: existente.id } });
-    });
+    const eid = existente.id;
+    // Limpeza em ordem de dependencia (FKs com RESTRICT exigem ordem manual).
+    await prisma.empresaObrigacao.deleteMany({ where: { escritorioId: eid } });
+    await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos
+    await prisma.grupoObrigacoes.deleteMany({ where: { escritorioId: eid } }); // cascade grupoObrigacao
+    await prisma.regimeTributario.deleteMany({ where: { escritorioId: eid } }); // cascade regimeObrigacao
+    await prisma.obrigacao.deleteMany({ where: { escritorioId: eid } });
+    await prisma.feriado.deleteMany({ where: { escritorioId: eid } });
+    await prisma.departamento.deleteMany({ where: { escritorioId: eid } });
+    await prisma.tag.deleteMany({ where: { escritorioId: eid } });
+    await prisma.sessao.deleteMany({ where: { escritorioId: eid } });
+    await prisma.passwordResetToken.deleteMany({ where: { escritorioId: eid } });
+    await prisma.logAuditoria.deleteMany({ where: { escritorioId: eid } });
+    await prisma.usuario.deleteMany({ where: { escritorioId: eid } });
+    await prisma.escritorio.delete({ where: { id: eid } });
   }
 
   const senhaHash = await bcrypt.hash('senha123', 10);
