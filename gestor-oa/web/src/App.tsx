@@ -17,6 +17,8 @@ import Regimes from './pages/obrigacoes/Regimes';
 import Grupos from './pages/obrigacoes/Grupos';
 import Feriados from './pages/obrigacoes/Feriados';
 import AlocacaoMassa from './pages/obrigacoes/AlocacaoMassa';
+import ListaEntregas from './pages/entregas/ListaEntregas';
+import Calendario from './pages/entregas/Calendario';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -62,6 +64,8 @@ export default function App() {
         <Route path="obrigacoes/grupos" element={<Grupos />} />
         <Route path="obrigacoes/feriados" element={<Feriados />} />
         <Route path="obrigacoes/alocacao" element={<AlocacaoMassa />} />
+        <Route path="entregas" element={<ListaEntregas />} />
+        <Route path="entregas/calendario" element={<Calendario />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="configuracoes" element={<Configuracoes />} />
       </Route>

@@ -127,6 +127,32 @@ describe('engine de prazos', () => {
   });
 });
 
+describe('Modulo 3 - entregas (smoke)', () => {
+  it('lista de entregas sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/entregas');
+    expect(res.status).toBe(401);
+  });
+  it('gerar competencia sem token retorna 401', async () => {
+    const res = await request(createApp()).post('/api/v1/entregas/gerar').send({ ano: 2026, mes: 6 });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('status de entrega', () => {
+  it('classifica pendentes por data', async () => {
+    const { computarStatusPendente } = await import('../src/modules/entrega/entrega.status.js');
+    const hoje = new Date(2026, 5, 1); // 01/06/2026
+    // tecnico daqui a 20 dias -> antecipado
+    expect(computarStatusPendente(new Date(2026, 5, 21), new Date(2026, 5, 23), hoje, 7)).toBe('PENDENTE_ANTECIPADO');
+    // tecnico daqui a 3 dias -> pendente no prazo
+    expect(computarStatusPendente(new Date(2026, 5, 4), new Date(2026, 5, 6), hoje, 7)).toBe('PENDENTE');
+    // passou o tecnico, nao o legal -> atraso tecnico
+    expect(computarStatusPendente(new Date(2026, 4, 30), new Date(2026, 5, 5), hoje, 7)).toBe('EM_ATRASO_TECNICO');
+    // passou o legal -> atraso legal
+    expect(computarStatusPendente(new Date(2026, 4, 20), new Date(2026, 4, 25), hoje, 7)).toBe('EM_ATRASO_LEGAL');
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

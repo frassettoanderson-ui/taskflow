@@ -38,6 +38,7 @@ model Escritorio {
   regimes             RegimeTributario[]
   grupos             GrupoObrigacoes[]
   feriados            Feriado[]
+  entregas            Entrega[]
 
   @@index([deletedAt])
 }
@@ -250,6 +251,7 @@ model Empresa {
   responsaveis       EmpresaResponsavelDepartamento[]
   tags               EmpresaTag[]
   obrigacoes         EmpresaObrigacao[]
+  entregas           Entrega[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -396,6 +398,7 @@ model Obrigacao {
   regimes            RegimeObrigacao[]
   grupos             GrupoObrigacao[]
   empresaObrigacoes  EmpresaObrigacao[]
+  entregas           Entrega[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, departamentoId])
@@ -481,10 +484,100 @@ model EmpresaObrigacao {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  entregas      Entrega[]
+
   @@unique([empresaId, obrigacaoId])
   @@index([escritorioId])
   @@index([empresaId, ativo])
   @@index([obrigacaoId])
+}
+
+// ============================================================
+// MODULO 3 - Lista de Entregas e Gestao de Prazos
+// ============================================================
+
+enum StatusEntrega {
+  PENDENTE
+  PENDENTE_ANTECIPADO
+  EM_ATRASO_TECNICO
+  EM_ATRASO_LEGAL
+  ENTREGUE
+  ENTREGUE_JUSTIFICADA
+  DISPENSADA
+}
+
+enum OrigemBaixa {
+  MANUAL
+  ROBO
+}
+
+model Entrega {
+  id                  String   @id @default(cuid())
+  escritorioId        String
+  escritorio          Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId           String
+  empresa             Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresaObrigacaoId  String
+  empresaObrigacao    EmpresaObrigacao @relation(fields: [empresaObrigacaoId], references: [id], onDelete: Cascade)
+  obrigacaoId         String
+  obrigacao           Obrigacao @relation(fields: [obrigacaoId], references: [id])
+
+  // competencia (mes/ano de referencia)
+  competenciaAno      Int
+  competenciaMes      Int      // 1-12
+
+  prazoLegal          DateTime @db.Date
+  prazoTecnico        DateTime @db.Date
+
+  status              StatusEntrega @default(PENDENTE)
+
+  responsavelPrazoId   String?
+  responsavelEntregaId String?
+
+  dataEntrega         DateTime?
+  justificativa       String?
+  motivoDispensa      String?
+  origemBaixa         OrigemBaixa?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  anexos              EntregaAnexo[]
+  comentarios         EntregaComentario[]
+
+  @@unique([empresaId, obrigacaoId, competenciaAno, competenciaMes])
+  @@index([escritorioId, competenciaAno, competenciaMes])
+  @@index([escritorioId, status])
+  @@index([escritorioId, prazoLegal])
+  @@index([responsavelPrazoId])
+  @@index([responsavelEntregaId])
+  @@index([empresaId])
+}
+
+model EntregaAnexo {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  entregaId     String
+  entrega       Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+  nomeArquivo   String
+  caminho       String
+  tamanho       Int
+  mimeType      String?
+  createdAt     DateTime @default(now())
+
+  @@index([entregaId])
+}
+
+model EntregaComentario {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  entregaId     String
+  entrega       Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+  texto         String
+  autorId       String?
+  createdAt     DateTime @default(now())
+
+  @@index([entregaId])
 }
 
 model EmpresaComentario {

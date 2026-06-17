@@ -11,6 +11,8 @@
  */
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { calcularPrazos, montarFeriados } from '../src/lib/prazos.js';
+import { computarStatusPendente } from '../src/modules/entrega/entrega.status.js';
 
 const prisma = new PrismaClient();
 
@@ -317,6 +319,15 @@ async function main() {
   }
 
   // ---------- Aplicar regime nas empresas demo (origem REGIME) ----------
+  const metaPorNome = new Map(catalogo.map((o) => [o.nome, o]));
+  const feriadosSet = montarFeriados(
+    [anoBase, anoBase + 1].flatMap((ano) => feriadosFixos.map(([md]) => new Date(`${ano}-${md}T00:00:00`))),
+  );
+  const hoje = new Date();
+  const compAno = hoje.getFullYear();
+  const compMes = hoje.getMonth() + 1; // competencia do mes corrente
+  let entregasGeradas = 0;
+
   const regimePorEmpresa = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real', 'Simples Nacional', 'MEI'];
   for (let i = 0; i < empresaIds.length; i++) {
     const regimeNome = regimePorEmpresa[i % regimePorEmpresa.length];
@@ -324,7 +335,7 @@ async function main() {
     const lista = regimeDefs[regimeNome];
     await prisma.empresa.update({ where: { id: empresaIds[i] }, data: { regimeTributarioId: regimeId } });
     for (const n of lista) {
-      await prisma.empresaObrigacao.create({
+      const eo = await prisma.empresaObrigacao.create({
         data: {
           escritorioId: escritorio.id,
           empresaId: empresaIds[i],
@@ -333,10 +344,36 @@ async function main() {
           ativo: true,
         },
       });
+
+      // gera a entrega da competencia corrente (apenas MENSAL para o demo)
+      const meta = metaPorNome.get(n);
+      if (!meta || meta.per !== 'MENSAL') continue;
+      const { prazoLegal, prazoTecnico } = calcularPrazos(
+        { ...meta.regra, regraNaoUtil: meta.regra.regraNaoUtil ?? 'ANTECIPA', diasAntesTecnico: meta.regra.diasAntesTecnico ?? 2, tipoDiasAntes: meta.regra.tipoDiasAntes ?? 'UTEIS' },
+        compAno, compMes - 1, feriadosSet, false,
+      );
+      const responsavel = meta.dep === F ? fiscalId : meta.dep === P ? pessoalId : null;
+      const status = computarStatusPendente(prazoTecnico, prazoLegal, hoje, 7);
+      await prisma.entrega.create({
+        data: {
+          escritorioId: escritorio.id,
+          empresaId: empresaIds[i],
+          empresaObrigacaoId: eo.id,
+          obrigacaoId: obrigIds[n],
+          competenciaAno: compAno,
+          competenciaMes: compMes,
+          prazoLegal, prazoTecnico,
+          status,
+          responsavelPrazoId: responsavel,
+          responsavelEntregaId: responsavel,
+        },
+      });
+      entregasGeradas++;
     }
   }
 
   console.log('\nSeed concluido!');
+  console.log(`  Entregas geradas (competencia ${compMes}/${compAno}): ${entregasGeradas}`);
   console.log(`  Departamentos: ${depsDados.length} | Tags: ${tagsDados.length} | Empresas: ${nomes.length}`);
   console.log(`  Obrigacoes: ${catalogo.length} | Regimes: ${Object.keys(regimeDefs).length} | Grupos: ${Object.keys(grupoDefs).length}`);
   console.log('  Escritorio: Escritorio Demo Contabilidade');

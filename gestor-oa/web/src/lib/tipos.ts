@@ -200,6 +200,49 @@ export function descreverRegra(r: RegraPrazo): string {
   return base + antes;
 }
 
+// ---------- Modulo 3 ----------
+export type StatusEntrega =
+  | 'PENDENTE'
+  | 'PENDENTE_ANTECIPADO'
+  | 'EM_ATRASO_TECNICO'
+  | 'EM_ATRASO_LEGAL'
+  | 'ENTREGUE'
+  | 'ENTREGUE_JUSTIFICADA'
+  | 'DISPENSADA';
+
+export const STATUS_INFO: Record<StatusEntrega, { label: string; cor: string }> = {
+  PENDENTE_ANTECIPADO: { label: 'Pendente antecipado', cor: '#5cb85c' },
+  PENDENTE: { label: 'Pendente no prazo', cor: '#5b9bd5' },
+  EM_ATRASO_TECNICO: { label: 'Atraso tecnico', cor: '#f0ad4e' },
+  EM_ATRASO_LEGAL: { label: 'Atraso legal', cor: '#cf3c5d' },
+  ENTREGUE: { label: 'Entregue', cor: '#3a9d3a' },
+  ENTREGUE_JUSTIFICADA: { label: 'Entregue c/ multa', cor: '#cf3c5d' },
+  DISPENSADA: { label: 'Dispensada', cor: '#94a3b8' },
+};
+
+export interface Entrega {
+  id: string;
+  empresa: { id: string; razaoSocial: string };
+  obrigacao: { id: string; nome: string; exigeAnexoNaBaixa: boolean; departamento: { nome: string; cor: string } | null };
+  competencia: string;
+  competenciaAno: number;
+  competenciaMes: number;
+  prazoLegal: string;
+  prazoTecnico: string;
+  status: StatusEntrega;
+  statusBase: StatusEntrega;
+  responsavelPrazoId: string | null;
+  responsavelEntregaId: string | null;
+  dataEntrega: string | null;
+  justificativa: string | null;
+  origemBaixa: 'MANUAL' | 'ROBO' | null;
+  qtdAnexos: number;
+}
+
+export function dataBR(d: string | Date): string {
+  return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+}
+
 export function formatarIdent(tipo: TipoIdentificador, valor: string): string {
   if (tipo === 'CNPJ' && valor.length === 14)
     return valor.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
