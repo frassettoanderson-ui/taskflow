@@ -88,7 +88,7 @@ const MENU: Item[] = [
     ],
   },
   { label: 'Insights', icon: TrendingUp, to: '/insights' },
-  { label: 'Metodo APLA', icon: TrendingUp, emBreve: true },
+  { label: 'Metodo APLA', icon: TrendingUp, to: '/apla' },
   {
     label: 'Documentos (GED)',
     icon: FileText,

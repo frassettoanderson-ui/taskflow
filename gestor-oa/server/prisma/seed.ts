@@ -365,6 +365,9 @@ async function main() {
     const regimeId = regimeIds[regimeNome];
     const lista = regimeDefs[regimeNome];
     await prisma.empresa.update({ where: { id: empresaIds[i] }, data: { regimeTributarioId: regimeId } });
+    // honorario mensal da empresa (demo p/ Metodo APLA) - aplicado na 1a obrigacao
+    const honorarioEmpresa = 350 + (i % 5) * 220; // 350..1230
+    let primeira = true;
     for (const n of lista) {
       const eo = await prisma.empresaObrigacao.create({
         data: {
@@ -373,8 +376,10 @@ async function main() {
           obrigacaoId: obrigIds[n],
           origens: [{ origem: 'REGIME', refId: regimeId }],
           ativo: true,
+          honorario: primeira ? honorarioEmpresa : null,
         },
       });
+      primeira = false;
 
       // gera a entrega da competencia corrente (apenas MENSAL para o demo)
       const meta = metaPorNome.get(n);

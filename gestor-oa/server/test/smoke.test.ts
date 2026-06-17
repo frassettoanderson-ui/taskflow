@@ -293,6 +293,22 @@ describe('Modulo 13 - notificacoes/jobs (smoke)', () => {
   });
 });
 
+describe('Modulo 9 - APLA (smoke)', () => {
+  it('relatorio sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/apla/relatorio');
+    expect(res.status).toBe(401);
+  });
+  it('config sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/apla/config');
+    expect(res.status).toBe(401);
+  });
+  it('lerAplaConfig usa padrao quando ausente', async () => {
+    const { lerAplaConfig } = await import('../src/modules/apla/apla.service.js');
+    expect(lerAplaConfig({}).custoHora).toBe(50);
+    expect(lerAplaConfig({ apla: { custoHora: 80 } }).custoHora).toBe(80);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);
