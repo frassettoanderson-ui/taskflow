@@ -10,6 +10,7 @@ import Configuracoes from './pages/Configuracoes';
 import Cadastros from './pages/Cadastros';
 import Usuarios from './pages/Usuarios';
 import UsuarioForm from './pages/UsuarioForm';
+import Perfil from './pages/Perfil';
 import Auditoria from './pages/Auditoria';
 import EmpresasList from './pages/empresas/EmpresasList';
 import EmpresaForm from './pages/empresas/EmpresaForm';
@@ -113,6 +114,7 @@ export default function App() {
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="usuarios/novo" element={<UsuarioForm />} />
         <Route path="usuarios/:id" element={<UsuarioForm />} />
+        <Route path="perfil" element={<Perfil />} />
         <Route path="auditoria" element={<Auditoria />} />
         <Route path="configuracoes" element={<Configuracoes />} />
       </Route>

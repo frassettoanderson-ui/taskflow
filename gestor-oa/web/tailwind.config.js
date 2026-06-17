@@ -17,18 +17,19 @@ export default {
           800: '#0b3c3e',
           900: '#0a3133',
         },
-        // Azul principal (topbar / botoes / links) - estilo Acessorias
+        // Cor principal (topbar / botoes / links). Definida via CSS vars para
+        // permitir a troca de estilo (ver index.css / lib/tema.ts).
         marca: {
-          50: '#eef6fb',
-          100: '#d4e8f4',
-          200: '#a9d1e9',
-          300: '#74b3d8',
-          400: '#4f9bca',
-          500: '#3f8cba',
-          600: '#357ba6',
-          700: '#2e6788',
-          800: '#28526c',
-          900: '#1f3f54',
+          50: 'rgb(var(--marca-50) / <alpha-value>)',
+          100: 'rgb(var(--marca-100) / <alpha-value>)',
+          200: 'rgb(var(--marca-200) / <alpha-value>)',
+          300: 'rgb(var(--marca-300) / <alpha-value>)',
+          400: 'rgb(var(--marca-400) / <alpha-value>)',
+          500: 'rgb(var(--marca-500) / <alpha-value>)',
+          600: 'rgb(var(--marca-600) / <alpha-value>)',
+          700: 'rgb(var(--marca-700) / <alpha-value>)',
+          800: 'rgb(var(--marca-800) / <alpha-value>)',
+          900: 'rgb(var(--marca-900) / <alpha-value>)',
         },
         // Cores semanticas de status (Painel de Indicadores)
         status: {

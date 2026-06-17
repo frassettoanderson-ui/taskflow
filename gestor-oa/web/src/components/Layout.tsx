@@ -19,18 +19,21 @@ import {
   Search,
   Bot,
   Activity,
+  Palette,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { useToast } from './ui';
+import { useToast, Modal } from './ui';
 import FAB from './FAB';
 import NotificacoesBell from './NotificacoesBell';
+import { TEMAS, getTema, setTema, type TemaId } from '../lib/tema';
 
 interface Item {
   label: string;
   to?: string;
   icon: LucideIcon;
   emBreve?: boolean;
+  tema?: boolean; // item de acao: abre o seletor "Trocar estilo"
   filhos?: Item[];
 }
 
@@ -41,10 +44,30 @@ const MENU: Item[] = [
     icon: Settings,
     filhos: [
       { label: 'Usuarios e Permissoes', icon: Users, to: '/usuarios' },
+      { label: 'Departamentos', icon: Tags, to: '/cadastros' },
+      { label: 'Configuracoes gerais', icon: Settings, to: '/configuracoes' },
+      {
+        label: 'e-Continuo',
+        icon: Bot,
+        filhos: [
+          { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
+          { label: 'Revisao', icon: Bot, to: '/robo/revisao' },
+          { label: 'Painel', icon: Bot, to: '/robo/painel' },
+          { label: 'Assinaturas', icon: Bot, to: '/robo/assinaturas' },
+        ],
+      },
+      {
+        label: 'Aplicativo e Area VIP',
+        icon: MessageSquare,
+        filhos: [
+          { label: 'Comunicados', icon: MessageSquare, to: '/area-vip/comunicados' },
+          { label: 'Solicitacoes (clientes)', icon: MessageSquare, to: '/area-vip/solicitacoes' },
+        ],
+      },
+      { label: 'Dados do meu perfil', icon: User, to: '/perfil' },
+      { label: 'Trocar estilo', icon: Palette, tema: true },
       { label: 'Auditoria', icon: ListChecks, to: '/auditoria' },
       { label: 'Tarefas e Alertas', icon: Activity, to: '/jobs' },
-      { label: 'Departamentos e Tags', icon: Tags, to: '/cadastros' },
-      { label: 'Configuracoes gerais', icon: Settings, to: '/configuracoes' },
     ],
   },
   {
@@ -77,16 +100,6 @@ const MENU: Item[] = [
     ],
   },
   { label: 'Solicitacoes internas', icon: MessageSquare, to: '/solicitacoes-internas' },
-  {
-    label: 'Robo (e-Robo)',
-    icon: Bot,
-    filhos: [
-      { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
-      { label: 'Revisao', icon: Bot, to: '/robo/revisao' },
-      { label: 'Painel', icon: Bot, to: '/robo/painel' },
-      { label: 'Assinaturas', icon: Bot, to: '/robo/assinaturas' },
-    ],
-  },
   { label: 'Insights', icon: TrendingUp, to: '/insights' },
   { label: 'Metodo APLA', icon: TrendingUp, to: '/apla' },
   {
@@ -97,14 +110,6 @@ const MENU: Item[] = [
       { label: 'Protocolos Fisicos', icon: FileText, to: '/documentos/protocolos-fisicos' },
     ],
   },
-  {
-    label: 'Area VIP',
-    icon: MessageSquare,
-    filhos: [
-      { label: 'Comunicados', icon: MessageSquare, to: '/area-vip/comunicados' },
-      { label: 'Solicitacoes (clientes)', icon: MessageSquare, to: '/area-vip/solicitacoes' },
-    ],
-  },
   { label: 'Relatorios', icon: FileText, emBreve: true },
 ];
 
@@ -112,6 +117,7 @@ export default function Layout() {
   const { sessao, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const [temaAberto, setTemaAberto] = useState(false);
 
   async function sair() {
     await logout();
@@ -135,7 +141,7 @@ export default function Layout() {
           <button className="quickbtn bg-status-ok" title="Inicio" onClick={() => navigate('/')}>
             <Home size={18} />
           </button>
-          <button className="quickbtn bg-marca-500" title="Meu perfil" onClick={() => toast('ok', 'Perfil: em breve')}>
+          <button className="quickbtn bg-marca-500" title="Meu perfil" onClick={() => navigate('/perfil')}>
             <User size={18} />
           </button>
           <button className="quickbtn bg-status-warn" title="Ajuda" onClick={() => toast('ok', 'Central de ajuda: em breve')}>
@@ -147,8 +153,8 @@ export default function Layout() {
         </div>
 
         {/* Menu - overflow visivel para os flyouts escaparem da sidebar */}
-        <nav className="flex-1 space-y-0.5 px-2 pb-4 text-sm">
-          <MenuLista itens={MENU} toast={toast} />
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4 text-sm">
+          <MenuLista itens={MENU} toast={toast} onTema={() => setTemaAberto(true)} />
         </nav>
       </aside>
 
@@ -179,14 +185,40 @@ export default function Layout() {
       </div>
 
       <FAB />
+      {temaAberto && <TrocarEstiloModal onFechar={() => setTemaAberto(false)} />}
     </div>
+  );
+}
+
+function TrocarEstiloModal({ onFechar }: { onFechar: () => void }) {
+  const [sel, setSel] = useState<TemaId>(getTema());
+  function escolher(id: TemaId) { setSel(id); setTema(id); }
+  return (
+    <Modal aberto titulo="Trocar estilo" onFechar={onFechar}>
+      <div className="space-y-3">
+        <p className="text-sm text-slate-500">Escolha a cor de destaque do sistema. A mudanca e' aplicada na hora.</p>
+        <div className="grid grid-cols-2 gap-3">
+          {TEMAS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => escolher(t.id)}
+              className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${sel === t.id ? 'border-marca-500 ring-2 ring-marca-200' : 'border-slate-200 hover:border-slate-300'}`}
+            >
+              <span className="h-8 w-8 shrink-0 rounded-full" style={{ background: t.cor }} />
+              <span className="text-sm font-medium text-slate-700">{t.nome}</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex justify-end"><button className="btn-primary" onClick={onFechar}>Concluir</button></div>
+      </div>
+    </Modal>
   );
 }
 
 type ToastFn = (t: 'ok' | 'erro', m: string) => void;
 
 // Lista de itens; itens com filhos abrem flyout para a direita.
-function MenuLista({ itens, toast }: { itens: Item[]; toast: ToastFn }) {
+function MenuLista({ itens, toast, onTema }: { itens: Item[]; toast: ToastFn; onTema: () => void }) {
   const [aberto, setAberto] = useState<string | null>(null);
   // Pequeno atraso para fechar o flyout: da' tempo de mover o mouse do item
   // ate o submenu sem que ele suma no meio do caminho.
@@ -227,19 +259,30 @@ function MenuLista({ itens, toast }: { itens: Item[]; toast: ToastFn }) {
                   onMouseEnter={() => abrir(item.label)}
                   onMouseLeave={agendarFechar}
                 >
-                  <MenuLista itens={item.filhos} toast={toast} />
+                  <MenuLista itens={item.filhos} toast={toast} onTema={onTema} />
                 </div>
               )}
             </div>
           );
         }
-        return <ItemMenu key={item.label} item={item} toast={toast} />;
+        return <ItemMenu key={item.label} item={item} toast={toast} onTema={onTema} />;
       })}
     </div>
   );
 }
 
-function ItemMenu({ item, toast }: { item: Item; toast: ToastFn }) {
+function ItemMenu({ item, toast, onTema }: { item: Item; toast: ToastFn; onTema: () => void }) {
+  if (item.tema) {
+    return (
+      <button
+        onClick={onTema}
+        className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-slate-600 hover:bg-slate-100"
+      >
+        <item.icon size={18} className="text-marca-500" />
+        <span className="flex-1">{item.label}</span>
+      </button>
+    );
+  }
   if (item.emBreve) {
     return (
       <button

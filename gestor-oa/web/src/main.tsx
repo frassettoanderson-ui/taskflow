@@ -5,6 +5,9 @@ import { AuthProvider } from './lib/auth';
 import { ToastProvider } from './components/ui';
 import App from './App';
 import './index.css';
+import { initTema } from './lib/tema';
+
+initTema();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

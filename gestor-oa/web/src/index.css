@@ -4,6 +4,59 @@
 
 :root {
   color-scheme: light;
+  /* Estilo "Azul" (padrao) - canais RGB para a paleta marca */
+  --marca-50: 238 246 251;
+  --marca-100: 212 232 244;
+  --marca-200: 169 209 233;
+  --marca-300: 116 179 216;
+  --marca-400: 79 155 202;
+  --marca-500: 63 140 186;
+  --marca-600: 53 123 166;
+  --marca-700: 46 103 136;
+  --marca-800: 40 82 108;
+  --marca-900: 31 63 84;
+}
+
+/* Estilo "Verde" (petroleo) */
+[data-tema='verde'] {
+  --marca-50: 238 246 246;
+  --marca-100: 211 232 232;
+  --marca-200: 167 209 210;
+  --marca-300: 111 178 180;
+  --marca-400: 61 142 145;
+  --marca-500: 31 115 118;
+  --marca-600: 15 92 94;
+  --marca-700: 12 74 76;
+  --marca-800: 11 60 62;
+  --marca-900: 10 49 51;
+}
+
+/* Estilo "Roxo" */
+[data-tema='roxo'] {
+  --marca-50: 245 243 255;
+  --marca-100: 237 233 254;
+  --marca-200: 221 214 254;
+  --marca-300: 196 181 253;
+  --marca-400: 167 139 250;
+  --marca-500: 139 92 246;
+  --marca-600: 124 58 237;
+  --marca-700: 109 40 217;
+  --marca-800: 91 33 182;
+  --marca-900: 76 29 149;
+}
+
+/* Estilo "Grafite" */
+[data-tema='grafite'] {
+  --marca-50: 248 250 252;
+  --marca-100: 241 245 249;
+  --marca-200: 226 232 240;
+  --marca-300: 203 213 225;
+  --marca-400: 148 163 184;
+  --marca-500: 71 85 105;
+  --marca-600: 51 65 85;
+  --marca-700: 30 41 59;
+  --marca-800: 15 23 42;
+  --marca-900: 2 6 23;
 }
 
 html,

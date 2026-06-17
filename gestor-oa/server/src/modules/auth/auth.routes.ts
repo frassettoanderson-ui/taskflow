@@ -1,7 +1,11 @@
 import { Router, type Request, type Response } from 'express';
+import { z } from 'zod';
 import { env } from '../../env.js';
+import { prisma } from '../../prisma.js';
 import { durationToMs } from '../../lib/jwt.js';
 import { ok } from '../../lib/http.js';
+import { Errors } from '../../lib/errors.js';
+import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate } from '../../middleware/auth.js';
 import * as authService from './auth.service.js';
@@ -94,5 +98,48 @@ router.get('/me', authenticate, async (req, res) => {
   const sessao = await authService.sessaoAtual(req.auth!.id);
   return ok(res, sessao);
 });
+
+// ---------- Dados do meu perfil (auto-edicao do usuario logado) ----------
+router.get('/perfil', authenticate, async (req, res) => {
+  const u = await prisma.usuario.findUniqueOrThrow({
+    where: { id: req.auth!.id },
+    select: { nome: true, email: true, tipo: true, telefone: true, observacoes: true },
+  });
+  return ok(res, u);
+});
+
+router.put(
+  '/perfil',
+  authenticate,
+  validate({
+    body: z.object({
+      nome: z.string().min(2, 'Informe o nome.'),
+      telefone: z.string().optional().nullable(),
+      observacoes: z.string().optional().nullable(),
+      senhaAtual: z.string().optional(),
+      novaSenha: z.string().min(8, 'Nova senha deve ter ao menos 8 caracteres.').optional(),
+    }),
+  }),
+  async (req, res) => {
+    const { nome, telefone, observacoes, senhaAtual, novaSenha } = req.body as {
+      nome: string; telefone?: string | null; observacoes?: string | null; senhaAtual?: string; novaSenha?: string;
+    };
+    const u = await prisma.usuario.findUniqueOrThrow({ where: { id: req.auth!.id } });
+
+    let senhaHash: string | undefined;
+    if (novaSenha) {
+      if (!senhaAtual || !(await verifyPassword(senhaAtual, u.senhaHash))) {
+        throw Errors.validacao('Senha atual incorreta.');
+      }
+      senhaHash = await hashPassword(novaSenha);
+    }
+
+    await prisma.usuario.update({
+      where: { id: u.id },
+      data: { nome, telefone: telefone ?? null, observacoes: observacoes ?? null, ...(senhaHash ? { senhaHash } : {}) },
+    });
+    return ok(res, { atualizado: true });
+  },
+);
 
 export default router;
