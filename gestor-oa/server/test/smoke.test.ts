@@ -195,6 +195,17 @@ describe('Modulo 5 - robo (smoke)', () => {
   });
 });
 
+describe('Modulo 6 - processos (smoke)', () => {
+  it('processos sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/processos');
+    expect(res.status).toBe(401);
+  });
+  it('matrizes sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/matrizes');
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

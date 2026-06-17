@@ -44,6 +44,9 @@ model Escritorio {
   protocolosFisicos   ProtocoloFisico[]
   assinaturas         AssinaturaDocumento[]
   roboJobs            RoboJob[]
+  matrizes            MatrizProcesso[]
+  processos           Processo[]
+  processosRecorrentes ProcessoRecorrente[]
 
   @@index([deletedAt])
 }
@@ -260,6 +263,7 @@ model Empresa {
   documentos         DocumentoGED[]
   protocolos         Protocolo[]
   protocolosFisicos  ProtocoloFisico[]
+  processos          Processo[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -770,4 +774,143 @@ model RoboJob {
 
   @@index([escritorioId, status])
   @@index([escritorioId, createdAt])
+}
+
+// ============================================================
+// MODULO 6 - Gestao de Processos / Workflows
+// ============================================================
+
+enum StatusProcesso {
+  EM_ANDAMENTO
+  SUSPENSO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum StatusPasso {
+  PENDENTE
+  CONCLUIDO
+  DISPENSADO
+}
+
+enum BasePrazoPasso {
+  INICIO
+  PASSO_ANTERIOR
+}
+
+enum AcaoAutomatica {
+  NENHUMA
+  CRIAR_TAREFA
+  CRIAR_OBRIGACAO_NA_EMPRESA
+  INICIAR_SUBPROCESSO
+}
+
+enum TipoRecorrencia {
+  DIAS_MES
+  DIAS_SEMANA
+  DIAS_UTEIS
+}
+
+model MatrizProcesso {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  departamentoId String?
+  descricao     String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  passos        MatrizPasso[]
+  processos     Processo[]
+  recorrentes   ProcessoRecorrente[]
+
+  @@index([escritorioId])
+}
+
+model MatrizPasso {
+  id            String   @id @default(cuid())
+  matrizId      String
+  matriz        MatrizProcesso @relation(fields: [matrizId], references: [id], onDelete: Cascade)
+  ordem         Int
+  titulo        String
+  descricao     String?
+  departamentoId String?
+  prazoDias     Int      @default(0)
+  basePrazo     BasePrazoPasso @default(INICIO)
+  bloqueante    Boolean  @default(false)
+  acaoAutomatica AcaoAutomatica @default(NENHUMA)
+  acaoRef       String?  // obrigacaoNome ou matrizId, conforme a acao
+
+  @@index([matrizId])
+}
+
+model Processo {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  matrizId      String?
+  matriz        MatrizProcesso? @relation(fields: [matrizId], references: [id])
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  nome          String
+  status        StatusProcesso @default(EM_ANDAMENTO)
+  dataInicio    DateTime @default(now())
+  suspensoAte   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  passos        ProcessoPasso[]
+  comentarios   ProcessoComentario[]
+
+  @@index([escritorioId, status])
+  @@index([empresaId])
+}
+
+model ProcessoPasso {
+  id            String   @id @default(cuid())
+  processoId    String
+  processo      Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  ordem         Int
+  titulo        String
+  descricao     String?
+  departamentoId String?
+  bloqueante    Boolean  @default(false)
+  status        StatusPasso @default(PENDENTE)
+  prazo         DateTime?
+  concluidoEm   DateTime?
+  responsavelId String?
+  acaoAutomatica AcaoAutomatica @default(NENHUMA)
+  acaoRef       String?
+
+  @@index([processoId])
+}
+
+model ProcessoComentario {
+  id            String   @id @default(cuid())
+  processoId    String
+  processo      Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  texto         String
+  autorId       String?
+  createdAt     DateTime @default(now())
+
+  @@index([processoId])
+}
+
+model ProcessoRecorrente {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  matrizId      String
+  matriz        MatrizProcesso @relation(fields: [matrizId], references: [id], onDelete: Cascade)
+  empresaId     String?
+  tipoRecorrencia TipoRecorrencia
+  config        Json     @default("{}") // { diasMes:[], diasSemana:[] }
+  ativo         Boolean  @default(true)
+  ultimaExecucao DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([escritorioId, ativo])
 }

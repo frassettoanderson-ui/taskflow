@@ -433,6 +433,78 @@ export const STATUS_ROBO_INFO: Record<StatusRoboJob, { label: string; cor: strin
   IGNORADO: { label: 'Ignorado', cor: '#94a3b8' },
 };
 
+// ---------- Modulo 6 (Processos) ----------
+export type StatusProcesso = 'EM_ANDAMENTO' | 'SUSPENSO' | 'CONCLUIDO' | 'CANCELADO';
+export type StatusPasso = 'PENDENTE' | 'CONCLUIDO' | 'DISPENSADO';
+export type AcaoAutomatica = 'NENHUMA' | 'CRIAR_TAREFA' | 'CRIAR_OBRIGACAO_NA_EMPRESA' | 'INICIAR_SUBPROCESSO';
+
+export const STATUS_PROCESSO_INFO: Record<StatusProcesso, { label: string; cor: string }> = {
+  EM_ANDAMENTO: { label: 'Em andamento', cor: '#5b9bd5' },
+  SUSPENSO: { label: 'Suspenso', cor: '#f0ad4e' },
+  CONCLUIDO: { label: 'Concluido', cor: '#5cb85c' },
+  CANCELADO: { label: 'Cancelado', cor: '#94a3b8' },
+};
+
+export interface MatrizPasso {
+  id?: string;
+  ordem: number;
+  titulo: string;
+  descricao?: string | null;
+  departamentoId?: string | null;
+  prazoDias: number;
+  basePrazo: 'INICIO' | 'PASSO_ANTERIOR';
+  bloqueante: boolean;
+  acaoAutomatica: AcaoAutomatica;
+  acaoRef?: string | null;
+}
+export interface Matriz {
+  id: string;
+  nome: string;
+  departamentoId: string | null;
+  descricao: string | null;
+  ativo: boolean;
+  passos: MatrizPasso[];
+  _count?: { processos: number };
+}
+
+export interface ProcessoLista {
+  id: string;
+  nome: string;
+  status: StatusProcesso;
+  dataInicio: string;
+  suspensoAte: string | null;
+  empresa: { razaoSocial: string } | null;
+  matriz: { nome: string } | null;
+  progresso: number;
+  totalPassos: number;
+  passosConcluidos: number;
+}
+
+export interface ProcessoPasso {
+  id: string;
+  ordem: number;
+  titulo: string;
+  descricao: string | null;
+  departamentoId: string | null;
+  bloqueante: boolean;
+  status: StatusPasso;
+  prazo: string | null;
+  concluidoEm: string | null;
+  acaoAutomatica: AcaoAutomatica;
+  acaoRef: string | null;
+}
+export interface ProcessoDetalhe {
+  id: string;
+  nome: string;
+  status: StatusProcesso;
+  dataInicio: string;
+  suspensoAte: string | null;
+  empresa: { id: string; razaoSocial: string };
+  matriz: { nome: string } | null;
+  passos: ProcessoPasso[];
+  comentarios: { id: string; texto: string; createdAt: string }[];
+}
+
 export function dataBR(d: string | Date): string {
   return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }

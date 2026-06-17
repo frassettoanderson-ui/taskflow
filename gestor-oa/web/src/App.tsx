@@ -27,6 +27,9 @@ import Caixa from './pages/robo/Caixa';
 import Revisao from './pages/robo/Revisao';
 import PainelRobo from './pages/robo/PainelRobo';
 import Assinaturas from './pages/robo/Assinaturas';
+import Processos from './pages/processos/Processos';
+import ProcessoFicha from './pages/processos/ProcessoFicha';
+import Matrizes from './pages/processos/Matrizes';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -80,6 +83,9 @@ export default function App() {
         <Route path="robo/revisao" element={<Revisao />} />
         <Route path="robo/painel" element={<PainelRobo />} />
         <Route path="robo/assinaturas" element={<Assinaturas />} />
+        <Route path="processos" element={<Processos />} />
+        <Route path="processos/matrizes" element={<Matrizes />} />
+        <Route path="processos/:id" element={<ProcessoFicha />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />

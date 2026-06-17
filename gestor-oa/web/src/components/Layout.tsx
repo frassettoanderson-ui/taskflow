@@ -58,7 +58,14 @@ const MENU: Item[] = [
   },
   { label: 'Empresas', icon: Building2, to: '/empresas' },
   { label: 'Lista de Entregas', icon: CalendarCheck, to: '/entregas' },
-  { label: 'Gestao de processos', icon: GitBranch, emBreve: true },
+  {
+    label: 'Gestao de processos',
+    icon: GitBranch,
+    filhos: [
+      { label: 'Processos', icon: GitBranch, to: '/processos' },
+      { label: 'Matrizes', icon: GitBranch, to: '/processos/matrizes' },
+    ],
+  },
   { label: 'Solicitacoes', icon: MessageSquare, emBreve: true },
   {
     label: 'Robo (e-Robo)',

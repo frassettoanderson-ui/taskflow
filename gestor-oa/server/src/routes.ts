@@ -18,6 +18,8 @@ import protocoloRoutes from './modules/protocolo/protocolo.routes.js';
 import protocoloFisicoRoutes from './modules/protocolo/protocoloFisico.routes.js';
 import roboRoutes from './modules/robo/robo.routes.js';
 import assinaturaRoutes from './modules/robo/assinatura.routes.js';
+import matrizRoutes from './modules/processo/matriz.routes.js';
+import processoRoutes from './modules/processo/processo.routes.js';
 
 const api = Router();
 
@@ -44,5 +46,7 @@ api.use('/protocolos', protocoloRoutes);
 api.use('/protocolos-fisicos', protocoloFisicoRoutes);
 api.use('/robo', roboRoutes);
 api.use('/assinaturas', assinaturaRoutes);
+api.use('/matrizes', matrizRoutes);
+api.use('/processos', processoRoutes);
 
 export default api;

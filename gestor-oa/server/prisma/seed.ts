@@ -70,8 +70,10 @@ async function main() {
     // Limpeza em ordem de dependencia (FKs com RESTRICT exigem ordem manual).
     await prisma.roboJob.deleteMany({ where: { escritorioId: eid } });
     await prisma.assinaturaDocumento.deleteMany({ where: { escritorioId: eid } });
+    await prisma.processoRecorrente.deleteMany({ where: { escritorioId: eid } });
     await prisma.empresaObrigacao.deleteMany({ where: { escritorioId: eid } });
-    await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos (entregas, docs, protocolos)
+    await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos (entregas, docs, protocolos, processos)
+    await prisma.matrizProcesso.deleteMany({ where: { escritorioId: eid } });
     await prisma.grupoObrigacoes.deleteMany({ where: { escritorioId: eid } }); // cascade grupoObrigacao
     await prisma.regimeTributario.deleteMany({ where: { escritorioId: eid } }); // cascade regimeObrigacao
     await prisma.obrigacao.deleteMany({ where: { escritorioId: eid } });
@@ -391,7 +393,64 @@ async function main() {
     }
   }
 
+  // ---------- Modulo 6: Matrizes de processo ----------
+  const matrizes = [
+    {
+      nome: 'Abertura de Empresa', departamentoId: deps['Societario'],
+      passos: [
+        { titulo: 'Consulta de viabilidade', prazoDias: 2 },
+        { titulo: 'Coleta de documentos dos socios', prazoDias: 3, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Registro na Junta Comercial', prazoDias: 5, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Obtencao do CNPJ', prazoDias: 3, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Inscricao estadual', prazoDias: 5, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Inscricao municipal / Alvara', prazoDias: 5, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Enquadramento tributario', prazoDias: 2, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Entrega ao cliente e onboarding', prazoDias: 1, base: 'PASSO_ANTERIOR' },
+      ],
+    },
+    {
+      nome: 'Admissao de Funcionario', departamentoId: deps['Pessoal'],
+      passos: [
+        { titulo: 'Receber dados do colaborador', prazoDias: 1 },
+        { titulo: 'Exame admissional', prazoDias: 2, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Registro no eSocial', prazoDias: 1, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Elaborar contrato de trabalho', prazoDias: 1, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Criar obrigacao Folha de Pagamento', prazoDias: 0, acao: 'CRIAR_OBRIGACAO_NA_EMPRESA', acaoRef: 'Folha de Pagamento' },
+        { titulo: 'Comunicar cliente', prazoDias: 1, base: 'PASSO_ANTERIOR' },
+      ],
+    },
+    {
+      nome: 'Encerramento de Empresa', departamentoId: deps['Societario'],
+      passos: [
+        { titulo: 'Solicitar documentos', prazoDias: 2 },
+        { titulo: 'Baixar pendencias fiscais', prazoDias: 10, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Certidoes negativas emitidas', prazoDias: 10, base: 'PASSO_ANTERIOR', bloqueante: true },
+        { titulo: 'Distrato social', prazoDias: 5, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Baixa na Junta Comercial', prazoDias: 5, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Baixa do CNPJ', prazoDias: 5, base: 'PASSO_ANTERIOR' },
+        { titulo: 'Arquivamento final', prazoDias: 2, base: 'PASSO_ANTERIOR' },
+      ],
+    },
+  ];
+  for (const m of matrizes) {
+    await prisma.matrizProcesso.create({
+      data: {
+        escritorioId: escritorio.id, nome: m.nome, departamentoId: m.departamentoId,
+        passos: {
+          create: m.passos.map((p, i) => ({
+            ordem: i + 1, titulo: p.titulo, prazoDias: p.prazoDias,
+            basePrazo: (p as { base?: string }).base === 'PASSO_ANTERIOR' ? 'PASSO_ANTERIOR' : 'INICIO',
+            bloqueante: (p as { bloqueante?: boolean }).bloqueante ?? false,
+            acaoAutomatica: ((p as { acao?: string }).acao as never) ?? 'NENHUMA',
+            acaoRef: (p as { acaoRef?: string }).acaoRef ?? null,
+          })),
+        },
+      },
+    });
+  }
+
   console.log('\nSeed concluido!');
+  console.log(`  Matrizes de processo: ${matrizes.length}`);
   console.log(`  Entregas geradas (competencia ${compMes}/${compAno}): ${entregasGeradas}`);
   console.log(`  Departamentos: ${depsDados.length} | Tags: ${tagsDados.length} | Empresas: ${nomes.length}`);
   console.log(`  Obrigacoes: ${catalogo.length} | Regimes: ${Object.keys(regimeDefs).length} | Grupos: ${Object.keys(grupoDefs).length}`);
