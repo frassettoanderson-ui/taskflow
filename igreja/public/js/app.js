@@ -78,6 +78,7 @@ const TITULOS = {
   'membro-consultar': 'Consultar Membros',
   'membro-aniversariantes': 'Aniversariantes',
   cadastros: 'Cadastros',
+  'relatorio-despesas': 'Despesas',
   'relatorio-dizimos': 'Dízimos / Ofertas',
   extrato: 'Extrato Bancário',
   exportar: 'Exportar Relatório',
@@ -1306,6 +1307,124 @@ VIEWS['membro-aniversariantes'] = async () => {
     ['Aniversário', (a) => `${String(a.dia).padStart(2, '0')}/${String(a.mes).padStart(2, '0')}`],
     ['Quando', (a) => quando(a)],
   ], 'Nenhum membro com data de nascimento cadastrada.');
+};
+
+// ─── Relatórios: Despesas (pizza por categoria + detalhe) ───
+const MESES_FULL = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const CORES_CAT = ['#60a5fa', '#f87171', '#4ade80', '#fbbf24', '#a78bfa', '#22d3ee', '#fb923c', '#f472b6', '#94a3b8', '#34d399', '#e879f9', '#facc15'];
+
+VIEWS['relatorio-despesas'] = async () => {
+  let _mes = mesISO();
+  let _grupos = [];
+  let _sel = null;       // categoria selecionada (nome) para o detalhe
+  let _chart = null;
+
+  app.innerHTML = `<div class="painel">
+    <h2>Despesas por categoria</h2>
+    <div class="toolbar">
+      <div class="mes-nav">
+        <button class="strip-arrow" id="mes-prev">‹</button>
+        <span id="mes-label"></span>
+        <button class="strip-arrow" id="mes-next">›</button>
+      </div>
+      <select id="filtro-cat"><option value="">Todas as categorias</option></select>
+    </div>
+    <div class="rel-pizza">
+      <div class="rd-legenda" id="legenda"></div>
+      <div class="rd-grafico"><canvas id="g-pizza"></canvas></div>
+    </div>
+  </div>
+  <div class="painel" id="painel-detalhe" style="display:none">
+    <h2 id="det-titulo">Detalhe</h2>
+    <div id="det-lista"></div>
+  </div>`;
+
+  const elLabel = document.getElementById('mes-label');
+  document.getElementById('mes-prev').addEventListener('click', () => mudarMes(-1));
+  document.getElementById('mes-next').addEventListener('click', () => mudarMes(1));
+  document.getElementById('filtro-cat').addEventListener('change', (e) => { _sel = e.target.value || null; render(); });
+
+  function mudarMes(delta) {
+    let [y, m] = _mes.split('-').map(Number);
+    m += delta; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
+    _mes = `${y}-${String(m).padStart(2, '0')}`;
+    _sel = null;
+    carregar();
+  }
+
+  async function carregar() {
+    const [y, m] = _mes.split('-').map(Number);
+    elLabel.textContent = `${MESES_FULL[m - 1]} ${y}`;
+    const saidas = await getJSON('lancamentos?tipo=saida&mes=' + _mes);
+
+    const mapa = {};
+    saidas.forEach((s) => {
+      const nome = s.centro_custo_nome || 'Sem centro de custo';
+      if (!mapa[nome]) mapa[nome] = { nome, total: 0, itens: [] };
+      mapa[nome].total += Number(s.valor);
+      mapa[nome].itens.push(s);
+    });
+    _grupos = Object.values(mapa).sort((a, b) => b.total - a.total);
+
+    // preenche filtro de categorias
+    const fc = document.getElementById('filtro-cat');
+    fc.innerHTML = '<option value="">Todas as categorias</option>' +
+      _grupos.map((g) => `<option value="${esc(g.nome)}">${esc(g.nome)}</option>`).join('');
+    fc.value = _sel || '';
+    render();
+  }
+
+  function render() {
+    const total = _grupos.reduce((s, g) => s + g.total, 0);
+
+    // legenda
+    document.getElementById('legenda').innerHTML = _grupos.length
+      ? _grupos.map((g, i) => `<button class="leg-item${_sel === g.nome ? ' ativo' : ''}" data-cat="${esc(g.nome)}">
+          <span class="leg-cor" style="background:${CORES_CAT[i % CORES_CAT.length]}"></span>
+          <span class="leg-nome">${esc(g.nome)}</span>
+          <span class="leg-val">${brl(g.total)}<small>${total ? Math.round(g.total / total * 100) : 0}%</small></span>
+        </button>`).join('')
+      : '<p class="vazio">Nenhuma despesa neste mês.</p>';
+    document.querySelectorAll('.leg-item').forEach((b) =>
+      b.addEventListener('click', () => { _sel = b.dataset.cat; document.getElementById('filtro-cat').value = _sel; render(); }));
+
+    // pizza
+    if (_chart) { _chart.destroy(); _chart = null; }
+    if (_grupos.length) {
+      _chart = new Chart(document.getElementById('g-pizza'), {
+        type: 'doughnut',
+        data: {
+          labels: _grupos.map((g) => g.nome),
+          datasets: [{ data: _grupos.map((g) => g.total), backgroundColor: _grupos.map((_, i) => CORES_CAT[i % CORES_CAT.length]), borderWidth: 0 }],
+        },
+        options: {
+          cutout: '55%', plugins: { legend: { display: false } },
+          onClick: (evt, els) => { if (els.length) { _sel = _grupos[els[0].index].nome; document.getElementById('filtro-cat').value = _sel; render(); } },
+        },
+      });
+    }
+
+    // detalhe (extrato) da categoria selecionada
+    const pd = document.getElementById('painel-detalhe');
+    if (_sel) {
+      const g = _grupos.find((x) => x.nome === _sel);
+      pd.style.display = 'block';
+      document.getElementById('det-titulo').innerHTML = `${esc(_sel)} <small style="color:var(--muted);font-weight:400">— ${brl(g ? g.total : 0)}</small>`;
+      const itens = g ? [...g.itens].sort((a, b) => a.data.localeCompare(b.data)) : [];
+      document.getElementById('det-lista').innerHTML = tabela(itens, [
+        ['Data', (i) => dataBR(i.data)],
+        ['Fornecedor', (i) => esc(i.fornecedor_nome || '—')],
+        ['Parcela', (i) => i.parcela_label || (i.parcelamento === 'Recorrente' ? 'Recorrente' : 'À vista')],
+        ['Banco', (i) => esc(i.banco_nome)],
+        ['Situação', (i) => i.situacao === 'pago' ? '<span class="badge pago">Paga</span>' : '<span class="badge pendente">Pendente</span>'],
+        ['Valor', (i) => `<span class="val-saida">${brl(i.valor)}</span>`],
+      ], 'Sem lançamentos.');
+    } else {
+      pd.style.display = 'none';
+    }
+  }
+
+  carregar();
 };
 
 // ─── Relatórios: Dízimos / Ofertas (por membro, com período) ───
