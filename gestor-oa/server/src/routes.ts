@@ -22,6 +22,7 @@ import matrizRoutes from './modules/processo/matriz.routes.js';
 import processoRoutes from './modules/processo/processo.routes.js';
 import portalRoutes from './modules/portal/portal.routes.js';
 import gestaoPortalRoutes from './modules/portal/gestao.routes.js';
+import comunicacaoRoutes from './modules/comunicacao/comunicacao.routes.js';
 
 const api = Router();
 
@@ -52,5 +53,6 @@ api.use('/matrizes', matrizRoutes);
 api.use('/processos', processoRoutes);
 api.use('/portal', portalRoutes);
 api.use('/gestao-portal', gestaoPortalRoutes);
+api.use('/comunicacao', comunicacaoRoutes);
 
 export default api;

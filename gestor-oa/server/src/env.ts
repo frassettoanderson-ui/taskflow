@@ -45,4 +45,11 @@ export const env = {
   },
 
   ocrLang: process.env.OCR_LANG ?? 'por',
+
+  whatsapp: {
+    provider: process.env.WHATSAPP_PROVIDER ?? 'wa_me', // wa_me | meta_cloud
+    cloudToken: process.env.WHATSAPP_CLOUD_TOKEN ?? '',
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID ?? '',
+    verifyToken: process.env.WHATSAPP_VERIFY_TOKEN ?? '',
+  },
 };

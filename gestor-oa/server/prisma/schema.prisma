@@ -49,6 +49,9 @@ model Escritorio {
   processosRecorrentes ProcessoRecorrente[]
   comunicados         Comunicado[]
   solicitacoes        SolicitacaoPortal[]
+  templates           TemplateEmail[]
+  comunicacoes        ComunicacaoLog[]
+  chatbots            ChatbotFluxo[]
 
   @@index([deletedAt])
 }
@@ -267,6 +270,7 @@ model Empresa {
   protocolosFisicos  ProtocoloFisico[]
   processos          Processo[]
   solicitacoes       SolicitacaoPortal[]
+  comunicacoes       ComunicacaoLog[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -1017,4 +1021,81 @@ model ContatoToken {
   createdAt     DateTime @default(now())
 
   @@index([contatoEmail])
+}
+
+// ============================================================
+// MODULO 8 - Comunicacao (E-mail e WhatsApp)
+// ============================================================
+
+enum TipoTemplate {
+  ENTREGA
+  LEMBRETE
+  COMUNICADO
+  GENERICO
+}
+
+enum CanalComunicacao {
+  EMAIL
+  WHATSAPP
+}
+
+enum StatusComunicacao {
+  FILA
+  ENVIADO
+  FALHOU
+  LIDO
+  INTENCAO
+}
+
+model TemplateEmail {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  tipo          TipoTemplate @default(GENERICO)
+  nome          String
+  assunto       String
+  corpo         String
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([escritorioId, tipo])
+}
+
+model ComunicacaoLog {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId     String?
+  empresa       Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+
+  canal         CanalComunicacao
+  destinatario  String
+  assunto       String?
+  conteudo      String?
+  status        StatusComunicacao @default(FILA)
+  tentativas    Int      @default(0)
+  responsavelId String?
+  protocoloId   String?
+  loteId        String?
+  erro          String?
+  createdAt     DateTime @default(now())
+  enviadoEm     DateTime?
+
+  @@index([escritorioId, createdAt])
+  @@index([empresaId])
+  @@index([loteId])
+}
+
+model ChatbotFluxo {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  arvore        Json     @default("{}")
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([escritorioId])
 }

@@ -505,6 +505,44 @@ export interface ProcessoDetalhe {
   comentarios: { id: string; texto: string; createdAt: string }[];
 }
 
+// ---------- Modulo 8 (Comunicacao) ----------
+export interface TemplateEmail {
+  id: string;
+  tipo: 'ENTREGA' | 'LEMBRETE' | 'COMUNICADO' | 'GENERICO';
+  nome: string;
+  assunto: string;
+  corpo: string;
+  ativo: boolean;
+}
+export interface ComunicacaoLogItem {
+  id: string;
+  canal: 'EMAIL' | 'WHATSAPP';
+  destinatario: string;
+  assunto: string | null;
+  status: 'FILA' | 'ENVIADO' | 'FALHOU' | 'LIDO' | 'INTENCAO';
+  tentativas: number;
+  createdAt: string;
+  erro: string | null;
+}
+export interface ChatbotFluxo {
+  id: string;
+  nome: string;
+  arvore: ChatbotNo;
+  ativo: boolean;
+}
+export interface ChatbotNo {
+  pergunta: string;
+  opcoes: { texto: string; resposta?: string; proximo?: ChatbotNo }[];
+}
+
+export const STATUS_COM_INFO: Record<string, { label: string; cor: string }> = {
+  FILA: { label: 'Na fila', cor: '#94a3b8' },
+  ENVIADO: { label: 'Enviado', cor: '#5cb85c' },
+  FALHOU: { label: 'Falhou', cor: '#cf3c5d' },
+  LIDO: { label: 'Lido', cor: '#3a9d3a' },
+  INTENCAO: { label: 'Intencao (WhatsApp)', cor: '#5b9bd5' },
+};
+
 export function dataBR(d: string | Date): string {
   return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }

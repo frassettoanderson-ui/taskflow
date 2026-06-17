@@ -221,6 +221,23 @@ describe('Modulo 10 - portal (smoke)', () => {
   });
 });
 
+describe('Modulo 8 - comunicacao (smoke)', () => {
+  it('templates sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/comunicacao/templates');
+    expect(res.status).toBe(401);
+  });
+  it('render de template substitui variaveis', async () => {
+    const { render } = await import('../src/modules/comunicacao/comunicacao.service.js');
+    expect(render('Ola {{contato}}, {{obrigacao}}', { contato: 'Ana', obrigacao: 'DAS' })).toBe('Ola Ana, DAS');
+  });
+  it('wa.me gera link', async () => {
+    const { waMeProvider } = await import('../src/modules/comunicacao/whatsapp.js');
+    const r = await waMeProvider.enviar({ numero: '11999990000', mensagem: 'oi' });
+    expect(r.tipo).toBe('link');
+    expect(r.link).toContain('wa.me/5511999990000');
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

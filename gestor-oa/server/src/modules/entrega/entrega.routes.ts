@@ -10,6 +10,7 @@ import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { ensureDir, STORAGE_ROOT } from '../../lib/storage.js';
 import * as svc from './entrega.service.js';
 import * as ged from '../ged/ged.service.js';
+import * as comunicacao from '../comunicacao/comunicacao.service.js';
 import type { StatusEntrega } from './entrega.status.js';
 
 const router = Router();
@@ -169,8 +170,13 @@ router.post(
         }
       }
     }
-    // checkbox "enviar ao cliente agora" -> Modulo 8 (stub)
-    return ok(res, { entrega, enviarCliente: req.body.enviarCliente === 'true' });
+    // checkbox "enviar ao cliente agora" -> Modulo 8
+    let enviados = 0;
+    if (req.body.enviarCliente === 'true' || req.body.enviarCliente === true) {
+      const r = await comunicacao.enviarEntrega(req.auth!.escritorioId, req.params.id, req.auth!.id).catch(() => ({ enviados: 0 }));
+      enviados = r.enviados;
+    }
+    return ok(res, { entrega, enviados });
   },
 );
 

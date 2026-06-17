@@ -66,6 +66,14 @@ const MENU: Item[] = [
       { label: 'Matrizes', icon: GitBranch, to: '/processos/matrizes' },
     ],
   },
+  {
+    label: 'Comunicacao',
+    icon: MessageSquare,
+    filhos: [
+      { label: 'Templates de e-mail', icon: MessageSquare, to: '/comunicacao/templates' },
+      { label: 'Chatbot', icon: Bot, to: '/comunicacao/chatbot' },
+    ],
+  },
   { label: 'Solicitacoes', icon: MessageSquare, emBreve: true },
   {
     label: 'Robo (e-Robo)',

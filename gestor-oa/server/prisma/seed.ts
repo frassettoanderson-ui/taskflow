@@ -71,6 +71,9 @@ async function main() {
     await prisma.roboJob.deleteMany({ where: { escritorioId: eid } });
     await prisma.assinaturaDocumento.deleteMany({ where: { escritorioId: eid } });
     await prisma.aceiteLGPD.deleteMany({ where: { escritorioId: eid } });
+    await prisma.comunicacaoLog.deleteMany({ where: { escritorioId: eid } });
+    await prisma.templateEmail.deleteMany({ where: { escritorioId: eid } });
+    await prisma.chatbotFluxo.deleteMany({ where: { escritorioId: eid } });
     await prisma.comunicado.deleteMany({ where: { escritorioId: eid } });
     await prisma.processoRecorrente.deleteMany({ where: { escritorioId: eid } });
     await prisma.empresaObrigacao.deleteMany({ where: { escritorioId: eid } });
@@ -473,6 +476,27 @@ async function main() {
         ...(escritorio.config as object),
         portal: { nome: 'Portal do Cliente - Demo', cor: '#0f5c5e' },
         lgpd: { versao: '1', texto: 'Tratamos seus dados conforme a LGPD. Os documentos e informacoes aqui disponibilizados sao confidenciais e de uso exclusivo da sua empresa.' },
+      },
+    },
+  });
+
+  // ---------- Modulo 8: Templates e chatbot ----------
+  await prisma.templateEmail.createMany({
+    data: [
+      { escritorioId: escritorio.id, tipo: 'ENTREGA', nome: 'Entrega de documento', assunto: 'Documento disponivel: {{obrigacao}} ({{competencia}})', corpo: 'Ola {{contato}},\n\nSegue o documento referente a {{obrigacao}} - competencia {{competencia}}.\nAcesse pelo link: {{link_protocolo}}\n\nAtenciosamente,\n{{empresa}}' },
+      { escritorioId: escritorio.id, tipo: 'LEMBRETE', nome: 'Lembrete de guia', assunto: '[Lembrete] {{obrigacao}} - {{competencia}}', corpo: 'Ola {{contato}},\n\nLembramos que ha um documento pendente de visualizacao: {{obrigacao}}.\n{{link_protocolo}}' },
+      { escritorioId: escritorio.id, tipo: 'COMUNICADO', nome: 'Comunicado geral', assunto: 'Comunicado do escritorio', corpo: 'Ola {{contato}},\n\n[escreva aqui o comunicado]\n\nAtenciosamente,\n{{empresa}}' },
+    ],
+  });
+  await prisma.chatbotFluxo.create({
+    data: {
+      escritorioId: escritorio.id, nome: 'Atendimento inicial',
+      arvore: {
+        pergunta: 'Ola! Como podemos ajudar?',
+        opcoes: [
+          { texto: 'Segunda via de guia', resposta: 'Acesse a Area VIP > Documentos para baixar suas guias.' },
+          { texto: 'Falar com o escritorio', resposta: 'Abra uma Solicitacao na Area VIP que retornaremos em breve.' },
+        ],
       },
     },
   });

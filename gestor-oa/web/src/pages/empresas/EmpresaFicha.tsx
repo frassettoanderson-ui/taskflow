@@ -14,6 +14,7 @@ import type {
 import { LABEL_TIPO_IDENT, formatarIdent, formatarBytes } from '../../lib/tipos';
 import AbaObrigacoes from './AbaObrigacoes';
 import AbaDocumentos from './AbaDocumentos';
+import AbaComunicacao from './AbaComunicacao';
 
 const ABAS = [
   'Dados',
@@ -21,6 +22,7 @@ const ABAS = [
   'Obrigacoes',
   'Contatos',
   'Documentos',
+  'Comunicacao',
   'Anexos',
   'Comentarios',
   'Historico',
@@ -119,6 +121,7 @@ export default function EmpresaFicha() {
         <AbaContatos empresa={empresa} podeEditar={podeEditar} onMudou={recarregar} />
       )}
       {aba === 'Documentos' && <AbaDocumentos empresaId={empresa.id} />}
+      {aba === 'Comunicacao' && <AbaComunicacao empresaId={empresa.id} />}
       {aba === 'Anexos' && <AbaAnexos empresa={empresa} onMudou={recarregar} />}
       {aba === 'Comentarios' && <AbaComentarios empresa={empresa} onMudou={recarregar} />}
       {aba === 'Historico' && <AbaHistorico empresaId={empresa.id} />}
