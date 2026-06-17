@@ -291,6 +291,8 @@ tbody tr:last-child td { border-bottom: none; }
 .leg-item2 { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text); }
 .leg-cor { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
 .leg-nome { flex: 1; }
+.lista-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 10px 0; margin-top: 6px; border-top: 1px solid var(--border); font-weight: 600; }
+.lista-total strong { font-size: 18px; font-family: 'Poppins', sans-serif; }
 @media (max-width: 720px) {
   .rel-pizza { flex-direction: column-reverse; }
   .rd-legenda { grid-template-columns: 1fr; }

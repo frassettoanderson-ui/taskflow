@@ -1416,13 +1416,17 @@ VIEWS['relatorio-despesas'] = async () => {
     let itens = _saidas.slice();
     if (cat) itens = itens.filter((s) => (s.centro_custo_nome || 'Sem centro de custo') === cat);
     itens.sort((a, b) => a.data.localeCompare(b.data));
+    const total = itens.reduce((s, i) => s + Number(i.valor), 0);
+    const footer = itens.length
+      ? `<div class="lista-total"><span>Total${cat ? ' — ' + esc(cat) : ' (todas)'}</span><strong class="val-saida">${brl(total)}</strong></div>`
+      : '';
     document.getElementById('lista').innerHTML = tabela(itens, [
       ['Data', (s) => dataBR(s.data)],
       ['Despesa', (s) => esc(s.fornecedor_nome || '—')],
       ['Centro de custo', (s) => esc(s.centro_custo_nome || '—')],
       ['Situação', (s) => s.situacao === 'pago' ? '<span class="badge pago">Paga</span>' : '<span class="badge pendente">Pendente</span>'],
       ['Valor', (s) => `<span class="val-saida">${brl(s.valor)}</span>`],
-    ], 'Nenhuma despesa neste mês.');
+    ], 'Nenhuma despesa neste mês.') + footer;
   }
 
   recarregar();
