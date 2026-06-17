@@ -70,6 +70,8 @@ async function main() {
     // Limpeza em ordem de dependencia (FKs com RESTRICT exigem ordem manual).
     await prisma.roboJob.deleteMany({ where: { escritorioId: eid } });
     await prisma.assinaturaDocumento.deleteMany({ where: { escritorioId: eid } });
+    await prisma.aceiteLGPD.deleteMany({ where: { escritorioId: eid } });
+    await prisma.comunicado.deleteMany({ where: { escritorioId: eid } });
     await prisma.processoRecorrente.deleteMany({ where: { escritorioId: eid } });
     await prisma.empresaObrigacao.deleteMany({ where: { escritorioId: eid } });
     await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos (entregas, docs, protocolos, processos)
@@ -449,8 +451,35 @@ async function main() {
     });
   }
 
+  // ---------- Modulo 10: Portal (contato com senha, comunicado, LGPD) ----------
+  const senhaContato = await bcrypt.hash('cliente123', 10);
+  const contatoDemo = await prisma.empresaContato.findFirst({ where: { empresaId: empresaIds[0] } });
+  let emailContatoDemo = '';
+  if (contatoDemo) {
+    await prisma.empresaContato.update({ where: { id: contatoDemo.id }, data: { senhaHash: senhaContato } });
+    emailContatoDemo = contatoDemo.email ?? '';
+  }
+  await prisma.comunicado.create({
+    data: {
+      escritorioId: escritorio.id,
+      titulo: 'Bem-vindo a Area VIP',
+      conteudo: 'Aqui voce acessa suas guias, documentos e abre solicitacoes ao nosso escritorio. Qualquer duvida, estamos a disposicao!',
+    },
+  });
+  await prisma.escritorio.update({
+    where: { id: escritorio.id },
+    data: {
+      config: {
+        ...(escritorio.config as object),
+        portal: { nome: 'Portal do Cliente - Demo', cor: '#0f5c5e' },
+        lgpd: { versao: '1', texto: 'Tratamos seus dados conforme a LGPD. Os documentos e informacoes aqui disponibilizados sao confidenciais e de uso exclusivo da sua empresa.' },
+      },
+    },
+  });
+
   console.log('\nSeed concluido!');
   console.log(`  Matrizes de processo: ${matrizes.length}`);
+  if (emailContatoDemo) console.log(`  Portal (Area VIP): ${emailContatoDemo} / cliente123`);
   console.log(`  Entregas geradas (competencia ${compMes}/${compAno}): ${entregasGeradas}`);
   console.log(`  Departamentos: ${depsDados.length} | Tags: ${tagsDados.length} | Empresas: ${nomes.length}`);
   console.log(`  Obrigacoes: ${catalogo.length} | Regimes: ${Object.keys(regimeDefs).length} | Grupos: ${Object.keys(grupoDefs).length}`);

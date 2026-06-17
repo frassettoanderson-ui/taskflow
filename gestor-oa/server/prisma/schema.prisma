@@ -47,6 +47,8 @@ model Escritorio {
   matrizes            MatrizProcesso[]
   processos           Processo[]
   processosRecorrentes ProcessoRecorrente[]
+  comunicados         Comunicado[]
+  solicitacoes        SolicitacaoPortal[]
 
   @@index([deletedAt])
 }
@@ -264,6 +266,7 @@ model Empresa {
   protocolos         Protocolo[]
   protocolosFisicos  ProtocoloFisico[]
   processos          Processo[]
+  solicitacoes       SolicitacaoPortal[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -913,4 +916,105 @@ model ProcessoRecorrente {
   createdAt     DateTime @default(now())
 
   @@index([escritorioId, ativo])
+}
+
+// ============================================================
+// MODULO 10 - Area VIP (Portal do Cliente)
+// ============================================================
+
+enum StatusSolicitacao {
+  ABERTA
+  EM_ANDAMENTO
+  FINALIZADA
+}
+
+enum AutorTipo {
+  CONTATO
+  USUARIO
+}
+
+model Comunicado {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  titulo        String
+  conteudo      String
+  tags          Json     @default("[]")   // segmentacao por tag (ids)
+  regimes       Json     @default("[]")   // segmentacao por regime (ids)
+  publicarEm    DateTime?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  leituras      ComunicadoLeitura[]
+
+  @@index([escritorioId, ativo])
+}
+
+model ComunicadoLeitura {
+  id            String   @id @default(cuid())
+  comunicadoId  String
+  comunicado    Comunicado @relation(fields: [comunicadoId], references: [id], onDelete: Cascade)
+  contatoEmail  String
+  lidoEm        DateTime @default(now())
+
+  @@unique([comunicadoId, contatoEmail])
+}
+
+model SolicitacaoPortal {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  contatoEmail  String
+  contatoNome   String
+  titulo        String
+  descricao     String
+  status        StatusSolicitacao @default(ABERTA)
+  prazo         DateTime?
+  avaliacaoNota Int?
+  avaliacaoComentario String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  mensagens     SolicitacaoMensagem[]
+
+  @@index([escritorioId, status])
+  @@index([empresaId])
+}
+
+model SolicitacaoMensagem {
+  id            String   @id @default(cuid())
+  solicitacaoId String
+  solicitacao   SolicitacaoPortal @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  autorTipo     AutorTipo
+  autorNome     String
+  texto         String
+  createdAt     DateTime @default(now())
+
+  @@index([solicitacaoId])
+}
+
+model AceiteLGPD {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  contatoEmail  String
+  versao        String
+  ip            String?
+  aceitoEm      DateTime @default(now())
+
+  @@index([escritorioId, contatoEmail])
+}
+
+model ContatoToken {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  contatoEmail  String
+  tokenHash     String   @unique
+  tipo          String   @default("CONVITE") // CONVITE | RESET
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([contatoEmail])
 }

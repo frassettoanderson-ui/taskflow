@@ -29,6 +29,8 @@ const AUDITED_MODELS = new Set<string>([
   'AssinaturaDocumento',
   'MatrizProcesso',
   'Processo',
+  'Comunicado',
+  'SolicitacaoPortal',
 ]);
 
 // Evita recursao: a propria gravacao do log nao deve ser auditada.

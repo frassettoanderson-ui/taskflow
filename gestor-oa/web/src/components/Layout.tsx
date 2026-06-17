@@ -86,6 +86,14 @@ const MENU: Item[] = [
       { label: 'Protocolos Fisicos', icon: FileText, to: '/documentos/protocolos-fisicos' },
     ],
   },
+  {
+    label: 'Area VIP',
+    icon: MessageSquare,
+    filhos: [
+      { label: 'Comunicados', icon: MessageSquare, to: '/area-vip/comunicados' },
+      { label: 'Solicitacoes (clientes)', icon: MessageSquare, to: '/area-vip/solicitacoes' },
+    ],
+  },
   { label: 'Relatorios', icon: FileText, emBreve: true },
 ];
 

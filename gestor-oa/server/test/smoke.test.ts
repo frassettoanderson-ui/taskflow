@@ -206,6 +206,21 @@ describe('Modulo 6 - processos (smoke)', () => {
   });
 });
 
+describe('Modulo 10 - portal (smoke)', () => {
+  it('portal/me sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/portal/me');
+    expect(res.status).toBe(401);
+  });
+  it('login do portal com payload invalido retorna 422', async () => {
+    const res = await request(createApp()).post('/api/v1/portal/login').send({});
+    expect(res.status).toBe(422);
+  });
+  it('gestao de comunicados sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/gestao-portal/comunicados');
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

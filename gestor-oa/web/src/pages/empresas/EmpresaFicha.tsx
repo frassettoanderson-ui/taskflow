@@ -408,6 +408,20 @@ function AbaContatos({
           </div>
           {podeEditar && (
             <div className="flex gap-2 text-sm">
+              <button
+                className="text-marca-600 hover:underline"
+                onClick={async () => {
+                  try {
+                    const r = await api.post<{ link: string }>(`/empresas/${empresa.id}/contatos/${c.id}/convidar`);
+                    toast('ok', 'Convite enviado.');
+                    navigator.clipboard?.writeText(r.link).catch(() => undefined);
+                  } catch (e) {
+                    toast('erro', e instanceof ApiError ? e.message : 'Erro');
+                  }
+                }}
+              >
+                convidar p/ portal
+              </button>
               <button className="text-petroleo-600 hover:underline" onClick={() => setEditando(c.id)}>editar</button>
               <button className="text-red-500 hover:underline" onClick={() => remover(c.id)}>remover</button>
             </div>

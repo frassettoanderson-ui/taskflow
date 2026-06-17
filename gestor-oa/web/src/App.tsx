@@ -30,6 +30,9 @@ import Assinaturas from './pages/robo/Assinaturas';
 import Processos from './pages/processos/Processos';
 import ProcessoFicha from './pages/processos/ProcessoFicha';
 import Matrizes from './pages/processos/Matrizes';
+import PortalApp from './portal/PortalApp';
+import ComunicadosAdmin from './pages/portal/ComunicadosAdmin';
+import SolicitacoesInbox from './pages/portal/SolicitacoesInbox';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -49,6 +52,9 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Portal do cliente (Area VIP) - app separado */}
+      <Route path="/portal/*" element={<PortalApp />} />
+
       <Route
         path="/login"
         element={sessao ? <Navigate to="/" replace /> : <Login />}
@@ -86,6 +92,8 @@ export default function App() {
         <Route path="processos" element={<Processos />} />
         <Route path="processos/matrizes" element={<Matrizes />} />
         <Route path="processos/:id" element={<ProcessoFicha />} />
+        <Route path="area-vip/comunicados" element={<ComunicadosAdmin />} />
+        <Route path="area-vip/solicitacoes" element={<SolicitacoesInbox />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />

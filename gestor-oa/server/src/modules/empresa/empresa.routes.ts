@@ -8,6 +8,10 @@ import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { empresaDir, isInsideStorage } from '../../lib/storage.js';
+import { generateToken, sha256 } from '../../lib/password.js';
+import { sendMail } from '../../lib/mailer.js';
+import { env } from '../../env.js';
+import { addMinutes } from 'date-fns';
 import * as svc from './empresa.service.js';
 import {
   criarEmpresaSchema,
@@ -202,6 +206,26 @@ router.delete(
     return ok(res, { removido: true });
   },
 );
+
+// ---------- Convite do contato para a Area VIP ----------
+router.post('/:id/contatos/:contatoId/convidar', requirePermission('portal_configurar'), async (req, res) => {
+  const contato = await prisma.empresaContato.findFirst({
+    where: { id: req.params.contatoId, empresaId: req.params.id, escritorioId: req.auth!.escritorioId },
+  });
+  if (!contato) throw Errors.naoEncontrado('Contato');
+  if (!contato.email) throw Errors.validacao('Contato sem e-mail.');
+  const token = generateToken(24);
+  await prisma.contatoToken.create({
+    data: { escritorioId: req.auth!.escritorioId, contatoEmail: contato.email, tokenHash: sha256(token), tipo: 'CONVITE', expiresAt: addMinutes(new Date(), 60 * 24 * 7) },
+  });
+  const link = `${env.appUrl}/portal/definir-senha?token=${token}`;
+  await sendMail({
+    to: contato.email,
+    subject: 'Convite para a Area VIP',
+    html: `<p>Ola ${contato.nome},</p><p>Voce foi convidado a acessar a Area VIP. Defina sua senha:</p><p><a href="${link}">${link}</a></p>`,
+  }).catch(() => undefined);
+  return ok(res, { link });
+});
 
 // ---------- Comentarios ----------
 router.post(
