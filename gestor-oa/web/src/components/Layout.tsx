@@ -15,7 +15,7 @@ import {
   Settings,
   Users,
   Tags,
-  ChevronDown,
+  ChevronRight,
   Bell,
   Search,
   Bot,
@@ -32,7 +32,7 @@ interface Item {
   filhos?: Item[];
 }
 
-// Estrutura espelhando o Acessorias (grupo Sistema com submenu).
+// Estrutura espelhando o Acessorias (grupo Sistema com submenu lateral/flyout).
 const MENU: Item[] = [
   {
     label: 'Sistema',
@@ -58,7 +58,6 @@ export default function Layout() {
   const { sessao, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const [sistemaAberto, setSistemaAberto] = useState(true);
 
   async function sair() {
     await logout();
@@ -93,34 +92,9 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* Menu */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4 text-sm">
-          {MENU.map((item) =>
-            item.filhos ? (
-              <div key={item.label}>
-                <button
-                  onClick={() => setSistemaAberto((v) => !v)}
-                  className="flex w-full items-center gap-3 rounded px-3 py-2 text-slate-600 hover:bg-slate-100"
-                >
-                  <item.icon size={18} className="text-marca-500" />
-                  <span className="flex-1 text-left">{item.label}</span>
-                  <ChevronDown
-                    size={16}
-                    className={`transition ${sistemaAberto ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {sistemaAberto && (
-                  <div className="ml-3 border-l border-slate-200 pl-2">
-                    {item.filhos.map((f) => (
-                      <ItemMenu key={f.label} item={f} toast={toast} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <ItemMenu key={item.label} item={item} toast={toast} />
-            ),
-          )}
+        {/* Menu - overflow visivel para os flyouts escaparem da sidebar */}
+        <nav className="flex-1 space-y-0.5 px-2 pb-4 text-sm">
+          <MenuLista itens={MENU} toast={toast} />
         </nav>
       </aside>
 
@@ -155,16 +129,56 @@ export default function Layout() {
   );
 }
 
-function ItemMenu({ item, toast }: { item: Item; toast: (t: 'ok' | 'erro', m: string) => void }) {
+type ToastFn = (t: 'ok' | 'erro', m: string) => void;
+
+// Lista de itens; itens com filhos abrem flyout para a direita.
+function MenuLista({ itens, toast }: { itens: Item[]; toast: ToastFn }) {
+  const [aberto, setAberto] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-0.5">
+      {itens.map((item) => {
+        if (item.filhos) {
+          return (
+            <div
+              key={item.label}
+              className="relative"
+              onMouseEnter={() => setAberto(item.label)}
+              onMouseLeave={() => setAberto(null)}
+            >
+              <button
+                className={`flex w-full items-center gap-3 rounded px-3 py-2 text-left transition ${
+                  aberto === item.label ? 'bg-marca-50 text-marca-700' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <item.icon size={18} className="text-marca-500" />
+                <span className="flex-1">{item.label}</span>
+                <ChevronRight size={16} />
+              </button>
+              {aberto === item.label && (
+                <div className="absolute left-full top-0 z-50 ml-1 min-w-60 rounded-md border border-slate-200 bg-white p-1 shadow-xl">
+                  <MenuLista itens={item.filhos} toast={toast} />
+                </div>
+              )}
+            </div>
+          );
+        }
+        return <ItemMenu key={item.label} item={item} toast={toast} />;
+      })}
+    </div>
+  );
+}
+
+function ItemMenu({ item, toast }: { item: Item; toast: ToastFn }) {
   if (item.emBreve) {
     return (
       <button
         onClick={() => toast('ok', `${item.label}: em breve`)}
-        className="flex w-full items-center gap-3 rounded px-3 py-2 text-slate-400"
+        className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-slate-400"
         title="Em breve"
       >
         <item.icon size={18} className="text-slate-300" />
-        <span className="flex-1 text-left">{item.label}</span>
+        <span className="flex-1">{item.label}</span>
         <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400">em breve</span>
       </button>
     );
@@ -175,9 +189,7 @@ function ItemMenu({ item, toast }: { item: Item; toast: (t: 'ok' | 'erro', m: st
       end={item.to === '/'}
       className={({ isActive }) =>
         `flex items-center gap-3 rounded px-3 py-2 transition ${
-          isActive
-            ? 'bg-marca-50 font-medium text-marca-700'
-            : 'text-slate-600 hover:bg-slate-100'
+          isActive ? 'bg-marca-50 font-medium text-marca-700' : 'text-slate-600 hover:bg-slate-100'
         }`
       }
     >
