@@ -1,0 +1,59 @@
+# ============================================================
+# Exemplo de server block Nginx para GestorOA
+# - Frontend (PWA) servido estaticamente a partir do build do Vite
+# - /api  -> proxy reverso para o backend Node (porta 4002)
+# - SSL via certbot (certbot --nginx -d gestoroa.seudominio.com.br)
+# ============================================================
+
+server {
+    listen 80;
+    server_name gestoroa.seudominio.com.br;
+    # Redireciona tudo para HTTPS (apos rodar o certbot)
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name gestoroa.seudominio.com.br;
+
+    # Certificados gerados pelo certbot
+    ssl_certificate     /etc/letsencrypt/live/gestoroa.seudominio.com.br/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/gestoroa.seudominio.com.br/privkey.pem;
+
+    client_max_body_size 100M; # uploads de PDFs/anexos
+
+    # --- Frontend estatico (build do Vite) ---
+    root /var/www/gestoroa/web;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html; # SPA fallback
+    }
+
+    # Service worker e manifest sem cache agressivo
+    location = /sw.js {
+        add_header Cache-Control "no-cache";
+        try_files $uri =404;
+    }
+
+    # --- API + rotas publicas de protocolo ---
+    location /api/ {
+        proxy_pass http://127.0.0.1:4002;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Rota publica de protocolo digital (/p/{token})
+    location /p/ {
+        proxy_pass http://127.0.0.1:4002;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

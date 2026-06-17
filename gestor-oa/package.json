@@ -1,0 +1,26 @@
+{
+  "name": "gestor-oa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "GestorOA - SaaS de gestao de obrigacoes acessorias para escritorios de contabilidade",
+  "workspaces": [
+    "shared",
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w server\" \"npm run dev -w web\"",
+    "build": "npm run build -w shared && npm run build -w server && npm run build -w web",
+    "start": "npm run start -w server",
+    "prisma:migrate": "npm run prisma:migrate -w server",
+    "prisma:generate": "npm run prisma:generate -w server",
+    "seed:demo": "npm run seed:demo -w server",
+    "test": "npm run test -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

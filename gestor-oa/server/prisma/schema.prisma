@@ -1,0 +1,172 @@
+// ============================================================
+// GestorOA - Schema Prisma
+// Modulo 0: Fundacao, Auth e Tenant
+// (estendido incrementalmente a cada modulo)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+// TENANT
+// ------------------------------------------------------------
+model Escritorio {
+  id          String   @id @default(cuid())
+  nome        String
+  cnpj        String?
+  logoUrl     String?
+  // Configuracoes diversas em JSON: { mailFromName, smtp:{host,port,...}, sabadoEhUtil, ... }
+  config      Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  usuarios            Usuario[]
+  sessoes             Sessao[]
+  passwordResets      PasswordResetToken[]
+  logsAuditoria       LogAuditoria[]
+
+  @@index([deletedAt])
+}
+
+// ------------------------------------------------------------
+// USUARIOS internos do escritorio
+// ------------------------------------------------------------
+model Usuario {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+
+  nome          String
+  email         String
+  senhaHash     String
+  ativo         Boolean  @default(true)
+
+  // Janelas de acesso permitidas: [{ diaSemana, inicio, fim }]. Vazio = sem restricao.
+  horariosAcesso Json    @default("[]")
+
+  // Filtros forcados (Modulo 4): { departamentos: string[], tags: string[] }. {} = sem restricao.
+  filtrosForcados Json   @default("{}")
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  permissao     Permissao?
+  sessoes       Sessao[]
+  logsAuditoria LogAuditoria[]
+
+  @@unique([escritorioId, email])
+  @@index([escritorioId, deletedAt])
+}
+
+// ------------------------------------------------------------
+// PERMISSOES (RBAC granular por flags) - 1:1 com Usuario
+// ------------------------------------------------------------
+model Permissao {
+  id        String  @id @default(cuid())
+  usuarioId String  @unique
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  empresas_ver              Boolean @default(false)
+  empresas_criar            Boolean @default(false)
+  empresas_editar           Boolean @default(false)
+  empresas_excluir          Boolean @default(false)
+  empresas_importar         Boolean @default(false)
+
+  obrigacoes_ver            Boolean @default(false)
+  obrigacoes_gerenciar      Boolean @default(false)
+
+  entregas_ver              Boolean @default(false)
+  entregas_baixar           Boolean @default(false)
+  entregas_editar_prazos    Boolean @default(false)
+  entregas_acoes_massa      Boolean @default(false)
+  entregas_desfazer_robo    Boolean @default(false)
+  entregas_dispensar        Boolean @default(false)
+
+  processos_ver             Boolean @default(false)
+  processos_gerenciar_matrizes Boolean @default(false)
+  processos_operar          Boolean @default(false)
+
+  documentos_ver            Boolean @default(false)
+  documentos_upload         Boolean @default(false)
+  documentos_excluir        Boolean @default(false)
+
+  relatorios_ver            Boolean @default(false)
+
+  apla_ver                  Boolean @default(false)
+  apla_configurar           Boolean @default(false)
+
+  portal_comunicados        Boolean @default(false)
+  portal_solicitacoes       Boolean @default(false)
+  portal_configurar         Boolean @default(false)
+
+  admin_usuarios            Boolean @default(false)
+  admin_permissoes          Boolean @default(false)
+  admin_auditoria           Boolean @default(false)
+  admin_escritorio          Boolean @default(false)
+}
+
+// ------------------------------------------------------------
+// SESSOES (refresh tokens) - rotacao a cada refresh
+// ------------------------------------------------------------
+model Sessao {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId     String
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id])
+
+  // hash do refresh token (nunca armazenar o token em claro)
+  tokenHash     String   @unique
+  userAgent     String?
+  ip            String?
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([usuarioId])
+}
+
+// ------------------------------------------------------------
+// RECUPERACAO DE SENHA
+// ------------------------------------------------------------
+model PasswordResetToken {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId     String
+  tokenHash     String   @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([usuarioId])
+}
+
+// ------------------------------------------------------------
+// AUDITORIA
+// ------------------------------------------------------------
+model LogAuditoria {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId     String?
+  usuario       Usuario? @relation(fields: [usuarioId], references: [id])
+
+  acao          String   // CREATE | UPDATE | DELETE
+  entidade      String   // nome do model
+  entidadeId    String?
+  antes         Json?
+  depois        Json?
+  createdAt     DateTime @default(now())
+
+  @@index([escritorioId, entidade, createdAt])
+  @@index([escritorioId, usuarioId])
+}
