@@ -1,21 +1,21 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User as UserIcon } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
 import { Badge, Modal, Spinner, useToast } from '../components/ui';
-import type { UsuarioCompleto, Departamento, Tag, JanelaAcesso } from '../lib/tipos';
-import { PERMISSION_GROUPS, DIAS_SEMANA_LABEL, TIPOS_USUARIO } from '../lib/tipos';
+import type { UsuarioCompleto } from '../lib/tipos';
 
 export default function Usuarios() {
   const { sessao } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const podeUsuarios = temPermissao(sessao, 'admin_usuarios');
   const podePermissoes = temPermissao(sessao, 'admin_permissoes');
 
   const [usuarios, setUsuarios] = useState<UsuarioCompleto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<UsuarioCompleto | null>(null);
-  const [novo, setNovo] = useState(false);
+  const [filtro, setFiltro] = useState('');
   const [replicar, setReplicar] = useState(false);
 
   function carregar() {
@@ -43,16 +43,21 @@ export default function Usuarios() {
 
   if (loading) return <Spinner />;
 
+  const termo = filtro.trim().toLowerCase();
+  const lista = termo ? usuarios.filter((u) => u.nome.toLowerCase().includes(termo) || u.email.toLowerCase().includes(termo)) : usuarios;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-800">Usuarios e Permissoes</h1>
+        <h1 className="text-2xl font-semibold text-slate-800">Relacao de usuarios e suas permissoes</h1>
         <div className="flex gap-2">
           <button className="btn-ghost border border-slate-300" onClick={exportar}>Exportar</button>
           {podePermissoes && <button className="btn-ghost border border-slate-300" onClick={() => setReplicar(true)}>Replicar permissoes</button>}
-          {podeUsuarios && <button className="btn-primary" onClick={() => setNovo(true)}>+ Novo usuario</button>}
+          {podeUsuarios && <button className="btn-primary" onClick={() => navigate('/usuarios/novo')}>+ Novo usuario</button>}
         </div>
       </div>
+
+      <input className="input max-w-xl" placeholder="Filtrar pelo nome ou por e-mail" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
 
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
@@ -60,13 +65,13 @@ export default function Usuarios() {
             <tr><th className="px-3 py-2">Nome [Tipo]</th><th className="px-3 py-2">E-mail</th><th className="px-3 py-2">Permissoes</th><th className="px-3 py-2">Horarios</th><th className="px-3 py-2">Status</th><th></th></tr>
           </thead>
           <tbody>
-            {usuarios.map((u) => {
+            {lista.map((u) => {
               const ativas = Object.values(u.permissoes).filter(Boolean).length;
               return (
                 <tr
                   key={u.id}
                   className={`border-b border-slate-100 ${podeUsuarios ? 'cursor-pointer hover:bg-slate-50' : ''}`}
-                  onClick={() => podeUsuarios && setEditando(u)}
+                  onClick={() => podeUsuarios && navigate(`/usuarios/${u.id}`)}
                 >
                   <td className="px-3 py-2">
                     <span className="flex items-center gap-2">
@@ -81,7 +86,6 @@ export default function Usuarios() {
                   <td className="px-3 py-2">{u.ativo ? <Badge className="bg-emerald-100 text-emerald-700">Ativo</Badge> : <Badge className="bg-slate-200 text-slate-600">Inativo</Badge>}</td>
                   <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2 text-xs">
-                      {podeUsuarios && <button className="text-marca-600 hover:underline" onClick={() => setEditando(u)}>editar</button>}
                       {podeUsuarios && <button className="text-slate-500 hover:underline" onClick={() => resetSenha(u)}>senha</button>}
                       {podeUsuarios && u.ativo && <button className="text-red-500 hover:underline" onClick={() => inativar(u)}>inativar</button>}
                     </div>
@@ -89,198 +93,13 @@ export default function Usuarios() {
                 </tr>
               );
             })}
+            {lista.length === 0 && <tr><td colSpan={6} className="px-3 py-10 text-center text-slate-400">Nenhum usuario.</td></tr>}
           </tbody>
         </table>
       </div>
 
-      {(novo || editando) && (
-        <UsuarioModal
-          usuario={editando}
-          podePermissoes={podePermissoes}
-          onFechar={() => { setNovo(false); setEditando(null); }}
-          onSalvo={() => { setNovo(false); setEditando(null); carregar(); }}
-        />
-      )}
       {replicar && <ReplicarModal usuarios={usuarios} onFechar={() => setReplicar(false)} onFeito={() => { setReplicar(false); carregar(); }} />}
     </div>
-  );
-}
-
-type TabKey = 'Dados' | 'Permissoes' | 'Horarios' | 'Filtros' | 'Custo (APLA)';
-
-function UsuarioModal({
-  usuario, podePermissoes, onFechar, onSalvo,
-}: { usuario: UsuarioCompleto | null; podePermissoes: boolean; onFechar: () => void; onSalvo: () => void }) {
-  const toast = useToast();
-  const [tab, setTab] = useState<TabKey>('Dados');
-  const [nome, setNome] = useState(usuario?.nome ?? '');
-  const [email, setEmail] = useState(usuario?.email ?? '');
-  const [senha, setSenha] = useState('');
-  const [ativo, setAtivo] = useState(usuario?.ativo ?? true);
-  const [tipo, setTipo] = useState(usuario?.tipo ?? 'Auxiliar');
-  const [telefone, setTelefone] = useState(usuario?.telefone ?? '');
-  const [observacoes, setObservacoes] = useState(usuario?.observacoes ?? '');
-  const [custoHora, setCustoHora] = useState(usuario?.custoHora != null ? String(usuario.custoHora) : '');
-  const [minutosUteisMes, setMinutosUteisMes] = useState(usuario?.minutosUteisMes != null ? String(usuario.minutosUteisMes) : '');
-  const [permissoes, setPermissoes] = useState<Record<string, boolean>>(usuario?.permissoes ?? {});
-  const [horarios, setHorarios] = useState<JanelaAcesso[]>(usuario?.horariosAcesso ?? []);
-  const [depIds, setDepIds] = useState<string[]>(usuario?.filtrosForcados?.departamentos ?? []);
-  const [tagIds, setTagIds] = useState<string[]>(usuario?.filtrosForcados?.tags ?? []);
-  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [salvando, setSalvando] = useState(false);
-
-  useEffect(() => {
-    api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
-    api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
-  }, []);
-
-  function togglePerm(flag: string) {
-    setPermissoes((p) => ({ ...p, [flag]: !p[flag] }));
-  }
-  function marcarGrupo(flags: string[], valor: boolean) {
-    setPermissoes((p) => { const n = { ...p }; flags.forEach((f) => (n[f] = valor)); return n; });
-  }
-
-  async function salvar() {
-    setSalvando(true);
-    try {
-      const payload = {
-        nome, ativo, permissoes,
-        tipo: tipo || null,
-        telefone: telefone || null,
-        observacoes: observacoes || null,
-        custoHora: custoHora === '' ? null : Number(custoHora),
-        minutosUteisMes: minutosUteisMes === '' ? null : Number(minutosUteisMes),
-        horariosAcesso: horarios,
-        filtrosForcados: { departamentos: depIds, tags: tagIds },
-      };
-      if (usuario) {
-        await api.put(`/usuarios/${usuario.id}`, payload);
-      } else {
-        if (senha.length < 8) { setSalvando(false); return toast('erro', 'Senha minima de 8 caracteres.'); }
-        await api.post('/usuarios', { ...payload, email, senha });
-      }
-      toast('ok', 'Usuario salvo.');
-      onSalvo();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-
-  const tabs: TabKey[] = ['Dados', 'Permissoes', 'Horarios', 'Filtros', 'Custo (APLA)'];
-
-  return (
-    <Modal aberto titulo={usuario ? `Editar ${usuario.nome}` : 'Novo usuario'} onFechar={onFechar} largura="max-w-3xl">
-      <div className="flex gap-1 border-b border-slate-200 text-sm">
-        {tabs.map((t) => (
-          <button key={t} onClick={() => setTab(t)} className={`px-4 py-2 ${tab === t ? 'border-b-2 border-marca-600 font-medium text-marca-700' : 'text-slate-500'}`}>{t}</button>
-        ))}
-      </div>
-
-      <div className="mt-4 max-h-[60vh] overflow-y-auto">
-        {tab === 'Dados' && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div><label className="label">Nome</label><input className="input" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
-              <div>
-                <label className="label">Tipo / cargo</label>
-                <select className="input" value={tipo ?? ''} onChange={(e) => setTipo(e.target.value)}>
-                  {TIPOS_USUARIO.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div><label className="label">E-mail / usuario de acesso</label><input className="input" value={email} disabled={!!usuario} onChange={(e) => setEmail(e.target.value)} /></div>
-              <div><label className="label">Fone(s)</label><input className="input" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="Fone" /></div>
-            </div>
-            {!usuario && <div><label className="label">Senha (min 8)</label><input type="password" className="input" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco = manter a mesma" /></div>}
-            <div><label className="label">Dados complementares</label><input className="input" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Comentarios" /></div>
-            <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} /> Usuario ativo</label>
-          </div>
-        )}
-
-        {tab === 'Custo (APLA)' && (
-          <div className="space-y-3">
-            <p className="text-sm text-slate-500">Configuracao do custo e da capacidade do colaborador. Alimenta o Metodo APLA (produtividade e lucratividade). Em branco usa o custo/hora padrao do escritorio.</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div><label className="label">Custo por hora (R$)</label><input className="input" type="number" min={0} step="0.01" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex.: 45.00" /></div>
-              <div><label className="label">Minutos uteis no mes</label><input className="input" type="number" min={0} value={minutosUteisMes} onChange={(e) => setMinutosUteisMes(e.target.value)} placeholder="Ex.: 8800" /></div>
-            </div>
-            <p className="text-xs text-slate-400">Dica: 8h/dia x 22 dias x 60 = 10560 min; descontando pausas, ~8800 min costuma ser uma boa base.</p>
-          </div>
-        )}
-
-        {tab === 'Permissoes' && (
-          <div className="space-y-4">
-            {!podePermissoes && <p className="text-sm text-amber-600">Voce nao tem permissao para alterar permissoes.</p>}
-            {PERMISSION_GROUPS.map((g) => (
-              <div key={g.grupo}>
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700">{g.grupo}</span>
-                  {podePermissoes && (
-                    <span className="flex gap-2 text-xs">
-                      <button className="text-marca-600 hover:underline" onClick={() => marcarGrupo(g.flags.map((f) => f.flag), true)}>todos</button>
-                      <button className="text-slate-400 hover:underline" onClick={() => marcarGrupo(g.flags.map((f) => f.flag), false)}>nenhum</button>
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-1 sm:grid-cols-3">
-                  {g.flags.map((f) => (
-                    <label key={f.flag} className="flex items-center gap-2 text-sm text-slate-600">
-                      <input type="checkbox" disabled={!podePermissoes} checked={!!permissoes[f.flag]} onChange={() => togglePerm(f.flag)} />
-                      {f.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {tab === 'Horarios' && (
-          <div className="space-y-3">
-            <p className="text-sm text-slate-500">Janelas de acesso permitidas. Sem janelas = acesso livre.</p>
-            {horarios.map((h, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <select className="input w-28" value={h.diaSemana} onChange={(e) => setHorarios((arr) => arr.map((x, j) => j === i ? { ...x, diaSemana: Number(e.target.value) } : x))}>
-                  {DIAS_SEMANA_LABEL.map((d, idx) => <option key={idx} value={idx}>{d}</option>)}
-                </select>
-                <input type="time" className="input w-32" value={h.inicio} onChange={(e) => setHorarios((arr) => arr.map((x, j) => j === i ? { ...x, inicio: e.target.value } : x))} />
-                <span className="text-slate-400">ate</span>
-                <input type="time" className="input w-32" value={h.fim} onChange={(e) => setHorarios((arr) => arr.map((x, j) => j === i ? { ...x, fim: e.target.value } : x))} />
-                <button className="btn-ghost" onClick={() => setHorarios((arr) => arr.filter((_, j) => j !== i))}>✕</button>
-              </div>
-            ))}
-            <button className="btn-ghost border border-slate-300" onClick={() => setHorarios((arr) => [...arr, { diaSemana: 1, inicio: '08:00', fim: '18:00' }])}>+ Adicionar janela</button>
-          </div>
-        )}
-
-        {tab === 'Filtros' && (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-500">Restringe a visao do usuario a determinados departamentos e/ou tags (aplicado em todas as listagens). Vazio = sem restricao.</p>
-            <div>
-              <div className="mb-1 text-sm font-medium text-slate-700">Departamentos</div>
-              <div className="flex flex-wrap gap-2">
-                {departamentos.map((d) => (
-                  <label key={d.id} className="flex items-center gap-1 text-sm"><input type="checkbox" checked={depIds.includes(d.id)} onChange={(e) => setDepIds((ids) => e.target.checked ? [...ids, d.id] : ids.filter((x) => x !== d.id))} />{d.nome}</label>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-1 text-sm font-medium text-slate-700">Tags</div>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((t) => (
-                  <label key={t.id} className="flex items-center gap-1 text-sm"><input type="checkbox" checked={tagIds.includes(t.id)} onChange={(e) => setTagIds((ids) => e.target.checked ? [...ids, t.id] : ids.filter((x) => x !== t.id))} />{t.nome}</label>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-4">
-        <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-        <button className="btn-primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
-      </div>
-    </Modal>
   );
 }
 
