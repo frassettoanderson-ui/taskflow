@@ -13,12 +13,14 @@ import type {
 } from '../../lib/tipos';
 import { LABEL_TIPO_IDENT, formatarIdent, formatarBytes } from '../../lib/tipos';
 import AbaObrigacoes from './AbaObrigacoes';
+import AbaDocumentos from './AbaDocumentos';
 
 const ABAS = [
   'Dados',
   'Identificadores',
   'Obrigacoes',
   'Contatos',
+  'Documentos',
   'Anexos',
   'Comentarios',
   'Historico',
@@ -95,7 +97,7 @@ export default function EmpresaFicha() {
             {a}
           </button>
         ))}
-        {['Processos', 'Documentos'].map((a) => (
+        {['Processos'].map((a) => (
           <span key={a} className="px-4 py-2 text-slate-300" title="Em breve">{a}</span>
         ))}
       </div>
@@ -116,6 +118,7 @@ export default function EmpresaFicha() {
       {aba === 'Contatos' && (
         <AbaContatos empresa={empresa} podeEditar={podeEditar} onMudou={recarregar} />
       )}
+      {aba === 'Documentos' && <AbaDocumentos empresaId={empresa.id} />}
       {aba === 'Anexos' && <AbaAnexos empresa={empresa} onMudou={recarregar} />}
       {aba === 'Comentarios' && <AbaComentarios empresa={empresa} onMudou={recarregar} />}
       {aba === 'Historico' && <AbaHistorico empresaId={empresa.id} />}

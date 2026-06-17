@@ -341,6 +341,52 @@ export const PERMISSION_GROUPS: { grupo: string; flags: { flag: string; label: s
 
 export const DIAS_SEMANA_LABEL = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 
+// ---------- Modulo 7 ----------
+export interface DocumentoGED {
+  id: string;
+  raiz: string;
+  pasta: string;
+  nomeArquivo: string;
+  tamanho: number;
+  mimeType: string | null;
+  origem: 'MANUAL' | 'ENTREGA' | 'ROBO';
+  createdAt: string;
+}
+
+export interface ProtocoloVisualizacao {
+  id: string;
+  ip: string | null;
+  userAgent: string | null;
+  visualizadoEm: string;
+}
+
+export interface Protocolo {
+  id: string;
+  token: string;
+  destinatario: string;
+  canal: 'EMAIL' | 'AREA_VIP' | 'WHATSAPP';
+  enviadoEm: string;
+  documento: { nomeArquivo: string } | null;
+  visualizacoes: ProtocoloVisualizacao[];
+}
+
+export interface ProtocoloFisico {
+  id: string;
+  descricao: string;
+  retiradoPor: string | null;
+  data: string;
+  status: 'AGUARDANDO_RETIRADA' | 'ENTREGUE' | 'DEVOLVIDO' | 'CANCELADO';
+  assinaturaPath: string | null;
+  empresa?: { razaoSocial: string };
+}
+
+export const STATUS_FISICO_LABEL: Record<ProtocoloFisico['status'], string> = {
+  AGUARDANDO_RETIRADA: 'Aguardando retirada',
+  ENTREGUE: 'Entregue',
+  DEVOLVIDO: 'Devolvido',
+  CANCELADO: 'Cancelado',
+};
+
 export function dataBR(d: string | Date): string {
   return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }

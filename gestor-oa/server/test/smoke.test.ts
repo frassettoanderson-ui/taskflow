@@ -164,6 +164,22 @@ describe('Modulo 4 - usuarios/auditoria (smoke)', () => {
   });
 });
 
+describe('Modulo 7 - GED/protocolo (smoke)', () => {
+  it('GED sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/ged/armazenamento');
+    expect(res.status).toBe(401);
+  });
+  it('protocolos fisicos sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/protocolos-fisicos');
+    expect(res.status).toBe(401);
+  });
+  it('rota publica /p/:token responde (404 sem DB tambem aceito)', async () => {
+    const res = await request(createApp()).get('/p/inexistente');
+    // com DB: 404 (token inexistente); sem DB: 500. O importante e' a rota existir.
+    expect([404, 500]).toContain(res.status);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

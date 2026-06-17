@@ -9,6 +9,7 @@ import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { ensureDir, STORAGE_ROOT } from '../../lib/storage.js';
 import * as svc from './entrega.service.js';
+import * as ged from '../ged/ged.service.js';
 import type { StatusEntrega } from './entrega.status.js';
 
 const router = Router();
@@ -135,7 +136,7 @@ router.post(
       },
       req.auth!.id,
     );
-    // registra anexos
+    // registra anexos + copia para a GED (DocsEntregas/{ano}/{comp}/{obrigacao})
     if (files.length) {
       await prisma.entregaAnexo.createMany({
         data: files.map((f) => ({
@@ -147,6 +148,26 @@ router.post(
           mimeType: f.mimetype,
         })),
       });
+      const det = await prisma.entrega.findUnique({
+        where: { id: req.params.id },
+        include: { obrigacao: { select: { nome: true } } },
+      });
+      if (det) {
+        const comp = `${det.competenciaAno}/${String(det.competenciaMes).padStart(2, '0')}`;
+        for (const f of files) {
+          await ged.adicionar(req.auth!.escritorioId, det.empresaId, {
+            raiz: 'DocsEntregas',
+            pasta: `${comp}/${det.obrigacao.nome}`,
+            nomeArquivo: f.originalname,
+            caminho: f.path,
+            tamanho: f.size,
+            mimeType: f.mimetype,
+            origem: 'ENTREGA',
+            entregaId: det.id,
+            uploadedById: req.auth!.id,
+          });
+        }
+      }
     }
     // checkbox "enviar ao cliente agora" -> Modulo 8 (stub)
     return ok(res, { entrega, enviarCliente: req.body.enviarCliente === 'true' });

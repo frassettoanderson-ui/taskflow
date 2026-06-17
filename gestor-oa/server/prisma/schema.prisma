@@ -39,6 +39,9 @@ model Escritorio {
   grupos             GrupoObrigacoes[]
   feriados            Feriado[]
   entregas            Entrega[]
+  documentos          DocumentoGED[]
+  protocolos          Protocolo[]
+  protocolosFisicos   ProtocoloFisico[]
 
   @@index([deletedAt])
 }
@@ -252,6 +255,9 @@ model Empresa {
   tags               EmpresaTag[]
   obrigacoes         EmpresaObrigacao[]
   entregas           Entrega[]
+  documentos         DocumentoGED[]
+  protocolos         Protocolo[]
+  protocolosFisicos  ProtocoloFisico[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -593,4 +599,105 @@ model EmpresaComentario {
   createdAt       DateTime @default(now())
 
   @@index([empresaId])
+}
+
+// ============================================================
+// MODULO 7 - GED + Protocolo Digital e Fisico
+// ============================================================
+
+enum OrigemDocumento {
+  MANUAL
+  ENTREGA
+  ROBO
+}
+
+enum CanalProtocolo {
+  EMAIL
+  AREA_VIP
+  WHATSAPP
+}
+
+enum StatusProtocoloFisico {
+  AGUARDANDO_RETIRADA
+  ENTREGUE
+  DEVOLVIDO
+  CANCELADO
+}
+
+model DocumentoGED {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  // raiz fixa: "DocsEmpresa" (manual) ou "DocsEntregas" (automatico)
+  raiz          String   @default("DocsEmpresa")
+  // subpasta livre, ex.: "Contratos" ou "2026/06/DAS"
+  pasta         String   @default("")
+  nomeArquivo   String
+  caminho       String
+  tamanho       Int
+  mimeType      String?
+  origem        OrigemDocumento @default(MANUAL)
+  entregaId     String?
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+
+  protocolos    Protocolo[]
+
+  @@index([escritorioId, empresaId, raiz])
+  @@index([empresaId, nomeArquivo])
+}
+
+model Protocolo {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  documentoId   String?
+  documento     DocumentoGED? @relation(fields: [documentoId], references: [id], onDelete: SetNull)
+
+  token         String   @unique
+  destinatario  String   // nome/email do contato
+  contatoId     String?
+  canal         CanalProtocolo @default(EMAIL)
+  enviadoEm     DateTime @default(now())
+  // assunto/prefixo de lembrete usado quando nao lido
+  lembreteEnviadoEm DateTime?
+
+  visualizacoes ProtocoloVisualizacao[]
+
+  @@index([escritorioId, empresaId])
+  @@index([documentoId])
+}
+
+model ProtocoloVisualizacao {
+  id            String   @id @default(cuid())
+  protocoloId   String
+  protocolo     Protocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
+  ip            String?
+  userAgent     String?
+  visualizadoEm DateTime @default(now())
+
+  @@index([protocoloId])
+}
+
+model ProtocoloFisico {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  descricao     String
+  retiradoPor   String?
+  data          DateTime @default(now())
+  status        StatusProtocoloFisico @default(AGUARDANDO_RETIRADA)
+  assinaturaPath String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([escritorioId, empresaId])
 }

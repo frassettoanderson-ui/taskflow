@@ -13,6 +13,9 @@ import feriadoRoutes from './modules/obrigacao/feriado.routes.js';
 import empresaObrigacaoRoutes from './modules/obrigacao/empresaObrigacao.routes.js';
 import entregaRoutes from './modules/entrega/entrega.routes.js';
 import auditoriaRoutes from './modules/auditoria/auditoria.routes.js';
+import gedRoutes from './modules/ged/ged.routes.js';
+import protocoloRoutes from './modules/protocolo/protocolo.routes.js';
+import protocoloFisicoRoutes from './modules/protocolo/protocoloFisico.routes.js';
 
 const api = Router();
 
@@ -34,5 +37,8 @@ api.use('/feriados', feriadoRoutes);
 api.use('/empresa-obrigacoes', empresaObrigacaoRoutes);
 api.use('/entregas', entregaRoutes);
 api.use('/auditoria', auditoriaRoutes);
+api.use('/ged', gedRoutes);
+api.use('/protocolos', protocoloRoutes);
+api.use('/protocolos-fisicos', protocoloFisicoRoutes);
 
 export default api;

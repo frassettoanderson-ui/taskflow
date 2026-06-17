@@ -23,6 +23,9 @@ const AUDITED_MODELS = new Set<string>([
   'EmpresaObrigacao',
   'Feriado',
   'Entrega',
+  'DocumentoGED',
+  'Protocolo',
+  'ProtocoloFisico',
 ]);
 
 // Evita recursao: a propria gravacao do log nao deve ser auditada.

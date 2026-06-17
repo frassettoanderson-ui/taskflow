@@ -4,6 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { env } from './env.js';
 import api from './routes.js';
+import publicoProtocolo from './modules/protocolo/publico.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
 
 export function createApp() {
@@ -21,6 +22,8 @@ export function createApp() {
   app.use(cookieParser());
 
   app.use('/api/v1', api);
+  // Rota publica de protocolo (prova de entrega) - fora do /api
+  app.use('/p', publicoProtocolo);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

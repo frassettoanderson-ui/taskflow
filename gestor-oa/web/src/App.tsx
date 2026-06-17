@@ -21,6 +21,8 @@ import Feriados from './pages/obrigacoes/Feriados';
 import AlocacaoMassa from './pages/obrigacoes/AlocacaoMassa';
 import ListaEntregas from './pages/entregas/ListaEntregas';
 import Calendario from './pages/entregas/Calendario';
+import Armazenamento from './pages/documentos/Armazenamento';
+import ProtocolosFisicos from './pages/documentos/ProtocolosFisicos';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -68,6 +70,8 @@ export default function App() {
         <Route path="obrigacoes/alocacao" element={<AlocacaoMassa />} />
         <Route path="entregas" element={<ListaEntregas />} />
         <Route path="entregas/calendario" element={<Calendario />} />
+        <Route path="documentos/armazenamento" element={<Armazenamento />} />
+        <Route path="documentos/protocolos-fisicos" element={<ProtocolosFisicos />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />

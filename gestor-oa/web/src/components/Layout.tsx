@@ -62,7 +62,14 @@ const MENU: Item[] = [
   { label: 'Solicitacoes', icon: MessageSquare, emBreve: true },
   { label: 'Robo (e-Robo)', icon: Bot, emBreve: true },
   { label: 'Metodo APLA', icon: TrendingUp, emBreve: true },
-  { label: 'Documentos (GED)', icon: FileText, emBreve: true },
+  {
+    label: 'Documentos (GED)',
+    icon: FileText,
+    filhos: [
+      { label: 'Armazenamento', icon: FileText, to: '/documentos/armazenamento' },
+      { label: 'Protocolos Fisicos', icon: FileText, to: '/documentos/protocolos-fisicos' },
+    ],
+  },
   { label: 'Relatorios', icon: FileText, emBreve: true },
 ];
 
