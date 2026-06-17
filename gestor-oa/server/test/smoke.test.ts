@@ -30,6 +30,24 @@ describe('Modulo 0 - fundacao (smoke)', () => {
     expect(res.body.error.code).toBe('NAO_AUTENTICADO');
   });
 
+  it('refresh sem cookie retorna 401 (nao trava)', async () => {
+    const app = createApp();
+    const res = await request(app).post('/api/v1/auth/refresh');
+    expect(res.status).toBe(401);
+    expect(res.body.ok).toBe(false);
+    expect(res.body.error.code).toBe('NAO_AUTENTICADO');
+  });
+
+  it('login com credenciais invalidas nao trava (erro async tratado)', async () => {
+    const app = createApp();
+    const res = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ email: 'inexistente@x.com', senha: 'qualquer' });
+    // 401 (credenciais) ou 500 se sem DB - o importante e' nao pendurar
+    expect([401, 500]).toContain(res.status);
+    expect(res.body.ok).toBe(false);
+  });
+
   it('registrar com payload invalido retorna 422', async () => {
     const app = createApp();
     const res = await request(app).post('/api/v1/auth/registrar').send({});
