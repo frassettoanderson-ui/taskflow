@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useToast } from './ui';
+import FAB from './FAB';
 
 interface Item {
   label: string;
@@ -43,7 +44,17 @@ const MENU: Item[] = [
       { label: 'Configuracoes gerais', icon: Settings, to: '/configuracoes' },
     ],
   },
-  { label: 'Obrigacoes', icon: ListChecks, emBreve: true },
+  {
+    label: 'Obrigacoes',
+    icon: ListChecks,
+    filhos: [
+      { label: 'Catalogo', icon: ListChecks, to: '/obrigacoes' },
+      { label: 'Regimes Tributarios', icon: Settings, to: '/obrigacoes/regimes' },
+      { label: 'Grupos', icon: Tags, to: '/obrigacoes/grupos' },
+      { label: 'Feriados', icon: CalendarCheck, to: '/obrigacoes/feriados' },
+      { label: 'Alocacao em massa', icon: Building2, to: '/obrigacoes/alocacao' },
+    ],
+  },
   { label: 'Empresas', icon: Building2, to: '/empresas' },
   { label: 'Lista de Entregas', icon: CalendarCheck, emBreve: true },
   { label: 'Gestao de processos', icon: GitBranch, emBreve: true },
@@ -125,6 +136,8 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      <FAB />
     </div>
   );
 }

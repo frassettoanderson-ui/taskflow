@@ -34,6 +34,10 @@ model Escritorio {
   empresas            Empresa[]
   departamentos       Departamento[]
   tags                Tag[]
+  obrigacoes          Obrigacao[]
+  regimes             RegimeTributario[]
+  grupos             GrupoObrigacoes[]
+  feriados            Feriado[]
 
   @@index([deletedAt])
 }
@@ -198,6 +202,7 @@ model Departamento {
 
   responsaveis  EmpresaResponsavelDepartamento[]
   comentarios   EmpresaComentario[]
+  obrigacoes    Obrigacao[]
 
   @@unique([escritorioId, nome])
   @@index([escritorioId])
@@ -227,8 +232,8 @@ model Empresa {
   emailPrincipal     String?
   telefone           String?
   endereco           String?
-  // FK efetiva sera' adicionada no Modulo 2 (RegimeTributario)
   regimeTributarioId String?
+  regimeTributario   RegimeTributario? @relation(fields: [regimeTributarioId], references: [id])
   anotacoes          String?
   ativo              Boolean  @default(true)
   dataEntrada        DateTime?
@@ -244,6 +249,7 @@ model Empresa {
   comentarios        EmpresaComentario[]
   responsaveis       EmpresaResponsavelDepartamento[]
   tags               EmpresaTag[]
+  obrigacoes         EmpresaObrigacao[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -332,6 +338,153 @@ model EmpresaAnexo {
   createdAt     DateTime @default(now())
 
   @@index([empresaId])
+}
+
+// ============================================================
+// MODULO 2 - Obrigacoes, Regimes Tributarios e Grupos
+// ============================================================
+
+enum Periodicidade {
+  MENSAL
+  TRIMESTRAL
+  ANUAL
+  EVENTUAL
+}
+
+enum OrigemObrigacao {
+  REGIME
+  GRUPO
+  MANUAL
+}
+
+model Feriado {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  data          DateTime @db.Date
+  nome          String
+  abrangencia   String   @default("NACIONAL") // NACIONAL | ESTADUAL | MUNICIPAL
+  uf            String?
+  municipio     String?
+  createdAt     DateTime @default(now())
+
+  @@unique([escritorioId, data, nome])
+  @@index([escritorioId, data])
+}
+
+model Obrigacao {
+  id                 String   @id @default(cuid())
+  escritorioId       String
+  escritorio         Escritorio @relation(fields: [escritorioId], references: [id])
+
+  nome               String
+  departamentoId     String?
+  departamento       Departamento? @relation(fields: [departamentoId], references: [id])
+  descricao          String?
+  periodicidade      Periodicidade @default(MENSAL)
+  // Regra de prazo (JSON): { tipoDia, dia, regraNaoUtil, sabadoEhUtil, diasAntesTecnico, tipoDiasAntes }
+  regraPrazo         Json     @default("{}")
+  tempoPrevistoMin   Int      @default(0)
+  exigeAnexoNaBaixa  Boolean  @default(false)
+  exigeBaixaPeloRobo Boolean  @default(false)
+  ativo              Boolean  @default(true)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  regimes            RegimeObrigacao[]
+  grupos             GrupoObrigacao[]
+  empresaObrigacoes  EmpresaObrigacao[]
+
+  @@index([escritorioId, deletedAt])
+  @@index([escritorioId, departamentoId])
+}
+
+model RegimeTributario {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  obrigacoes    RegimeObrigacao[]
+  empresas      Empresa[]
+
+  @@unique([escritorioId, nome])
+  @@index([escritorioId])
+}
+
+model RegimeObrigacao {
+  id            String   @id @default(cuid())
+  regimeId      String
+  regime        RegimeTributario @relation(fields: [regimeId], references: [id], onDelete: Cascade)
+  obrigacaoId   String
+  obrigacao     Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+  // override opcional de tempo previsto por regime
+  tempoPrevistoOverride Int?
+
+  @@unique([regimeId, obrigacaoId])
+  @@index([obrigacaoId])
+}
+
+model GrupoObrigacoes {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  obrigacoes    GrupoObrigacao[]
+
+  @@unique([escritorioId, nome])
+  @@index([escritorioId])
+}
+
+model GrupoObrigacao {
+  id            String   @id @default(cuid())
+  grupoId       String
+  grupo         GrupoObrigacoes @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  obrigacaoId   String
+  obrigacao     Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+
+  @@unique([grupoId, obrigacaoId])
+  @@index([obrigacaoId])
+}
+
+// Vinculo efetivo empresa x obrigacao. Uma linha por par; as ORIGENS
+// (regime/grupo/manual) ficam em JSON para suportar a semantica:
+// regime SUBSTITUI as origens REGIME; grupo so' ADICIONA; remover grupo
+// tira a origem GRUPO e, se ficar sem origens, inativa.
+model EmpresaObrigacao {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  obrigacaoId   String
+  obrigacao     Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+
+  // origens: [{ origem: "REGIME"|"GRUPO"|"MANUAL", refId?: string }]
+  origens       Json     @default("[]")
+  ativo         Boolean  @default(true)
+
+  // overrides opcionais
+  responsavelId        String?
+  diaPrazoOverride     Int?
+  honorario            Decimal? @db.Decimal(12, 2)
+  tempoPrevistoOverride Int?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([empresaId, obrigacaoId])
+  @@index([escritorioId])
+  @@index([empresaId, ativo])
+  @@index([obrigacaoId])
 }
 
 model EmpresaComentario {

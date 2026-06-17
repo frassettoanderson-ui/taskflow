@@ -76,6 +76,26 @@ export const OrigemObrigacao = {
 export type OrigemObrigacao =
   (typeof OrigemObrigacao)[keyof typeof OrigemObrigacao];
 
+// Regra de prazo de uma obrigacao (JSON em Obrigacao.regraPrazo)
+export interface RegraPrazo {
+  // DIA_FIXO: dia do mes (ex.: 20). DIA_UTIL: N-esimo dia util (ex.: 5).
+  tipoDia: 'DIA_FIXO' | 'DIA_UTIL';
+  dia: number;
+  // o que fazer se o prazo cair em dia nao-util
+  regraNaoUtil: 'ANTECIPA' | 'POSTERGA' | 'MANTEM';
+  // sabado conta como dia util? (sobrescreve o padrao do escritorio)
+  sabadoEhUtil?: boolean;
+  // antecedencia do prazo tecnico em relacao ao legal
+  diasAntesTecnico: number;
+  tipoDiasAntes: 'CORRIDOS' | 'UTEIS';
+}
+
+// Uma origem do vinculo empresa x obrigacao
+export interface OrigemVinculo {
+  origem: OrigemObrigacao;
+  refId?: string; // id do regime ou grupo (vazio para MANUAL)
+}
+
 export const OrigemBaixa = {
   MANUAL: 'MANUAL',
   ROBO: 'ROBO',

@@ -150,6 +150,8 @@ async function main() {
   const fiscalId = usuariosCriados['fiscal@demo.com.br'];
   const pessoalId = usuariosCriados['pessoal@demo.com.br'];
 
+  const empresaIds: string[] = [];
+
   for (let i = 0; i < nomes.length; i++) {
     const cnpj = gerarCnpj(String(10000000 + i * 137));
     const empresa = await prisma.empresa.create({
@@ -191,11 +193,145 @@ async function main() {
         },
       },
     });
-    void empresa;
+    empresaIds.push(empresa.id);
+  }
+
+  // ---------- Modulo 2: Feriados nacionais (ano corrente + proximo) ----------
+  const anoBase = new Date().getFullYear();
+  const feriadosFixos = [
+    ['01-01', 'Confraternizacao Universal'],
+    ['04-21', 'Tiradentes'],
+    ['05-01', 'Dia do Trabalho'],
+    ['09-07', 'Independencia do Brasil'],
+    ['10-12', 'Nossa Senhora Aparecida'],
+    ['11-02', 'Finados'],
+    ['11-15', 'Proclamacao da Republica'],
+    ['11-20', 'Consciencia Negra'],
+    ['12-25', 'Natal'],
+  ];
+  for (const ano of [anoBase, anoBase + 1]) {
+    for (const [md, nome] of feriadosFixos) {
+      await prisma.feriado.create({
+        data: { escritorioId: escritorio.id, data: new Date(`${ano}-${md}T00:00:00`), nome, abrangencia: 'NACIONAL' },
+      }).catch(() => undefined);
+    }
+  }
+
+  // ---------- Modulo 2: Catalogo de obrigacoes (25+) ----------
+  type RegraSeed = {
+    tipoDia: 'DIA_FIXO' | 'DIA_UTIL';
+    dia: number;
+    regraNaoUtil?: 'ANTECIPA' | 'POSTERGA' | 'MANTEM';
+    diasAntesTecnico?: number;
+    tipoDiasAntes?: 'CORRIDOS' | 'UTEIS';
+  };
+  const r = (o: RegraSeed) => ({
+    tipoDia: o.tipoDia,
+    dia: o.dia,
+    regraNaoUtil: o.regraNaoUtil ?? 'ANTECIPA',
+    diasAntesTecnico: o.diasAntesTecnico ?? 2,
+    tipoDiasAntes: o.tipoDiasAntes ?? 'UTEIS',
+  });
+  const F = deps['Fiscal'], P = deps['Pessoal'], C = deps['Contabil'], A = deps['Administrativo'];
+  const catalogo: { nome: string; dep: string; per: 'MENSAL' | 'TRIMESTRAL' | 'ANUAL'; regra: RegraSeed; tempo: number; robo?: boolean }[] = [
+    { nome: 'DAS - Simples Nacional', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 20 }, tempo: 15, robo: true },
+    { nome: 'DAS-MEI', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 20 }, tempo: 10, robo: true },
+    { nome: 'DARF PIS', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 25 }, tempo: 15, robo: true },
+    { nome: 'DARF COFINS', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 25 }, tempo: 15, robo: true },
+    { nome: 'DARF IRPJ', dep: F, per: 'TRIMESTRAL', regra: { tipoDia: 'DIA_FIXO', dia: 30 }, tempo: 20, robo: true },
+    { nome: 'DARF CSLL', dep: F, per: 'TRIMESTRAL', regra: { tipoDia: 'DIA_FIXO', dia: 30 }, tempo: 20, robo: true },
+    { nome: 'DCTFWeb', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 15 }, tempo: 25 },
+    { nome: 'EFD-Reinf', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 15 }, tempo: 25 },
+    { nome: 'eSocial - Folha', dep: P, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 15 }, tempo: 30 },
+    { nome: 'FGTS Digital', dep: P, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 20 }, tempo: 15, robo: true },
+    { nome: 'GPS - Previdencia', dep: P, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 20 }, tempo: 15, robo: true },
+    { nome: 'ISS', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 10 }, tempo: 15, robo: true },
+    { nome: 'ICMS (DARE/DAE)', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 10 }, tempo: 20, robo: true },
+    { nome: 'GIA', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 10 }, tempo: 20 },
+    { nome: 'SPED Fiscal', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 20 }, tempo: 40 },
+    { nome: 'EFD-Contribuicoes', dep: F, per: 'MENSAL', regra: { tipoDia: 'DIA_UTIL', dia: 10 }, tempo: 40 },
+    { nome: 'ECD', dep: C, per: 'ANUAL', regra: { tipoDia: 'DIA_FIXO', dia: 31 }, tempo: 60 },
+    { nome: 'ECF', dep: C, per: 'ANUAL', regra: { tipoDia: 'DIA_FIXO', dia: 31 }, tempo: 60 },
+    { nome: 'DEFIS', dep: F, per: 'ANUAL', regra: { tipoDia: 'DIA_FIXO', dia: 31 }, tempo: 30 },
+    { nome: 'DIRF', dep: P, per: 'ANUAL', regra: { tipoDia: 'DIA_FIXO', dia: 28 }, tempo: 30 },
+    { nome: 'RAIS', dep: P, per: 'ANUAL', regra: { tipoDia: 'DIA_FIXO', dia: 31 }, tempo: 25 },
+    { nome: 'Folha de Pagamento', dep: P, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 5 }, tempo: 45 },
+    { nome: 'Pro-labore', dep: P, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 5 }, tempo: 15 },
+    { nome: 'Honorarios', dep: A, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 10 }, tempo: 10 },
+    { nome: 'Balancete', dep: C, per: 'MENSAL', regra: { tipoDia: 'DIA_FIXO', dia: 25 }, tempo: 40 },
+  ];
+  const obrigIds: Record<string, string> = {};
+  for (const o of catalogo) {
+    const criada = await prisma.obrigacao.create({
+      data: {
+        escritorioId: escritorio.id,
+        nome: o.nome,
+        departamentoId: o.dep,
+        periodicidade: o.per,
+        regraPrazo: r(o.regra),
+        tempoPrevistoMin: o.tempo,
+        exigeBaixaPeloRobo: o.robo ?? false,
+        exigeAnexoNaBaixa: o.robo ?? false,
+      },
+    });
+    obrigIds[o.nome] = criada.id;
+  }
+
+  // ---------- Modulo 2: Regimes ----------
+  const regimeDefs: Record<string, string[]> = {
+    'Simples Nacional': ['DAS - Simples Nacional', 'eSocial - Folha', 'FGTS Digital', 'GPS - Previdencia', 'Folha de Pagamento', 'Honorarios', 'DEFIS'],
+    'Lucro Presumido': ['DARF PIS', 'DARF COFINS', 'DARF IRPJ', 'DARF CSLL', 'DCTFWeb', 'EFD-Reinf', 'eSocial - Folha', 'FGTS Digital', 'ISS', 'Folha de Pagamento', 'Balancete', 'ECD', 'ECF', 'Honorarios'],
+    'Lucro Real': ['DARF PIS', 'DARF COFINS', 'DARF IRPJ', 'DARF CSLL', 'DCTFWeb', 'EFD-Reinf', 'SPED Fiscal', 'EFD-Contribuicoes', 'eSocial - Folha', 'FGTS Digital', 'ICMS (DARE/DAE)', 'ISS', 'Folha de Pagamento', 'Balancete', 'ECD', 'ECF', 'Honorarios'],
+    'MEI': ['DAS-MEI', 'Honorarios'],
+    'Domestico': ['eSocial - Folha', 'FGTS Digital', 'GPS - Previdencia', 'Folha de Pagamento'],
+  };
+  const regimeIds: Record<string, string> = {};
+  for (const [nome, lista] of Object.entries(regimeDefs)) {
+    const regime = await prisma.regimeTributario.create({
+      data: {
+        escritorioId: escritorio.id,
+        nome,
+        obrigacoes: { create: lista.map((n) => ({ obrigacaoId: obrigIds[n] })) },
+      },
+    });
+    regimeIds[nome] = regime.id;
+  }
+
+  // ---------- Modulo 2: Grupos ----------
+  const grupoDefs: Record<string, string[]> = {
+    'Folha Mensal': ['eSocial - Folha', 'FGTS Digital', 'GPS - Previdencia', 'Folha de Pagamento', 'Pro-labore'],
+    'Fiscal Basico': ['DAS - Simples Nacional', 'ISS', 'DCTFWeb'],
+    'Encerramento Anual': ['ECD', 'ECF', 'DEFIS', 'RAIS', 'DIRF'],
+  };
+  for (const [nome, lista] of Object.entries(grupoDefs)) {
+    await prisma.grupoObrigacoes.create({
+      data: { escritorioId: escritorio.id, nome, obrigacoes: { create: lista.map((n) => ({ obrigacaoId: obrigIds[n] })) } },
+    });
+  }
+
+  // ---------- Aplicar regime nas empresas demo (origem REGIME) ----------
+  const regimePorEmpresa = ['Simples Nacional', 'Lucro Presumido', 'Lucro Real', 'Simples Nacional', 'MEI'];
+  for (let i = 0; i < empresaIds.length; i++) {
+    const regimeNome = regimePorEmpresa[i % regimePorEmpresa.length];
+    const regimeId = regimeIds[regimeNome];
+    const lista = regimeDefs[regimeNome];
+    await prisma.empresa.update({ where: { id: empresaIds[i] }, data: { regimeTributarioId: regimeId } });
+    for (const n of lista) {
+      await prisma.empresaObrigacao.create({
+        data: {
+          escritorioId: escritorio.id,
+          empresaId: empresaIds[i],
+          obrigacaoId: obrigIds[n],
+          origens: [{ origem: 'REGIME', refId: regimeId }],
+          ativo: true,
+        },
+      });
+    }
   }
 
   console.log('\nSeed concluido!');
   console.log(`  Departamentos: ${depsDados.length} | Tags: ${tagsDados.length} | Empresas: ${nomes.length}`);
+  console.log(`  Obrigacoes: ${catalogo.length} | Regimes: ${Object.keys(regimeDefs).length} | Grupos: ${Object.keys(grupoDefs).length}`);
   console.log('  Escritorio: Escritorio Demo Contabilidade');
   console.log('  Login admin:   admin@demo.com.br   / senha123');
   console.log('  Login fiscal:  fiscal@demo.com.br  / senha123');

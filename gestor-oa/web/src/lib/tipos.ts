@@ -114,6 +114,92 @@ export interface LogAuditoria {
   depois: unknown;
 }
 
+// ---------- Modulo 2 ----------
+export type Periodicidade = 'MENSAL' | 'TRIMESTRAL' | 'ANUAL' | 'EVENTUAL';
+export type OrigemObrigacao = 'REGIME' | 'GRUPO' | 'MANUAL';
+
+export interface RegraPrazo {
+  tipoDia: 'DIA_FIXO' | 'DIA_UTIL';
+  dia: number;
+  regraNaoUtil: 'ANTECIPA' | 'POSTERGA' | 'MANTEM';
+  sabadoEhUtil?: boolean;
+  diasAntesTecnico: number;
+  tipoDiasAntes: 'CORRIDOS' | 'UTEIS';
+}
+
+export interface Obrigacao {
+  id: string;
+  nome: string;
+  departamentoId: string | null;
+  departamento?: { id: string; nome: string; cor: string } | null;
+  descricao: string | null;
+  periodicidade: Periodicidade;
+  regraPrazo: RegraPrazo;
+  tempoPrevistoMin: number;
+  exigeAnexoNaBaixa: boolean;
+  exigeBaixaPeloRobo: boolean;
+  ativo: boolean;
+  _count?: { empresaObrigacoes: number };
+}
+
+export interface RegimeObrigacaoLink {
+  obrigacaoId: string;
+  tempoPrevistoOverride: number | null;
+  obrigacao: Obrigacao;
+}
+export interface Regime {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  obrigacoes: RegimeObrigacaoLink[];
+  _count?: { empresas: number };
+}
+
+export interface Grupo {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  obrigacoes: { obrigacaoId: string; obrigacao: Obrigacao }[];
+}
+
+export interface Feriado {
+  id: string;
+  data: string;
+  nome: string;
+  abrangencia: string;
+  uf: string | null;
+  municipio: string | null;
+}
+
+export interface VinculoObrigacao {
+  id: string;
+  obrigacaoId: string;
+  obrigacao: Obrigacao;
+  origens: { origem: OrigemObrigacao; refId?: string | null }[];
+  ativo: boolean;
+  responsavelId: string | null;
+  diaPrazoOverride: number | null;
+  honorario: number | null;
+  tempoPrevistoOverride: number | null;
+}
+
+export const LABEL_PERIODICIDADE: Record<Periodicidade, string> = {
+  MENSAL: 'Mensal',
+  TRIMESTRAL: 'Trimestral',
+  ANUAL: 'Anual',
+  EVENTUAL: 'Eventual',
+};
+
+export function descreverRegra(r: RegraPrazo): string {
+  const base =
+    r.tipoDia === 'DIA_UTIL' ? `${r.dia}o dia util` : `dia ${r.dia}`;
+  const antes =
+    r.diasAntesTecnico > 0
+      ? ` (tecnico ${r.diasAntesTecnico}d ${r.tipoDiasAntes === 'UTEIS' ? 'uteis' : 'corridos'} antes)`
+      : '';
+  return base + antes;
+}
+
 export function formatarIdent(tipo: TipoIdentificador, valor: string): string {
   if (tipo === 'CNPJ' && valor.length === 14)
     return valor.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');

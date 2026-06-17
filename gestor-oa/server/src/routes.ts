@@ -6,6 +6,11 @@ import departamentoRoutes from './modules/departamento/departamento.routes.js';
 import tagRoutes from './modules/tag/tag.routes.js';
 import empresaRoutes from './modules/empresa/empresa.routes.js';
 import insightsRoutes from './modules/insights/insights.routes.js';
+import obrigacaoRoutes from './modules/obrigacao/obrigacao.routes.js';
+import regimeRoutes from './modules/obrigacao/regime.routes.js';
+import grupoRoutes from './modules/obrigacao/grupo.routes.js';
+import feriadoRoutes from './modules/obrigacao/feriado.routes.js';
+import empresaObrigacaoRoutes from './modules/obrigacao/empresaObrigacao.routes.js';
 
 const api = Router();
 
@@ -20,5 +25,10 @@ api.use('/departamentos', departamentoRoutes);
 api.use('/tags', tagRoutes);
 api.use('/empresas', empresaRoutes);
 api.use('/insights', insightsRoutes);
+api.use('/obrigacoes', obrigacaoRoutes);
+api.use('/regimes', regimeRoutes);
+api.use('/grupos', grupoRoutes);
+api.use('/feriados', feriadoRoutes);
+api.use('/empresa-obrigacoes', empresaObrigacaoRoutes);
 
 export default api;

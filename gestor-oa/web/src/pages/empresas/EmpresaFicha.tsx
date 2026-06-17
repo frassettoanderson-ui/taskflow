@@ -12,10 +12,12 @@ import type {
   LogAuditoria,
 } from '../../lib/tipos';
 import { LABEL_TIPO_IDENT, formatarIdent, formatarBytes } from '../../lib/tipos';
+import AbaObrigacoes from './AbaObrigacoes';
 
 const ABAS = [
   'Dados',
   'Identificadores',
+  'Obrigacoes',
   'Contatos',
   'Anexos',
   'Comentarios',
@@ -93,7 +95,7 @@ export default function EmpresaFicha() {
             {a}
           </button>
         ))}
-        {['Obrigacoes', 'Processos', 'Documentos'].map((a) => (
+        {['Processos', 'Documentos'].map((a) => (
           <span key={a} className="px-4 py-2 text-slate-300" title="Em breve">{a}</span>
         ))}
       </div>
@@ -103,6 +105,13 @@ export default function EmpresaFicha() {
       )}
       {aba === 'Identificadores' && (
         <AbaIdentificadores empresa={empresa} podeEditar={podeEditar} onMudou={recarregar} />
+      )}
+      {aba === 'Obrigacoes' && (
+        <AbaObrigacoes
+          empresaId={empresa.id}
+          regimeAtualId={empresa.regimeTributarioId}
+          onRegimeMudou={recarregar}
+        />
       )}
       {aba === 'Contatos' && (
         <AbaContatos empresa={empresa} podeEditar={podeEditar} onMudou={recarregar} />

@@ -12,6 +12,11 @@ import EmpresasList from './pages/empresas/EmpresasList';
 import EmpresaForm from './pages/empresas/EmpresaForm';
 import EmpresaFicha from './pages/empresas/EmpresaFicha';
 import ImportarCsv from './pages/empresas/ImportarCsv';
+import Catalogo from './pages/obrigacoes/Catalogo';
+import Regimes from './pages/obrigacoes/Regimes';
+import Grupos from './pages/obrigacoes/Grupos';
+import Feriados from './pages/obrigacoes/Feriados';
+import AlocacaoMassa from './pages/obrigacoes/AlocacaoMassa';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -52,6 +57,11 @@ export default function App() {
         <Route path="empresas/nova" element={<EmpresaForm />} />
         <Route path="empresas/importar" element={<ImportarCsv />} />
         <Route path="empresas/:id" element={<EmpresaFicha />} />
+        <Route path="obrigacoes" element={<Catalogo />} />
+        <Route path="obrigacoes/regimes" element={<Regimes />} />
+        <Route path="obrigacoes/grupos" element={<Grupos />} />
+        <Route path="obrigacoes/feriados" element={<Feriados />} />
+        <Route path="obrigacoes/alocacao" element={<AlocacaoMassa />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="configuracoes" element={<Configuracoes />} />
       </Route>

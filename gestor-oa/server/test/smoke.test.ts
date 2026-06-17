@@ -87,6 +87,46 @@ describe('identificadores (validacao)', () => {
   });
 });
 
+describe('Modulo 2 - obrigacoes (smoke)', () => {
+  it('catalogo sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/obrigacoes');
+    expect(res.status).toBe(401);
+  });
+  it('regimes sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/regimes');
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('engine de prazos', () => {
+  it('ehDiaUtil considera fim de semana e feriado', async () => {
+    const { ehDiaUtil, montarFeriados } = await import('../src/lib/prazos.js');
+    const feriados = montarFeriados([new Date(2026, 0, 1)]);
+    expect(ehDiaUtil(new Date(2026, 0, 4), feriados, false)).toBe(false); // domingo
+    expect(ehDiaUtil(new Date(2026, 0, 1), feriados, false)).toBe(false); // feriado
+    expect(ehDiaUtil(new Date(2026, 0, 5), feriados, false)).toBe(true); // segunda
+  });
+
+  it('calcularPrazos aplica dia fixo e antecedencia tecnica', async () => {
+    const { calcularPrazos, montarFeriados } = await import('../src/lib/prazos.js');
+    const feriados = montarFeriados([]);
+    // DAS dia 20, competencia jan/2026 -> vence fev/2026
+    const p = calcularPrazos(
+      { tipoDia: 'DIA_FIXO', dia: 20, regraNaoUtil: 'ANTECIPA', diasAntesTecnico: 2, tipoDiasAntes: 'UTEIS' },
+      2026, 0, feriados, false,
+    );
+    expect(p.prazoLegal.getMonth()).toBe(1); // fevereiro
+    expect(p.prazoTecnico.getTime()).toBeLessThanOrEqual(p.prazoLegal.getTime());
+  });
+
+  it('nthDiaUtil retorna dia util valido', async () => {
+    const { nthDiaUtil, ehDiaUtil, montarFeriados } = await import('../src/lib/prazos.js');
+    const feriados = montarFeriados([]);
+    const d = nthDiaUtil(2026, 0, 5, feriados, false); // 5o dia util de jan/2026
+    expect(ehDiaUtil(d, feriados, false)).toBe(true);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);
