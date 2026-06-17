@@ -153,7 +153,7 @@ export default function Layout() {
         </div>
 
         {/* Menu - overflow visivel para os flyouts escaparem da sidebar */}
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-4 text-sm">
+        <nav className="flex-1 space-y-0.5 px-2 pb-4 text-sm">
           <MenuLista itens={MENU} toast={toast} onTema={() => setTemaAberto(true)} />
         </nav>
       </aside>
