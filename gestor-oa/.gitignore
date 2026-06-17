@@ -9,3 +9,7 @@ storage/
 coverage/
 .vite/
 *.tsbuildinfo
+
+# Migrations do Prisma devem ser versionadas (o repo raiz ignora *.sql)
+!server/prisma/migrations/**/*.sql
+
