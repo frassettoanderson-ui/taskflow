@@ -54,6 +54,8 @@ model Escritorio {
   chatbots            ChatbotFluxo[]
   solicitacoesInternas SolicitacaoInterna[]
   dashboards          DashboardConfig[]
+  notificacoes        Notificacao[]
+  jobExecucoes        JobExecucao[]
 
   @@index([deletedAt])
 }
@@ -84,6 +86,7 @@ model Usuario {
   permissao     Permissao?
   sessoes       Sessao[]
   logsAuditoria LogAuditoria[]
+  notificacoes  Notificacao[]
 
   @@unique([escritorioId, email])
   @@index([escritorioId, deletedAt])
@@ -1186,4 +1189,54 @@ model DashboardConfig {
   updatedAt     DateTime @updatedAt
 
   @@index([escritorioId])
+}
+
+// ============================================================
+// MODULO 13 - Notificacoes/Alertas internos + Jobs (scheduler)
+// ============================================================
+
+enum TipoNotificacao {
+  ENTREGA_ATRASADA
+  PRAZO_PROXIMO
+  PROTOCOLO_NAO_LIDO
+  SOLICITACAO
+  PROCESSO
+  SISTEMA
+}
+
+model Notificacao {
+  id           String   @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId    String
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  tipo         TipoNotificacao @default(SISTEMA)
+  titulo       String
+  mensagem     String
+  link         String?
+  lida         Boolean  @default(false)
+  lidaEm       DateTime?
+  // chave de deduplicacao (ex.: "ENTREGA_ATRASADA:entregaId") para nao recriar
+  chave        String?
+  createdAt    DateTime @default(now())
+
+  @@unique([usuarioId, chave])
+  @@index([escritorioId, usuarioId, lida])
+  @@index([usuarioId, createdAt])
+}
+
+model JobExecucao {
+  id           String   @id @default(cuid())
+  escritorioId String?
+  escritorio   Escritorio? @relation(fields: [escritorioId], references: [id])
+  job          String   // nome do job
+  status       String   @default("OK") // OK | ERRO
+  itens        Int      @default(0)
+  duracaoMs    Int      @default(0)
+  detalhe      String?
+  createdAt    DateTime @default(now())
+
+  @@index([job, createdAt])
+  @@index([escritorioId, createdAt])
 }

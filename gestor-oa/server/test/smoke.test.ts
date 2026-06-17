@@ -273,6 +273,26 @@ describe('Modulo 12 - insights/dashboard (smoke)', () => {
   });
 });
 
+describe('Modulo 13 - notificacoes/jobs (smoke)', () => {
+  it('notificacoes sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/notificacoes');
+    expect(res.status).toBe(401);
+  });
+  it('contagem sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/notificacoes/contagem');
+    expect(res.status).toBe(401);
+  });
+  it('lista de jobs sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/notificacoes/jobs/lista');
+    expect(res.status).toBe(401);
+  });
+  it('catalogo de jobs e info batem', async () => {
+    const { JOBS, JOBS_INFO } = await import('../src/modules/jobs/jobs.service.js');
+    expect(JOBS.length).toBe(4);
+    for (const j of JOBS) expect(typeof JOBS_INFO[j]).toBe('string');
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

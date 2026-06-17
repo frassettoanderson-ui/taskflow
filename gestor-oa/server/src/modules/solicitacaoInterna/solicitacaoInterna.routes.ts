@@ -6,6 +6,7 @@ import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { instanciar } from '../processo/processo.service.js';
+import { criarNotificacao } from '../../lib/notificar.js';
 
 const router = Router();
 router.use(authenticate);
@@ -128,6 +129,12 @@ router.post('/', verPerm, validate({ body: criarSchema }), async (req, res) => {
   await prisma.solicitacaoInternaMensagem.create({
     data: { solicitacaoId: s.id, autorId: req.auth!.id, autorNome: req.auth!.nome, texto: 'Solicitacao aberta.', evento: 'ABERTURA' },
   });
+  if (s.responsavelId && s.responsavelId !== req.auth!.id) {
+    await criarNotificacao({
+      escritorioId: req.auth!.escritorioId, usuarioId: s.responsavelId, tipo: 'SOLICITACAO',
+      titulo: 'Nova solicitacao atribuida', mensagem: `${req.auth!.nome} atribuiu a voce: "${s.titulo}".`, link: '/solicitacoes-internas',
+    });
+  }
   return ok(res, s, 201);
 });
 
@@ -159,6 +166,12 @@ router.put('/:id', gerenciarPerm, validate({ body: editarSchema }), async (req, 
   }
 
   const s = await prisma.solicitacaoInterna.update({ where: { id: existe.id }, data });
+  if (b.responsavelId !== undefined && b.responsavelId && b.responsavelId !== existe.responsavelId && b.responsavelId !== req.auth!.id) {
+    await criarNotificacao({
+      escritorioId: req.auth!.escritorioId, usuarioId: b.responsavelId, tipo: 'SOLICITACAO',
+      titulo: 'Solicitacao atribuida a voce', mensagem: `${req.auth!.nome} atribuiu a voce: "${s.titulo}".`, link: '/solicitacoes-internas',
+    });
+  }
   for (const ev of eventos) {
     await prisma.solicitacaoInternaMensagem.create({
       data: { solicitacaoId: s.id, autorId: req.auth!.id, autorNome: req.auth!.nome, texto: ev, evento: 'ALTERACAO' },

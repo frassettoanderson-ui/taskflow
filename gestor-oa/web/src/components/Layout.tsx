@@ -16,14 +16,15 @@ import {
   Users,
   Tags,
   ChevronRight,
-  Bell,
   Search,
   Bot,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
 import { useToast } from './ui';
 import FAB from './FAB';
+import NotificacoesBell from './NotificacoesBell';
 
 interface Item {
   label: string;
@@ -41,6 +42,7 @@ const MENU: Item[] = [
     filhos: [
       { label: 'Usuarios e Permissoes', icon: Users, to: '/usuarios' },
       { label: 'Auditoria', icon: ListChecks, to: '/auditoria' },
+      { label: 'Tarefas e Alertas', icon: Activity, to: '/jobs' },
       { label: 'Departamentos e Tags', icon: Tags, to: '/cadastros' },
       { label: 'Configuracoes gerais', icon: Settings, to: '/configuracoes' },
     ],
@@ -163,9 +165,7 @@ export default function Layout() {
             />
           </div>
           <div className="ml-auto flex items-center gap-4">
-            <button className="relative" title="Notificacoes" onClick={() => toast('ok', 'Notificacoes: em breve')}>
-              <Bell size={20} />
-            </button>
+            <NotificacoesBell />
             <div className="text-right leading-tight">
               <div className="text-sm font-medium">{sessao?.usuario.nome}</div>
               <div className="text-xs text-marca-100">{sessao?.escritorio.nome}</div>

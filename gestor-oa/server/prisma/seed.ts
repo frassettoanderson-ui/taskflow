@@ -69,6 +69,9 @@ async function main() {
   if (existente) {
     const eid = existente.id;
     // Limpeza em ordem de dependencia (FKs com RESTRICT exigem ordem manual).
+    await prisma.notificacao.deleteMany({ where: { escritorioId: eid } });
+    await prisma.jobExecucao.deleteMany({ where: { escritorioId: eid } });
+    await prisma.dashboardConfig.deleteMany({ where: { escritorioId: eid } });
     await prisma.solicitacaoInterna.deleteMany({ where: { escritorioId: eid } }); // cascade nas mensagens
     await prisma.roboJob.deleteMany({ where: { escritorioId: eid } });
     await prisma.assinaturaDocumento.deleteMany({ where: { escritorioId: eid } });

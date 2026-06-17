@@ -2,6 +2,7 @@ import { createApp } from './app.js';
 import { env } from './env.js';
 import { prisma } from './prisma.js';
 import { iniciarWatcher } from './modules/robo/watcher.js';
+import { iniciarScheduler } from './lib/scheduler.js';
 
 const app = createApp();
 
@@ -12,6 +13,11 @@ const server = app.listen(env.port, () => {
     iniciarWatcher();
   } catch (e) {
     console.error('[GestorOA] Falha ao iniciar watcher do robo:', e);
+  }
+  try {
+    iniciarScheduler();
+  } catch (e) {
+    console.error('[GestorOA] Falha ao iniciar scheduler:', e);
   }
 });
 

@@ -37,6 +37,8 @@ import Templates from './pages/comunicacao/Templates';
 import Chatbot from './pages/comunicacao/Chatbot';
 import SolicitacoesInternas from './pages/solicitacoes/SolicitacoesInternas';
 import Insights from './pages/insights/Insights';
+import Notificacoes from './pages/Notificacoes';
+import Jobs from './pages/Jobs';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -102,6 +104,8 @@ export default function App() {
         <Route path="comunicacao/chatbot" element={<Chatbot />} />
         <Route path="solicitacoes-internas" element={<SolicitacoesInternas />} />
         <Route path="insights" element={<Insights />} />
+        <Route path="notificacoes" element={<Notificacoes />} />
+        <Route path="jobs" element={<Jobs />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />
