@@ -1,11 +1,67 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { prisma } from '../../prisma.js';
 import { ok } from '../../lib/http.js';
+import { validate } from '../../middleware/validate.js';
 import { authenticate } from '../../middleware/auth.js';
 import { statusEfetivo, type StatusEntrega } from '../entrega/entrega.status.js';
+import { computarDados } from './insights.service.js';
 
 const router = Router();
 router.use(authenticate);
+
+// ---------- Modulo 12: dashboard configuravel ----------
+// Catalogo dos widgets disponiveis (id = tipo). O front sabe renderizar cada um.
+const WIDGETS_DISPONIVEIS = [
+  { tipo: 'kpi_empresas', titulo: 'Empresas ativas', grupo: 'Indicadores' },
+  { tipo: 'kpi_entregas_baixadas', titulo: 'Entregas baixadas (mes)', grupo: 'Indicadores' },
+  { tipo: 'kpi_a_realizar', titulo: 'A realizar (mes)', grupo: 'Indicadores' },
+  { tipo: 'kpi_atrasadas', titulo: 'Atrasadas (mes)', grupo: 'Indicadores' },
+  { tipo: 'kpi_processos', titulo: 'Processos em andamento', grupo: 'Indicadores' },
+  { tipo: 'kpi_solicitacoes', titulo: 'Solicitacoes em aberto', grupo: 'Indicadores' },
+  { tipo: 'kpi_docs', titulo: 'Documentos no GED', grupo: 'Indicadores' },
+  { tipo: 'chart_entregas_status', titulo: 'Entregas por status (pizza)', grupo: 'Graficos' },
+  { tipo: 'chart_por_departamento', titulo: 'Entregas por departamento', grupo: 'Graficos' },
+  { tipo: 'chart_por_colaborador', titulo: 'Entregas por colaborador', grupo: 'Graficos' },
+  { tipo: 'chart_evolucao', titulo: 'Evolucao mensal', grupo: 'Graficos' },
+  { tipo: 'list_top_pendencias', titulo: 'Top empresas com pendencias', grupo: 'Listas' },
+];
+
+// Layout padrao para quem ainda nao personalizou.
+const LAYOUT_PADRAO = [
+  { id: 'w1', tipo: 'kpi_empresas', w: 1 },
+  { id: 'w2', tipo: 'kpi_entregas_baixadas', w: 1 },
+  { id: 'w3', tipo: 'kpi_a_realizar', w: 1 },
+  { id: 'w4', tipo: 'kpi_atrasadas', w: 1 },
+  { id: 'w5', tipo: 'chart_entregas_status', w: 1 },
+  { id: 'w6', tipo: 'chart_evolucao', w: 1 },
+  { id: 'w7', tipo: 'chart_por_departamento', w: 1 },
+  { id: 'w8', tipo: 'list_top_pendencias', w: 1 },
+];
+
+router.get('/dashboard', async (req, res) => {
+  const cfg = await prisma.dashboardConfig.findUnique({ where: { usuarioId: req.auth!.id } });
+  const layout = cfg && Array.isArray(cfg.layout) && (cfg.layout as unknown[]).length > 0 ? cfg.layout : LAYOUT_PADRAO;
+  return ok(res, { layout, disponiveis: WIDGETS_DISPONIVEIS });
+});
+
+const layoutSchema = z.object({
+  layout: z.array(z.object({ id: z.string(), tipo: z.string(), w: z.number().int().min(1).max(2).default(1) })),
+});
+router.put('/dashboard', validate({ body: layoutSchema }), async (req, res) => {
+  const cfg = await prisma.dashboardConfig.upsert({
+    where: { usuarioId: req.auth!.id },
+    create: { escritorioId: req.auth!.escritorioId, usuarioId: req.auth!.id, layout: req.body.layout },
+    update: { layout: req.body.layout },
+  });
+  return ok(res, cfg);
+});
+
+router.get('/dados', async (req, res) => {
+  const meses = Math.min(12, Math.max(3, Number(req.query.meses ?? 6) || 6));
+  const dados = await computarDados(req.auth!.escritorioId, meses);
+  return ok(res, dados);
+});
 
 interface Acc {
   pendenteAntecipado: number;

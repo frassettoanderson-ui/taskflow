@@ -53,6 +53,7 @@ model Escritorio {
   comunicacoes        ComunicacaoLog[]
   chatbots            ChatbotFluxo[]
   solicitacoesInternas SolicitacaoInterna[]
+  dashboards          DashboardConfig[]
 
   @@index([deletedAt])
 }
@@ -1168,4 +1169,21 @@ model SolicitacaoInternaMensagem {
   createdAt     DateTime @default(now())
 
   @@index([solicitacaoId])
+}
+
+// ============================================================
+// MODULO 12 - Tela de Insights (dashboard configuravel por usuario)
+// ============================================================
+
+model DashboardConfig {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId     String   @unique
+  // layout: [{ id, tipo, w }] - ordem e largura dos widgets escolhidos
+  layout        Json     @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([escritorioId])
 }

@@ -258,6 +258,21 @@ describe('Modulo 11 - solicitacoes internas (smoke)', () => {
   });
 });
 
+describe('Modulo 12 - insights/dashboard (smoke)', () => {
+  it('dashboard sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/insights/dashboard');
+    expect(res.status).toBe(401);
+  });
+  it('dados sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/insights/dados');
+    expect(res.status).toBe(401);
+  });
+  it('salvar layout sem token retorna 401', async () => {
+    const res = await request(createApp()).put('/api/v1/insights/dashboard').send({ layout: [] });
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

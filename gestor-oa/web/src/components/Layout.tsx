@@ -85,6 +85,7 @@ const MENU: Item[] = [
       { label: 'Assinaturas', icon: Bot, to: '/robo/assinaturas' },
     ],
   },
+  { label: 'Insights', icon: TrendingUp, to: '/insights' },
   { label: 'Metodo APLA', icon: TrendingUp, emBreve: true },
   {
     label: 'Documentos (GED)',
