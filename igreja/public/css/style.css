@@ -350,6 +350,9 @@ tbody tr:last-child td { border-bottom: none; }
 .mi .seta.up { background: rgba(52,211,153,.2); color: var(--verde); }
 .mi .seta.down { background: rgba(248,113,113,.2); color: var(--vermelho); }
 .mi .seta.eq { background: rgba(255,255,255,.14); color: #fff; }
+.mi-saldo { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.18); margin-top: 4px; }
+.mi-saldo .seta.sal { background: #fff; color: #0a0a0a; font-size: 14px; font-weight: 700; }
+.mi-saldo strong { font-size: 18px; color: #fff; }
 .donut-wrap { width: 132px; height: 132px; }
 
 .lista-mini { display: flex; flex-direction: column; gap: 8px; min-height: 120px; flex: 1; }

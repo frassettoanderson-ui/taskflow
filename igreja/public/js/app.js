@@ -147,7 +147,8 @@ VIEWS.dashboard = async () => {
           <div class="momento-itens">
             <div class="mi mi-entrou"><span class="seta up">↑</span><div><b>Entrou</b><small>Receitas</small></div><strong id="d-entrou" class="val-entrada"></strong></div>
             <div class="mi mi-saiu"><span class="seta down">↓</span><div><b>Saiu</b><small>Despesas</small></div><strong id="d-saiu" class="val-saida"></strong></div>
-            <div class="mi mi-sobrou"><span class="seta eq">→</span><div><b>Sobrou</b><small>Saldo</small></div><strong id="d-sobrou"></strong></div>
+            <div class="mi mi-sobrou"><span class="seta eq">→</span><div><b>Sobrou</b><small>Saldo do mês</small></div><strong id="d-sobrou"></strong></div>
+            <div class="mi mi-saldo"><span class="seta sal">Σ</span><div><b>Saldo total</b><small>Em todas as contas</small></div><strong id="d-saldo-total"></strong></div>
           </div>
           <div class="donut-wrap"><canvas id="g-donut"></canvas></div>
         </div>
@@ -159,7 +160,6 @@ VIEWS.dashboard = async () => {
       <div class="painel">
         <h2>Para acontecer <small>despesas futuras</small></h2>
         <div id="d-apagar" class="lista-mini"></div>
-        <div class="saldo-total">Saldo total<strong id="d-saldo-total"></strong></div>
       </div>
     </div>
 
