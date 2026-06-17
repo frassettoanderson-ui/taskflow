@@ -20,6 +20,7 @@ import {
   Bot,
   Activity,
   Palette,
+  Download,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -31,6 +32,7 @@ import { TEMAS, getTema, setTema, type TemaId } from '../lib/tema';
 interface Item {
   label: string;
   to?: string;
+  href?: string; // link externo / download (abre fora do router)
   icon: LucideIcon;
   emBreve?: boolean;
   tema?: boolean; // item de acao: abre o seletor "Trocar estilo"
@@ -50,10 +52,11 @@ const MENU: Item[] = [
         label: 'e-Continuo',
         icon: Bot,
         filhos: [
+          { label: 'Configurar obrigacoes', icon: Settings, to: '/robo/assinaturas' },
+          { label: 'Consulta documento', icon: FileText, to: '/robo/revisao' },
           { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
-          { label: 'Revisao', icon: Bot, to: '/robo/revisao' },
-          { label: 'Painel', icon: Bot, to: '/robo/painel' },
-          { label: 'Assinaturas', icon: Bot, to: '/robo/assinaturas' },
+          { label: 'Painel', icon: Activity, to: '/robo/painel' },
+          { label: 'Baixar agente (instalador)', icon: Download, href: '/agente-econtinuo.zip' },
         ],
       },
       {
@@ -281,6 +284,18 @@ function ItemMenu({ item, toast, onTema }: { item: Item; toast: ToastFn; onTema:
         <item.icon size={18} className="text-marca-500" />
         <span className="flex-1">{item.label}</span>
       </button>
+    );
+  }
+  if (item.href) {
+    return (
+      <a
+        href={item.href}
+        download
+        className="flex w-full items-center gap-3 rounded px-3 py-2 text-left text-slate-600 hover:bg-slate-100"
+      >
+        <item.icon size={18} className="text-marca-500" />
+        <span className="flex-1">{item.label}</span>
+      </a>
     );
   }
   if (item.emBreve) {
