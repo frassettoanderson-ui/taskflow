@@ -87,20 +87,28 @@ const TITULOS = {
 // ════════════════════════════════════════════════
 //  Shell (menu, navegação)
 // ════════════════════════════════════════════════
+const ehMobile = () => window.matchMedia('(max-width: 820px)').matches;
+const fecharDrawer = () => document.querySelector('.layout').classList.remove('drawer-open');
+
 function initShell() {
-  // recolher menu
-  document.getElementById('btn-menu').addEventListener('click', () =>
-    document.querySelector('.layout').classList.toggle('recolhido')
-  );
+  // ☰ : no celular abre/fecha o menu (drawer); no desktop recolhe
+  document.getElementById('btn-menu').addEventListener('click', () => {
+    const layout = document.querySelector('.layout');
+    if (ehMobile()) layout.classList.toggle('drawer-open');
+    else layout.classList.toggle('recolhido');
+  });
+  // toque no fundo escurecido fecha o menu
+  const bd = document.getElementById('sb-backdrop');
+  if (bd) bd.addEventListener('click', fecharDrawer);
 
   // accordion dos grupos
   document.querySelectorAll('.grupo-head').forEach((h) =>
     h.addEventListener('click', () => h.parentElement.classList.toggle('aberto'))
   );
 
-  // clique nos itens de rota
+  // clique nos itens de rota (no celular, fecha o menu depois)
   document.querySelectorAll('.menu .item[data-rota]').forEach((a) =>
-    a.addEventListener('click', () => navegar(a.dataset.rota))
+    a.addEventListener('click', () => { navegar(a.dataset.rota); if (ehMobile()) fecharDrawer(); })
   );
 
   document.getElementById('btn-sair').addEventListener('click', async () => {
@@ -1619,7 +1627,7 @@ function tabela(linhas, cols, vazioTxt = 'Nenhum registro.') {
   if (!linhas.length) return `<p class="vazio">${vazioTxt}</p>`;
   const head = cols.map((c) => `<th>${c[0]}</th>`).join('');
   const body = linhas.map((l) => `<tr>${cols.map((c) => `<td>${c[1](l)}</td>`).join('')}</tr>`).join('');
-  return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  return `<div class="tabela-wrap"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 function ligarDelete(recurso, recarregar) {
   document.querySelectorAll('[data-del]').forEach((b) =>
