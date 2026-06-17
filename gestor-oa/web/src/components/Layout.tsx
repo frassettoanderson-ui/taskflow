@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -188,6 +188,18 @@ type ToastFn = (t: 'ok' | 'erro', m: string) => void;
 // Lista de itens; itens com filhos abrem flyout para a direita.
 function MenuLista({ itens, toast }: { itens: Item[]; toast: ToastFn }) {
   const [aberto, setAberto] = useState<string | null>(null);
+  // Pequeno atraso para fechar o flyout: da' tempo de mover o mouse do item
+  // ate o submenu sem que ele suma no meio do caminho.
+  const fecharTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function abrir(label: string) {
+    if (fecharTimer.current) clearTimeout(fecharTimer.current);
+    setAberto(label);
+  }
+  function agendarFechar() {
+    if (fecharTimer.current) clearTimeout(fecharTimer.current);
+    fecharTimer.current = setTimeout(() => setAberto(null), 350);
+  }
 
   return (
     <div className="space-y-0.5">
@@ -197,8 +209,8 @@ function MenuLista({ itens, toast }: { itens: Item[]; toast: ToastFn }) {
             <div
               key={item.label}
               className="relative"
-              onMouseEnter={() => setAberto(item.label)}
-              onMouseLeave={() => setAberto(null)}
+              onMouseEnter={() => abrir(item.label)}
+              onMouseLeave={agendarFechar}
             >
               <button
                 className={`flex w-full items-center gap-3 rounded px-3 py-2 text-left transition ${
@@ -210,7 +222,11 @@ function MenuLista({ itens, toast }: { itens: Item[]; toast: ToastFn }) {
                 <ChevronRight size={16} />
               </button>
               {aberto === item.label && (
-                <div className="absolute left-full top-0 z-50 ml-1 min-w-60 rounded-md border border-slate-200 bg-white p-1 shadow-xl">
+                <div
+                  className="absolute left-full top-0 z-50 min-w-60 rounded-md border border-slate-200 bg-white p-1 pl-2 shadow-xl"
+                  onMouseEnter={() => abrir(item.label)}
+                  onMouseLeave={agendarFechar}
+                >
                   <MenuLista itens={item.filhos} toast={toast} />
                 </div>
               )}
