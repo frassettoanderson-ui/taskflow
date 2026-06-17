@@ -7,6 +7,11 @@ import RedefinirSenha from './pages/RedefinirSenha';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Configuracoes from './pages/Configuracoes';
+import Cadastros from './pages/Cadastros';
+import EmpresasList from './pages/empresas/EmpresasList';
+import EmpresaForm from './pages/empresas/EmpresaForm';
+import EmpresaFicha from './pages/empresas/EmpresaFicha';
+import ImportarCsv from './pages/empresas/ImportarCsv';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -43,6 +48,11 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="empresas" element={<EmpresasList />} />
+        <Route path="empresas/nova" element={<EmpresaForm />} />
+        <Route path="empresas/importar" element={<ImportarCsv />} />
+        <Route path="empresas/:id" element={<EmpresaFicha />} />
+        <Route path="cadastros" element={<Cadastros />} />
         <Route path="configuracoes" element={<Configuracoes />} />
       </Route>
 

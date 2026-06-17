@@ -56,6 +56,37 @@ describe('Modulo 0 - fundacao (smoke)', () => {
   });
 });
 
+describe('Modulo 1 - empresas (smoke)', () => {
+  it('listar empresas sem token retorna 401', async () => {
+    const app = createApp();
+    const res = await request(app).get('/api/v1/empresas');
+    expect(res.status).toBe(401);
+  });
+
+  it('departamentos sem token retorna 401', async () => {
+    const app = createApp();
+    const res = await request(app).get('/api/v1/departamentos');
+    expect(res.status).toBe(401);
+  });
+
+  it('importar CSV sem token retorna 401', async () => {
+    const app = createApp();
+    const res = await request(app).post('/api/v1/empresas/importar').send({ linhas: [] });
+    expect(res.status).toBe(401);
+  });
+});
+
+describe('identificadores (validacao)', () => {
+  it('valida CNPJ e CPF corretamente', async () => {
+    const { cnpjValido, cpfValido, soDigitos } = await import('../src/lib/identificadores.js');
+    expect(cnpjValido('11.222.333/0001-81')).toBe(true);
+    expect(cnpjValido('11.222.333/0001-82')).toBe(false);
+    expect(cpfValido('529.982.247-25')).toBe(true);
+    expect(cpfValido('111.111.111-11')).toBe(false);
+    expect(soDigitos('12.345/678')).toBe('12345678');
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

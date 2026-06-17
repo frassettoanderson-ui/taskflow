@@ -31,6 +31,9 @@ model Escritorio {
   sessoes             Sessao[]
   passwordResets      PasswordResetToken[]
   logsAuditoria       LogAuditoria[]
+  empresas            Empresa[]
+  departamentos       Departamento[]
+  tags                Tag[]
 
   @@index([deletedAt])
 }
@@ -169,4 +172,179 @@ model LogAuditoria {
 
   @@index([escritorioId, entidade, createdAt])
   @@index([escritorioId, usuarioId])
+}
+
+// ============================================================
+// MODULO 1 - Departamentos e Cadastro de Empresas
+// ============================================================
+
+enum TipoIdentificador {
+  CNPJ
+  CPF
+  INSCRICAO_ESTADUAL
+  CEI
+  CAEPF
+}
+
+model Departamento {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  cor           String   @default("#0f5c5e")
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  responsaveis  EmpresaResponsavelDepartamento[]
+  comentarios   EmpresaComentario[]
+
+  @@unique([escritorioId, nome])
+  @@index([escritorioId])
+}
+
+model Tag {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  cor           String   @default("#64748b")
+  createdAt     DateTime @default(now())
+
+  empresas      EmpresaTag[]
+
+  @@unique([escritorioId, nome])
+  @@index([escritorioId])
+}
+
+model Empresa {
+  id                 String   @id @default(cuid())
+  escritorioId       String
+  escritorio         Escritorio @relation(fields: [escritorioId], references: [id])
+
+  razaoSocial        String
+  nomeFantasia       String?
+  emailPrincipal     String?
+  telefone           String?
+  endereco           String?
+  // FK efetiva sera' adicionada no Modulo 2 (RegimeTributario)
+  regimeTributarioId String?
+  anotacoes          String?
+  ativo              Boolean  @default(true)
+  dataEntrada        DateTime?
+  dataSaida          DateTime?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  deletedAt          DateTime?
+
+  identificadores    EmpresaIdentificador[]
+  contatos           EmpresaContato[]
+  anexos             EmpresaAnexo[]
+  comentarios        EmpresaComentario[]
+  responsaveis       EmpresaResponsavelDepartamento[]
+  tags               EmpresaTag[]
+
+  @@index([escritorioId, deletedAt])
+  @@index([escritorioId, ativo])
+}
+
+model EmpresaTag {
+  empresaId  String
+  empresa    Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  tagId      String
+  tag        Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([empresaId, tagId])
+  @@index([tagId])
+}
+
+model EmpresaIdentificador {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  tipo          TipoIdentificador
+  // valor normalizado (apenas digitos)
+  valor         String
+  apelido       String?
+  createdAt     DateTime @default(now())
+
+  @@unique([escritorioId, tipo, valor])
+  @@index([empresaId])
+  // indice usado pelo robo (Modulo 5) para matching por valor
+  @@index([escritorioId, valor])
+}
+
+model EmpresaResponsavelDepartamento {
+  id              String   @id @default(cuid())
+  escritorioId    String
+  empresaId       String
+  empresa         Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  departamentoId  String
+  departamento    Departamento @relation(fields: [departamentoId], references: [id], onDelete: Cascade)
+  usuarioId       String
+
+  @@unique([empresaId, departamentoId])
+  @@index([escritorioId])
+  @@index([usuarioId])
+}
+
+model EmpresaContato {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  nome          String
+  email         String?
+  whatsapp      String?
+  cargo         String?
+
+  // Permissoes do contato (usadas na Area VIP - Modulo 10):
+  // departamentos liberados e, opcionalmente, obrigacoes especificas.
+  departamentoIds Json  @default("[]")
+  obrigacaoIds    Json  @default("[]")
+
+  // Acesso ao portal (Modulo 10) - preparado, ativado depois
+  senhaHash     String?
+  ativo         Boolean  @default(true)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([empresaId])
+  @@index([escritorioId])
+}
+
+model EmpresaAnexo {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  nomeArquivo   String
+  caminho       String
+  tamanho       Int
+  mimeType      String?
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+
+  @@index([empresaId])
+}
+
+model EmpresaComentario {
+  id              String   @id @default(cuid())
+  escritorioId    String
+  empresaId       String
+  empresa         Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  texto           String
+  autorId         String?
+  departamentoId  String?
+  departamento    Departamento? @relation(fields: [departamentoId], references: [id])
+  createdAt       DateTime @default(now())
+
+  @@index([empresaId])
 }

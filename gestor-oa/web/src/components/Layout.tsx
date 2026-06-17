@@ -11,7 +11,8 @@ interface ItemMenu {
 // (emBreve) ficam visiveis mas desabilitados ate' serem implementados.
 const MENU: ItemMenu[] = [
   { label: 'Dashboard', to: '/' },
-  { label: 'Empresas', emBreve: true },
+  { label: 'Empresas', to: '/empresas' },
+  { label: 'Cadastros (Dep./Tags)', to: '/cadastros' },
   { label: 'Obrigacoes', emBreve: true },
   { label: 'Lista de Entregas', emBreve: true },
   { label: 'Processos', emBreve: true },
