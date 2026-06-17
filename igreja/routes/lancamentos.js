@@ -6,7 +6,7 @@ const router = express.Router();
 // ─── Listagem (filtros: mes=YYYY-MM, tipo, situacao) ───
 router.get('/', async (req, res) => {
   const { igreja_id } = req.session.usuario;
-  const { mes, tipo, situacao } = req.query;
+  const { mes, tipo, situacao, inicio, fim } = req.query;
   const where = ['l.igreja_id=$1'];
   const params = [igreja_id];
 
@@ -14,6 +14,8 @@ router.get('/', async (req, res) => {
     params.push(mes + '-01');
     where.push(`date_trunc('month', l.data) = date_trunc('month', $${params.length}::date)`);
   }
+  if (inicio) { params.push(inicio); where.push(`l.data >= $${params.length}`); }
+  if (fim) { params.push(fim); where.push(`l.data <= $${params.length}`); }
   if (tipo === 'entrada' || tipo === 'saida') { params.push(tipo); where.push(`l.tipo=$${params.length}`); }
   if (situacao) { params.push(situacao); where.push(`l.situacao=$${params.length}`); }
 

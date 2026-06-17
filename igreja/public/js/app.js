@@ -78,6 +78,7 @@ const TITULOS = {
   'membro-consultar': 'Consultar Membros',
   'membro-aniversariantes': 'Aniversariantes',
   cadastros: 'Cadastros',
+  'relatorio-dizimos': 'Dízimos / Ofertas',
   extrato: 'Extrato Bancário',
   exportar: 'Exportar Relatório',
 };
@@ -1305,6 +1306,86 @@ VIEWS['membro-aniversariantes'] = async () => {
     ['Aniversário', (a) => `${String(a.dia).padStart(2, '0')}/${String(a.mes).padStart(2, '0')}`],
     ['Quando', (a) => quando(a)],
   ], 'Nenhum membro com data de nascimento cadastrada.');
+};
+
+// ─── Relatórios: Dízimos / Ofertas (por membro, com período) ───
+VIEWS['relatorio-dizimos'] = async () => {
+  const hojeM = mesISO();
+  const [ay, am] = hojeM.split('-').map(Number);
+  const primeiroDia = `${hojeM}-01`;
+  const ultimoDia = new Date(Date.UTC(ay, am, 0)).toISOString().slice(0, 10);
+
+  app.innerHTML = `<div class="painel">
+    <h2>Dízimos / Ofertas por membro</h2>
+    <p class="desc">Total de cada membro no período. Clique em um membro para ver os lançamentos dele.</p>
+    <div class="toolbar">
+      <label class="check-linha" style="margin:0">De <input type="date" id="inicio" value="${primeiroDia}" style="width:auto"></label>
+      <label class="check-linha" style="margin:0">Até <input type="date" id="fim" value="${ultimoDia}" style="width:auto"></label>
+      <input class="cresce" id="busca" placeholder="Buscar membro...">
+    </div>
+    <div id="resumo"></div>
+    <div id="lista"></div>
+  </div>`;
+
+  let linhas = [];
+
+  async function carregar() {
+    const ini = document.getElementById('inicio').value;
+    const fim = document.getElementById('fim').value;
+    if (!ini || !fim) return;
+    const entradas = await getJSON(`lancamentos?tipo=entrada&inicio=${ini}&fim=${fim}`);
+
+    const mapa = {};
+    entradas.forEach((e) => {
+      const key = e.visitante ? 'visitante' : (e.membro_id || 'sem');
+      if (!mapa[key]) mapa[key] = { nome: e.visitante ? 'Visitante' : (e.membro_nome || '—'), dizimo: 0, oferta: 0, total: 0, itens: [] };
+      const v = Number(e.valor);
+      if (String(e.tipo_gasto).toUpperCase() === 'DIZIMO') mapa[key].dizimo += v; else mapa[key].oferta += v;
+      mapa[key].total += v;
+      mapa[key].itens.push(e);
+    });
+    linhas = Object.values(mapa).sort((a, b) => b.total - a.total);
+    render();
+  }
+
+  function render() {
+    const busca = document.getElementById('busca').value.toLowerCase();
+    const fl = busca ? linhas.filter((l) => l.nome.toLowerCase().includes(busca)) : linhas;
+
+    const tDiz = fl.reduce((s, l) => s + l.dizimo, 0);
+    const tOf = fl.reduce((s, l) => s + l.oferta, 0);
+    document.getElementById('resumo').innerHTML = `<div class="extrato-resumo">
+      <div class="er-box"><span>Total dízimos</span><strong class="val-entrada">${brl(tDiz)}</strong></div>
+      <div class="er-box"><span>Total ofertas</span><strong class="val-entrada">${brl(tOf)}</strong></div>
+      <div class="er-box"><span>Total geral</span><strong>${brl(tDiz + tOf)}</strong></div>
+    </div>`;
+
+    document.getElementById('lista').innerHTML = tabela(fl, [
+      ['Membro', (l) => `<button class="acao-link" data-ver="${linhas.indexOf(l)}" style="font-weight:600">${esc(l.nome)}</button>`],
+      ['Dízimos', (l) => `<span class="val-entrada">${brl(l.dizimo)}</span>`],
+      ['Ofertas', (l) => `<span class="val-entrada">${brl(l.oferta)}</span>`],
+      ['Total', (l) => `<b>${brl(l.total)}</b>`],
+      ['Lanç.', (l) => l.itens.length],
+    ], 'Nenhuma entrada no período.');
+
+    document.querySelectorAll('[data-ver]').forEach((b) =>
+      b.addEventListener('click', () => verMembro(linhas[Number(b.dataset.ver)])));
+  }
+
+  function verMembro(l) {
+    const itens = [...l.itens].sort((a, b) => b.data.localeCompare(a.data));
+    abrirModal(`${l.nome} — ${brl(l.total)}`, `<div style="max-height:60vh;overflow:auto">${tabela(itens, [
+      ['Data', (i) => dataBR(i.data)],
+      ['Tipo', (i) => i.tipo_gasto],
+      ['Banco', (i) => esc(i.banco_nome)],
+      ['Valor', (i) => `<span class="val-entrada">${brl(i.valor)}</span>`],
+    ], 'Sem lançamentos.')}</div>`);
+  }
+
+  document.getElementById('inicio').addEventListener('change', carregar);
+  document.getElementById('fim').addEventListener('change', carregar);
+  document.getElementById('busca').addEventListener('input', render);
+  carregar();
 };
 
 // ─── Relatórios: Extrato Bancário ───
