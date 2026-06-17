@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { User as UserIcon } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
 import { Badge, Modal, Spinner, useToast } from '../components/ui';
 import type { UsuarioCompleto, Departamento, Tag, JanelaAcesso } from '../lib/tipos';
-import { PERMISSION_GROUPS, DIAS_SEMANA_LABEL } from '../lib/tipos';
+import { PERMISSION_GROUPS, DIAS_SEMANA_LABEL, TIPOS_USUARIO } from '../lib/tipos';
 
 export default function Usuarios() {
   const { sessao } = useAuth();
@@ -56,19 +57,29 @@ export default function Usuarios() {
       <div className="card overflow-hidden">
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <tr><th className="px-3 py-2">Nome</th><th className="px-3 py-2">E-mail</th><th className="px-3 py-2">Permissoes</th><th className="px-3 py-2">Horarios</th><th className="px-3 py-2">Status</th><th></th></tr>
+            <tr><th className="px-3 py-2">Nome [Tipo]</th><th className="px-3 py-2">E-mail</th><th className="px-3 py-2">Permissoes</th><th className="px-3 py-2">Horarios</th><th className="px-3 py-2">Status</th><th></th></tr>
           </thead>
           <tbody>
             {usuarios.map((u) => {
               const ativas = Object.values(u.permissoes).filter(Boolean).length;
               return (
-                <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-3 py-2 font-medium text-slate-700">{u.nome}</td>
+                <tr
+                  key={u.id}
+                  className={`border-b border-slate-100 ${podeUsuarios ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                  onClick={() => podeUsuarios && setEditando(u)}
+                >
+                  <td className="px-3 py-2">
+                    <span className="flex items-center gap-2">
+                      <UserIcon className={u.ativo ? 'text-status-ok' : 'text-status-danger'} size={15} />
+                      <span className="font-medium text-marca-700">{u.nome}</span>
+                      {u.tipo && <span className="text-slate-400">[{u.tipo}]</span>}
+                    </span>
+                  </td>
                   <td className="px-3 py-2 text-slate-500">{u.email}</td>
                   <td className="px-3 py-2 text-slate-500">{ativas} ativas</td>
                   <td className="px-3 py-2 text-slate-500">{u.horariosAcesso.length ? `${u.horariosAcesso.length} janela(s)` : 'livre'}</td>
                   <td className="px-3 py-2">{u.ativo ? <Badge className="bg-emerald-100 text-emerald-700">Ativo</Badge> : <Badge className="bg-slate-200 text-slate-600">Inativo</Badge>}</td>
-                  <td className="px-3 py-2 text-right">
+                  <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-end gap-2 text-xs">
                       {podeUsuarios && <button className="text-marca-600 hover:underline" onClick={() => setEditando(u)}>editar</button>}
                       {podeUsuarios && <button className="text-slate-500 hover:underline" onClick={() => resetSenha(u)}>senha</button>}
@@ -95,7 +106,7 @@ export default function Usuarios() {
   );
 }
 
-type TabKey = 'Dados' | 'Permissoes' | 'Horarios' | 'Filtros';
+type TabKey = 'Dados' | 'Permissoes' | 'Horarios' | 'Filtros' | 'Custo (APLA)';
 
 function UsuarioModal({
   usuario, podePermissoes, onFechar, onSalvo,
@@ -106,6 +117,11 @@ function UsuarioModal({
   const [email, setEmail] = useState(usuario?.email ?? '');
   const [senha, setSenha] = useState('');
   const [ativo, setAtivo] = useState(usuario?.ativo ?? true);
+  const [tipo, setTipo] = useState(usuario?.tipo ?? 'Auxiliar');
+  const [telefone, setTelefone] = useState(usuario?.telefone ?? '');
+  const [observacoes, setObservacoes] = useState(usuario?.observacoes ?? '');
+  const [custoHora, setCustoHora] = useState(usuario?.custoHora != null ? String(usuario.custoHora) : '');
+  const [minutosUteisMes, setMinutosUteisMes] = useState(usuario?.minutosUteisMes != null ? String(usuario.minutosUteisMes) : '');
   const [permissoes, setPermissoes] = useState<Record<string, boolean>>(usuario?.permissoes ?? {});
   const [horarios, setHorarios] = useState<JanelaAcesso[]>(usuario?.horariosAcesso ?? []);
   const [depIds, setDepIds] = useState<string[]>(usuario?.filtrosForcados?.departamentos ?? []);
@@ -131,6 +147,11 @@ function UsuarioModal({
     try {
       const payload = {
         nome, ativo, permissoes,
+        tipo: tipo || null,
+        telefone: telefone || null,
+        observacoes: observacoes || null,
+        custoHora: custoHora === '' ? null : Number(custoHora),
+        minutosUteisMes: minutosUteisMes === '' ? null : Number(minutosUteisMes),
         horariosAcesso: horarios,
         filtrosForcados: { departamentos: depIds, tags: tagIds },
       };
@@ -146,7 +167,7 @@ function UsuarioModal({
     finally { setSalvando(false); }
   }
 
-  const tabs: TabKey[] = ['Dados', 'Permissoes', 'Horarios', 'Filtros'];
+  const tabs: TabKey[] = ['Dados', 'Permissoes', 'Horarios', 'Filtros', 'Custo (APLA)'];
 
   return (
     <Modal aberto titulo={usuario ? `Editar ${usuario.nome}` : 'Novo usuario'} onFechar={onFechar} largura="max-w-3xl">
@@ -159,10 +180,31 @@ function UsuarioModal({
       <div className="mt-4 max-h-[60vh] overflow-y-auto">
         {tab === 'Dados' && (
           <div className="space-y-3">
-            <div><label className="label">Nome</label><input className="input" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
-            <div><label className="label">E-mail</label><input className="input" value={email} disabled={!!usuario} onChange={(e) => setEmail(e.target.value)} /></div>
-            {!usuario && <div><label className="label">Senha (min 8)</label><input type="password" className="input" value={senha} onChange={(e) => setSenha(e.target.value)} /></div>}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div><label className="label">Nome</label><input className="input" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+              <div>
+                <label className="label">Tipo / cargo</label>
+                <select className="input" value={tipo ?? ''} onChange={(e) => setTipo(e.target.value)}>
+                  {TIPOS_USUARIO.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div><label className="label">E-mail / usuario de acesso</label><input className="input" value={email} disabled={!!usuario} onChange={(e) => setEmail(e.target.value)} /></div>
+              <div><label className="label">Fone(s)</label><input className="input" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="Fone" /></div>
+            </div>
+            {!usuario && <div><label className="label">Senha (min 8)</label><input type="password" className="input" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco = manter a mesma" /></div>}
+            <div><label className="label">Dados complementares</label><input className="input" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Comentarios" /></div>
             <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} /> Usuario ativo</label>
+          </div>
+        )}
+
+        {tab === 'Custo (APLA)' && (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-500">Configuracao do custo e da capacidade do colaborador. Alimenta o Metodo APLA (produtividade e lucratividade). Em branco usa o custo/hora padrao do escritorio.</p>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div><label className="label">Custo por hora (R$)</label><input className="input" type="number" min={0} step="0.01" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex.: 45.00" /></div>
+              <div><label className="label">Minutos uteis no mes</label><input className="input" type="number" min={0} value={minutosUteisMes} onChange={(e) => setMinutosUteisMes(e.target.value)} placeholder="Ex.: 8800" /></div>
+            </div>
+            <p className="text-xs text-slate-400">Dica: 8h/dia x 22 dias x 60 = 10560 min; descontando pausas, ~8800 min costuma ser uma boa base.</p>
           </div>
         )}
 

@@ -108,9 +108,9 @@ async function main() {
   });
 
   const usuarios = [
-    { nome: 'Ana Admin', email: 'admin@demo.com.br', permissoes: perms(true) },
-    { nome: 'Bruno Fiscal', email: 'fiscal@demo.com.br', permissoes: permsOperacional() },
-    { nome: 'Carla Pessoal', email: 'pessoal@demo.com.br', permissoes: permsOperacional() },
+    { nome: 'Ana Admin', email: 'admin@demo.com.br', permissoes: perms(true), tipo: 'Contador socio', custoHora: 90, minutosUteisMes: 8800 },
+    { nome: 'Bruno Fiscal', email: 'fiscal@demo.com.br', permissoes: permsOperacional(), tipo: 'Auxiliar', custoHora: 45, minutosUteisMes: 8800 },
+    { nome: 'Carla Pessoal', email: 'pessoal@demo.com.br', permissoes: permsOperacional(), tipo: 'Assistente', custoHora: 50, minutosUteisMes: 8800 },
   ];
 
   const usuariosCriados: Record<string, string> = {};
@@ -121,6 +121,9 @@ async function main() {
         nome: u.nome,
         email: u.email,
         senhaHash,
+        tipo: u.tipo,
+        custoHora: u.custoHora,
+        minutosUteisMes: u.minutosUteisMes,
         permissao: { create: u.permissoes },
       },
     });

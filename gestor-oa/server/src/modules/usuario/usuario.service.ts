@@ -14,6 +14,11 @@ function publico(u: {
   nome: string;
   email: string;
   ativo: boolean;
+  tipo?: string | null;
+  telefone?: string | null;
+  observacoes?: string | null;
+  custoHora?: { toNumber: () => number } | number | null;
+  minutosUteisMes?: number | null;
   horariosAcesso: unknown;
   filtrosForcados: unknown;
   permissao: Record<string, unknown> | null;
@@ -24,11 +29,17 @@ function publico(u: {
       if (typeof v === 'boolean') permissoes[k] = v;
     }
   }
+  const custo = u.custoHora == null ? null : typeof u.custoHora === 'number' ? u.custoHora : u.custoHora.toNumber();
   return {
     id: u.id,
     nome: u.nome,
     email: u.email,
     ativo: u.ativo,
+    tipo: u.tipo ?? null,
+    telefone: u.telefone ?? null,
+    observacoes: u.observacoes ?? null,
+    custoHora: custo,
+    minutosUteisMes: u.minutosUteisMes ?? null,
     horariosAcesso: (u.horariosAcesso as JanelaAcesso[]) ?? [],
     filtrosForcados: (u.filtrosForcados as FiltrosForcados) ?? {},
     permissoes,
@@ -58,6 +69,11 @@ export interface CriarUsuarioInput {
   email: string;
   senha: string;
   ativo?: boolean;
+  tipo?: string | null;
+  telefone?: string | null;
+  observacoes?: string | null;
+  custoHora?: number | null;
+  minutosUteisMes?: number | null;
   horariosAcesso?: JanelaAcesso[];
   filtrosForcados?: FiltrosForcados;
   permissoes?: Partial<Record<PermissionFlag, boolean>>;
@@ -77,6 +93,11 @@ export async function criar(escritorioId: string, input: CriarUsuarioInput) {
       email: input.email.toLowerCase(),
       senhaHash,
       ativo: input.ativo ?? true,
+      tipo: input.tipo ?? 'Auxiliar',
+      telefone: input.telefone ?? null,
+      observacoes: input.observacoes ?? null,
+      custoHora: input.custoHora ?? null,
+      minutosUteisMes: input.minutosUteisMes ?? null,
       horariosAcesso: (input.horariosAcesso ?? []) as object,
       filtrosForcados: (input.filtrosForcados ?? {}) as object,
       permissao: { create: sanitizePermissions(input.permissoes) },
@@ -99,6 +120,11 @@ export async function editar(
     data: {
       nome: input.nome ?? u.nome,
       ativo: input.ativo ?? u.ativo,
+      tipo: input.tipo === undefined ? undefined : input.tipo,
+      telefone: input.telefone === undefined ? undefined : input.telefone,
+      observacoes: input.observacoes === undefined ? undefined : input.observacoes,
+      custoHora: input.custoHora === undefined ? undefined : input.custoHora,
+      minutosUteisMes: input.minutosUteisMes === undefined ? undefined : input.minutosUteisMes,
       horariosAcesso: input.horariosAcesso ? (input.horariosAcesso as object) : undefined,
       filtrosForcados: input.filtrosForcados ? (input.filtrosForcados as object) : undefined,
     },

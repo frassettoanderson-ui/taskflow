@@ -11,7 +11,7 @@ interface Apla {
   kpis: { receitaTotal: number; custoTotal: number; lucro: number; margemPct: number; horasTotais: number; ticketMedio: number; empresas: number; deficitarias: number };
   empresas: EmpresaApla[];
   porDepartamento: { nome: string; cor: string; receita: number; custo: number; margem: number }[];
-  porColaborador: { nome: string; baixadas: number; pendentes: number; horasProduzidas: number; valorProduzido: number }[];
+  porColaborador: { nome: string; baixadas: number; pendentes: number; horasProduzidas: number; valorProduzido: number; ocupacaoPct: number | null }[];
 }
 
 const brl = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -109,7 +109,7 @@ export default function Apla() {
         <div className="px-4 pt-4 text-sm font-semibold text-slate-700">Produtividade por colaborador (mes)</div>
         <table className="mt-2 w-full text-sm">
           <thead className="border-y border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <tr><th className="px-3 py-2">Colaborador</th><th className="px-3 py-2">Baixadas</th><th className="px-3 py-2">Pendentes</th><th className="px-3 py-2">Horas produzidas</th><th className="px-3 py-2">Valor produzido</th></tr>
+            <tr><th className="px-3 py-2">Colaborador</th><th className="px-3 py-2">Baixadas</th><th className="px-3 py-2">Pendentes</th><th className="px-3 py-2">Horas produzidas</th><th className="px-3 py-2">Valor produzido</th><th className="px-3 py-2">Ocupacao</th></tr>
           </thead>
           <tbody>
             {d.porColaborador.map((c, i) => (
@@ -119,9 +119,10 @@ export default function Apla() {
                 <td className="px-3 py-2 text-amber-600">{c.pendentes}</td>
                 <td className="px-3 py-2 text-slate-500">{c.horasProduzidas}h</td>
                 <td className="px-3 py-2 text-slate-600">{brl(c.valorProduzido)}</td>
+                <td className={`px-3 py-2 ${c.ocupacaoPct != null && c.ocupacaoPct > 100 ? 'font-medium text-red-600' : 'text-slate-500'}`}>{c.ocupacaoPct != null ? `${c.ocupacaoPct}%` : '—'}</td>
               </tr>
             ))}
-            {d.porColaborador.length === 0 && <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-400">Sem entregas no periodo.</td></tr>}
+            {d.porColaborador.length === 0 && <tr><td colSpan={6} className="px-3 py-10 text-center text-slate-400">Sem entregas no periodo.</td></tr>}
           </tbody>
         </table>
       </div>

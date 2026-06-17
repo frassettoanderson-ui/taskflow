@@ -251,10 +251,18 @@ export interface UsuarioCompleto {
   nome: string;
   email: string;
   ativo: boolean;
+  tipo: string | null;
+  telefone: string | null;
+  observacoes: string | null;
+  custoHora: number | null;
+  minutosUteisMes: number | null;
   horariosAcesso: JanelaAcesso[];
   filtrosForcados: { departamentos?: string[]; tags?: string[] };
   permissoes: Record<string, boolean>;
 }
+
+// Tipos/cargos de colaborador (exibidos entre colchetes na listagem).
+export const TIPOS_USUARIO = ['Contador socio', 'Contador', 'Assistente', 'Auxiliar', 'Administrativo', 'Estagiario'];
 
 export interface LogAuditoriaItem {
   id: string;

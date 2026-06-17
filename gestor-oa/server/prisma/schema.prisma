@@ -73,6 +73,15 @@ model Usuario {
   senhaHash     String
   ativo         Boolean  @default(true)
 
+  // Funcao/cargo exibido entre colchetes na listagem (ex.: Contador socio, Auxiliar).
+  tipo          String?  @default("Auxiliar")
+  telefone      String?
+  observacoes   String?
+
+  // Configuracao de custo e capacidade do colaborador (alimenta o Metodo APLA).
+  custoHora       Decimal? @db.Decimal(12, 2)
+  minutosUteisMes Int?
+
   // Janelas de acesso permitidas: [{ diaSemana, inicio, fim }]. Vazio = sem restricao.
   horariosAcesso Json    @default("[]")
 

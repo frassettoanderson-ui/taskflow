@@ -32,7 +32,7 @@ export async function computarApla(escritorioId: string, ano: number, mes: numbe
       },
     }),
     prisma.departamento.findMany({ where: { escritorioId, ativo: true }, select: { id: true, nome: true, cor: true } }),
-    prisma.usuario.findMany({ where: { escritorioId, deletedAt: null, ativo: true }, select: { id: true, nome: true } }),
+    prisma.usuario.findMany({ where: { escritorioId, deletedAt: null, ativo: true }, select: { id: true, nome: true, custoHora: true, minutosUteisMes: true } }),
     prisma.entrega.findMany({
       where: { escritorioId, competenciaAno: ano, competenciaMes: mes },
       select: { status: true, prazoTecnico: true, prazoLegal: true, dataEntrega: true, responsavelEntregaId: true, obrigacao: { select: { tempoPrevistoMin: true } } },
@@ -74,7 +74,11 @@ export async function computarApla(escritorioId: string, ano: number, mes: numbe
 
   // ----- produtividade por colaborador (entregas do mes) -----
   const hoje = new Date();
-  const colabMap = new Map(usuarios.map((u) => [u.id, { nome: u.nome, baixadas: 0, pendentes: 0, minProduzidos: 0 }]));
+  const colabMap = new Map(usuarios.map((u) => [u.id, {
+    nome: u.nome, baixadas: 0, pendentes: 0, minProduzidos: 0,
+    custoHora: u.custoHora == null ? custoHora : Number(u.custoHora),
+    minutosUteisMes: u.minutosUteisMes ?? null,
+  }]));
   for (const ent of entregas) {
     const st = statusEfetivo(ent.status as StatusEntrega, ent.prazoTecnico, ent.prazoLegal, hoje, diasAntecipado);
     const baixada = st === 'ENTREGUE' || st === 'ENTREGUE_JUSTIFICADA';
@@ -87,7 +91,8 @@ export async function computarApla(escritorioId: string, ano: number, mes: numbe
   }
   const porColaborador = [...colabMap.values()].filter((c) => c.baixadas + c.pendentes > 0).map((c) => ({
     nome: c.nome, baixadas: c.baixadas, pendentes: c.pendentes, horasProduzidas: round2(c.minProduzidos / 60),
-    valorProduzido: round2((c.minProduzidos / 60) * custoHora),
+    valorProduzido: round2((c.minProduzidos / 60) * c.custoHora),
+    ocupacaoPct: c.minutosUteisMes ? pct(c.minProduzidos, c.minutosUteisMes) : null,
   })).sort((a, b) => b.horasProduzidas - a.horasProduzidas);
 
   // ----- KPIs -----
