@@ -238,6 +238,26 @@ describe('Modulo 8 - comunicacao (smoke)', () => {
   });
 });
 
+describe('Modulo 11 - solicitacoes internas (smoke)', () => {
+  it('listar solicitacoes sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/solicitacoes-internas');
+    expect(res.status).toBe(401);
+  });
+  it('stats sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/solicitacoes-internas/stats');
+    expect(res.status).toBe(401);
+  });
+  it('criar sem token retorna 401', async () => {
+    const res = await request(createApp()).post('/api/v1/solicitacoes-internas').send({ titulo: 'x', descricao: 'y' });
+    expect(res.status).toBe(401);
+  });
+  it('flags de permissao do modulo existem na lista canonica', async () => {
+    const { PERMISSION_FLAGS } = await import('@gestoroa/shared');
+    expect(PERMISSION_FLAGS).toContain('solicitacoes_internas_ver');
+    expect(PERMISSION_FLAGS).toContain('solicitacoes_internas_gerenciar');
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

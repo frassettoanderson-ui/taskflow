@@ -329,6 +329,13 @@ export const PERMISSION_GROUPS: { grupo: string; flags: { flag: string; label: s
     ],
   },
   {
+    grupo: 'Solicitacoes internas',
+    flags: [
+      { flag: 'solicitacoes_internas_ver', label: 'Ver e participar' },
+      { flag: 'solicitacoes_internas_gerenciar', label: 'Gerenciar (atribuir/excluir)' },
+    ],
+  },
+  {
     grupo: 'Administracao',
     flags: [
       { flag: 'admin_usuarios', label: 'Gerenciar usuarios' },

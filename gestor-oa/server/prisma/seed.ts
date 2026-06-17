@@ -43,6 +43,7 @@ const PERMISSION_FLAGS = [
   'relatorios_ver',
   'apla_ver', 'apla_configurar',
   'portal_comunicados', 'portal_solicitacoes', 'portal_configurar',
+  'solicitacoes_internas_ver', 'solicitacoes_internas_gerenciar',
   'admin_usuarios', 'admin_permissoes', 'admin_auditoria', 'admin_escritorio',
 ] as const;
 
@@ -68,6 +69,7 @@ async function main() {
   if (existente) {
     const eid = existente.id;
     // Limpeza em ordem de dependencia (FKs com RESTRICT exigem ordem manual).
+    await prisma.solicitacaoInterna.deleteMany({ where: { escritorioId: eid } }); // cascade nas mensagens
     await prisma.roboJob.deleteMany({ where: { escritorioId: eid } });
     await prisma.assinaturaDocumento.deleteMany({ where: { escritorioId: eid } });
     await prisma.aceiteLGPD.deleteMany({ where: { escritorioId: eid } });
@@ -500,6 +502,38 @@ async function main() {
       },
     },
   });
+
+  // ---------- Modulo 11: Solicitacoes internas (exemplos) ----------
+  const adminId = usuariosCriados['admin@demo.com.br'];
+  const solExemplos = [
+    {
+      titulo: 'Cliente pediu certidao negativa',
+      descricao: 'O cliente solicitou a CND federal com urgencia para participar de licitacao.',
+      categoria: 'Certidoes', prioridade: 'ALTA' as const, status: 'ABERTA' as const,
+      solicitanteId: pessoalId, departamentoDestinoId: deps['Fiscal'], responsavelId: null as string | null,
+      empresaId: empresaIds[0],
+    },
+    {
+      titulo: 'Conferir divergencia na folha',
+      descricao: 'Valor do INSS da competencia anterior parece divergente. Pessoal favor conferir.',
+      categoria: 'Folha', prioridade: 'MEDIA' as const, status: 'EM_ANDAMENTO' as const,
+      solicitanteId: fiscalId, departamentoDestinoId: deps['Pessoal'], responsavelId: pessoalId,
+      empresaId: empresaIds[1],
+    },
+    {
+      titulo: 'Atualizar contrato social no sistema',
+      descricao: 'Recebemos a alteracao contratual; favor anexar no GED e atualizar cadastro.',
+      categoria: 'Societario', prioridade: 'BAIXA' as const, status: 'ABERTA' as const,
+      solicitanteId: adminId, departamentoDestinoId: deps['Societario'], responsavelId: null,
+      empresaId: empresaIds[2],
+    },
+  ];
+  for (const s of solExemplos) {
+    const criada = await prisma.solicitacaoInterna.create({ data: { escritorioId: escritorio.id, ...s } });
+    await prisma.solicitacaoInternaMensagem.create({
+      data: { solicitacaoId: criada.id, autorId: s.solicitanteId, autorNome: 'Sistema', texto: 'Solicitacao aberta.', evento: 'ABERTURA' },
+    });
+  }
 
   console.log('\nSeed concluido!');
   console.log(`  Matrizes de processo: ${matrizes.length}`);

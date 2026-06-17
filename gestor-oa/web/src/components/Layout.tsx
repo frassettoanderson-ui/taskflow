@@ -74,7 +74,7 @@ const MENU: Item[] = [
       { label: 'Chatbot', icon: Bot, to: '/comunicacao/chatbot' },
     ],
   },
-  { label: 'Solicitacoes', icon: MessageSquare, emBreve: true },
+  { label: 'Solicitacoes internas', icon: MessageSquare, to: '/solicitacoes-internas' },
   {
     label: 'Robo (e-Robo)',
     icon: Bot,

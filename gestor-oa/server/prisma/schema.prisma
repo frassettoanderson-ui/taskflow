@@ -52,6 +52,7 @@ model Escritorio {
   templates           TemplateEmail[]
   comunicacoes        ComunicacaoLog[]
   chatbots            ChatbotFluxo[]
+  solicitacoesInternas SolicitacaoInterna[]
 
   @@index([deletedAt])
 }
@@ -127,6 +128,9 @@ model Permissao {
   portal_comunicados        Boolean @default(false)
   portal_solicitacoes       Boolean @default(false)
   portal_configurar         Boolean @default(false)
+
+  solicitacoes_internas_ver       Boolean @default(false)
+  solicitacoes_internas_gerenciar Boolean @default(false)
 
   admin_usuarios            Boolean @default(false)
   admin_permissoes          Boolean @default(false)
@@ -1098,4 +1102,70 @@ model ChatbotFluxo {
   updatedAt     DateTime @updatedAt
 
   @@index([escritorioId])
+}
+
+// ============================================================
+// MODULO 11 - Solicitacoes Internas (tickets entre setores)
+// ============================================================
+
+enum PrioridadeSolicitacao {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+enum StatusSolicitacaoInterna {
+  ABERTA
+  EM_ANDAMENTO
+  AGUARDANDO
+  RESOLVIDA
+  CANCELADA
+}
+
+model SolicitacaoInterna {
+  id              String   @id @default(cuid())
+  escritorioId    String
+  escritorio      Escritorio @relation(fields: [escritorioId], references: [id])
+
+  titulo          String
+  descricao       String
+  categoria       String?
+  prioridade      PrioridadeSolicitacao @default(MEDIA)
+  status          StatusSolicitacaoInterna @default(ABERTA)
+
+  // quem abriu (usuario interno)
+  solicitanteId   String
+  // setor de destino e responsavel designado (usuario)
+  departamentoDestinoId String?
+  responsavelId   String?
+  // vinculos opcionais (mantidos como IDs simples, sem relacao reversa)
+  empresaId       String?
+  processoId      String?
+
+  prazo           DateTime?
+  resolvidoEm     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  mensagens       SolicitacaoInternaMensagem[]
+
+  @@index([escritorioId, status])
+  @@index([escritorioId, departamentoDestinoId])
+  @@index([responsavelId])
+  @@index([solicitanteId])
+}
+
+model SolicitacaoInternaMensagem {
+  id            String   @id @default(cuid())
+  solicitacaoId String
+  solicitacao   SolicitacaoInterna @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
+  autorId       String?
+  autorNome     String
+  texto         String
+  // mudanca de status registrada como evento do thread
+  evento        String?
+  createdAt     DateTime @default(now())
+
+  @@index([solicitacaoId])
 }

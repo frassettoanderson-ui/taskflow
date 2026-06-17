@@ -33,6 +33,7 @@ const AUDITED_MODELS = new Set<string>([
   'SolicitacaoPortal',
   'TemplateEmail',
   'ChatbotFluxo',
+  'SolicitacaoInterna',
 ]);
 
 // Evita recursao: a propria gravacao do log nao deve ser auditada.

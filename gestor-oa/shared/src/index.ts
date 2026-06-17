@@ -130,6 +130,8 @@ export const PERMISSION_FLAGS = [
   'portal_comunicados',
   'portal_solicitacoes',
   'portal_configurar',
+  'solicitacoes_internas_ver',
+  'solicitacoes_internas_gerenciar',
   'admin_usuarios',
   'admin_permissoes',
   'admin_auditoria',

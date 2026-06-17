@@ -35,6 +35,7 @@ import ComunicadosAdmin from './pages/portal/ComunicadosAdmin';
 import SolicitacoesInbox from './pages/portal/SolicitacoesInbox';
 import Templates from './pages/comunicacao/Templates';
 import Chatbot from './pages/comunicacao/Chatbot';
+import SolicitacoesInternas from './pages/solicitacoes/SolicitacoesInternas';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -98,6 +99,7 @@ export default function App() {
         <Route path="area-vip/solicitacoes" element={<SolicitacoesInbox />} />
         <Route path="comunicacao/templates" element={<Templates />} />
         <Route path="comunicacao/chatbot" element={<Chatbot />} />
+        <Route path="solicitacoes-internas" element={<SolicitacoesInternas />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />
