@@ -23,6 +23,10 @@ import ListaEntregas from './pages/entregas/ListaEntregas';
 import Calendario from './pages/entregas/Calendario';
 import Armazenamento from './pages/documentos/Armazenamento';
 import ProtocolosFisicos from './pages/documentos/ProtocolosFisicos';
+import Caixa from './pages/robo/Caixa';
+import Revisao from './pages/robo/Revisao';
+import PainelRobo from './pages/robo/PainelRobo';
+import Assinaturas from './pages/robo/Assinaturas';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -72,6 +76,10 @@ export default function App() {
         <Route path="entregas/calendario" element={<Calendario />} />
         <Route path="documentos/armazenamento" element={<Armazenamento />} />
         <Route path="documentos/protocolos-fisicos" element={<ProtocolosFisicos />} />
+        <Route path="robo" element={<Caixa />} />
+        <Route path="robo/revisao" element={<Revisao />} />
+        <Route path="robo/painel" element={<PainelRobo />} />
+        <Route path="robo/assinaturas" element={<Assinaturas />} />
         <Route path="cadastros" element={<Cadastros />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="auditoria" element={<Auditoria />} />

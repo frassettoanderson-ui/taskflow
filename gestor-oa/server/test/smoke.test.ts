@@ -180,6 +180,21 @@ describe('Modulo 7 - GED/protocolo (smoke)', () => {
   });
 });
 
+describe('Modulo 5 - robo (smoke)', () => {
+  it('painel do robo sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/robo/painel');
+    expect(res.status).toBe(401);
+  });
+  it('ingest sem api-key retorna 401', async () => {
+    const res = await request(createApp()).post('/api/v1/robo/ingest');
+    expect(res.status).toBe(401);
+  });
+  it('assinaturas sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/assinaturas');
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

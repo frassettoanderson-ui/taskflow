@@ -16,6 +16,8 @@ import auditoriaRoutes from './modules/auditoria/auditoria.routes.js';
 import gedRoutes from './modules/ged/ged.routes.js';
 import protocoloRoutes from './modules/protocolo/protocolo.routes.js';
 import protocoloFisicoRoutes from './modules/protocolo/protocoloFisico.routes.js';
+import roboRoutes from './modules/robo/robo.routes.js';
+import assinaturaRoutes from './modules/robo/assinatura.routes.js';
 
 const api = Router();
 
@@ -40,5 +42,7 @@ api.use('/auditoria', auditoriaRoutes);
 api.use('/ged', gedRoutes);
 api.use('/protocolos', protocoloRoutes);
 api.use('/protocolos-fisicos', protocoloFisicoRoutes);
+api.use('/robo', roboRoutes);
+api.use('/assinaturas', assinaturaRoutes);
 
 export default api;

@@ -387,6 +387,52 @@ export const STATUS_FISICO_LABEL: Record<ProtocoloFisico['status'], string> = {
   CANCELADO: 'Cancelado',
 };
 
+// ---------- Modulo 5 (Robo) ----------
+export type StatusRoboJob = 'PROCESSANDO' | 'BAIXADO' | 'REVISAO' | 'ERRO' | 'IGNORADO';
+
+export interface RoboJob {
+  id: string;
+  arquivoNome: string;
+  paginaIndex: number | null;
+  origem: string;
+  status: StatusRoboJob;
+  motivo: string | null;
+  empresaId: string | null;
+  empresaNome: string | null;
+  obrigacaoNome: string | null;
+  competenciaAno: number | null;
+  competenciaMes: number | null;
+  etapas: { etapa: string; ok: boolean; ms: number; detalhe?: string }[];
+  textoTrecho: string | null;
+  createdAt: string;
+}
+
+export interface AssinaturaDocumento {
+  id: string;
+  nome: string;
+  obrigacaoNome: string;
+  palavras: string[];
+  regexCompetencia: string | null;
+  regexVencimento: string | null;
+  ativo: boolean;
+}
+
+export interface RoboPainel {
+  processadosHoje: number;
+  processadosMes: number;
+  baixadosMes: number;
+  pendentesRevisao: number;
+  taxaMatch: number;
+}
+
+export const STATUS_ROBO_INFO: Record<StatusRoboJob, { label: string; cor: string }> = {
+  PROCESSANDO: { label: 'Processando', cor: '#5b9bd5' },
+  BAIXADO: { label: 'Baixado', cor: '#5cb85c' },
+  REVISAO: { label: 'Revisao', cor: '#f0ad4e' },
+  ERRO: { label: 'Erro', cor: '#cf3c5d' },
+  IGNORADO: { label: 'Ignorado', cor: '#94a3b8' },
+};
+
 export function dataBR(d: string | Date): string {
   return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }

@@ -60,7 +60,16 @@ const MENU: Item[] = [
   { label: 'Lista de Entregas', icon: CalendarCheck, to: '/entregas' },
   { label: 'Gestao de processos', icon: GitBranch, emBreve: true },
   { label: 'Solicitacoes', icon: MessageSquare, emBreve: true },
-  { label: 'Robo (e-Robo)', icon: Bot, emBreve: true },
+  {
+    label: 'Robo (e-Robo)',
+    icon: Bot,
+    filhos: [
+      { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
+      { label: 'Revisao', icon: Bot, to: '/robo/revisao' },
+      { label: 'Painel', icon: Bot, to: '/robo/painel' },
+      { label: 'Assinaturas', icon: Bot, to: '/robo/assinaturas' },
+    ],
+  },
   { label: 'Metodo APLA', icon: TrendingUp, emBreve: true },
   {
     label: 'Documentos (GED)',

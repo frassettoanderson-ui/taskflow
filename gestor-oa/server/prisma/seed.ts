@@ -68,8 +68,10 @@ async function main() {
   if (existente) {
     const eid = existente.id;
     // Limpeza em ordem de dependencia (FKs com RESTRICT exigem ordem manual).
+    await prisma.roboJob.deleteMany({ where: { escritorioId: eid } });
+    await prisma.assinaturaDocumento.deleteMany({ where: { escritorioId: eid } });
     await prisma.empresaObrigacao.deleteMany({ where: { escritorioId: eid } });
-    await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos
+    await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos (entregas, docs, protocolos)
     await prisma.grupoObrigacoes.deleteMany({ where: { escritorioId: eid } }); // cascade grupoObrigacao
     await prisma.regimeTributario.deleteMany({ where: { escritorioId: eid } }); // cascade regimeObrigacao
     await prisma.obrigacao.deleteMany({ where: { escritorioId: eid } });
@@ -315,6 +317,23 @@ async function main() {
   for (const [nome, lista] of Object.entries(grupoDefs)) {
     await prisma.grupoObrigacoes.create({
       data: { escritorioId: escritorio.id, nome, obrigacoes: { create: lista.map((n) => ({ obrigacaoId: obrigIds[n] })) } },
+    });
+  }
+
+  // ---------- Modulo 5: Assinaturas de documento (robo) ----------
+  const assinaturas: { nome: string; obrig: string; palavras: string[]; regexComp: string }[] = [
+    { nome: 'DAS - Simples Nacional', obrig: 'DAS - Simples Nacional', palavras: ['Simples Nacional'], regexComp: '(\\d{2}/\\d{4})' },
+    { nome: 'DARF', obrig: 'DARF PIS', palavras: ['DARF'], regexComp: 'apura[cç][aã]o\\s*:?\\s*(\\d{2}/\\d{4})' },
+    { nome: 'FGTS Digital', obrig: 'FGTS Digital', palavras: ['FGTS'], regexComp: '(\\d{2}/\\d{4})' },
+    { nome: 'GPS - Previdencia', obrig: 'GPS - Previdencia', palavras: ['GPS'], regexComp: '(\\d{2}/\\d{4})' },
+    { nome: 'DCTFWeb', obrig: 'DCTFWeb', palavras: ['DCTFWeb'], regexComp: '(\\d{2}/\\d{4})' },
+    { nome: 'ICMS (DARE/DAE)', obrig: 'ICMS (DARE/DAE)', palavras: ['ICMS'], regexComp: '(\\d{2}/\\d{4})' },
+    { nome: 'ISS', obrig: 'ISS', palavras: ['ISS'], regexComp: '(\\d{2}/\\d{4})' },
+    { nome: 'GNRE', obrig: 'ICMS (DARE/DAE)', palavras: ['GNRE'], regexComp: '(\\d{2}/\\d{4})' },
+  ];
+  for (const a of assinaturas) {
+    await prisma.assinaturaDocumento.create({
+      data: { escritorioId: escritorio.id, nome: a.nome, obrigacaoNome: a.obrig, palavras: a.palavras, regexCompetencia: a.regexComp },
     });
   }
 

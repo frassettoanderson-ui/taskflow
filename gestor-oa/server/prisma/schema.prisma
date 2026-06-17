@@ -42,6 +42,8 @@ model Escritorio {
   documentos          DocumentoGED[]
   protocolos          Protocolo[]
   protocolosFisicos   ProtocoloFisico[]
+  assinaturas         AssinaturaDocumento[]
+  roboJobs            RoboJob[]
 
   @@index([deletedAt])
 }
@@ -700,4 +702,72 @@ model ProtocoloFisico {
   updatedAt     DateTime @updatedAt
 
   @@index([escritorioId, empresaId])
+}
+
+// ============================================================
+// MODULO 5 - Robo de Baixa Automatica (e-Robo)
+// ============================================================
+
+enum StatusRoboJob {
+  PROCESSANDO
+  BAIXADO
+  REVISAO
+  ERRO
+  IGNORADO
+}
+
+enum OrigemRoboJob {
+  UPLOAD
+  WATCHER
+  API
+}
+
+model AssinaturaDocumento {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  // obrigacao alvo (catalogo) que esta assinatura identifica
+  obrigacaoNome String   // casado por nome com a obrigacao da empresa
+  // palavras/regex que identificam o tipo (todas devem casar)
+  palavras      Json     @default("[]")
+  // regex para extrair competencia e vencimento
+  regexCompetencia String?
+  regexVencimento  String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([escritorioId, ativo])
+}
+
+model RoboJob {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+
+  arquivoNome   String
+  caminho       String
+  paginaIndex   Int?
+  origem        OrigemRoboJob @default(UPLOAD)
+  status        StatusRoboJob @default(PROCESSANDO)
+  motivo        String?
+
+  // resultado da identificacao
+  empresaId         String?
+  obrigacaoNome     String?
+  competenciaAno    Int?
+  competenciaMes    Int?
+  entregaId         String?
+
+  // etapas do pipeline: [{ etapa, ok, ms, detalhe }]
+  etapas        Json     @default("[]")
+  // trecho do texto extraido (para a tela de revisao)
+  textoTrecho   String?
+
+  createdAt     DateTime @default(now())
+  processadoEm  DateTime?
+
+  @@index([escritorioId, status])
+  @@index([escritorioId, createdAt])
 }
