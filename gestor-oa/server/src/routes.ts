@@ -12,6 +12,7 @@ import grupoRoutes from './modules/obrigacao/grupo.routes.js';
 import feriadoRoutes from './modules/obrigacao/feriado.routes.js';
 import empresaObrigacaoRoutes from './modules/obrigacao/empresaObrigacao.routes.js';
 import entregaRoutes from './modules/entrega/entrega.routes.js';
+import auditoriaRoutes from './modules/auditoria/auditoria.routes.js';
 
 const api = Router();
 
@@ -32,5 +33,6 @@ api.use('/grupos', grupoRoutes);
 api.use('/feriados', feriadoRoutes);
 api.use('/empresa-obrigacoes', empresaObrigacaoRoutes);
 api.use('/entregas', entregaRoutes);
+api.use('/auditoria', auditoriaRoutes);
 
 export default api;

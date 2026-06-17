@@ -153,6 +153,17 @@ describe('status de entrega', () => {
   });
 });
 
+describe('Modulo 4 - usuarios/auditoria (smoke)', () => {
+  it('criar usuario sem token retorna 401', async () => {
+    const res = await request(createApp()).post('/api/v1/usuarios').send({});
+    expect(res.status).toBe(401);
+  });
+  it('auditoria sem token retorna 401', async () => {
+    const res = await request(createApp()).get('/api/v1/auditoria');
+    expect(res.status).toBe(401);
+  });
+});
+
 describe('horario de acesso', () => {
   it('lista vazia = sempre permitido', () => {
     expect(dentroDoHorario([])).toBe(true);

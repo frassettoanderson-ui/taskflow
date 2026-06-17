@@ -239,6 +239,108 @@ export interface Entrega {
   qtdAnexos: number;
 }
 
+// ---------- Modulo 4 ----------
+export interface JanelaAcesso {
+  diaSemana: number;
+  inicio: string;
+  fim: string;
+}
+
+export interface UsuarioCompleto {
+  id: string;
+  nome: string;
+  email: string;
+  ativo: boolean;
+  horariosAcesso: JanelaAcesso[];
+  filtrosForcados: { departamentos?: string[]; tags?: string[] };
+  permissoes: Record<string, boolean>;
+}
+
+export interface LogAuditoriaItem {
+  id: string;
+  acao: string;
+  entidade: string;
+  entidadeId: string | null;
+  antes: unknown;
+  depois: unknown;
+  createdAt: string;
+  usuario: { nome: string } | null;
+}
+
+export const PERMISSION_GROUPS: { grupo: string; flags: { flag: string; label: string }[] }[] = [
+  {
+    grupo: 'Empresas',
+    flags: [
+      { flag: 'empresas_ver', label: 'Ver' },
+      { flag: 'empresas_criar', label: 'Criar' },
+      { flag: 'empresas_editar', label: 'Editar' },
+      { flag: 'empresas_excluir', label: 'Excluir' },
+      { flag: 'empresas_importar', label: 'Importar CSV' },
+    ],
+  },
+  {
+    grupo: 'Obrigacoes / Regimes / Grupos',
+    flags: [
+      { flag: 'obrigacoes_ver', label: 'Ver' },
+      { flag: 'obrigacoes_gerenciar', label: 'Gerenciar' },
+    ],
+  },
+  {
+    grupo: 'Entregas',
+    flags: [
+      { flag: 'entregas_ver', label: 'Ver' },
+      { flag: 'entregas_baixar', label: 'Dar baixa' },
+      { flag: 'entregas_editar_prazos', label: 'Editar prazos' },
+      { flag: 'entregas_acoes_massa', label: 'Acoes em massa' },
+      { flag: 'entregas_desfazer_robo', label: 'Desfazer baixa do robo' },
+      { flag: 'entregas_dispensar', label: 'Dispensar' },
+    ],
+  },
+  {
+    grupo: 'Processos',
+    flags: [
+      { flag: 'processos_ver', label: 'Ver' },
+      { flag: 'processos_gerenciar_matrizes', label: 'Gerenciar matrizes' },
+      { flag: 'processos_operar', label: 'Operar' },
+    ],
+  },
+  {
+    grupo: 'Documentos / GED',
+    flags: [
+      { flag: 'documentos_ver', label: 'Ver' },
+      { flag: 'documentos_upload', label: 'Upload' },
+      { flag: 'documentos_excluir', label: 'Excluir' },
+    ],
+  },
+  { grupo: 'Relatorios', flags: [{ flag: 'relatorios_ver', label: 'Ver relatorios e insights' }] },
+  {
+    grupo: 'Metodo APLA',
+    flags: [
+      { flag: 'apla_ver', label: 'Ver relatorios' },
+      { flag: 'apla_configurar', label: 'Configurar' },
+    ],
+  },
+  {
+    grupo: 'Area VIP / App',
+    flags: [
+      { flag: 'portal_comunicados', label: 'Gerenciar comunicados' },
+      { flag: 'portal_solicitacoes', label: 'Gerenciar solicitacoes' },
+      { flag: 'portal_configurar', label: 'Configurar' },
+    ],
+  },
+  {
+    grupo: 'Administracao',
+    flags: [
+      { flag: 'admin_usuarios', label: 'Gerenciar usuarios' },
+      { flag: 'admin_permissoes', label: 'Gerenciar permissoes' },
+      { flag: 'admin_auditoria', label: 'Ver auditoria' },
+      { flag: 'admin_escritorio', label: 'Configuracoes do escritorio' },
+    ],
+  },
+];
+
+export const DIAS_SEMANA_LABEL = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
+
 export function dataBR(d: string | Date): string {
   return new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 }

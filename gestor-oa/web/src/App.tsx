@@ -8,6 +8,8 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Configuracoes from './pages/Configuracoes';
 import Cadastros from './pages/Cadastros';
+import Usuarios from './pages/Usuarios';
+import Auditoria from './pages/Auditoria';
 import EmpresasList from './pages/empresas/EmpresasList';
 import EmpresaForm from './pages/empresas/EmpresaForm';
 import EmpresaFicha from './pages/empresas/EmpresaFicha';
@@ -67,6 +69,8 @@ export default function App() {
         <Route path="entregas" element={<ListaEntregas />} />
         <Route path="entregas/calendario" element={<Calendario />} />
         <Route path="cadastros" element={<Cadastros />} />
+        <Route path="usuarios" element={<Usuarios />} />
+        <Route path="auditoria" element={<Auditoria />} />
         <Route path="configuracoes" element={<Configuracoes />} />
       </Route>
 

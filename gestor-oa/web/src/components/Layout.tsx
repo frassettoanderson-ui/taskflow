@@ -39,7 +39,8 @@ const MENU: Item[] = [
     label: 'Sistema',
     icon: Settings,
     filhos: [
-      { label: 'Usuarios e Permissoes', icon: Users, emBreve: true },
+      { label: 'Usuarios e Permissoes', icon: Users, to: '/usuarios' },
+      { label: 'Auditoria', icon: ListChecks, to: '/auditoria' },
       { label: 'Departamentos e Tags', icon: Tags, to: '/cadastros' },
       { label: 'Configuracoes gerais', icon: Settings, to: '/configuracoes' },
     ],
