@@ -76,11 +76,13 @@ CREATE TABLE IF NOT EXISTS fornecedores (
   igreja_id  INT NOT NULL REFERENCES igrejas(id),
   nome       VARCHAR(150) NOT NULL,
   telefone   VARCHAR(30)  DEFAULT '',
-  documento  VARCHAR(30)  DEFAULT '',   -- CPF/CNPJ opcional
+  documento  VARCHAR(30)  DEFAULT '',   -- CNPJ/CPF opcional
+  endereco   VARCHAR(255) DEFAULT '',
   observacao VARCHAR(255) DEFAULT '',
   ativo      BOOLEAN DEFAULT TRUE,
   criado_em  TIMESTAMP DEFAULT NOW()
 );
+ALTER TABLE fornecedores ADD COLUMN IF NOT EXISTS endereco VARCHAR(255) DEFAULT '';
 
 -- Despesas fixas (modelos recorrentes — geram lançamento todo mês)
 CREATE TABLE IF NOT EXISTS despesas_fixas (

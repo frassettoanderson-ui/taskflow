@@ -282,6 +282,12 @@ tbody tr:last-child td { border-bottom: none; }
 
 .placeholder { text-align: center; color: var(--faint); padding: 60px 20px; }
 
+/* Resumo do extrato bancário */
+.extrato-resumo { display: flex; gap: 16px; margin-bottom: 18px; flex-wrap: wrap; }
+.er-box { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; min-width: 180px; display: flex; flex-direction: column; gap: 4px; }
+.er-box span { color: var(--muted); font-size: 12px; }
+.er-box strong { font-size: 20px; font-family: 'Poppins', sans-serif; }
+
 /* ─── Versículo do dia ─── */
 .versiculo-box { max-width: 460px; }
 .versiculo { text-align: center; padding: 30px 28px 26px; }

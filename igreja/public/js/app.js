@@ -78,6 +78,7 @@ const TITULOS = {
   'membro-consultar': 'Consultar Membros',
   'membro-aniversariantes': 'Aniversariantes',
   cadastros: 'Cadastros',
+  extrato: 'Extrato Bancário',
   exportar: 'Exportar Relatório',
 };
 
@@ -509,7 +510,10 @@ async function buildVariavel(host) {
 function ligarAddFornecedor(btnId, selectId) {
   document.getElementById(btnId).addEventListener('click', async () => {
     const novo = await quickCadastro('Novo fornecedor', 'fornecedores', [
-      { id: 'nome', label: 'Nome', req: true }, { id: 'telefone', label: 'Telefone', tel: true },
+      { id: 'nome', label: 'Nome', req: true },
+      { id: 'documento', label: 'CNPJ' },
+      { id: 'endereco', label: 'Endereço' },
+      { id: 'telefone', label: 'Telefone', tel: true },
     ]);
     if (novo) await refreshSelect(selectId, 'fornecedores', novo.id);
   });
@@ -721,9 +725,10 @@ async function buildFornecedores(host) {
     <form id="f" class="form-grid">
       <label>Nome *<input type="text" id="nome" required></label>
       <div class="linha">
+        <label>CNPJ<input type="text" id="documento"></label>
         <label>Telefone<input type="text" id="telefone" data-tel maxlength="16" inputmode="numeric"></label>
-        <label>CPF/CNPJ<input type="text" id="documento"></label>
       </div>
+      <label>Endereço<input type="text" id="endereco"></label>
       <label>Observação<input type="text" id="observacao"></label>
       <button type="submit">Salvar</button>
       <p id="msg" class="erro"></p>
@@ -742,6 +747,7 @@ async function buildFornecedores(host) {
       nome: document.getElementById('nome').value,
       telefone: document.getElementById('telefone').value,
       documento: document.getElementById('documento').value,
+      endereco: document.getElementById('endereco').value,
       observacao: document.getElementById('observacao').value,
     }) });
     const d = await r.json();
@@ -772,9 +778,10 @@ async function buildFornecedores(host) {
       <form id="fe" class="form-grid" style="max-width:none">
         <label>Nome *<input type="text" id="fe-nome" required value="${esc(f.nome)}"></label>
         <div class="linha">
+          <label>CNPJ<input type="text" id="fe-doc" value="${esc(f.documento || '')}"></label>
           <label>Telefone<input type="text" id="fe-tel" data-tel maxlength="16" inputmode="numeric" value="${esc(f.telefone || '')}"></label>
-          <label>CPF/CNPJ<input type="text" id="fe-doc" value="${esc(f.documento || '')}"></label>
         </div>
+        <label>Endereço<input type="text" id="fe-end" value="${esc(f.endereco || '')}"></label>
         <label>Observação<input type="text" id="fe-obs" value="${esc(f.observacao || '')}"></label>
         <button type="submit">Salvar</button>
         <p id="fe-msg" class="erro"></p>
@@ -785,6 +792,7 @@ async function buildFornecedores(host) {
         nome: m.el.querySelector('#fe-nome').value,
         telefone: m.el.querySelector('#fe-tel').value,
         documento: m.el.querySelector('#fe-doc').value,
+        endereco: m.el.querySelector('#fe-end').value,
         observacao: m.el.querySelector('#fe-obs').value,
       }) });
       const d = await r.json();
@@ -1297,6 +1305,48 @@ VIEWS['membro-aniversariantes'] = async () => {
     ['Aniversário', (a) => `${String(a.dia).padStart(2, '0')}/${String(a.mes).padStart(2, '0')}`],
     ['Quando', (a) => quando(a)],
   ], 'Nenhum membro com data de nascimento cadastrada.');
+};
+
+// ─── Relatórios: Extrato Bancário ───
+VIEWS.extrato = async () => {
+  const bancos = await getJSON('bancos');
+  app.innerHTML = `<div class="painel">
+    <h2>Extrato Bancário</h2>
+    <p class="desc">Movimentações realizadas (entradas recebidas e saídas pagas) do banco selecionado.</p>
+    <div class="toolbar">
+      <label class="check-linha" style="margin:0">Banco
+        <select id="banco" style="width:auto">${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select>
+      </label>
+      <label class="check-linha" style="margin:0">Mês <input type="month" id="mes" value="${mesISO()}" style="width:auto"></label>
+    </div>
+    <div id="resumo"></div>
+    <div id="lista"></div>
+  </div>`;
+
+  if (!bancos.length) {
+    document.getElementById('lista').innerHTML = '<p class="vazio">Cadastre um banco primeiro em Configuração → Cadastros.</p>';
+    return;
+  }
+
+  async function listar() {
+    const id = document.getElementById('banco').value;
+    const mes = document.getElementById('mes').value;
+    const d = await getJSON(`bancos/${id}/extrato?mes=${mes}`);
+    document.getElementById('resumo').innerHTML = `<div class="extrato-resumo">
+      <div class="er-box"><span>Saldo anterior</span><strong>${brl(d.saldo_anterior)}</strong></div>
+      <div class="er-box"><span>Saldo final</span><strong>${brl(d.saldo_final)}</strong></div>
+    </div>`;
+    document.getElementById('lista').innerHTML = tabela(d.movimentos, [
+      ['Data', (l) => dataBR(l.data)],
+      ['Descrição', (l) => esc(l.descricao)],
+      ['Entrada', (l) => (l.valor > 0 ? `<span class="val-entrada">${brl(l.valor)}</span>` : '')],
+      ['Saída', (l) => (l.valor < 0 ? `<span class="val-saida">${brl(Math.abs(l.valor))}</span>` : '')],
+      ['Saldo', (l) => `<b>${brl(l.saldo)}</b>`],
+    ], 'Sem movimentações neste mês.');
+  }
+  document.getElementById('banco').addEventListener('change', listar);
+  document.getElementById('mes').addEventListener('change', listar);
+  listar();
 };
 
 // ─── Exportar relatório (formato contábil) ───

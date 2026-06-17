@@ -30,6 +30,58 @@ router.post('/', async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
+// Extrato bancário: movimentações realizadas (entradas recebidas + saídas pagas) de um banco no mês
+router.get('/:id/extrato', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  const id = req.params.id;
+  const mes = req.query.mes || new Date().toISOString().slice(0, 7);
+  const ini = mes + '-01';
+
+  const { rows: brows } = await db.query(
+    'SELECT * FROM bancos WHERE id=$1 AND igreja_id=$2', [id, igreja_id]);
+  if (!brows.length) return res.status(404).json({ erro: 'Banco não encontrado' });
+  const banco = brows[0];
+
+  // Saldo antes do mês (saldo inicial + movimentações realizadas anteriores)
+  const { rows: ar } = await db.query(
+    `SELECT COALESCE(SUM(CASE WHEN tipo='entrada' AND situacao='recebido' THEN valor
+                              WHEN tipo='saida'   AND situacao='pago'     THEN -valor ELSE 0 END),0) AS saldo
+     FROM lancamentos
+     WHERE banco_id=$1 AND igreja_id=$2 AND data < $3`,
+    [id, igreja_id, ini]
+  );
+  const saldoAnterior = Number(banco.saldo_inicial) + Number(ar[0].saldo);
+
+  const { rows: mov } = await db.query(
+    `SELECT l.id, l.tipo, l.data, l.valor, l.descricao, l.detalhes, l.tipo_gasto, l.parcela_label,
+            m.nome AS membro_nome, l.visitante, f.nome AS fornecedor_nome, cc.nome AS centro_nome
+     FROM lancamentos l
+     LEFT JOIN membros m ON m.id = l.membro_id
+     LEFT JOIN fornecedores f ON f.id = l.fornecedor_id
+     LEFT JOIN centros_custo cc ON cc.id = l.centro_custo_id
+     WHERE l.banco_id=$1 AND l.igreja_id=$2
+       AND date_trunc('month', l.data) = date_trunc('month', $3::date)
+       AND ((l.tipo='entrada' AND l.situacao='recebido') OR (l.tipo='saida' AND l.situacao='pago'))
+     ORDER BY l.data ASC, l.id ASC`,
+    [id, igreja_id, ini]
+  );
+
+  let saldo = saldoAnterior;
+  const movimentos = mov.map((l) => {
+    const valor = l.tipo === 'entrada' ? Number(l.valor) : -Number(l.valor);
+    saldo += valor;
+    const desc = l.tipo === 'entrada'
+      ? `${l.tipo_gasto} — ${l.visitante ? 'Visitante' : (l.membro_nome || '')}`
+      : `${l.fornecedor_nome || 'Despesa'}${l.centro_nome ? ' — ' + l.centro_nome : ''}${l.parcela_label ? ' (' + l.parcela_label + ')' : ''}`;
+    return { id: l.id, data: l.data, tipo: l.tipo, descricao: desc.trim(), valor, saldo };
+  });
+
+  res.json({
+    banco: { id: banco.id, nome: banco.nome },
+    mes, saldo_anterior: saldoAnterior, saldo_final: saldo, movimentos,
+  });
+});
+
 router.put('/:id', async (req, res) => {
   const { igreja_id } = req.session.usuario;
   const { nome, agencia, conta, chave_pix, saldo_inicial } = req.body;

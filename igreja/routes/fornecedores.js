@@ -14,24 +14,24 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const { igreja_id } = req.session.usuario;
-  const { nome, telefone, documento, observacao } = req.body;
+  const { nome, telefone, documento, endereco, observacao } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome é obrigatório' });
   const { rows } = await db.query(
-    `INSERT INTO fornecedores (igreja_id, nome, telefone, documento, observacao)
-     VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-    [igreja_id, nome.trim(), telefone || '', documento || '', observacao || '']
+    `INSERT INTO fornecedores (igreja_id, nome, telefone, documento, endereco, observacao)
+     VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+    [igreja_id, nome.trim(), telefone || '', documento || '', endereco || '', observacao || '']
   );
   res.status(201).json(rows[0]);
 });
 
 router.put('/:id', async (req, res) => {
   const { igreja_id } = req.session.usuario;
-  const { nome, telefone, documento, observacao } = req.body;
+  const { nome, telefone, documento, endereco, observacao } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome é obrigatório' });
   await db.query(
-    `UPDATE fornecedores SET nome=$1, telefone=$2, documento=$3, observacao=$4
-     WHERE id=$5 AND igreja_id=$6`,
-    [nome.trim(), telefone || '', documento || '', observacao || '', req.params.id, igreja_id]
+    `UPDATE fornecedores SET nome=$1, telefone=$2, documento=$3, endereco=$4, observacao=$5
+     WHERE id=$6 AND igreja_id=$7`,
+    [nome.trim(), telefone || '', documento || '', endereco || '', observacao || '', req.params.id, igreja_id]
   );
   res.json({ ok: true });
 });
