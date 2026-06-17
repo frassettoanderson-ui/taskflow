@@ -286,21 +286,14 @@ tbody tr:last-child td { border-bottom: none; }
 .mes-nav { display: flex; align-items: center; gap: 10px; }
 .mes-nav #mes-label { font-family: 'Poppins', sans-serif; font-weight: 600; font-size: 16px; min-width: 150px; text-align: center; }
 .rel-pizza { display: flex; gap: 28px; align-items: center; }
-.rd-legenda { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.rd-legenda { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; align-content: center; }
 .rd-grafico { width: 300px; max-width: 40%; }
-.leg-item {
-  display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px;
-  background: none; border: 1px solid transparent; color: var(--text); cursor: pointer;
-  box-shadow: none; text-align: left; width: 100%; font-size: 14px; transition: background .14s, border-color .14s;
-}
-.leg-item:hover { background: var(--surface-2); transform: none; }
-.leg-item.ativo { background: var(--surface-2); border-color: var(--border-2); }
+.leg-item2 { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text); }
 .leg-cor { width: 14px; height: 14px; border-radius: 4px; flex-shrink: 0; }
 .leg-nome { flex: 1; }
-.leg-val { font-weight: 600; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
-.leg-val small { color: var(--faint); font-weight: 400; font-size: 11px; }
 @media (max-width: 720px) {
   .rel-pizza { flex-direction: column-reverse; }
+  .rd-legenda { grid-template-columns: 1fr; }
   .rd-grafico { width: 220px; max-width: 80%; }
 }
 

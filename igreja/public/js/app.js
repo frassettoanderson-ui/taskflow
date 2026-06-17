@@ -1315,116 +1315,117 @@ const CORES_CAT = ['#60a5fa', '#f87171', '#4ade80', '#fbbf24', '#a78bfa', '#22d3
 
 VIEWS['relatorio-despesas'] = async () => {
   let _mes = mesISO();
-  let _grupos = [];
-  let _sel = null;       // categoria selecionada (nome) para o detalhe
+  let _saidas = [];
   let _chart = null;
 
-  app.innerHTML = `<div class="painel">
-    <h2>Despesas por categoria</h2>
-    <div class="toolbar">
-      <div class="mes-nav">
-        <button class="strip-arrow" id="mes-prev">‹</button>
-        <span id="mes-label"></span>
-        <button class="strip-arrow" id="mes-next">›</button>
+  app.innerHTML = `
+    <div class="strip-wrap">
+      <button class="strip-arrow" id="strip-prev">‹</button>
+      <div class="month-strip" id="strip"></div>
+      <button class="strip-arrow" id="strip-next">›</button>
+    </div>
+    <div class="painel">
+      <h2>Despesas por categoria <small id="lbl-mes"></small></h2>
+      <div class="rel-pizza">
+        <div class="rd-legenda" id="legenda"></div>
+        <div class="rd-grafico"><canvas id="g-pizza"></canvas></div>
       </div>
-      <select id="filtro-cat"><option value="">Todas as categorias</option></select>
     </div>
-    <div class="rel-pizza">
-      <div class="rd-legenda" id="legenda"></div>
-      <div class="rd-grafico"><canvas id="g-pizza"></canvas></div>
-    </div>
-  </div>
-  <div class="painel" id="painel-detalhe" style="display:none">
-    <h2 id="det-titulo">Detalhe</h2>
-    <div id="det-lista"></div>
-  </div>`;
+    <div class="painel">
+      <h2>Despesas detalhadas</h2>
+      <div class="toolbar">
+        <select id="filtro-cat"><option value="">Todos os centros de custo</option></select>
+      </div>
+      <div id="lista"></div>
+    </div>`;
 
-  const elLabel = document.getElementById('mes-label');
-  document.getElementById('mes-prev').addEventListener('click', () => mudarMes(-1));
-  document.getElementById('mes-next').addEventListener('click', () => mudarMes(1));
-  document.getElementById('filtro-cat').addEventListener('change', (e) => { _sel = e.target.value || null; render(); });
+  document.getElementById('strip-prev').addEventListener('click', () =>
+    document.getElementById('strip').scrollBy({ left: -260, behavior: 'smooth' }));
+  document.getElementById('strip-next').addEventListener('click', () =>
+    document.getElementById('strip').scrollBy({ left: 260, behavior: 'smooth' }));
+  document.getElementById('filtro-cat').addEventListener('change', renderLista);
 
-  function mudarMes(delta) {
-    let [y, m] = _mes.split('-').map(Number);
-    m += delta; if (m < 1) { m = 12; y--; } if (m > 12) { m = 1; y++; }
-    _mes = `${y}-${String(m).padStart(2, '0')}`;
-    _sel = null;
-    carregar();
+  // Bloco 1: régua de meses (só despesas ↓)
+  async function carregarStrip() {
+    const d = await getJSON('dashboard?mes=' + _mes);
+    document.getElementById('strip').innerHTML = d.meses.map((m) => {
+      const mm = Number(m.mes.split('-')[1]);
+      const ativo = m.mes === _mes ? ' ativo' : '';
+      return `<button class="ms${ativo}" data-mes="${m.mes}">
+        <span class="ms-nome">${nomeMes(mm)} ${String(d.ano).slice(2)}</span>
+        <span class="ms-tot"><span class="down">↓${kfmt(m.saidas)}</span></span>
+      </button>`;
+    }).join('');
+    document.querySelectorAll('.ms').forEach((b) =>
+      b.addEventListener('click', () => { _mes = b.dataset.mes; recarregar(); }));
+    const at = document.querySelector('.ms.ativo');
+    if (at) at.scrollIntoView({ inline: 'center', block: 'nearest' });
   }
 
-  async function carregar() {
-    const [y, m] = _mes.split('-').map(Number);
-    elLabel.textContent = `${MESES_FULL[m - 1]} ${y}`;
-    const saidas = await getJSON('lancamentos?tipo=saida&mes=' + _mes);
+  async function recarregar() {
+    document.getElementById('lbl-mes').textContent =
+      nomeMes(Number(_mes.split('-')[1])) + ' ' + _mes.split('-')[0];
+    await carregarStrip();
+    _saidas = await getJSON('lancamentos?tipo=saida&mes=' + _mes);
 
+    // agrupa por centro de custo
     const mapa = {};
-    saidas.forEach((s) => {
-      const nome = s.centro_custo_nome || 'Sem centro de custo';
-      if (!mapa[nome]) mapa[nome] = { nome, total: 0, itens: [] };
-      mapa[nome].total += Number(s.valor);
-      mapa[nome].itens.push(s);
+    _saidas.forEach((s) => {
+      const n = s.centro_custo_nome || 'Sem centro de custo';
+      if (!mapa[n]) mapa[n] = { nome: n, total: 0 };
+      mapa[n].total += Number(s.valor);
     });
-    _grupos = Object.values(mapa).sort((a, b) => b.total - a.total);
+    const grupos = Object.values(mapa).sort((a, b) => b.total - a.total);
 
-    // preenche filtro de categorias
-    const fc = document.getElementById('filtro-cat');
-    fc.innerHTML = '<option value="">Todas as categorias</option>' +
-      _grupos.map((g) => `<option value="${esc(g.nome)}">${esc(g.nome)}</option>`).join('');
-    fc.value = _sel || '';
-    render();
-  }
+    // Bloco 2: legenda (top 10, nome + cor) + pizza (todas)
+    const top = grupos.slice(0, 10);
+    document.getElementById('legenda').innerHTML = top.length
+      ? top.map((g, i) => `<div class="leg-item2"><span class="leg-cor" style="background:${CORES_CAT[i % CORES_CAT.length]}"></span><span class="leg-nome">${esc(g.nome)}</span></div>`).join('')
+      : '<p class="vazio">Sem despesas neste mês.</p>';
 
-  function render() {
-    const total = _grupos.reduce((s, g) => s + g.total, 0);
-
-    // legenda
-    document.getElementById('legenda').innerHTML = _grupos.length
-      ? _grupos.map((g, i) => `<button class="leg-item${_sel === g.nome ? ' ativo' : ''}" data-cat="${esc(g.nome)}">
-          <span class="leg-cor" style="background:${CORES_CAT[i % CORES_CAT.length]}"></span>
-          <span class="leg-nome">${esc(g.nome)}</span>
-          <span class="leg-val">${brl(g.total)}<small>${total ? Math.round(g.total / total * 100) : 0}%</small></span>
-        </button>`).join('')
-      : '<p class="vazio">Nenhuma despesa neste mês.</p>';
-    document.querySelectorAll('.leg-item').forEach((b) =>
-      b.addEventListener('click', () => { _sel = b.dataset.cat; document.getElementById('filtro-cat').value = _sel; render(); }));
-
-    // pizza
     if (_chart) { _chart.destroy(); _chart = null; }
-    if (_grupos.length) {
+    if (grupos.length) {
       _chart = new Chart(document.getElementById('g-pizza'), {
         type: 'doughnut',
         data: {
-          labels: _grupos.map((g) => g.nome),
-          datasets: [{ data: _grupos.map((g) => g.total), backgroundColor: _grupos.map((_, i) => CORES_CAT[i % CORES_CAT.length]), borderWidth: 0 }],
+          labels: grupos.map((g) => g.nome),
+          datasets: [{ data: grupos.map((g) => g.total), backgroundColor: grupos.map((_, i) => CORES_CAT[i % CORES_CAT.length]), borderWidth: 0 }],
         },
         options: {
-          cutout: '55%', plugins: { legend: { display: false } },
-          onClick: (evt, els) => { if (els.length) { _sel = _grupos[els[0].index].nome; document.getElementById('filtro-cat').value = _sel; render(); } },
+          cutout: '55%',
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (ctx) => ` ${ctx.label}: ${brl(ctx.parsed)}` } },
+          },
         },
       });
     }
 
-    // detalhe (extrato) da categoria selecionada
-    const pd = document.getElementById('painel-detalhe');
-    if (_sel) {
-      const g = _grupos.find((x) => x.nome === _sel);
-      pd.style.display = 'block';
-      document.getElementById('det-titulo').innerHTML = `${esc(_sel)} <small style="color:var(--muted);font-weight:400">— ${brl(g ? g.total : 0)}</small>`;
-      const itens = g ? [...g.itens].sort((a, b) => a.data.localeCompare(b.data)) : [];
-      document.getElementById('det-lista').innerHTML = tabela(itens, [
-        ['Data', (i) => dataBR(i.data)],
-        ['Fornecedor', (i) => esc(i.fornecedor_nome || '—')],
-        ['Parcela', (i) => i.parcela_label || (i.parcelamento === 'Recorrente' ? 'Recorrente' : 'À vista')],
-        ['Banco', (i) => esc(i.banco_nome)],
-        ['Situação', (i) => i.situacao === 'pago' ? '<span class="badge pago">Paga</span>' : '<span class="badge pendente">Pendente</span>'],
-        ['Valor', (i) => `<span class="val-saida">${brl(i.valor)}</span>`],
-      ], 'Sem lançamentos.');
-    } else {
-      pd.style.display = 'none';
-    }
+    // filtro de centro de custo (mantém seleção atual se ainda existir)
+    const fc = document.getElementById('filtro-cat');
+    const cur = fc.value;
+    fc.innerHTML = '<option value="">Todos os centros de custo</option>' +
+      grupos.map((g) => `<option value="${esc(g.nome)}">${esc(g.nome)}</option>`).join('');
+    fc.value = grupos.some((g) => g.nome === cur) ? cur : '';
+    renderLista();
   }
 
-  carregar();
+  // Bloco 3: lista de despesas (filtro por centro de custo)
+  function renderLista() {
+    const cat = document.getElementById('filtro-cat').value;
+    let itens = _saidas.slice();
+    if (cat) itens = itens.filter((s) => (s.centro_custo_nome || 'Sem centro de custo') === cat);
+    itens.sort((a, b) => a.data.localeCompare(b.data));
+    document.getElementById('lista').innerHTML = tabela(itens, [
+      ['Data', (s) => dataBR(s.data)],
+      ['Despesa', (s) => esc(s.fornecedor_nome || '—')],
+      ['Centro de custo', (s) => esc(s.centro_custo_nome || '—')],
+      ['Situação', (s) => s.situacao === 'pago' ? '<span class="badge pago">Paga</span>' : '<span class="badge pendente">Pendente</span>'],
+      ['Valor', (s) => `<span class="val-saida">${brl(s.valor)}</span>`],
+    ], 'Nenhuma despesa neste mês.');
+  }
+
+  recarregar();
 };
 
 // ─── Relatórios: Dízimos / Ofertas (por membro, com período) ───
