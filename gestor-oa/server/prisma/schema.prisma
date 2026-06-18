@@ -790,6 +790,12 @@ model AssinaturaDocumento {
   aoReenviar    String   @default("Rep.D.A.A.")    // comportamento ao reenviar
   semDemanda    String   @default("Cria")          // quando nao ha demanda correspondente
   exemploArquivo String?                           // PDF de exemplo da guia reconhecida
+  miniNomeLocal String?                            // Mini-Nome local (ex.: PRESUMIDO)
+  caminhoLocal  String?                            // Caminho local (pastas para salvar)
+  anteciparVcto Boolean  @default(true)            // antecipar vcto em dias nao-uteis
+  msgAlertaAntecipado String?                      // mensagem de alerta de pagamento antecipado
+  consideraVcto Boolean  @default(true)            // considera vcto do documento
+  obrigacoesCorrespondentes Json @default("[]")    // obrigacoes correspondentes (varias)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

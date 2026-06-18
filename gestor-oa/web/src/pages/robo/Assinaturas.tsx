@@ -1,27 +1,24 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Plus, FileText, Pencil, Settings } from 'lucide-react';
-import { api, ApiError, getAccessToken } from '../../lib/api';
+import { api, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Modal, Spinner, useToast } from '../../components/ui';
+import { Spinner, useToast } from '../../components/ui';
 import type { AssinaturaDocumento, Obrigacao } from '../../lib/tipos';
 
-const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
-const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
-
-const OPC_ENVIA = ['Imediato', 'Agendado', 'Nao'];
-const OPC_REENVIAR = ['Rep.D.A.A.', 'Rep.M.A.A.'];
-const OPC_SEM_DEMANDA = ['Cria', 'Ignora'];
+const shortEnvia = (v?: string) => { const x = (v ?? 'Imediato').replace('Sim - ', ''); return x === 'Nao' ? 'Nao' : x; };
+const shortReenvio = (v?: string) => !v ? 'Rep.D.A.A.' : /mant/i.test(v) ? 'Rep.M.A.A.' : /desativa/i.test(v) ? 'Rep.D.A.A.' : v;
+const shortSemDemanda = (v?: string) => !v ? 'Cria' : /ignor/i.test(v) ? 'Ignora' : /criar/i.test(v) ? 'Cria' : v;
 
 export default function Assinaturas() {
   const { sessao } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
   const [itens, setItens] = useState<AssinaturaDocumento[]>([]);
   const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
   const [office, setOffice] = useState('');
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<AssinaturaDocumento | null>(null);
-  const [novo, setNovo] = useState(false);
   const [busca, setBusca] = useState('');
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [aberto, setAberto] = useState(false);
@@ -44,27 +41,16 @@ export default function Assinaturas() {
   const opcoes = useMemo(() => {
     const nomes = new Set<string>([...obrigacoes.map((o) => o.nome), ...itens.map((i) => i.obrigacaoNome)]);
     const q = busca.trim().toLowerCase();
-    return [...nomes]
-      .filter((n) => n && !selecionados.includes(n) && (!q || n.toLowerCase().includes(q)))
-      .sort((a, b) => a.localeCompare(b));
+    return [...nomes].filter((n) => n && !selecionados.includes(n) && (!q || n.toLowerCase().includes(q))).sort((a, b) => a.localeCompare(b));
   }, [obrigacoes, itens, busca, selecionados]);
 
   async function verExemplo(a: AssinaturaDocumento) {
     if (!a.exemploArquivo) { toast('erro', 'Essa entrega ainda nao tem PDF de exemplo. Edite e anexe um.'); return; }
     try {
-      const res = await fetch(`/api/v1/assinaturas/${a.id}/exemplo`, {
-        headers: { Authorization: `Bearer ${getAccessToken()}` }, credentials: 'include',
-      });
+      const res = await fetch(`/api/v1/assinaturas/${a.id}/exemplo`, { headers: { Authorization: `Bearer ${getAccessToken()}` }, credentials: 'include' });
       if (!res.ok) throw new Error();
-      const blob = await res.blob();
-      window.open(URL.createObjectURL(blob), '_blank');
+      window.open(URL.createObjectURL(await res.blob()), '_blank');
     } catch { toast('erro', 'Nao foi possivel abrir o exemplo.'); }
-  }
-
-  async function excluir(a: AssinaturaDocumento) {
-    if (!confirm(`Excluir "${a.nome}"?`)) return;
-    try { await api.del(`/assinaturas/${a.id}`); toast('ok', 'Excluida.'); carregar(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
 
   if (loading) return <Spinner />;
@@ -82,7 +68,7 @@ export default function Assinaturas() {
         <input className="w-48 rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" placeholder="Central de ajuda" disabled />
       </div>
 
-      {/* Barra de busca (combobox multi de obrigacoes) + filtrar */}
+      {/* Combobox multi de obrigacoes + filtrar */}
       <div className="mb-3 flex items-start gap-3">
         <div className="relative flex-1">
           <div className="flex flex-wrap items-center gap-1 rounded border border-marca-300 bg-white px-2 py-1.5">
@@ -103,19 +89,14 @@ export default function Assinaturas() {
           {aberto && opcoes.length > 0 && (
             <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded border border-slate-200 bg-white shadow-lg">
               {opcoes.map((o) => (
-                <button key={o} onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { setSelecionados((x) => [...x, o]); setBusca(''); }}
-                  className="block w-full px-3 py-1.5 text-left text-[13px] text-marca-700 hover:bg-marca-500 hover:text-white">
-                  {o}
-                </button>
+                <button key={o} onMouseDown={(e) => e.preventDefault()} onClick={() => { setSelecionados((x) => [...x, o]); setBusca(''); }}
+                  className="block w-full px-3 py-1.5 text-left text-[13px] text-marca-700 hover:bg-marca-500 hover:text-white">{o}</button>
               ))}
             </div>
           )}
         </div>
         <div className="flex items-center px-1 py-2 text-[13px] text-marca-600">Listando {filtrados.length} registro(s)</div>
-        <button onClick={() => setAberto(false)} className="flex items-center gap-2 rounded bg-status-ok px-6 py-2 text-sm font-medium text-white hover:bg-emerald-600">
-          <Search size={15} /> Filtrar
-        </button>
+        <button onClick={() => setAberto(false)} className="flex items-center gap-2 rounded bg-status-ok px-6 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={15} /> Filtrar</button>
       </div>
 
       {/* Tabela */}
@@ -135,21 +116,19 @@ export default function Assinaturas() {
             {filtrados.map((a) => (
               <tr key={a.id} className="hover:bg-slate-50">
                 <td className="px-4 py-2.5">
-                  <button onClick={() => podeGerenciar ? setEditando(a) : undefined} className="text-status-danger hover:underline">{a.nome}</button>
+                  <button onClick={() => navigate(`/robo/assinaturas/${a.id}`)} className="text-status-danger hover:underline">{a.nome}</button>
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="flex items-center gap-1.5 text-slate-600">
-                    <button onClick={() => verExemplo(a)} title="Visualizar exemplo de guia que e reconhecida nesse entrega" className={a.exemploArquivo ? 'text-status-ok hover:opacity-70' : 'text-slate-300'}>
-                      <FileText size={15} />
-                    </button>
-                    {podeGerenciar && <button onClick={() => setEditando(a)} className="text-marca-500 hover:text-marca-700"><Pencil size={13} /></button>}
+                    <button onClick={() => verExemplo(a)} title="Visualizar exemplo de guia que e reconhecida nesse entrega" className={a.exemploArquivo ? 'text-status-ok hover:opacity-70' : 'text-slate-300'}><FileText size={15} /></button>
+                    <button onClick={() => navigate(`/robo/assinaturas/${a.id}`)} title="Editar obrigacoes correspondentes" className="text-marca-500 hover:text-marca-700"><Pencil size={13} /></button>
                     {a.obrigacaoNome}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-slate-600">{a.enviaEmail ?? 'Imediato'}</td>
+                <td className="px-4 py-2.5 text-slate-600">{shortEnvia(a.enviaEmail)}</td>
                 <td className="px-4 py-2.5 text-slate-600">{a.copiaLocal === false ? 'Nao' : 'Sim'}</td>
-                <td className="px-4 py-2.5 text-slate-600">{a.aoReenviar ?? 'Rep.D.A.A.'}</td>
-                <td className="px-4 py-2.5 text-slate-600">{a.semDemanda ?? 'Cria'}</td>
+                <td className="px-4 py-2.5 text-slate-600">{shortReenvio(a.aoReenviar)}</td>
+                <td className="px-4 py-2.5 text-slate-600">{shortSemDemanda(a.semDemanda)}</td>
               </tr>
             ))}
             {filtrados.length === 0 && <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-400">Nenhum registro na base de conhecimento.</td></tr>}
@@ -165,119 +144,11 @@ export default function Assinaturas() {
 
       {/* FAB novo */}
       {podeGerenciar && (
-        <button onClick={() => setNovo(true)} title="Nova entrega automatizada"
+        <button onClick={() => navigate('/robo/assinaturas/novo')} title="Nova entrega automatizada"
           className="fixed bottom-6 right-6 flex h-12 w-12 items-center justify-center rounded-full bg-marca-500 text-white shadow-lg hover:bg-marca-600">
           <Plus size={22} />
         </button>
       )}
-
-      {(novo || editando) && (
-        <AssinaturaModal assinatura={editando} obrigacoes={obrigacoes} onFechar={() => { setNovo(false); setEditando(null); }} onSalvo={() => { setNovo(false); setEditando(null); carregar(); }} />
-      )}
     </div>
-  );
-}
-
-function AssinaturaModal({ assinatura, obrigacoes, onFechar, onSalvo }: {
-  assinatura: AssinaturaDocumento | null; obrigacoes: Obrigacao[]; onFechar: () => void; onSalvo: () => void;
-}) {
-  const toast = useToast();
-  const [nome, setNome] = useState(assinatura?.nome ?? '');
-  const [obrigacaoNome, setObrigacaoNome] = useState(assinatura?.obrigacaoNome ?? '');
-  const [palavras, setPalavras] = useState((assinatura?.palavras ?? []).join('\n'));
-  const [regexCompetencia, setRegexCompetencia] = useState(assinatura?.regexCompetencia ?? '');
-  const [ativo, setAtivo] = useState(assinatura?.ativo ?? true);
-  const [enviaEmail, setEnviaEmail] = useState(assinatura?.enviaEmail ?? 'Imediato');
-  const [copiaLocal, setCopiaLocal] = useState(assinatura?.copiaLocal ?? true);
-  const [aoReenviar, setAoReenviar] = useState(assinatura?.aoReenviar ?? 'Rep.D.A.A.');
-  const [semDemanda, setSemDemanda] = useState(assinatura?.semDemanda ?? 'Cria');
-  const [temExemplo, setTemExemplo] = useState(!!assinatura?.exemploArquivo);
-  const [salvando, setSalvando] = useState(false);
-
-  async function enviarExemplo(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !assinatura) return;
-    const fd = new FormData(); fd.append('arquivo', file);
-    try { await api.upload(`/assinaturas/${assinatura.id}/exemplo`, fd); setTemExemplo(true); toast('ok', 'Exemplo anexado.'); }
-    catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro no upload (use PDF).'); }
-  }
-
-  async function salvar() {
-    setSalvando(true);
-    try {
-      const payload = {
-        nome, obrigacaoNome,
-        palavras: palavras.split('\n').map((p) => p.trim()).filter(Boolean),
-        regexCompetencia: regexCompetencia || null, ativo,
-        enviaEmail, copiaLocal, aoReenviar, semDemanda,
-      };
-      if (assinatura) await api.put(`/assinaturas/${assinatura.id}`, payload);
-      else await api.post('/assinaturas', payload);
-      toast('ok', 'Salvo.');
-      onSalvo();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-
-  return (
-    <Modal aberto titulo={assinatura ? 'Editar entrega automatizada' : 'Nova entrega automatizada'} onFechar={onFechar}>
-      <div className="space-y-3">
-        <div><label className={LBL}>Descricao da entrega automatizada</label><input className={INP} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="[PRESUMIDO] DARE (SC - IE - Cod. 1449)" /></div>
-        <div>
-          <label className={LBL}>Obrigacao correspondente</label>
-          <select className={INP} value={obrigacaoNome} onChange={(e) => setObrigacaoNome(e.target.value)}>
-            <option value="">Selecione</option>
-            {obrigacoes.map((o) => <option key={o.id} value={o.nome}>{o.nome}</option>)}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={LBL}>Envia e-mail?</label>
-            <select className={INP} value={enviaEmail} onChange={(e) => setEnviaEmail(e.target.value)}>{OPC_ENVIA.map((o) => <option key={o}>{o}</option>)}</select>
-          </div>
-          <div>
-            <label className={LBL}>Copia local?</label>
-            <select className={INP} value={copiaLocal ? 'Sim' : 'Nao'} onChange={(e) => setCopiaLocal(e.target.value === 'Sim')}><option>Sim</option><option>Nao</option></select>
-          </div>
-          <div>
-            <label className={LBL}>Ao reenviar</label>
-            <select className={INP} value={aoReenviar} onChange={(e) => setAoReenviar(e.target.value)}>{OPC_REENVIAR.map((o) => <option key={o}>{o}</option>)}</select>
-          </div>
-          <div>
-            <label className={LBL}>Sem demanda</label>
-            <select className={INP} value={semDemanda} onChange={(e) => setSemDemanda(e.target.value)}>{OPC_SEM_DEMANDA.map((o) => <option key={o}>{o}</option>)}</select>
-          </div>
-        </div>
-        <div>
-          <label className={LBL}>Assinaturas / palavras-chave (uma por linha — todas devem casar)</label>
-          <textarea className={`${INP} font-mono`} rows={4} value={palavras} onChange={(e) => setPalavras(e.target.value)} placeholder={'DARE\nICMS'} />
-        </div>
-        <div>
-          <label className={LBL}>Regex da competencia (opcional)</label>
-          <input className={`${INP} font-mono`} value={regexCompetencia} onChange={(e) => setRegexCompetencia(e.target.value)} placeholder="periodo de apuracao\\s*:?\\s*(\\d{2}/\\d{4})" />
-        </div>
-        <div>
-          <label className={LBL}>Exemplo de guia reconhecida (PDF)</label>
-          {assinatura ? (
-            <div className="flex items-center gap-3">
-              <input type="file" accept="application/pdf" onChange={enviarExemplo} className="block text-[12px] file:mr-2 file:rounded file:border-0 file:bg-marca-500 file:px-3 file:py-1 file:text-white" />
-              {temExemplo && <span className="text-[12px] text-status-ok">✓ exemplo anexado</span>}
-            </div>
-          ) : (
-            <p className="text-[12px] text-slate-400">Salve a entrega primeiro para anexar o PDF de exemplo.</p>
-          )}
-        </div>
-        <label className="flex items-center gap-2 text-[12px] text-slate-600"><input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} /> Ativa</label>
-        <div className="flex justify-between gap-2 pt-1">
-          <div>
-            {assinatura && <button className="text-[12px] text-red-500 hover:underline" onClick={() => { onFechar(); }}>Fechar</button>}
-          </div>
-          <div className="flex gap-2">
-            <button className="rounded bg-slate-200 px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-300" onClick={onFechar}>Cancelar</button>
-            <button className="rounded bg-status-ok px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
-          </div>
-        </div>
-      </div>
-    </Modal>
   );
 }

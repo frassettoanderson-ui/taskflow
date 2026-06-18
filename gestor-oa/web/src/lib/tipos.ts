@@ -462,6 +462,12 @@ export interface AssinaturaDocumento {
   aoReenviar?: string;
   semDemanda?: string;
   exemploArquivo?: string | null;
+  miniNomeLocal?: string | null;
+  caminhoLocal?: string | null;
+  anteciparVcto?: boolean;
+  msgAlertaAntecipado?: string | null;
+  consideraVcto?: boolean;
+  obrigacoesCorrespondentes?: string[];
 }
 
 export interface RoboPainel {

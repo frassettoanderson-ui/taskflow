@@ -33,6 +33,7 @@ import Caixa from './pages/robo/Caixa';
 import Revisao from './pages/robo/Revisao';
 import PainelRobo from './pages/robo/PainelRobo';
 import Assinaturas from './pages/robo/Assinaturas';
+import AssinaturaForm from './pages/robo/AssinaturaForm';
 import Processos from './pages/processos/Processos';
 import ProcessoFicha from './pages/processos/ProcessoFicha';
 import Matrizes from './pages/processos/Matrizes';
@@ -104,6 +105,8 @@ export default function App() {
         <Route path="robo/revisao" element={<Revisao />} />
         <Route path="robo/painel" element={<PainelRobo />} />
         <Route path="robo/assinaturas" element={<Assinaturas />} />
+        <Route path="robo/assinaturas/novo" element={<AssinaturaForm />} />
+        <Route path="robo/assinaturas/:id" element={<AssinaturaForm />} />
         <Route path="processos" element={<Processos />} />
         <Route path="processos/matrizes" element={<Matrizes />} />
         <Route path="processos/:id" element={<ProcessoFicha />} />
