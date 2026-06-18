@@ -57,6 +57,24 @@ section { position: relative; }
 [data-img="adoracao-1"] { background-image: linear-gradient(180deg, rgba(7,7,8,.3), rgba(7,7,8,.7)), url('https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?auto=format&fit=crop&w=1000&q=70'); }
 [data-img="adoracao-2"] { background-image: linear-gradient(180deg, rgba(7,7,8,.3), rgba(7,7,8,.7)), url('https://images.unsplash.com/photo-1516455590571-18256e5bb9ff?auto=format&fit=crop&w=1000&q=70'); }
 [data-img="oracao-1"]   { background-image: linear-gradient(180deg, rgba(7,7,8,.3), rgba(7,7,8,.7)), url('https://images.unsplash.com/photo-1507692049790-de58290a4334?auto=format&fit=crop&w=1000&q=70'); }
+[data-img="hero"]       { background-image: linear-gradient(180deg, rgba(7,7,8,.15), rgba(7,7,8,.4)), url('../img/hero.JPG'); }
+
+/* ════════════════════════════════════════════════
+   ZOOM PARALLAX (scroll-driven)
+   ════════════════════════════════════════════════ */
+.zoom-parallax { height: 300vh; position: relative; background: var(--ink); }
+.zoom-sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.zp-title { position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; will-change: opacity; }
+.zp-title h2 { font-size: clamp(2rem, 5vw, 3.4rem); }
+.zp-title h2 em { color: var(--gold-2); font-weight: 400; }
+.zp-el { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; will-change: transform; }
+.zp-img { position: relative; height: 25vh; width: 25vw; border-radius: 12px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+.zp-img.p1 { height: 30vh; width: 35vw; top: -30vh; left: 5vw; }
+.zp-img.p2 { height: 45vh; width: 20vw; top: -10vh; left: -25vw; }
+.zp-img.p3 { height: 25vh; width: 25vw; left: 27.5vw; }
+.zp-img.p4 { height: 25vh; width: 20vw; top: 27.5vh; left: 5vw; }
+.zp-img.p5 { height: 25vh; width: 30vw; top: 27.5vh; left: -22.5vw; }
+.zp-img.p6 { height: 15vh; width: 15vw; top: 22.5vh; left: 25vw; }
 
 /* ════════════════════════════════════════════════
    NAV
@@ -248,4 +266,9 @@ section { position: relative; }
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .01ms !important; }
   .reveal { opacity: 1; transform: none; }
   html { scroll-behavior: auto; }
+  /* sem zoom-scroll: vira um banner simples */
+  .zoom-parallax { height: 70vh; }
+  .zoom-sticky { position: relative; height: 70vh; }
+  .zp-el { transform: none !important; } .zp-el:not(:first-child) { display: none; }
+  .zp-img { height: 100%; width: 100%; border-radius: 0; }
 }

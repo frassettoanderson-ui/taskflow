@@ -42,6 +42,31 @@ const ioCount = new IntersectionObserver((entries) => {
 }, { threshold: 0.6 });
 document.querySelectorAll('[data-count]').forEach((el) => ioCount.observe(el));
 
+// ── Zoom Parallax (colagem que dá zoom no scroll) ──
+const zp = document.querySelector('.zoom-parallax');
+if (zp && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const els = zp.querySelectorAll('.zp-el');
+  const title = zp.querySelector('.zp-title');
+  const maxScales = [4, 5, 6, 5, 6, 8, 9];
+  let ticking = false;
+  const update = () => {
+    const rect = zp.getBoundingClientRect();
+    const total = rect.height - window.innerHeight;
+    let p = total > 0 ? -rect.top / total : 0;
+    p = Math.max(0, Math.min(1, p));
+    els.forEach((el, i) => {
+      const m = maxScales[i % maxScales.length];
+      el.style.transform = `scale(${1 + p * (m - 1)})`;
+    });
+    if (title) title.style.opacity = String(Math.max(0, 1 - p * 2.5));
+    ticking = false;
+  };
+  const onScrollZP = () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } };
+  update();
+  window.addEventListener('scroll', onScrollZP, { passive: true });
+  window.addEventListener('resize', update);
+}
+
 // ── Parallax sutil no hero ──
 const heroBg = document.querySelector('[data-parallax]');
 if (heroBg && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
