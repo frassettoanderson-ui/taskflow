@@ -2,7 +2,7 @@ import { prisma } from '../../prisma.js';
 import { Errors } from '../../lib/errors.js';
 import { hashPassword } from '../../lib/password.js';
 import { sanitizePermissions } from '../../lib/permissions.js';
-import type { JanelaAcesso, PermissionFlag } from '@gestoroa/shared';
+import { nivelParaFlags, flagsParaNiveis, type JanelaAcesso, type PermissionFlag, type PermissionNiveis } from '@gestoroa/shared';
 
 interface FiltrosForcados {
   departamentos?: string[];
@@ -29,6 +29,9 @@ function publico(u: {
       if (typeof v === 'boolean') permissoes[k] = v;
     }
   }
+  // niveis: usa o salvo; se vazio (usuario antigo), deriva das flags
+  const niveisSalvos = (u.permissao?.niveis as PermissionNiveis | undefined) ?? {};
+  const niveis = Object.keys(niveisSalvos).length > 0 ? niveisSalvos : flagsParaNiveis(permissoes as never);
   const custo = u.custoHora == null ? null : typeof u.custoHora === 'number' ? u.custoHora : u.custoHora.toNumber();
   return {
     id: u.id,
@@ -43,6 +46,7 @@ function publico(u: {
     horariosAcesso: (u.horariosAcesso as JanelaAcesso[]) ?? [],
     filtrosForcados: (u.filtrosForcados as FiltrosForcados) ?? {},
     permissoes,
+    niveis,
   };
 }
 
@@ -77,6 +81,7 @@ export interface CriarUsuarioInput {
   horariosAcesso?: JanelaAcesso[];
   filtrosForcados?: FiltrosForcados;
   permissoes?: Partial<Record<PermissionFlag, boolean>>;
+  niveis?: PermissionNiveis;
 }
 
 export async function criar(escritorioId: string, input: CriarUsuarioInput) {
@@ -85,6 +90,8 @@ export async function criar(escritorioId: string, input: CriarUsuarioInput) {
   });
   if (existe) throw Errors.conflito('Ja existe um usuario com esse e-mail.');
 
+  // niveis tem prioridade: deriva as flags. Sem niveis, usa permissoes (legado).
+  const flags = input.niveis ? nivelParaFlags(input.niveis) : input.permissoes;
   const senhaHash = await hashPassword(input.senha);
   const u = await prisma.usuario.create({
     data: {
@@ -100,7 +107,7 @@ export async function criar(escritorioId: string, input: CriarUsuarioInput) {
       minutosUteisMes: input.minutosUteisMes ?? null,
       horariosAcesso: (input.horariosAcesso ?? []) as object,
       filtrosForcados: (input.filtrosForcados ?? {}) as object,
-      permissao: { create: sanitizePermissions(input.permissoes) },
+      permissao: { create: { ...sanitizePermissions(flags), niveis: (input.niveis ?? {}) as object } },
     },
     include: { permissao: true },
   });
@@ -130,7 +137,14 @@ export async function editar(
     },
   });
 
-  if (input.permissoes) {
+  if (input.niveis) {
+    const dados = sanitizePermissions(nivelParaFlags(input.niveis));
+    await prisma.permissao.upsert({
+      where: { usuarioId: id },
+      create: { usuarioId: id, ...dados, niveis: input.niveis as object },
+      update: { ...dados, niveis: input.niveis as object },
+    });
+  } else if (input.permissoes) {
     const dados = sanitizePermissions(input.permissoes);
     await prisma.permissao.upsert({
       where: { usuarioId: id },

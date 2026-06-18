@@ -58,6 +58,7 @@ const criarSchema = z.object({
   horariosAcesso: z.array(janelaSchema).optional(),
   filtrosForcados: filtrosSchema.optional(),
   permissoes: permissoesSchema.optional(),
+  niveis: z.record(z.number().int().min(0)).optional(),
 });
 
 router.post('/', requirePermission('admin_usuarios'), validate({ body: criarSchema }), async (req, res) => {

@@ -109,6 +109,9 @@ model Permissao {
   usuarioId String  @unique
   usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
+  // Niveis escolhidos por area (estilo Acessorias). As flags abaixo sao derivadas.
+  niveis    Json    @default("{}")
+
   empresas_ver              Boolean @default(false)
   empresas_criar            Boolean @default(false)
   empresas_editar           Boolean @default(false)

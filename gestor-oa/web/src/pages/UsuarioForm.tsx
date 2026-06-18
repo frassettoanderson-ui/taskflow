@@ -5,7 +5,8 @@ import { api, ApiError } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
 import { Spinner, useToast } from '../components/ui';
 import type { UsuarioCompleto, JanelaAcesso } from '../lib/tipos';
-import { PERMISSION_GROUPS, TIPOS_USUARIO } from '../lib/tipos';
+import { TIPOS_USUARIO } from '../lib/tipos';
+import { PERMISSION_AREAS, flagsParaNiveis } from '@gestoroa/shared';
 
 // Classes compactas (flat, fundo cinza) - estilo Acessorias
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
@@ -52,7 +53,7 @@ export default function UsuarioForm() {
   const [ativo, setAtivo] = useState(true);
   const [custoHora, setCustoHora] = useState('');
   const [minutosUteisMes, setMinutosUteisMes] = useState('');
-  const [permissoes, setPermissoes] = useState<Record<string, boolean>>({});
+  const [niveis, setNiveis] = useState<Record<string, number>>({});
   const [depIds, setDepIds] = useState<string[]>([]);
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [blocos, setBlocos] = useState(janelasParaBlocos([]));
@@ -67,15 +68,14 @@ export default function UsuarioForm() {
       setTelefone(u.telefone ?? ''); setObservacoes(u.observacoes ?? ''); setAtivo(u.ativo);
       setCustoHora(u.custoHora != null ? String(u.custoHora) : '');
       setMinutosUteisMes(u.minutosUteisMes != null ? String(u.minutosUteisMes) : '');
-      setPermissoes(u.permissoes ?? {});
+      setNiveis(u.niveis ?? flagsParaNiveis(u.permissoes ?? {}));
       setDepIds(u.filtrosForcados?.departamentos ?? []);
       setTagIds(u.filtrosForcados?.tags ?? []);
       setBlocos(janelasParaBlocos(u.horariosAcesso ?? []));
     }).catch(() => toast('erro', 'Usuario nao encontrado.')).finally(() => setCarregando(false));
   }, [id, novo]);
 
-  function togglePerm(flag: string) { setPermissoes((p) => ({ ...p, [flag]: !p[flag] })); }
-  function marcarGrupo(flags: string[], v: boolean) { setPermissoes((p) => { const n = { ...p }; flags.forEach((f) => (n[f] = v)); return n; }); }
+  function setNivel(areaId: string, v: number) { setNiveis((n) => ({ ...n, [areaId]: v })); }
   function setBloco(chave: 'domingo' | 'semana' | 'sabado', patch: Partial<AcessoBloco>) {
     setBlocos((b) => ({ ...b, [chave]: { ...b[chave], ...patch } }));
   }
@@ -85,7 +85,7 @@ export default function UsuarioForm() {
     setSalvando(true);
     try {
       const payload = {
-        nome, ativo, permissoes, tipo: tipo || null,
+        nome, ativo, niveis, tipo: tipo || null,
         telefone: telefone || null, observacoes: observacoes || null,
         custoHora: custoHora === '' ? null : Number(custoHora),
         minutosUteisMes: minutosUteisMes === '' ? null : Number(minutosUteisMes),
@@ -138,29 +138,18 @@ export default function UsuarioForm() {
       <div className="mt-3 space-y-1">
         <SecaoLink aberto={showPerm} onToggle={() => setShowPerm((v) => !v)} titulo="Permissoes desse usuario" />
         {showPerm && (
-          <div className="space-y-4 rounded border border-slate-200 bg-white p-4">
-            {!podePermissoes && <p className="text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
-            {PERMISSION_GROUPS.map((g) => (
-              <div key={g.grupo}>
-                <div className="mb-1 flex items-center justify-between">
-                  <span className="text-[12px] font-semibold text-slate-700">{g.grupo}</span>
-                  {podePermissoes && (
-                    <span className="flex gap-2 text-xs">
-                      <button className="text-marca-600 hover:underline" onClick={() => marcarGrupo(g.flags.map((f) => f.flag), true)}>todos</button>
-                      <button className="text-slate-400 hover:underline" onClick={() => marcarGrupo(g.flags.map((f) => f.flag), false)}>nenhum</button>
-                    </span>
-                  )}
+          <div className="rounded border border-slate-200 bg-white p-4">
+            {!podePermissoes && <p className="mb-2 text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
+            <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
+              {PERMISSION_AREAS.map((a) => (
+                <div key={a.id}>
+                  <label className={LBL}>{a.label}</label>
+                  <select className={INP} disabled={!podePermissoes} value={niveis[a.id] ?? 0} onChange={(e) => setNivel(a.id, Number(e.target.value))}>
+                    {a.niveis.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
+                  </select>
                 </div>
-                <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-4">
-                  {g.flags.map((f) => (
-                    <label key={f.flag} className="flex items-center gap-2 text-[12px] text-slate-600">
-                      <input type="checkbox" disabled={!podePermissoes} checked={!!permissoes[f.flag]} onChange={() => togglePerm(f.flag)} />
-                      {f.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 

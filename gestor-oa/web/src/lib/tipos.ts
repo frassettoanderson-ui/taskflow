@@ -279,6 +279,7 @@ export interface UsuarioCompleto {
   horariosAcesso: JanelaAcesso[];
   filtrosForcados: { departamentos?: string[]; tags?: string[] };
   permissoes: Record<string, boolean>;
+  niveis?: Record<string, number>;
 }
 
 // Tipos/cargos de colaborador (exibidos entre colchetes na listagem).
