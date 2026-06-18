@@ -88,31 +88,27 @@ export default function ObrigacaoForm() {
   const [avulsaInicio, setAvulsaInicio] = useState(ymAtual);
   const [avulsaFim, setAvulsaFim] = useState(ymAtual);
   const [avulsaLoading, setAvulsaLoading] = useState(false);
-  const [avulsaBusca, setAvulsaBusca] = useState('');
-  const [avulsaResultados, setAvulsaResultados] = useState<{ id: string; razaoSocial: string; nomeFantasia: string | null; cnpj: string | null }[]>([]);
-  const [avulsaListaAberta, setAvulsaListaAberta] = useState(false);
-  const buscaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // painel "Adicionar empresa a essa obrigacao"
+  const [addAberto, setAddAberto] = useState(false);
+  const [addEmpresaId, setAddEmpresaId] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
   }, []);
 
-  function buscarEmpresas(termo: string) {
-    setAvulsaBusca(termo);
-    setAvulsaEmpresaId('');
-    if (buscaTimer.current) clearTimeout(buscaTimer.current);
-    if (termo.trim().length < 1) { setAvulsaResultados([]); setAvulsaListaAberta(false); return; }
-    buscaTimer.current = setTimeout(() => {
-      api.get<{ items: { id: string; razaoSocial: string; nomeFantasia: string | null; cnpj: string | null }[] }>(`/empresas?busca=${encodeURIComponent(termo.trim())}&limit=15`)
-        .then((p) => { setAvulsaResultados(p.items); setAvulsaListaAberta(true); })
-        .catch(() => undefined);
-    }, 300);
-  }
-  function escolherEmpresa(e: { id: string; razaoSocial: string }) {
-    setAvulsaEmpresaId(e.id);
-    setAvulsaBusca(e.razaoSocial);
-    setAvulsaListaAberta(false);
+  async function adicionarEmpresa() {
+    if (!addEmpresaId) return toast('erro', 'Escolha a empresa.');
+    setAddLoading(true);
+    try {
+      await api.post(`/empresa-obrigacoes/empresa/${addEmpresaId}/manual`, { obrigacaoId: id });
+      toast('ok', 'Empresa adicionada a essa obrigacao.');
+      setQtdeEmpresas((n) => n + 1);
+      setAddAberto(false); setAddEmpresaId('');
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao adicionar.'); }
+    finally { setAddLoading(false); }
   }
 
   useEffect(() => {
@@ -205,16 +201,19 @@ export default function ObrigacaoForm() {
         </div>
         <div>
           <label className={LBL}>Departamento e Responsavel</label>
-          <div className="flex gap-1">
-            <select className={INP} value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)}>
-              <option value="">Depto...</option>
-              {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-            </select>
-            <select className={INP} value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)}>
-              <option value="">Resp...</option>
-              {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-            </select>
-          </div>
+          <select
+            className={INP}
+            value={`${departamentoId}|${responsavelId}`}
+            onChange={(e) => { const [d, u] = e.target.value.split('|'); setDepartamentoId(d); setResponsavelId(u ?? ''); }}
+          >
+            <option value="|">— selecione —</option>
+            {departamentos.map((d) => (
+              <optgroup key={d.id} label={d.nome}>
+                <option value={`${d.id}|`}>{d.nome} - (sem responsavel)</option>
+                {usuarios.map((u) => <option key={u.id} value={`${d.id}|${u.id}`}>{d.nome} - {u.nome}</option>)}
+              </optgroup>
+            ))}
+          </select>
         </div>
         <div>
           <label className={LBL}>Tempo previsto (min)</label>
@@ -382,31 +381,9 @@ export default function ObrigacaoForm() {
               <input type="month" className={`${INP} w-44`} value={avulsaFim} onChange={(e) => setAvulsaFim(e.target.value)} />
             </div>
           </div>
-          <div className="relative mt-2">
+          <div className="mt-2">
             <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Empresa a gerar demanda avulsa</label>
-            <input
-              className={INP}
-              value={avulsaBusca}
-              placeholder="Empresa a criar demanda avulsa..."
-              onChange={(e) => buscarEmpresas(e.target.value)}
-              onFocus={() => avulsaResultados.length && setAvulsaListaAberta(true)}
-            />
-            {avulsaListaAberta && avulsaResultados.length > 0 && (
-              <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
-                {avulsaResultados.map((e) => (
-                  <button
-                    key={e.id}
-                    className="block w-full border-b border-slate-50 px-3 py-1.5 text-left text-[12px] text-slate-600 hover:bg-marca-50 last:border-0"
-                    onClick={() => escolherEmpresa(e)}
-                  >
-                    {e.cnpj && <span className="text-slate-400">{e.cnpj} · </span>}
-                    <span className="font-medium text-slate-700">{e.razaoSocial}</span>
-                    {e.nomeFantasia && <span className="text-slate-400"> [{e.nomeFantasia}]</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-            {avulsaEmpresaId && <div className="mt-0.5 text-[11px] text-emerald-600">Empresa selecionada.</div>}
+            <EmpresaAutocomplete placeholder="Empresa a criar demanda avulsa..." onSelecionar={(e) => setAvulsaEmpresaId(e?.id ?? "")} />
           </div>
           <div className="mt-2 space-y-0.5 text-[11px]">
             <div className="text-red-600">Obs1: meses que ja tem demandas nao serao gerados</div>
@@ -425,15 +402,90 @@ export default function ObrigacaoForm() {
       )}
 
       {!novo && (
-        <div className="mt-3 flex flex-wrap gap-4 border-t border-slate-200 pt-3 text-[13px]">
-          <button className="flex items-center gap-1 text-marca-600 hover:underline" onClick={() => navigate('/obrigacoes/alocacao')}>
-            <Building2 size={15} /> Empresas que precisam entregar essa obrigacao [{qtdeEmpresas}]
-          </button>
+        <div className="mt-3 space-y-2 border-t border-slate-200 pt-3 text-[13px]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <button className="flex items-center gap-1 text-marca-600 hover:underline" onClick={() => navigate('/obrigacoes/alocacao')}>
+              <Building2 size={15} /> Empresas que precisam entregar essa obrigacao [{qtdeEmpresas}]
+            </button>
+            <button className="flex items-center gap-1 font-medium text-marca-600 hover:underline" onClick={() => setAddAberto((v) => !v)}>
+              <Plus size={15} /> Adicionar empresa a essa obrigacao
+            </button>
+          </div>
+
+          {addAberto && (
+            <div className="rounded-md border border-marca-200 bg-marca-50 p-3">
+              <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Indique a Empresa para adicionar essa obrigacao</label>
+              <EmpresaAutocomplete placeholder="Nome da empresa a adicionar essa obrigacao" onSelecionar={(e) => setAddEmpresaId(e?.id ?? "")} />
+              <div className="mt-2 flex gap-2">
+                <button className="flex items-center gap-2 rounded-md bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600 disabled:opacity-50" disabled={addLoading} onClick={adicionarEmpresa}>
+                  <Plus size={15} /> {addLoading ? 'Adicionando...' : 'Adicionar empresa'}
+                </button>
+                <button className="flex items-center gap-2 rounded-md bg-status-warn px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-500" onClick={() => { setAddAberto(false); setAddEmpresaId(''); }}>
+                  ✕ Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
           <button className="flex items-center gap-1 text-slate-500 hover:underline" onClick={() => navigate('/auditoria')}>
             <History size={15} /> Log das alteracoes
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+interface EmpresaSel { id: string; razaoSocial: string; nomeFantasia: string | null; cnpj: string | null }
+
+// Barra de pesquisa de empresa (autocomplete) reutilizavel.
+function EmpresaAutocomplete({ placeholder, onSelecionar }: { placeholder: string; onSelecionar: (e: EmpresaSel | null) => void }) {
+  const [busca, setBusca] = useState('');
+  const [res, setRes] = useState<EmpresaSel[]>([]);
+  const [aberta, setAberta] = useState(false);
+  const [escolhida, setEscolhida] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function buscar(t: string) {
+    setBusca(t);
+    if (escolhida) { setEscolhida(false); onSelecionar(null); }
+    if (timer.current) clearTimeout(timer.current);
+    if (t.trim().length < 1) { setRes([]); setAberta(false); return; }
+    timer.current = setTimeout(() => {
+      api.get<{ items: EmpresaSel[] }>(`/empresas?busca=${encodeURIComponent(t.trim())}&limit=15`)
+        .then((p) => { setRes(p.items); setAberta(true); })
+        .catch(() => undefined);
+    }, 300);
+  }
+  function escolher(e: EmpresaSel) {
+    setBusca(e.razaoSocial); setAberta(false); setEscolhida(true); onSelecionar(e);
+  }
+
+  return (
+    <div className="relative">
+      <input
+        className={INP}
+        value={busca}
+        placeholder={placeholder}
+        onChange={(e) => buscar(e.target.value)}
+        onFocus={() => res.length && setAberta(true)}
+      />
+      {aberta && res.length > 0 && (
+        <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+          {res.map((e) => (
+            <button
+              key={e.id}
+              className="block w-full border-b border-slate-50 px-3 py-1.5 text-left text-[12px] text-slate-600 last:border-0 hover:bg-marca-50"
+              onClick={() => escolher(e)}
+            >
+              {e.cnpj && <span className="text-slate-400">{e.cnpj} · </span>}
+              <span className="font-medium text-slate-700">{e.razaoSocial}</span>
+              {e.nomeFantasia && <span className="text-slate-400"> [{e.nomeFantasia}]</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {escolhida && <div className="mt-0.5 text-[11px] text-emerald-600">Empresa selecionada.</div>}
     </div>
   );
 }

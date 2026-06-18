@@ -328,7 +328,7 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
       end={item.to === '/'}
       title={recolhido ? item.label : undefined}
       className={({ isActive }) =>
-        `${baseCls} ${isActive ? 'bg-marca-50 font-medium text-marca-700' : 'text-slate-500 hover:bg-slate-100'}`
+        `${baseCls} border-l-[3px] ${isActive ? 'border-marca-500 bg-marca-50 font-medium text-marca-700' : 'border-transparent text-slate-500 hover:bg-slate-100'}`
       }
     >
       {({ isActive }) => (
