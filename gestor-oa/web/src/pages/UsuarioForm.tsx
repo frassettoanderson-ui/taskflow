@@ -141,15 +141,20 @@ export default function UsuarioForm() {
           <div className="rounded border border-slate-200 bg-white p-4">
             {!podePermissoes && <p className="mb-2 text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
             <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
-              {PERMISSION_AREAS.map((a) => (
+              {PERMISSION_AREAS.filter((a) => a.id === 'administrativo' || (niveis.administrativo ?? 0) < 1).map((a) => (
                 <div key={a.id}>
-                  <label className={LBL}>{a.label}</label>
+                  <label className={`${LBL} ${a.id === 'administrativo' ? 'text-status-warn' : ''}`}>
+                    {a.label}
+                    {a.semEfeito && <span className="ml-1 font-normal text-slate-400">(sem efeito ainda)</span>}
+                    {a.extra && <span className="ml-1 font-normal text-marca-400">(nosso)</span>}
+                  </label>
                   <select className={INP} disabled={!podePermissoes} value={niveis[a.id] ?? 0} onChange={(e) => setNivel(a.id, Number(e.target.value))}>
                     {a.niveis.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
                   </select>
                 </div>
               ))}
             </div>
+            {(niveis.administrativo ?? 0) >= 1 && <p className="mt-2 text-[12px] text-marca-600">Administrativo: acesso total liberado (demais permissoes ocultadas).</p>}
           </div>
         )}
 
