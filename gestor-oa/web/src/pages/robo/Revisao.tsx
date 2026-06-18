@@ -10,7 +10,7 @@ export default function Revisao() {
   const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
 
   function carregar() {
-    api.get<RoboJob[]>('/robo/jobs?status=REVISAO').then(setJobs);
+    api.get<RoboJob[]>('/robo/jobs?status=REVISAO').then(setJobs).catch(() => setJobs([]));
   }
   useEffect(() => {
     carregar();
