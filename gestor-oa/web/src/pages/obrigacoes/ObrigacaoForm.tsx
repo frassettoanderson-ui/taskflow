@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, Plus, RotateCcw, History, Building2, RefreshCcw, FilePlus2 } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
@@ -88,13 +88,32 @@ export default function ObrigacaoForm() {
   const [avulsaInicio, setAvulsaInicio] = useState(ymAtual);
   const [avulsaFim, setAvulsaFim] = useState(ymAtual);
   const [avulsaLoading, setAvulsaLoading] = useState(false);
-  const [empresas, setEmpresas] = useState<{ id: string; razaoSocial: string }[]>([]);
+  const [avulsaBusca, setAvulsaBusca] = useState('');
+  const [avulsaResultados, setAvulsaResultados] = useState<{ id: string; razaoSocial: string; nomeFantasia: string | null; cnpj: string | null }[]>([]);
+  const [avulsaListaAberta, setAvulsaListaAberta] = useState(false);
+  const buscaTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
-    api.get<{ items: { id: string; razaoSocial: string }[] }>('/empresas?limit=100').then((p) => setEmpresas(p.items)).catch(() => undefined);
   }, []);
+
+  function buscarEmpresas(termo: string) {
+    setAvulsaBusca(termo);
+    setAvulsaEmpresaId('');
+    if (buscaTimer.current) clearTimeout(buscaTimer.current);
+    if (termo.trim().length < 1) { setAvulsaResultados([]); setAvulsaListaAberta(false); return; }
+    buscaTimer.current = setTimeout(() => {
+      api.get<{ items: { id: string; razaoSocial: string; nomeFantasia: string | null; cnpj: string | null }[] }>(`/empresas?busca=${encodeURIComponent(termo.trim())}&limit=15`)
+        .then((p) => { setAvulsaResultados(p.items); setAvulsaListaAberta(true); })
+        .catch(() => undefined);
+    }, 300);
+  }
+  function escolherEmpresa(e: { id: string; razaoSocial: string }) {
+    setAvulsaEmpresaId(e.id);
+    setAvulsaBusca(e.razaoSocial);
+    setAvulsaListaAberta(false);
+  }
 
   useEffect(() => {
     if (novo) return;
@@ -363,12 +382,31 @@ export default function ObrigacaoForm() {
               <input type="month" className={`${INP} w-44`} value={avulsaFim} onChange={(e) => setAvulsaFim(e.target.value)} />
             </div>
           </div>
-          <div className="mt-2">
+          <div className="relative mt-2">
             <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Empresa a gerar demanda avulsa</label>
-            <select className={INP} value={avulsaEmpresaId} onChange={(e) => setAvulsaEmpresaId(e.target.value)}>
-              <option value="">Empresa a criar demanda avulsa...</option>
-              {empresas.map((e) => <option key={e.id} value={e.id}>{e.razaoSocial}</option>)}
-            </select>
+            <input
+              className={INP}
+              value={avulsaBusca}
+              placeholder="Empresa a criar demanda avulsa..."
+              onChange={(e) => buscarEmpresas(e.target.value)}
+              onFocus={() => avulsaResultados.length && setAvulsaListaAberta(true)}
+            />
+            {avulsaListaAberta && avulsaResultados.length > 0 && (
+              <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+                {avulsaResultados.map((e) => (
+                  <button
+                    key={e.id}
+                    className="block w-full border-b border-slate-50 px-3 py-1.5 text-left text-[12px] text-slate-600 hover:bg-marca-50 last:border-0"
+                    onClick={() => escolherEmpresa(e)}
+                  >
+                    {e.cnpj && <span className="text-slate-400">{e.cnpj} · </span>}
+                    <span className="font-medium text-slate-700">{e.razaoSocial}</span>
+                    {e.nomeFantasia && <span className="text-slate-400"> [{e.nomeFantasia}]</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+            {avulsaEmpresaId && <div className="mt-0.5 text-[11px] text-emerald-600">Empresa selecionada.</div>}
           </div>
           <div className="mt-2 space-y-0.5 text-[11px]">
             <div className="text-red-600">Obs1: meses que ja tem demandas nao serao gerados</div>
