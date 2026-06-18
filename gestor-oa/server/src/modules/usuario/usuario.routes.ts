@@ -1,12 +1,27 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'node:path';
+import fs from 'node:fs';
 import { z } from 'zod';
+import { prisma } from '../../prisma.js';
 import { ok } from '../../lib/http.js';
+import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
+import { escritorioDir } from '../../lib/storage.js';
 import * as svc from './usuario.service.js';
 
 const router = Router();
 router.use(authenticate);
+
+const uploadAssinatura = multer({
+  storage: multer.diskStorage({
+    destination: (req, _f, cb) => cb(null, escritorioDir(req.auth!.escritorioId, 'assinaturas-usuario')),
+    filename: (req, file, cb) => cb(null, `${req.params.id}${path.extname(file.originalname) || '.png'}`),
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_r, file, cb) => cb(null, /^image\//.test(file.mimetype)),
+});
 
 const janelaSchema = z.object({
   diaSemana: z.number().int().min(0).max(6),
@@ -55,6 +70,14 @@ const criarSchema = z.object({
   observacoes: z.string().optional().nullable(),
   custoHora: z.number().min(0).optional().nullable(),
   minutosUteisMes: z.number().int().min(0).optional().nullable(),
+  salario: z.number().min(0).optional().nullable(),
+  encargos: z.number().min(0).optional().nullable(),
+  beneficios: z.number().min(0).optional().nullable(),
+  smtpHost: z.string().optional().nullable(),
+  smtpPorta: z.number().int().optional().nullable(),
+  smtpUsuario: z.string().optional().nullable(),
+  smtpSenha: z.string().optional().nullable(),
+  ccoEmails: z.string().optional().nullable(),
   horariosAcesso: z.array(janelaSchema).optional(),
   filtrosForcados: filtrosSchema.optional(),
   permissoes: permissoesSchema.optional(),
@@ -87,6 +110,24 @@ router.put(
     return ok(res, { redefinida: true });
   },
 );
+
+// Upload da assinatura do usuario (imagem)
+router.post('/:id/assinatura', requirePermission('admin_usuarios'), uploadAssinatura.single('arquivo'), async (req, res) => {
+  const u = await prisma.usuario.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId, deletedAt: null } });
+  if (!u) throw Errors.naoEncontrado('Usuario');
+  if (!req.file) throw Errors.validacao('Envie uma imagem.');
+  await prisma.usuario.update({ where: { id: u.id }, data: { assinaturaArquivo: req.file.filename } });
+  return ok(res, { assinaturaArquivo: req.file.filename });
+});
+
+// Servir a assinatura do usuario
+router.get('/:id/assinatura', async (req, res) => {
+  const u = await prisma.usuario.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId, deletedAt: null } });
+  if (!u || !u.assinaturaArquivo) throw Errors.naoEncontrado('Assinatura');
+  const arquivo = path.join(escritorioDir(req.auth!.escritorioId, 'assinaturas-usuario'), u.assinaturaArquivo);
+  if (!fs.existsSync(arquivo)) throw Errors.naoEncontrado('Assinatura');
+  return res.sendFile(arquivo);
+});
 
 // Atualizar apenas permissoes (flag separada)
 router.put(

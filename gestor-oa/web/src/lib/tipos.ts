@@ -282,6 +282,15 @@ export interface UsuarioCompleto {
   observacoes: string | null;
   custoHora: number | null;
   minutosUteisMes: number | null;
+  salario: number | null;
+  encargos: number | null;
+  beneficios: number | null;
+  smtpHost: string | null;
+  smtpPorta: number | null;
+  smtpUsuario: string | null;
+  temSmtpSenha: boolean;
+  ccoEmails: string | null;
+  temAssinatura: boolean;
   horariosAcesso: JanelaAcesso[];
   filtrosForcados: { departamentos?: string[]; tags?: string[] };
   permissoes: Record<string, boolean>;

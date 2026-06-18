@@ -81,6 +81,17 @@ model Usuario {
   // Configuracao de custo e capacidade do colaborador (alimenta o Metodo APLA).
   custoHora       Decimal? @db.Decimal(12, 2)
   minutosUteisMes Int?
+  salario         Decimal? @db.Decimal(12, 2)
+  encargos        Decimal? @db.Decimal(12, 2)
+  beneficios      Decimal? @db.Decimal(12, 2)
+
+  // Dados de e-mail (SMTP por usuario) + assinatura + copia oculta
+  smtpHost        String?
+  smtpPorta       Int?
+  smtpUsuario     String?
+  smtpSenha       String?
+  ccoEmails       String?
+  assinaturaArquivo String?
 
   // Janelas de acesso permitidas: [{ diaSemana, inicio, fim }]. Vazio = sem restricao.
   horariosAcesso Json    @default("[]")

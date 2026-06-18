@@ -9,6 +9,9 @@ interface FiltrosForcados {
   tags?: string[];
 }
 
+type Dec = { toNumber: () => number } | number | null | undefined;
+const dec = (v: Dec) => (v == null ? null : typeof v === 'number' ? v : v.toNumber());
+
 function publico(u: {
   id: string;
   nome: string;
@@ -17,8 +20,17 @@ function publico(u: {
   tipo?: string | null;
   telefone?: string | null;
   observacoes?: string | null;
-  custoHora?: { toNumber: () => number } | number | null;
+  custoHora?: Dec;
   minutosUteisMes?: number | null;
+  salario?: Dec;
+  encargos?: Dec;
+  beneficios?: Dec;
+  smtpHost?: string | null;
+  smtpPorta?: number | null;
+  smtpUsuario?: string | null;
+  smtpSenha?: string | null;
+  ccoEmails?: string | null;
+  assinaturaArquivo?: string | null;
   horariosAcesso: unknown;
   filtrosForcados: unknown;
   permissao: Record<string, unknown> | null;
@@ -32,7 +44,6 @@ function publico(u: {
   // niveis: usa o salvo; se vazio (usuario antigo), deriva das flags
   const niveisSalvos = (u.permissao?.niveis as PermissionNiveis | undefined) ?? {};
   const niveis = Object.keys(niveisSalvos).length > 0 ? niveisSalvos : flagsParaNiveis(permissoes as never);
-  const custo = u.custoHora == null ? null : typeof u.custoHora === 'number' ? u.custoHora : u.custoHora.toNumber();
   return {
     id: u.id,
     nome: u.nome,
@@ -41,8 +52,17 @@ function publico(u: {
     tipo: u.tipo ?? null,
     telefone: u.telefone ?? null,
     observacoes: u.observacoes ?? null,
-    custoHora: custo,
+    custoHora: dec(u.custoHora),
     minutosUteisMes: u.minutosUteisMes ?? null,
+    salario: dec(u.salario),
+    encargos: dec(u.encargos),
+    beneficios: dec(u.beneficios),
+    smtpHost: u.smtpHost ?? null,
+    smtpPorta: u.smtpPorta ?? null,
+    smtpUsuario: u.smtpUsuario ?? null,
+    temSmtpSenha: !!u.smtpSenha,
+    ccoEmails: u.ccoEmails ?? null,
+    temAssinatura: !!u.assinaturaArquivo,
     horariosAcesso: (u.horariosAcesso as JanelaAcesso[]) ?? [],
     filtrosForcados: (u.filtrosForcados as FiltrosForcados) ?? {},
     permissoes,
@@ -78,6 +98,14 @@ export interface CriarUsuarioInput {
   observacoes?: string | null;
   custoHora?: number | null;
   minutosUteisMes?: number | null;
+  salario?: number | null;
+  encargos?: number | null;
+  beneficios?: number | null;
+  smtpHost?: string | null;
+  smtpPorta?: number | null;
+  smtpUsuario?: string | null;
+  smtpSenha?: string | null;
+  ccoEmails?: string | null;
   horariosAcesso?: JanelaAcesso[];
   filtrosForcados?: FiltrosForcados;
   permissoes?: Partial<Record<PermissionFlag, boolean>>;
@@ -105,6 +133,14 @@ export async function criar(escritorioId: string, input: CriarUsuarioInput) {
       observacoes: input.observacoes ?? null,
       custoHora: input.custoHora ?? null,
       minutosUteisMes: input.minutosUteisMes ?? null,
+      salario: input.salario ?? null,
+      encargos: input.encargos ?? null,
+      beneficios: input.beneficios ?? null,
+      smtpHost: input.smtpHost ?? null,
+      smtpPorta: input.smtpPorta ?? null,
+      smtpUsuario: input.smtpUsuario ?? null,
+      smtpSenha: input.smtpSenha || null,
+      ccoEmails: input.ccoEmails ?? null,
       horariosAcesso: (input.horariosAcesso ?? []) as object,
       filtrosForcados: (input.filtrosForcados ?? {}) as object,
       permissao: { create: { ...sanitizePermissions(flags), niveis: (input.niveis ?? {}) as object } },
@@ -132,6 +168,14 @@ export async function editar(
       observacoes: input.observacoes === undefined ? undefined : input.observacoes,
       custoHora: input.custoHora === undefined ? undefined : input.custoHora,
       minutosUteisMes: input.minutosUteisMes === undefined ? undefined : input.minutosUteisMes,
+      salario: input.salario === undefined ? undefined : input.salario,
+      encargos: input.encargos === undefined ? undefined : input.encargos,
+      beneficios: input.beneficios === undefined ? undefined : input.beneficios,
+      smtpHost: input.smtpHost === undefined ? undefined : input.smtpHost,
+      smtpPorta: input.smtpPorta === undefined ? undefined : input.smtpPorta,
+      smtpUsuario: input.smtpUsuario === undefined ? undefined : input.smtpUsuario,
+      smtpSenha: input.smtpSenha ? input.smtpSenha : undefined,
+      ccoEmails: input.ccoEmails === undefined ? undefined : input.ccoEmails,
       horariosAcesso: input.horariosAcesso ? (input.horariosAcesso as object) : undefined,
       filtrosForcados: input.filtrosForcados ? (input.filtrosForcados as object) : undefined,
     },
