@@ -110,6 +110,22 @@ router.post(
   },
 );
 
+// DELETE logo (remove o arquivo e zera a URL)
+router.delete('/logo', requirePermission('admin_escritorio'), async (req, res) => {
+  const dir = escritorioDir(req.auth!.escritorioId);
+  const fs = await import('node:fs');
+  try {
+    for (const f of fs.readdirSync(dir)) {
+      if (f.startsWith('logo')) fs.unlinkSync(path.join(dir, f));
+    }
+  } catch { /* sem arquivo */ }
+  await prisma.escritorio.update({
+    where: { id: req.auth!.escritorioId },
+    data: { logoUrl: null },
+  });
+  return ok(res, { removido: true });
+});
+
 // GET arquivo do logo (servido autenticado)
 router.get('/logo/arquivo', async (req, res) => {
   const dir = escritorioDir(req.auth!.escritorioId);
