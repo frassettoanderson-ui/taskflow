@@ -19,6 +19,11 @@ export interface Departamento {
   cor: string;
   responsavelId?: string | null;
   ativo: boolean;
+  parentId?: string | null;
+  envioAgendado: string;
+  disponivelSolicitacoes: boolean;
+  responderPara?: string | null;
+  obrigacoesCount?: number;
 }
 
 export interface Tag {

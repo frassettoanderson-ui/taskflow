@@ -7,7 +7,9 @@ import RedefinirSenha from './pages/RedefinirSenha';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Configuracoes from './pages/Configuracoes';
-import Cadastros from './pages/Cadastros';
+import Departamentos from './pages/Departamentos';
+import DepartamentoForm from './pages/DepartamentoForm';
+import Tags from './pages/Tags';
 import Usuarios from './pages/Usuarios';
 import UsuarioForm from './pages/UsuarioForm';
 import Perfil from './pages/Perfil';
@@ -126,7 +128,10 @@ export default function App() {
         <Route path="notificacoes" element={<Notificacoes />} />
         <Route path="jobs" element={<Jobs />} />
         <Route path="apla" element={<Apla />} />
-        <Route path="cadastros" element={<Cadastros />} />
+        <Route path="cadastros" element={<Departamentos />} />
+        <Route path="cadastros/novo" element={<DepartamentoForm />} />
+        <Route path="cadastros/tags" element={<Tags />} />
+        <Route path="cadastros/:id" element={<DepartamentoForm />} />
         <Route path="usuarios" element={<Usuarios />} />
         <Route path="usuarios/novo" element={<UsuarioForm />} />
         <Route path="usuarios/:id" element={<UsuarioForm />} />

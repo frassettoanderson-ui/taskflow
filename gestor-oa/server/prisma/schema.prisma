@@ -232,9 +232,15 @@ model Departamento {
   cor           String   @default("#0f5c5e")
   responsavelId String?  // responsavel padrao do departamento (1 por depto)
   ativo         Boolean  @default(true)
+  parentId      String?  // departamento pai (hierarquia)
+  envioAgendado String   @default("De hora em hora") // periodicidade do envio agrupado/agendado
+  disponivelSolicitacoes Boolean @default(true)        // aparece em novas Solicitacoes (Area VIP)
+  responderPara String?  // endereco "Responder para" dos e-mails do depto
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  parent        Departamento?  @relation("DepHierarquia", fields: [parentId], references: [id], onDelete: SetNull)
+  filhos        Departamento[] @relation("DepHierarquia")
   responsaveis  EmpresaResponsavelDepartamento[]
   comentarios   EmpresaComentario[]
   obrigacoes    Obrigacao[]
