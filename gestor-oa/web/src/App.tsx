@@ -11,6 +11,7 @@ import Cadastros from './pages/Cadastros';
 import Usuarios from './pages/Usuarios';
 import UsuarioForm from './pages/UsuarioForm';
 import Perfil from './pages/Perfil';
+import EmConstrucao from './pages/EmConstrucao';
 import Auditoria from './pages/Auditoria';
 import EmpresasList from './pages/empresas/EmpresasList';
 import EmpresaForm from './pages/empresas/EmpresaForm';
@@ -103,6 +104,10 @@ export default function App() {
         <Route path="processos/:id" element={<ProcessoFicha />} />
         <Route path="area-vip/comunicados" element={<ComunicadosAdmin />} />
         <Route path="area-vip/solicitacoes" element={<SolicitacoesInbox />} />
+        <Route path="area-vip/app" element={<EmConstrucao titulo="Area VIP e App" descricao="Configuracao geral do portal/app do cliente (branding, boas-vindas, recursos liberados)." />} />
+        <Route path="area-vip/nps" element={<EmConstrucao titulo="Avaliacao NPS" descricao="Envio de pesquisa NPS aos clientes e painel de promotores/neutros/detratores." />} />
+        <Route path="area-vip/avaliacoes" element={<EmConstrucao titulo="Avaliacao das Solicitacoes" descricao="Notas e comentarios que os clientes deram nas solicitacoes finalizadas." />} />
+        <Route path="area-vip/usuarios-app" element={<EmConstrucao titulo="Usuarios do APP" descricao="Contatos das empresas com acesso ao portal/app (convites, ativacao, reset de senha)." />} />
         <Route path="comunicacao/templates" element={<Templates />} />
         <Route path="comunicacao/chatbot" element={<Chatbot />} />
         <Route path="solicitacoes-internas" element={<SolicitacoesInternas />} />

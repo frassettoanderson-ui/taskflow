@@ -21,6 +21,8 @@ import {
   Activity,
   Palette,
   Download,
+  Smartphone,
+  Star,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
@@ -63,8 +65,11 @@ const MENU: Item[] = [
         label: 'Aplicativo e Area VIP',
         icon: MessageSquare,
         filhos: [
+          { label: 'Area VIP e App', icon: Smartphone, to: '/area-vip/app' },
           { label: 'Comunicados', icon: MessageSquare, to: '/area-vip/comunicados' },
-          { label: 'Solicitacoes (clientes)', icon: MessageSquare, to: '/area-vip/solicitacoes' },
+          { label: 'Avaliacao NPS', icon: Star, to: '/area-vip/nps' },
+          { label: 'Avaliacao das Solicitacoes', icon: Star, to: '/area-vip/avaliacoes' },
+          { label: 'Usuarios do APP', icon: Users, to: '/area-vip/usuarios-app' },
         ],
       },
       { label: 'Dados do meu perfil', icon: User, to: '/perfil' },
