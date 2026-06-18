@@ -81,9 +81,19 @@ export default function ObrigacaoForm() {
   const [retroForcar, setRetroForcar] = useState(false);
   const [retroLoading, setRetroLoading] = useState(false);
 
+  // painel "Avulsa" (uma empresa, intervalo de competencias)
+  const ymAtual = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+  const [avulsaAberto, setAvulsaAberto] = useState(false);
+  const [avulsaEmpresaId, setAvulsaEmpresaId] = useState('');
+  const [avulsaInicio, setAvulsaInicio] = useState(ymAtual);
+  const [avulsaFim, setAvulsaFim] = useState(ymAtual);
+  const [avulsaLoading, setAvulsaLoading] = useState(false);
+  const [empresas, setEmpresas] = useState<{ id: string; razaoSocial: string }[]>([]);
+
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
+    api.get<{ items: { id: string; razaoSocial: string }[] }>('/empresas?limit=100').then((p) => setEmpresas(p.items)).catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -142,6 +152,22 @@ export default function ObrigacaoForm() {
       setRetroAberto(false);
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao gerar.'); }
     finally { setRetroLoading(false); }
+  }
+
+  async function gerarAvulsa() {
+    if (!avulsaEmpresaId) return toast('erro', 'Escolha a empresa.');
+    if (!avulsaInicio || !avulsaFim) return toast('erro', 'Informe os prazos inicial e final.');
+    const [ai, ami] = avulsaInicio.split('-').map(Number);
+    const [af, amf] = avulsaFim.split('-').map(Number);
+    setAvulsaLoading(true);
+    try {
+      const r = await api.post<{ criadas: number; reativadas: number }>(`/obrigacoes/${id}/avulsa`, {
+        empresaId: avulsaEmpresaId, inicio: { ano: ai, mes: ami }, fim: { ano: af, mes: amf },
+      });
+      toast('ok', `${r.criadas} demanda(s) gerada(s)${r.reativadas ? `, ${r.reativadas} reativada(s)` : ''}.`);
+      setAvulsaAberto(false);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao gerar.'); }
+    finally { setAvulsaLoading(false); }
   }
 
   if (carregando) return <Spinner />;
@@ -290,7 +316,7 @@ export default function ObrigacaoForm() {
         <button className="flex items-center justify-center gap-2 rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50" disabled={novo} title={novo ? 'Salve a obrigacao primeiro' : ''} onClick={() => setRetroAberto((v) => !v)}>
           <RefreshCcw size={16} /> Retro
         </button>
-        <button className="flex items-center justify-center gap-2 rounded-md bg-sky-400 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500" onClick={() => toast('ok', 'Avulsa: lancamento avulso (em breve)')}>
+        <button className="flex items-center justify-center gap-2 rounded-md bg-sky-400 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50" disabled={novo} title={novo ? 'Salve a obrigacao primeiro' : ''} onClick={() => setAvulsaAberto((v) => !v)}>
           <FilePlus2 size={16} /> Avulsa
         </button>
         <button className="flex items-center justify-center gap-2 rounded-md bg-status-ok px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50" disabled={salvando} onClick={() => salvar('voltar')}>
@@ -318,6 +344,42 @@ export default function ObrigacaoForm() {
               👍 {retroLoading ? 'Gerando...' : 'OK - Gerar'}
             </button>
             <button className="flex items-center gap-2 rounded-md bg-status-warn px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-500" onClick={() => setRetroAberto(false)}>
+              ✕ Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Painel Avulsa (uma empresa, intervalo de competencias) */}
+      {avulsaAberto && !novo && (
+        <div className="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-0.5 block text-[12px] font-medium text-sky-700">Prazo inicial</label>
+              <input type="month" className={`${INP} w-44`} value={avulsaInicio} onChange={(e) => setAvulsaInicio(e.target.value)} />
+            </div>
+            <div>
+              <label className="mb-0.5 block text-[12px] font-medium text-sky-700">Prazo final</label>
+              <input type="month" className={`${INP} w-44`} value={avulsaFim} onChange={(e) => setAvulsaFim(e.target.value)} />
+            </div>
+          </div>
+          <div className="mt-2">
+            <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Empresa a gerar demanda avulsa</label>
+            <select className={INP} value={avulsaEmpresaId} onChange={(e) => setAvulsaEmpresaId(e.target.value)}>
+              <option value="">Empresa a criar demanda avulsa...</option>
+              {empresas.map((e) => <option key={e.id} value={e.id}>{e.razaoSocial}</option>)}
+            </select>
+          </div>
+          <div className="mt-2 space-y-0.5 text-[11px]">
+            <div className="text-red-600">Obs1: meses que ja tem demandas nao serao gerados</div>
+            <div className="text-red-600">Obs2: meses com demandas dispensadas voltarao para pendentes</div>
+            <div className="text-red-600">Obs3: Se nao tiver dia definido no cadastro, sera considerado dia 15</div>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button className="flex items-center gap-2 rounded-md bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600 disabled:opacity-50" disabled={avulsaLoading} onClick={gerarAvulsa}>
+              👍 {avulsaLoading ? 'Gerando...' : 'OK - Gerar'}
+            </button>
+            <button className="flex items-center gap-2 rounded-md bg-status-warn px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-500" onClick={() => setAvulsaAberto(false)}>
               ✕ Cancel
             </button>
           </div>

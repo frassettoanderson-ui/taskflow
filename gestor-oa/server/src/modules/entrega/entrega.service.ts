@@ -204,6 +204,87 @@ export async function gerarRetroativoObrigacao(
   return { criadas, reativadas };
 }
 
+// ---------- Geracao AVULSA de uma obrigacao para UMA empresa (botao "Avulsa") ----------
+// Gera demandas dessa obrigacao para a empresa escolhida, em todas as competencias
+// do intervalo [inicio, fim], independente da periodicidade.
+// Obs: pula meses ja existentes; reativa dispensados; dia 15 se nao houver dia no cadastro.
+export async function gerarAvulsaObrigacao(
+  escritorioId: string,
+  obrigacaoId: string,
+  empresaId: string,
+  inicio: { ano: number; mes: number },
+  fim: { ano: number; mes: number },
+) {
+  const obrigacao = await prisma.obrigacao.findFirst({ where: { id: obrigacaoId, escritorioId, deletedAt: null } });
+  if (!obrigacao) throw Errors.naoEncontrado('Obrigacao');
+  const empresa = await prisma.empresa.findFirst({ where: { id: empresaId, escritorioId, deletedAt: null } });
+  if (!empresa) throw Errors.naoEncontrado('Empresa');
+
+  const inicioIdx = inicio.ano * 12 + (inicio.mes - 1);
+  const fimIdx = fim.ano * 12 + (fim.mes - 1);
+  if (fimIdx < inicioIdx) throw Errors.validacao('O prazo final deve ser maior ou igual ao inicial.');
+
+  // garante o vinculo empresa x obrigacao (cria como MANUAL se nao existir)
+  let vinculo = await prisma.empresaObrigacao.findFirst({ where: { escritorioId, empresaId, obrigacaoId } });
+  if (!vinculo) {
+    vinculo = await prisma.empresaObrigacao.create({
+      data: { escritorioId, empresaId, obrigacaoId, origens: [{ origem: 'MANUAL' }], ativo: true },
+    });
+  }
+
+  const cfg = await lerConfig(escritorioId);
+  const anos = [inicio.ano, fim.ano, fim.ano + 1];
+  const feriados = await lerFeriados(escritorioId, anos);
+  const regraBase = obrigacao.regraPrazo as unknown as RegraPrazo;
+  const regra: RegraPrazo = { ...regraBase, dia: regraBase?.dia || 15, tipoDia: regraBase?.tipoDia || 'DIA_FIXO' };
+
+  // responsavel
+  const resp = obrigacao.departamentoId
+    ? await prisma.empresaResponsavelDepartamento.findFirst({ where: { empresaId, departamentoId: obrigacao.departamentoId } })
+    : null;
+  const responsavel = vinculo.responsavelId ?? resp?.usuarioId ?? null;
+
+  const existentes = await prisma.entrega.findMany({
+    where: { escritorioId, obrigacaoId, empresaId },
+    select: { competenciaAno: true, competenciaMes: true },
+  });
+  const jaExiste = new Set(existentes.map((e) => `${e.competenciaAno}|${e.competenciaMes}`));
+
+  const hoje = new Date();
+  let criadas = 0;
+  for (let idx = inicioIdx; idx <= fimIdx; idx++) {
+    const ano = Math.floor(idx / 12);
+    const mes = (idx % 12) + 1;
+    if (jaExiste.has(`${ano}|${mes}`)) continue;
+    const { prazoLegal, prazoTecnico } = calcularPrazos(regra, ano, mes - 1, feriados, cfg.sabadoEhUtil);
+    const status = statusEfetivo('PENDENTE', prazoTecnico, prazoLegal, hoje, cfg.diasAntecipado);
+    await prisma.entrega.create({
+      data: {
+        escritorioId, empresaId, empresaObrigacaoId: vinculo.id, obrigacaoId,
+        competenciaAno: ano, competenciaMes: mes, prazoLegal, prazoTecnico,
+        status: status as StatusEntrega, responsavelPrazoId: responsavel, responsavelEntregaId: responsavel,
+      },
+    });
+    criadas++;
+  }
+
+  // reativa dispensados no intervalo
+  const dispensadas = await prisma.entrega.findMany({
+    where: { escritorioId, obrigacaoId, empresaId, status: 'DISPENSADA' },
+    select: { id: true, competenciaAno: true, competenciaMes: true },
+  });
+  const idsReativar = dispensadas
+    .filter((e) => { const i = e.competenciaAno * 12 + (e.competenciaMes - 1); return i >= inicioIdx && i <= fimIdx; })
+    .map((e) => e.id);
+  let reativadas = 0;
+  if (idsReativar.length) {
+    const r = await prisma.entrega.updateMany({ where: { id: { in: idsReativar } }, data: { status: 'PENDENTE', motivoDispensa: null } });
+    reativadas = r.count;
+  }
+
+  return { criadas, reativadas };
+}
+
 // ---------- Listagem ----------
 export interface FiltrosEntrega {
   ano?: number;

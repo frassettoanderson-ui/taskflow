@@ -6,7 +6,7 @@ import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { z } from 'zod';
 import { obrigacaoSchema } from './obrigacao.schemas.js';
-import { gerarRetroativoObrigacao } from '../entrega/entrega.service.js';
+import { gerarRetroativoObrigacao, gerarAvulsaObrigacao } from '../entrega/entrega.service.js';
 
 const router = Router();
 router.use(authenticate);
@@ -87,6 +87,25 @@ router.post(
       req.params.id,
       new Date(req.body.dataInicial + 'T00:00:00'),
       req.body.forcarDispensados,
+    );
+    return ok(res, r);
+  },
+);
+
+// Geracao avulsa (botao "Avulsa") - uma empresa, intervalo de competencias
+router.post(
+  '/:id/avulsa',
+  requirePermission('obrigacoes_gerenciar'),
+  validate({
+    body: z.object({
+      empresaId: z.string().min(1),
+      inicio: z.object({ ano: z.number().int(), mes: z.number().int().min(1).max(12) }),
+      fim: z.object({ ano: z.number().int(), mes: z.number().int().min(1).max(12) }),
+    }),
+  }),
+  async (req, res) => {
+    const r = await gerarAvulsaObrigacao(
+      req.auth!.escritorioId, req.params.id, req.body.empresaId, req.body.inicio, req.body.fim,
     );
     return ok(res, r);
   },
