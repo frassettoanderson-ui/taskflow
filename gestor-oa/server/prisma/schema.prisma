@@ -784,6 +784,11 @@ model AssinaturaDocumento {
   regexCompetencia String?
   regexVencimento  String?
   ativo         Boolean  @default(true)
+  // Base de conhecimento e-Continuo
+  enviaEmail    String   @default("Imediato")    // Imediato | Agendado | Nao
+  copiaLocal    Boolean  @default(true)            // mantem copia local (GED)
+  aoReenviar    String   @default("Rep.D.A.A.")    // comportamento ao reenviar
+  semDemanda    String   @default("Cria")          // quando nao ha demanda correspondente
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

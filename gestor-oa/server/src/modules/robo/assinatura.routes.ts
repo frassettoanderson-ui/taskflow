@@ -25,6 +25,10 @@ const schema = z.object({
   regexCompetencia: z.string().optional().nullable(),
   regexVencimento: z.string().optional().nullable(),
   ativo: z.boolean().optional(),
+  enviaEmail: z.string().optional(),
+  copiaLocal: z.boolean().optional(),
+  aoReenviar: z.string().optional(),
+  semDemanda: z.string().optional(),
 });
 
 router.post('/', requirePermission('obrigacoes_gerenciar'), validate({ body: schema }), async (req, res) => {

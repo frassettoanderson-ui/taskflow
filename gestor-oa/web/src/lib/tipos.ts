@@ -457,6 +457,10 @@ export interface AssinaturaDocumento {
   regexCompetencia: string | null;
   regexVencimento: string | null;
   ativo: boolean;
+  enviaEmail?: string;
+  copiaLocal?: boolean;
+  aoReenviar?: string;
+  semDemanda?: string;
 }
 
 export interface RoboPainel {
