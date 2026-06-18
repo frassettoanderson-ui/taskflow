@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Save, RotateCcw, ChevronDown, ChevronRight, Building2 } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
-import { Spinner, useToast } from '../components/ui';
+import { Spinner, useToast, InfoHint } from '../components/ui';
 import type { UsuarioCompleto, JanelaAcesso } from '../lib/tipos';
 import { TIPOS_USUARIO } from '../lib/tipos';
 import { PERMISSION_AREAS, flagsParaNiveis } from '@gestoroa/shared';
@@ -11,6 +11,12 @@ import { PERMISSION_AREAS, flagsParaNiveis } from '@gestoroa/shared';
 // Classes compactas (flat, fundo cinza) - estilo Acessorias
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
+
+// Textos de ajuda (i) de areas de permissao (estilo Acessorias)
+const INFO_AREAS: Record<string, string> = {
+  administrativo: 'Existem algumas operacoes do Sistema, como por exemplo, avisar que uma empresa esta sem contatos em um determinado departamento ao tentar enviar guia agendada, os usuarios administrativos sao avisados por e-mail. Outro exemplo e o recebimento de e-mail dos alertas de solicitacoes que receberam notas de avaliacao abaixo de 4.',
+  apla: 'Como algumas informacoes utilizadas pelo Metodo APLA sao informacoes confidenciais/sensiveis, criamos um nivel extra de permissoes para definir os acessos do Metodo APLA, pois pode acontecer de algum colaborador ter acesso para gerenciar usuarios, mas em alguns casos, nao podera liberar permissoes do Metodo APLA para outros usuarios.',
+};
 
 type AcessoBloco = { permitido: boolean; inicio: string; fim: string };
 
@@ -145,6 +151,7 @@ export default function UsuarioForm() {
                 <div key={a.id}>
                   <label className={`${LBL} ${a.id === 'administrativo' ? 'text-status-warn' : ''}`}>
                     {a.label}
+                    {INFO_AREAS[a.id] && <span className="ml-1"><InfoHint texto={INFO_AREAS[a.id]} /></span>}
                     {a.extra && <span className="ml-1 font-normal text-marca-400">(nosso)</span>}
                   </label>
                   <select className={INP} disabled={!podePermissoes} value={niveis[a.id] ?? a.niveis[0].v} onChange={(e) => setNivel(a.id, Number(e.target.value))}>

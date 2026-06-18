@@ -12,6 +12,30 @@ export function Spinner({ texto = 'Carregando...' }: { texto?: string }) {
   return <div className="py-10 text-center text-slate-400">{texto}</div>;
 }
 
+// ---------- InfoHint (icone (i) clicavel com popup de ajuda - estilo Acessorias) ----------
+export function InfoHint({ texto }: { texto: string }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAberto(true); }}
+        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-marca-100 text-[9px] font-bold text-marca-600 hover:bg-marca-200"
+        title="Ajuda"
+      >i</button>
+      {aberto && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={(e) => { e.stopPropagation(); setAberto(false); }}>
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-marca-300 text-2xl font-light text-marca-400">i</div>
+            <p className="whitespace-pre-line text-left text-[14px] leading-relaxed text-slate-600">{texto}</p>
+            <button onClick={(e) => { e.stopPropagation(); setAberto(false); }} className="mt-5 rounded bg-marca-500 px-8 py-1.5 text-sm font-medium text-white hover:bg-marca-600">OK</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ---------- Badge ----------
 export function Badge({
   children,
