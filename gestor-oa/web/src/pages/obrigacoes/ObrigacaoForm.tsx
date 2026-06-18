@@ -75,6 +75,12 @@ export default function ObrigacaoForm() {
   const [ativo, setAtivo] = useState(true);
   const [comentarioPadrao, setComentario] = useState('');
 
+  // painel "Retro" (geracao retroativa)
+  const [retroAberto, setRetroAberto] = useState(false);
+  const [retroData, setRetroData] = useState(`${new Date().getFullYear()}-01-01`);
+  const [retroForcar, setRetroForcar] = useState(false);
+  const [retroLoading, setRetroLoading] = useState(false);
+
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
@@ -123,6 +129,19 @@ export default function ObrigacaoForm() {
       else navigate('/obrigacoes');
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao salvar.'); }
     finally { setSalvando(false); }
+  }
+
+  async function gerarRetro() {
+    if (!retroData) return toast('erro', 'Informe a data inicial.');
+    setRetroLoading(true);
+    try {
+      const r = await api.post<{ criadas: number; reativadas: number }>(`/obrigacoes/${id}/retro`, {
+        dataInicial: retroData, forcarDispensados: retroForcar,
+      });
+      toast('ok', `${r.criadas} pendencia(s) gerada(s)${retroForcar ? `, ${r.reativadas} reativada(s)` : ''}.`);
+      setRetroAberto(false);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao gerar.'); }
+    finally { setRetroLoading(false); }
   }
 
   if (carregando) return <Spinner />;
@@ -268,7 +287,7 @@ export default function ObrigacaoForm() {
 
       {/* Acoes */}
       <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-5">
-        <button className="flex items-center justify-center gap-2 rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600" onClick={() => toast('ok', 'Retro: gerar entregas retroativas (em breve)')}>
+        <button className="flex items-center justify-center gap-2 rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50" disabled={novo} title={novo ? 'Salve a obrigacao primeiro' : ''} onClick={() => setRetroAberto((v) => !v)}>
           <RefreshCcw size={16} /> Retro
         </button>
         <button className="flex items-center justify-center gap-2 rounded-md bg-sky-400 px-4 py-2 text-sm font-medium text-white hover:bg-sky-500" onClick={() => toast('ok', 'Avulsa: lancamento avulso (em breve)')}>
@@ -284,6 +303,26 @@ export default function ObrigacaoForm() {
           <RotateCcw size={16} /> Voltar
         </button>
       </div>
+
+      {/* Painel Retro (geracao retroativa) */}
+      {retroAberto && !novo && (
+        <div className="mt-3 rounded-md border border-violet-200 bg-violet-50 p-3">
+          <label className="mb-2 flex items-center gap-2 text-[13px] text-slate-700">
+            <input type="checkbox" checked={retroForcar} onChange={(e) => setRetroForcar(e.target.checked)} />
+            Forcar status de prazos <span className="font-medium text-slate-500">Dispensados</span> para <span className="font-medium text-marca-600">Pendentes</span>
+          </label>
+          <div className="mb-1 text-[12px] font-medium text-violet-700">Data retroativa inicial para gerar as pendencias dessa obrigacao:</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input type="date" className={`${INP} w-44`} value={retroData} onChange={(e) => setRetroData(e.target.value)} />
+            <button className="flex items-center gap-2 rounded-md bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600 disabled:opacity-50" disabled={retroLoading} onClick={gerarRetro}>
+              👍 {retroLoading ? 'Gerando...' : 'OK - Gerar'}
+            </button>
+            <button className="flex items-center gap-2 rounded-md bg-status-warn px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-500" onClick={() => setRetroAberto(false)}>
+              ✕ Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {!novo && (
         <div className="mt-3 flex flex-wrap gap-4 border-t border-slate-200 pt-3 text-[13px]">

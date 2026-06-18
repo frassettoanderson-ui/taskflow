@@ -122,6 +122,88 @@ export async function gerarCompetencia(escritorioId: string, ano: number, mes: n
   return { criadas, total: vinculos.length };
 }
 
+// ---------- Geracao retroativa de UMA obrigacao (botao "Retro") ----------
+// Gera as pendencias dessa obrigacao desde dataInicial ate a competencia atual.
+// forcarDispensados: prazos DISPENSADA dessas competencias voltam a PENDENTE.
+export async function gerarRetroativoObrigacao(
+  escritorioId: string,
+  obrigacaoId: string,
+  dataInicial: Date,
+  forcarDispensados: boolean,
+) {
+  const obrigacao = await prisma.obrigacao.findFirst({ where: { id: obrigacaoId, escritorioId, deletedAt: null } });
+  if (!obrigacao) throw Errors.naoEncontrado('Obrigacao');
+
+  const hoje = new Date();
+  const cfg = await lerConfig(escritorioId);
+  const anoIni = dataInicial.getFullYear();
+  const anoFim = hoje.getFullYear();
+  const anos: number[] = [];
+  for (let a = anoIni; a <= anoFim + 1; a++) anos.push(a);
+  const feriados = await lerFeriados(escritorioId, anos);
+
+  const vinculos = await prisma.empresaObrigacao.findMany({
+    where: { escritorioId, obrigacaoId, ativo: true },
+  });
+
+  const responsaveis = await prisma.empresaResponsavelDepartamento.findMany({ where: { escritorioId } });
+  const mapaResp = new Map<string, string>();
+  responsaveis.forEach((r) => mapaResp.set(`${r.empresaId}|${r.departamentoId}`, r.usuarioId));
+
+  // entregas ja existentes dessa obrigacao no intervalo
+  const existentes = await prisma.entrega.findMany({
+    where: { escritorioId, obrigacaoId },
+    select: { empresaId: true, competenciaAno: true, competenciaMes: true },
+  });
+  const jaExiste = new Set(existentes.map((e) => `${e.empresaId}|${e.competenciaAno}|${e.competenciaMes}`));
+
+  const regra = obrigacao.regraPrazo as unknown as RegraPrazo;
+  let criadas = 0;
+
+  // itera competencia por competencia (mes a mes) do inicio ate hoje
+  const cursor = new Date(anoIni, dataInicial.getMonth(), 1);
+  const fim = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  while (cursor <= fim) {
+    const ano = cursor.getFullYear();
+    const mes = cursor.getMonth() + 1;
+    if (regra?.tipoDia && periodicidadeAplica(obrigacao.periodicidade, mes)) {
+      const { prazoLegal, prazoTecnico } = calcularPrazos(regra, ano, mes - 1, feriados, cfg.sabadoEhUtil);
+      for (const v of vinculos) {
+        if (jaExiste.has(`${v.empresaId}|${ano}|${mes}`)) continue;
+        const responsavel = v.responsavelId
+          ?? (obrigacao.departamentoId ? mapaResp.get(`${v.empresaId}|${obrigacao.departamentoId}`) ?? null : null);
+        const status = statusEfetivo('PENDENTE', prazoTecnico, prazoLegal, hoje, cfg.diasAntecipado);
+        await prisma.entrega.create({
+          data: {
+            escritorioId, empresaId: v.empresaId, empresaObrigacaoId: v.id, obrigacaoId,
+            competenciaAno: ano, competenciaMes: mes, prazoLegal, prazoTecnico,
+            status: status as StatusEntrega, responsavelPrazoId: responsavel, responsavelEntregaId: responsavel,
+          },
+        });
+        criadas++;
+      }
+    }
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  let reativadas = 0;
+  if (forcarDispensados) {
+    const r = await prisma.entrega.updateMany({
+      where: {
+        escritorioId, obrigacaoId, status: 'DISPENSADA',
+        OR: [
+          { competenciaAno: { gt: anoIni } },
+          { competenciaAno: anoIni, competenciaMes: { gte: dataInicial.getMonth() + 1 } },
+        ],
+      },
+      data: { status: 'PENDENTE', motivoDispensa: null },
+    });
+    reativadas = r.count;
+  }
+
+  return { criadas, reativadas };
+}
+
 // ---------- Listagem ----------
 export interface FiltrosEntrega {
   ano?: number;

@@ -4,7 +4,9 @@ import { ok } from '../../lib/http.js';
 import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
+import { z } from 'zod';
 import { obrigacaoSchema } from './obrigacao.schemas.js';
+import { gerarRetroativoObrigacao } from '../entrega/entrega.service.js';
 
 const router = Router();
 router.use(authenticate);
@@ -73,6 +75,22 @@ router.get('/:id', async (req, res) => {
   if (!o) throw Errors.naoEncontrado('Obrigacao');
   return ok(res, o);
 });
+
+// Geracao retroativa (botao "Retro")
+router.post(
+  '/:id/retro',
+  requirePermission('obrigacoes_gerenciar'),
+  validate({ body: z.object({ dataInicial: z.string(), forcarDispensados: z.boolean().default(false) }) }),
+  async (req, res) => {
+    const r = await gerarRetroativoObrigacao(
+      req.auth!.escritorioId,
+      req.params.id,
+      new Date(req.body.dataInicial + 'T00:00:00'),
+      req.body.forcarDispensados,
+    );
+    return ok(res, r);
+  },
+);
 
 router.post(
   '/',
