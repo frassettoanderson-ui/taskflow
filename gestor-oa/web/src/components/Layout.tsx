@@ -17,7 +17,6 @@ import {
   Tags,
   ChevronRight,
   ChevronLeft,
-  Search,
   Bot,
   Activity,
   Palette,
@@ -178,14 +177,6 @@ export default function Layout() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Topbar azul */}
         <header className="flex items-center gap-4 bg-marca-500 px-6 py-2.5 text-white">
-          <div className="relative max-w-md flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-marca-200" />
-            <input
-              className="w-full rounded-md border-0 bg-marca-400/40 py-2 pl-9 pr-3 text-sm text-white placeholder:text-marca-100 outline-none focus:bg-white focus:text-slate-700"
-              placeholder="Busca global (em breve)"
-              disabled
-            />
-          </div>
           <div className="ml-auto flex items-center gap-4">
             <NotificacoesBell />
             <div className="text-right leading-tight">

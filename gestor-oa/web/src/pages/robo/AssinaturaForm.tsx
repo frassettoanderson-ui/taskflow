@@ -8,9 +8,11 @@ import type { AssinaturaDocumento, Obrigacao } from '../../lib/tipos';
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600';
 
-const ENVIA = ['Nao', 'Sim - Imediato', 'Sim - Agendado'];
-const REENVIAR = ['Reprocessa e desativa arquivos anteriores', 'Reprocessa e mantem arquivos anteriores'];
-const SEM_DEMANDA = ['Criar entrega/demanda', 'Ignorar'];
+const ENVIA = ['Nao', 'Sim - Imediato', 'Sim - Agendado', 'Sim - Pre-agendado', 'Sim - Aos gestores do dpto'];
+const REENVIAR = ['Ignorar', 'Reprocessa e mantem arquivos anteriores', 'Reprocessa e desativa arquivos anteriores'];
+const SEM_DEMANDA = ['Ignorar', 'Criar entrega/demanda'];
+// secao de reconhecimento do robo escondida por ora (sera tratada junto do robo no final)
+const MOSTRAR_ROBO = false;
 
 function Info() {
   return <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-marca-100 text-[9px] font-bold text-marca-600">i</span>;
@@ -31,8 +33,8 @@ export default function AssinaturaForm() {
   const [enviaEmail, setEnviaEmail] = useState('Sim - Imediato');
   const [miniNomeLocal, setMiniNomeLocal] = useState('');
   const [caminhoLocal, setCaminhoLocal] = useState('');
-  const [aoReenviar, setAoReenviar] = useState(REENVIAR[0]);
-  const [semDemanda, setSemDemanda] = useState(SEM_DEMANDA[0]);
+  const [aoReenviar, setAoReenviar] = useState('Reprocessa e desativa arquivos anteriores');
+  const [semDemanda, setSemDemanda] = useState('Criar entrega/demanda');
   const [anteciparVcto, setAnteciparVcto] = useState(true);
   const [msgAlerta, setMsgAlerta] = useState('');
   const [consideraVcto, setConsideraVcto] = useState(true);
@@ -52,7 +54,7 @@ export default function AssinaturaForm() {
     api.get<AssinaturaDocumento>(`/assinaturas/${id}`).then((a) => {
       setNome(a.nome); setCopiaLocal(a.copiaLocal ?? true); setEnviaEmail(a.enviaEmail ?? 'Sim - Imediato');
       setMiniNomeLocal(a.miniNomeLocal ?? ''); setCaminhoLocal(a.caminhoLocal ?? '');
-      setAoReenviar(a.aoReenviar ?? REENVIAR[0]); setSemDemanda(a.semDemanda ?? SEM_DEMANDA[0]);
+      setAoReenviar(a.aoReenviar ?? 'Reprocessa e desativa arquivos anteriores'); setSemDemanda(a.semDemanda ?? 'Criar entrega/demanda');
       setAnteciparVcto(a.anteciparVcto ?? true); setMsgAlerta(a.msgAlertaAntecipado ?? '');
       setConsideraVcto(a.consideraVcto ?? true);
       setCorrespondentes(a.obrigacoesCorrespondentes ?? (a.obrigacaoNome ? [a.obrigacaoNome] : []));
@@ -117,7 +119,11 @@ export default function AssinaturaForm() {
         <div>
           <label className={LBL}>Obrigacao correspondente a automacao:</label>
           <div className="flex items-center gap-1.5">
-            <input className={`${INP} text-status-danger`} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="DARE (SC - IE - Cod. 1449)" />
+            {novo ? (
+              <input className={`${INP} text-status-danger`} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="DARE (SC - IE - Cod. 1449)" />
+            ) : (
+              <span className="flex-1 truncate py-1 font-medium text-status-danger" title={nome}>{nome || '—'}</span>
+            )}
             <button onClick={verExemplo} title="Visualizar exemplo de guia reconhecida" className={temExemplo ? 'text-status-ok hover:opacity-70' : 'text-slate-300'}><FileText size={16} /></button>
             <button onClick={() => toast('ok', 'Em construcao: historico.')} title="Historico" className="text-slate-400 hover:text-marca-600"><History size={15} /></button>
           </div>
@@ -194,7 +200,8 @@ export default function AssinaturaForm() {
         </div>
       </div>
 
-      {/* Secao nossa: reconhecimento do robo */}
+      {/* Secao nossa: reconhecimento do robo (escondida por ora - sera tratada junto do robo) */}
+      {MOSTRAR_ROBO && (
       <div className="mt-6 rounded border border-slate-200 bg-white p-4">
         <h3 className="mb-3 text-[13px] font-semibold text-slate-700">Reconhecimento do robo <span className="font-normal text-marca-400">(nosso)</span></h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -220,6 +227,7 @@ export default function AssinaturaForm() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
