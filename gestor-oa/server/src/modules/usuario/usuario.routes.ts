@@ -48,7 +48,7 @@ router.get('/:id', requirePermission('admin_usuarios'), async (req, res) => {
 const criarSchema = z.object({
   nome: z.string().min(2, 'Nome e obrigatorio.'),
   email: z.string().email('E-mail invalido.'),
-  senha: z.string().min(8, 'Senha deve ter ao menos 8 caracteres.'),
+  senha: z.string().min(3, 'Senha deve ter ao menos 3 caracteres.'),
   ativo: z.boolean().optional(),
   tipo: z.string().optional().nullable(),
   telefone: z.string().optional().nullable(),

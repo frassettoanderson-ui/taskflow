@@ -7,6 +7,10 @@ import { Spinner, useToast } from '../components/ui';
 import type { UsuarioCompleto, Departamento, Tag, JanelaAcesso } from '../lib/tipos';
 import { PERMISSION_GROUPS, TIPOS_USUARIO } from '../lib/tipos';
 
+// Classes compactas (flat, fundo cinza) - estilo Acessorias
+const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
+const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
+
 type AcessoBloco = { permitido: boolean; inicio: string; fim: string };
 
 // Deriva os 3 blocos (Domingo / Seg-Sex / Sabado) a partir das janelas salvas.
@@ -88,7 +92,6 @@ export default function UsuarioForm() {
 
   async function salvar() {
     if (nome.trim().length < 2) return toast('erro', 'Informe o nome.');
-    if (novo && senha.length < 8) return toast('erro', 'Senha minima de 8 caracteres.');
     setSalvando(true);
     try {
       const payload = {
@@ -100,7 +103,7 @@ export default function UsuarioForm() {
         filtrosForcados: { departamentos: depIds, tags: tagIds },
       };
       if (novo) {
-        await api.post('/usuarios', { ...payload, email, senha });
+        await api.post('/usuarios', { ...payload, email, senha: senha || '123' });
       } else {
         await api.put(`/usuarios/${id}`, payload);
         if (senha) await api.put(`/usuarios/${id}/senha`, { novaSenha: senha });
@@ -113,42 +116,44 @@ export default function UsuarioForm() {
 
   if (carregando) return <Spinner />;
 
+  const hoje = new Date().toLocaleDateString('pt-BR');
+
   return (
-    <div className="space-y-4">
-      <div className="text-sm text-slate-500">Sistema › Usuarios e Permissoes › <span className="text-slate-700">{novo ? 'Novo usuario' : 'Cadastro de usuario e suas permissoes'}</span></div>
+    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+      <div className="mb-3 text-sm text-slate-500">Sistema › Usuarios e Permissoes › <span className="text-slate-700">Cadastro de usuario e suas permissoes</span></div>
 
       {/* Linha principal: Nome / E-mail / Senha / Tipo */}
-      <div className="card grid grid-cols-1 gap-4 p-5 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-4">
         <div>
-          <label className="label flex items-center justify-between">Nome {!novo && id && <span className="text-xs font-normal text-marca-500">ID: {id.slice(-6)}</span>}</label>
-          <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
+          <label className={`${LBL} flex items-center justify-between`}>Nome <span className="font-normal text-marca-500">ID: {novo ? 'Novo' : (id ?? '').slice(-6)}</span></label>
+          <input className={INP} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome" />
         </div>
         <div>
-          <label className="label">E-Mail / Usuario de acesso</label>
-          <input className="input" value={email} disabled={!novo} onChange={(e) => setEmail(e.target.value)} />
+          <label className={LBL}>E-Mail / Usuario de acesso</label>
+          <input className={INP} value={email} disabled={!novo} onChange={(e) => setEmail(e.target.value)} placeholder="E-Mail" />
         </div>
         <div>
-          <label className="label">Senha</label>
-          <input className="input" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Em branco = manter a mesma" />
+          <label className={LBL}>Senha</label>
+          <input className={INP} type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder={novo ? 'Senha padrao: 123' : 'Em branco = manter a mesma'} />
         </div>
         <div>
-          <label className="label">Tipo</label>
-          <select className="input" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+          <label className={`${LBL} flex items-center justify-between`}>Tipo <span className="font-normal text-marca-500">Cad: {hoje}</span></label>
+          <select className={INP} value={tipo} onChange={(e) => setTipo(e.target.value)}>
             {TIPOS_USUARIO.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
       </div>
 
-      {/* Secoes colapsaveis */}
-      <div className="card divide-y divide-slate-100">
+      {/* Secoes colapsaveis (links chapados) */}
+      <div className="mt-3 space-y-1">
         <SecaoLink aberto={showPerm} onToggle={() => setShowPerm((v) => !v)} titulo="Permissoes desse usuario" />
         {showPerm && (
-          <div className="space-y-4 p-5">
+          <div className="space-y-4 rounded border border-slate-200 bg-white p-4">
             {!podePermissoes && <p className="text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
             {PERMISSION_GROUPS.map((g) => (
               <div key={g.grupo}>
                 <div className="mb-1 flex items-center justify-between">
-                  <span className="text-sm font-medium text-slate-700">{g.grupo}</span>
+                  <span className="text-[12px] font-semibold text-slate-700">{g.grupo}</span>
                   {podePermissoes && (
                     <span className="flex gap-2 text-xs">
                       <button className="text-marca-600 hover:underline" onClick={() => marcarGrupo(g.flags.map((f) => f.flag), true)}>todos</button>
@@ -158,7 +163,7 @@ export default function UsuarioForm() {
                 </div>
                 <div className="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-4">
                   {g.flags.map((f) => (
-                    <label key={f.flag} className="flex items-center gap-2 text-sm text-slate-600">
+                    <label key={f.flag} className="flex items-center gap-2 text-[12px] text-slate-600">
                       <input type="checkbox" disabled={!podePermissoes} checked={!!permissoes[f.flag]} onChange={() => togglePerm(f.flag)} />
                       {f.label}
                     </label>
@@ -171,32 +176,32 @@ export default function UsuarioForm() {
 
         <SecaoLink aberto={showCusto} onToggle={() => setShowCusto((v) => !v)} titulo="Configuracao do custo e minutos uteis do colaborador" />
         {showCusto && (
-          <div className="space-y-3 p-5">
-            <p className="text-sm text-slate-500">Alimenta o Metodo APLA (produtividade e lucratividade). Em branco usa o custo/hora padrao do escritorio.</p>
+          <div className="space-y-3 rounded border border-slate-200 bg-white p-4">
+            <p className="text-[12px] text-slate-500">Alimenta o Metodo APLA (produtividade e lucratividade). Em branco usa o custo/hora padrao do escritorio.</p>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className="label">Custo por hora (R$)</label><input className="input" type="number" min={0} step="0.01" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex.: 45.00" /></div>
-              <div><label className="label">Minutos uteis no mes</label><input className="input" type="number" min={0} value={minutosUteisMes} onChange={(e) => setMinutosUteisMes(e.target.value)} placeholder="Ex.: 8800" /></div>
+              <div><label className={LBL}>Custo por hora (R$)</label><input className={INP} type="number" min={0} step="0.01" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex.: 45.00" /></div>
+              <div><label className={LBL}>Minutos uteis no mes</label><input className={INP} type="number" min={0} value={minutosUteisMes} onChange={(e) => setMinutosUteisMes(e.target.value)} placeholder="Ex.: 8800" /></div>
             </div>
           </div>
         )}
 
         <SecaoLink aberto={showFiltros} onToggle={() => setShowFiltros((v) => !v)} titulo="Filtros de visao (departamentos / tags)" />
         {showFiltros && (
-          <div className="space-y-4 p-5">
-            <p className="text-sm text-slate-500">Restringe a visao do usuario. Vazio = sem restricao.</p>
+          <div className="space-y-4 rounded border border-slate-200 bg-white p-4">
+            <p className="text-[12px] text-slate-500">Restringe a visao do usuario. Vazio = sem restricao.</p>
             <div>
-              <div className="mb-1 text-sm font-medium text-slate-700">Departamentos</div>
+              <div className="mb-1 text-[12px] font-semibold text-slate-700">Departamentos</div>
               <div className="flex flex-wrap gap-3">
                 {departamentos.map((d) => (
-                  <label key={d.id} className="flex items-center gap-1 text-sm"><input type="checkbox" checked={depIds.includes(d.id)} onChange={(e) => setDepIds((ids) => e.target.checked ? [...ids, d.id] : ids.filter((x) => x !== d.id))} />{d.nome}</label>
+                  <label key={d.id} className="flex items-center gap-1 text-[12px]"><input type="checkbox" checked={depIds.includes(d.id)} onChange={(e) => setDepIds((ids) => e.target.checked ? [...ids, d.id] : ids.filter((x) => x !== d.id))} />{d.nome}</label>
                 ))}
               </div>
             </div>
             <div>
-              <div className="mb-1 text-sm font-medium text-slate-700">Tags</div>
+              <div className="mb-1 text-[12px] font-semibold text-slate-700">Tags</div>
               <div className="flex flex-wrap gap-3">
                 {tags.map((t) => (
-                  <label key={t.id} className="flex items-center gap-1 text-sm"><input type="checkbox" checked={tagIds.includes(t.id)} onChange={(e) => setTagIds((ids) => e.target.checked ? [...ids, t.id] : ids.filter((x) => x !== t.id))} />{t.nome}</label>
+                  <label key={t.id} className="flex items-center gap-1 text-[12px]"><input type="checkbox" checked={tagIds.includes(t.id)} onChange={(e) => setTagIds((ids) => e.target.checked ? [...ids, t.id] : ids.filter((x) => x !== t.id))} />{t.nome}</label>
                 ))}
               </div>
             </div>
@@ -204,11 +209,11 @@ export default function UsuarioForm() {
         )}
       </div>
 
-      {/* Ativo + Acessos por dia */}
-      <div className="card grid grid-cols-1 gap-4 p-5 md:grid-cols-4">
+      {/* Ativo + Acessos por dia + acoes (Salvar/Voltar a direita) */}
+      <div className="mt-4 grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-4">
         <div>
-          <label className="label">Usuario Ativo?</label>
-          <select className="input" value={ativo ? 'sim' : 'nao'} onChange={(e) => setAtivo(e.target.value === 'sim')}>
+          <label className={LBL}>Usuario Ativo?</label>
+          <select className={INP} value={ativo ? 'sim' : 'nao'} onChange={(e) => setAtivo(e.target.value === 'sim')}>
             <option value="sim">Sim</option>
             <option value="nao">Nao</option>
           </select>
@@ -218,25 +223,27 @@ export default function UsuarioForm() {
         <BlocoAcesso titulo="Acesso de Sabado?" bloco={blocos.sabado} onChange={(p) => setBloco('sabado', p)} />
       </div>
 
-      {/* Complementares + Fone + acoes */}
-      <div className="card grid grid-cols-1 items-end gap-4 p-5 md:grid-cols-3">
-        <div>
-          <label className="label">Dados complementares</label>
-          <input className="input" value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Comentarios" />
+      <div className="mt-3 grid grid-cols-1 items-end gap-x-5 gap-y-3 md:grid-cols-4">
+        <div className="md:col-span-2">
+          <label className={LBL}>Dados complementares</label>
+          <input className={INP} value={observacoes} onChange={(e) => setObservacoes(e.target.value)} placeholder="Comentarios" />
         </div>
         <div>
-          <label className="label">Fone(s)</label>
-          <input className="input" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="Fone" />
+          <label className={LBL}>Fone(s)</label>
+          <input className={INP} value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="Fone" />
         </div>
-        <div className="flex justify-end gap-2">
-          <button className="btn-primary bg-status-ok hover:bg-emerald-600" onClick={salvar} disabled={salvando}><Save size={16} /> {salvando ? 'Salvando...' : 'Salvar'}</button>
-          <button className="btn-primary bg-status-warn hover:bg-amber-500" onClick={() => navigate('/usuarios')}><RotateCcw size={16} /> Voltar</button>
+        <div>
+          <div className="mb-0.5 text-right text-[11px] text-marca-500">UA: {novo ? 'Ainda sem acesso' : '—'}</div>
+          <div className="flex justify-end gap-2">
+            <button className="flex items-center gap-2 rounded-md bg-status-ok px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50" onClick={salvar} disabled={salvando}><Save size={16} /> {salvando ? 'Salvando...' : 'Salvar'}</button>
+            <button className="flex items-center gap-2 rounded-md bg-status-warn px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-500" onClick={() => navigate('/usuarios')}><RotateCcw size={16} /> Voltar</button>
+          </div>
         </div>
       </div>
 
       {!novo && (
-        <button className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-200 py-3 text-sm text-slate-600 hover:bg-slate-300" onClick={() => navigate('/empresas')}>
-          <Building2 size={16} /> Visualizar as empresas que este colaborador tem departamentos sob responsabilidade
+        <button className="mt-4 flex w-full items-center justify-center gap-2 rounded bg-slate-200 py-2.5 text-[13px] text-slate-600 hover:bg-slate-300" onClick={() => navigate('/empresas')}>
+          <Building2 size={15} /> Visualizar as empresas que este colaborador tem departamentos sob responsabilidade
         </button>
       )}
     </div>
@@ -245,9 +252,9 @@ export default function UsuarioForm() {
 
 function SecaoLink({ aberto, onToggle, titulo }: { aberto: boolean; onToggle: () => void; titulo: string }) {
   return (
-    <button onClick={onToggle} className="flex w-full items-center gap-2 px-5 py-3 text-left text-sm font-medium text-marca-700 hover:bg-slate-50">
-      {aberto ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-      {titulo} <span className="text-xs font-normal text-slate-400">(clique para {aberto ? 'ocultar' : 'exibir'})</span>
+    <button onClick={onToggle} className="flex items-center gap-1 text-left text-[13px] font-medium text-marca-700 hover:underline">
+      {aberto ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
+      {titulo} <span className="font-normal text-marca-500">(clique para {aberto ? 'ocultar' : 'exibir'})</span>
     </button>
   );
 }
@@ -255,14 +262,14 @@ function SecaoLink({ aberto, onToggle, titulo }: { aberto: boolean; onToggle: ()
 function BlocoAcesso({ titulo, bloco, onChange }: { titulo: string; bloco: AcessoBloco; onChange: (p: Partial<AcessoBloco>) => void }) {
   return (
     <div>
-      <label className="label text-status-danger">{titulo}</label>
+      <label className={LBL}>{titulo}</label>
       <div className="flex gap-1">
-        <select className="input" value={bloco.permitido ? 'p' : 'b'} onChange={(e) => onChange({ permitido: e.target.value === 'p' })}>
+        <select className={INP} value={bloco.permitido ? 'p' : 'b'} onChange={(e) => onChange({ permitido: e.target.value === 'p' })}>
           <option value="b">Bloqueado</option>
           <option value="p">Permitido</option>
         </select>
-        <input type="time" className="input w-24" value={bloco.inicio} disabled={!bloco.permitido} onChange={(e) => onChange({ inicio: e.target.value })} />
-        <input type="time" className="input w-24" value={bloco.fim} disabled={!bloco.permitido} onChange={(e) => onChange({ fim: e.target.value })} />
+        <input type="time" className={`${INP} w-20`} value={bloco.inicio} disabled={!bloco.permitido} onChange={(e) => onChange({ inicio: e.target.value })} />
+        <input type="time" className={`${INP} w-20`} value={bloco.fim} disabled={!bloco.permitido} onChange={(e) => onChange({ fim: e.target.value })} />
       </div>
     </div>
   );
