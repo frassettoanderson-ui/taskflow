@@ -108,6 +108,14 @@ export default function App() {
         <Route path="area-vip/nps" element={<EmConstrucao titulo="Avaliacao NPS" descricao="Envio de pesquisa NPS aos clientes e painel de promotores/neutros/detratores." />} />
         <Route path="area-vip/avaliacoes" element={<EmConstrucao titulo="Avaliacao das Solicitacoes" descricao="Notas e comentarios que os clientes deram nas solicitacoes finalizadas." />} />
         <Route path="area-vip/usuarios-app" element={<EmConstrucao titulo="Usuarios do APP" descricao="Contatos das empresas com acesso ao portal/app (convites, ativacao, reset de senha)." />} />
+        <Route path="sistema/acesso-remoto" element={<EmConstrucao titulo="Acesso remoto" descricao="Acesso remoto / suporte (a definir o que essa tela faz no Acessorias)." />} />
+        <Route path="apla/sobre" element={<EmConstrucao titulo="Conheca o APLA" descricao="Apresentacao do Metodo APLA (produtividade e lucratividade)." />} />
+        <Route path="apla/produtividade" element={<EmConstrucao titulo="Analise produtividade" descricao="Analise dedicada de produtividade por colaborador/departamento." />} />
+        <Route path="apla/lucratividade" element={<EmConstrucao titulo="Analise lucratividade" descricao="Analise dedicada de lucratividade por empresa." />} />
+        <Route path="relatorios/semanais" element={<EmConstrucao titulo="Estatisticas semanais" />} />
+        <Route path="relatorios/mensais" element={<EmConstrucao titulo="Estatisticas mensais" />} />
+        <Route path="relatorios/responsaveis" element={<EmConstrucao titulo="Responsaveis Dptos" descricao="Relacao de responsaveis por departamento em cada empresa." />} />
+        <Route path="relatorios/exportar-emails" element={<EmConstrucao titulo="Exportar e-mails p/ CSV" descricao="Exportacao dos e-mails de contato das empresas em CSV." />} />
         <Route path="comunicacao/templates" element={<Templates />} />
         <Route path="comunicacao/chatbot" element={<Chatbot />} />
         <Route path="solicitacoes-internas" element={<SolicitacoesInternas />} />
