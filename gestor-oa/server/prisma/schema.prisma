@@ -789,6 +789,7 @@ model AssinaturaDocumento {
   copiaLocal    Boolean  @default(true)            // mantem copia local (GED)
   aoReenviar    String   @default("Rep.D.A.A.")    // comportamento ao reenviar
   semDemanda    String   @default("Cria")          // quando nao ha demanda correspondente
+  exemploArquivo String?                           // PDF de exemplo da guia reconhecida
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

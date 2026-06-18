@@ -461,6 +461,7 @@ export interface AssinaturaDocumento {
   copiaLocal?: boolean;
   aoReenviar?: string;
   semDemanda?: string;
+  exemploArquivo?: string | null;
 }
 
 export interface RoboPainel {

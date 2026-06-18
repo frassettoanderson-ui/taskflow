@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Plus, FileText, Pencil, Settings } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Modal, Spinner, useToast } from '../../components/ui';
 import type { AssinaturaDocumento, Obrigacao } from '../../lib/tipos';
@@ -48,6 +48,18 @@ export default function Assinaturas() {
       .filter((n) => n && !selecionados.includes(n) && (!q || n.toLowerCase().includes(q)))
       .sort((a, b) => a.localeCompare(b));
   }, [obrigacoes, itens, busca, selecionados]);
+
+  async function verExemplo(a: AssinaturaDocumento) {
+    if (!a.exemploArquivo) { toast('erro', 'Essa entrega ainda nao tem PDF de exemplo. Edite e anexe um.'); return; }
+    try {
+      const res = await fetch(`/api/v1/assinaturas/${a.id}/exemplo`, {
+        headers: { Authorization: `Bearer ${getAccessToken()}` }, credentials: 'include',
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      window.open(URL.createObjectURL(blob), '_blank');
+    } catch { toast('erro', 'Nao foi possivel abrir o exemplo.'); }
+  }
 
   async function excluir(a: AssinaturaDocumento) {
     if (!confirm(`Excluir "${a.nome}"?`)) return;
@@ -127,7 +139,9 @@ export default function Assinaturas() {
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="flex items-center gap-1.5 text-slate-600">
-                    <FileText size={14} className="text-status-ok" />
+                    <button onClick={() => verExemplo(a)} title="Visualizar exemplo de guia que e reconhecida nesse entrega" className={a.exemploArquivo ? 'text-status-ok hover:opacity-70' : 'text-slate-300'}>
+                      <FileText size={15} />
+                    </button>
                     {podeGerenciar && <button onClick={() => setEditando(a)} className="text-marca-500 hover:text-marca-700"><Pencil size={13} /></button>}
                     {a.obrigacaoNome}
                   </span>
@@ -177,7 +191,16 @@ function AssinaturaModal({ assinatura, obrigacoes, onFechar, onSalvo }: {
   const [copiaLocal, setCopiaLocal] = useState(assinatura?.copiaLocal ?? true);
   const [aoReenviar, setAoReenviar] = useState(assinatura?.aoReenviar ?? 'Rep.D.A.A.');
   const [semDemanda, setSemDemanda] = useState(assinatura?.semDemanda ?? 'Cria');
+  const [temExemplo, setTemExemplo] = useState(!!assinatura?.exemploArquivo);
   const [salvando, setSalvando] = useState(false);
+
+  async function enviarExemplo(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !assinatura) return;
+    const fd = new FormData(); fd.append('arquivo', file);
+    try { await api.upload(`/assinaturas/${assinatura.id}/exemplo`, fd); setTemExemplo(true); toast('ok', 'Exemplo anexado.'); }
+    catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro no upload (use PDF).'); }
+  }
 
   async function salvar() {
     setSalvando(true);
@@ -232,6 +255,17 @@ function AssinaturaModal({ assinatura, obrigacoes, onFechar, onSalvo }: {
         <div>
           <label className={LBL}>Regex da competencia (opcional)</label>
           <input className={`${INP} font-mono`} value={regexCompetencia} onChange={(e) => setRegexCompetencia(e.target.value)} placeholder="periodo de apuracao\\s*:?\\s*(\\d{2}/\\d{4})" />
+        </div>
+        <div>
+          <label className={LBL}>Exemplo de guia reconhecida (PDF)</label>
+          {assinatura ? (
+            <div className="flex items-center gap-3">
+              <input type="file" accept="application/pdf" onChange={enviarExemplo} className="block text-[12px] file:mr-2 file:rounded file:border-0 file:bg-marca-500 file:px-3 file:py-1 file:text-white" />
+              {temExemplo && <span className="text-[12px] text-status-ok">✓ exemplo anexado</span>}
+            </div>
+          ) : (
+            <p className="text-[12px] text-slate-400">Salve a entrega primeiro para anexar o PDF de exemplo.</p>
+          )}
         </div>
         <label className="flex items-center gap-2 text-[12px] text-slate-600"><input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} /> Ativa</label>
         <div className="flex justify-between gap-2 pt-1">
