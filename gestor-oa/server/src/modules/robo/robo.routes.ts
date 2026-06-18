@@ -22,6 +22,9 @@ const uploadRobo = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
+// Consulta documento: arquivos em memoria (dry-run, nao persiste)
+const uploadConsulta = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 30 } });
+
 // ---------- INGEST por API key (sem JWT) ----------
 // Integracoes externas empurram guias: POST /api/v1/robo/ingest  (header x-api-key)
 router.post('/ingest', uploadRobo.array('arquivos', 50), async (req, res, next) => {
@@ -62,6 +65,15 @@ router.post('/caixa', requirePermission('entregas_baixar'), uploadRobo.array('ar
   const baixados = resultados.filter((r) => r.status === 'BAIXADO').length;
   const revisao = resultados.filter((r) => r.status === 'REVISAO').length;
   return ok(res, { total: resultados.length, baixados, revisao });
+});
+
+// Consulta documento: identifica os arquivos na base de conhecimento (sem baixar)
+router.post('/consultar', requirePermission('obrigacoes_ver'), uploadConsulta.array('arquivos', 30), async (req, res) => {
+  const files = (req.files as Express.Multer.File[]) ?? [];
+  if (!files.length) throw Errors.validacao('Selecione ao menos um arquivo.');
+  const arquivos = files.map((f) => ({ nome: f.originalname, buffer: f.buffer }));
+  const resultados = await svc.consultarDocumentos(req.auth!.escritorioId, arquivos);
+  return ok(res, resultados);
 });
 
 // Painel / estatisticas

@@ -57,7 +57,7 @@ const MENU: Item[] = [
         icon: Bot,
         filhos: [
           { label: 'Configurar obrigacoes', icon: Settings, to: '/robo/assinaturas' },
-          { label: 'Consulta documento', icon: FileText, to: '/robo/revisao' },
+          { label: 'Consulta documento', icon: FileText, to: '/robo/consulta' },
           { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
           { label: 'Painel', icon: Activity, to: '/robo/painel' },
           { label: 'Baixar agente (instalador)', icon: Download, href: '/gestoroa-agente.exe' },

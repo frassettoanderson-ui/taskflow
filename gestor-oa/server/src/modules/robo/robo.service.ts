@@ -332,6 +332,44 @@ export async function resolverRevisao(
 }
 
 // ---------- Painel / estatisticas ----------
+// ---------- Consulta documento (dry-run de identificacao na base de conhecimento) ----------
+export interface ConsultaResultado {
+  arquivo: string;
+  identificado: boolean;
+  obrigacaoNome: string | null;
+  empresa: string | null;
+  competencia: string | null;
+}
+
+export async function consultarDocumentos(
+  escritorioId: string,
+  arquivos: { nome: string; buffer: Buffer }[],
+): Promise<ConsultaResultado[]> {
+  const out: ConsultaResultado[] = [];
+  for (const arq of arquivos) {
+    try {
+      const { texto, metodo } = await extrairTexto(arq.buffer);
+      if (metodo === 'VAZIO') {
+        out.push({ arquivo: arq.nome, identificado: false, obrigacaoNome: null, empresa: null, competencia: null });
+        continue;
+      }
+      const emp = await identificarEmpresa(escritorioId, texto);
+      const obr = await identificarObrigacao(escritorioId, texto);
+      const comp = obr?.competencia ? `${String(obr.competencia.mes).padStart(2, '0')}/${obr.competencia.ano}` : null;
+      out.push({
+        arquivo: arq.nome,
+        identificado: !!obr?.obrigacaoNome,
+        obrigacaoNome: obr?.obrigacaoNome ?? null,
+        empresa: emp?.valor ?? null,
+        competencia: comp,
+      });
+    } catch {
+      out.push({ arquivo: arq.nome, identificado: false, obrigacaoNome: null, empresa: null, competencia: null });
+    }
+  }
+  return out;
+}
+
 export async function estatisticas(escritorioId: string) {
   const inicioHoje = new Date(); inicioHoje.setHours(0, 0, 0, 0);
   const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0, 0, 0, 0);
