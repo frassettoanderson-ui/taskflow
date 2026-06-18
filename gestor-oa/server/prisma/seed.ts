@@ -131,17 +131,20 @@ async function main() {
   }
 
   // ---------- Modulo 1: Departamentos ----------
+  const adminId = usuariosCriados['admin@demo.com.br'];
+  const fiscalRespId = usuariosCriados['fiscal@demo.com.br'];
+  const pessoalRespId = usuariosCriados['pessoal@demo.com.br'];
   const depsDados = [
-    { nome: 'Fiscal', cor: '#0f5c5e' },
-    { nome: 'Pessoal', cor: '#b45309' },
-    { nome: 'Contabil', cor: '#1d4ed8' },
-    { nome: 'Societario', cor: '#7c3aed' },
-    { nome: 'Administrativo', cor: '#475569' },
+    { nome: 'Fiscal', cor: '#0f5c5e', resp: fiscalRespId },
+    { nome: 'Pessoal', cor: '#b45309', resp: pessoalRespId },
+    { nome: 'Contabil', cor: '#1d4ed8', resp: adminId },
+    { nome: 'Societario', cor: '#7c3aed', resp: adminId },
+    { nome: 'Administrativo', cor: '#475569', resp: adminId },
   ];
   const deps: Record<string, string> = {};
   for (const d of depsDados) {
     const dep = await prisma.departamento.create({
-      data: { escritorioId: escritorio.id, nome: d.nome, cor: d.cor },
+      data: { escritorioId: escritorio.id, nome: d.nome, cor: d.cor, responsavelId: d.resp ?? null },
     });
     deps[d.nome] = dep.id;
   }
@@ -515,7 +518,6 @@ async function main() {
   });
 
   // ---------- Modulo 11: Solicitacoes internas (exemplos) ----------
-  const adminId = usuariosCriados['admin@demo.com.br'];
   const solExemplos = [
     {
       titulo: 'Cliente pediu certidao negativa',

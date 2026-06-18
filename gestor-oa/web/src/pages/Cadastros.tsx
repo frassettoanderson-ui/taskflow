@@ -12,25 +12,31 @@ export default function Cadastros() {
 
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
-  const [novoDep, setNovoDep] = useState({ nome: '', cor: '#0f5c5e' });
+  const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
+  const [novoDep, setNovoDep] = useState({ nome: '', cor: '#0f5c5e', responsavelId: '' });
   const [novaTag, setNovaTag] = useState({ nome: '', cor: '#64748b' });
 
   function carregar() {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
+    api.get<{ id: string; nome: string }[]>('/usuarios').then(setUsuarios).catch(() => undefined);
   }
   useEffect(carregar, []);
 
   async function addDep() {
     if (!novoDep.nome.trim()) return;
     try {
-      await api.post('/departamentos', novoDep);
-      setNovoDep({ nome: '', cor: '#0f5c5e' });
+      await api.post('/departamentos', { ...novoDep, responsavelId: novoDep.responsavelId || null });
+      setNovoDep({ nome: '', cor: '#0f5c5e', responsavelId: '' });
       carregar();
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
   async function toggleDep(d: Departamento) {
     try { await api.put(`/departamentos/${d.id}`, { ativo: !d.ativo }); carregar(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  async function setRespDep(d: Departamento, responsavelId: string) {
+    try { await api.put(`/departamentos/${d.id}`, { responsavelId: responsavelId || null }); carregar(); }
     catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
   async function addTag() {
@@ -52,23 +58,42 @@ export default function Cadastros() {
         <h2 className="text-lg font-semibold text-slate-800">Departamentos</h2>
         <div className="divide-y divide-slate-100">
           {departamentos.map((d) => (
-            <div key={d.id} className="flex items-center justify-between py-2">
+            <div key={d.id} className="flex items-center justify-between gap-2 py-2">
               <span className="flex items-center gap-2">
                 <span className="inline-block h-3 w-3 rounded-full" style={{ background: d.cor }} />
                 {d.nome}
               </span>
-              {podeDep && (
-                <button className="text-sm text-slate-500 hover:underline" onClick={() => toggleDep(d)}>
-                  {d.ativo ? 'ativo' : 'inativo'}
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {podeDep ? (
+                  <select
+                    className="input h-8 w-44 py-0 text-xs"
+                    value={d.responsavelId ?? ''}
+                    onChange={(e) => setRespDep(d, e.target.value)}
+                    title="Responsavel do departamento"
+                  >
+                    <option value="">(sem responsavel)</option>
+                    {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                  </select>
+                ) : (
+                  <span className="text-xs text-slate-400">{usuarios.find((u) => u.id === d.responsavelId)?.nome ?? '—'}</span>
+                )}
+                {podeDep && (
+                  <button className="text-sm text-slate-500 hover:underline" onClick={() => toggleDep(d)}>
+                    {d.ativo ? 'ativo' : 'inativo'}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
         {podeDep && (
-          <div className="flex gap-2 border-t border-slate-100 pt-3">
+          <div className="flex flex-wrap gap-2 border-t border-slate-100 pt-3">
             <input className="input flex-1" placeholder="Novo departamento" value={novoDep.nome} onChange={(e) => setNovoDep((d) => ({ ...d, nome: e.target.value }))} />
             <input type="color" className="h-10 w-12 rounded border border-slate-300" value={novoDep.cor} onChange={(e) => setNovoDep((d) => ({ ...d, cor: e.target.value }))} />
+            <select className="input w-44" value={novoDep.responsavelId} onChange={(e) => setNovoDep((d) => ({ ...d, responsavelId: e.target.value }))}>
+              <option value="">Responsavel...</option>
+              {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
             <button className="btn-primary" onClick={addDep}>Adicionar</button>
           </div>
         )}

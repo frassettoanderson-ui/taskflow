@@ -203,16 +203,18 @@ export default function ObrigacaoForm() {
           <label className={LBL}>Departamento e Responsavel</label>
           <select
             className={INP}
-            value={`${departamentoId}|${responsavelId}`}
-            onChange={(e) => { const [d, u] = e.target.value.split('|'); setDepartamentoId(d); setResponsavelId(u ?? ''); }}
+            value={departamentoId}
+            onChange={(e) => {
+              const dep = departamentos.find((d) => d.id === e.target.value);
+              setDepartamentoId(e.target.value);
+              setResponsavelId(dep?.responsavelId ?? '');
+            }}
           >
-            <option value="|">— selecione —</option>
-            {departamentos.map((d) => (
-              <optgroup key={d.id} label={d.nome}>
-                <option value={`${d.id}|`}>{d.nome} - (sem responsavel)</option>
-                {usuarios.map((u) => <option key={u.id} value={`${d.id}|${u.id}`}>{d.nome} - {u.nome}</option>)}
-              </optgroup>
-            ))}
+            <option value="">— selecione —</option>
+            {departamentos.map((d) => {
+              const resp = usuarios.find((u) => u.id === d.responsavelId)?.nome;
+              return <option key={d.id} value={d.id}>{d.nome}{resp ? ` - ${resp}` : ' - (sem responsavel)'}</option>;
+            })}
           </select>
         </div>
         <div>

@@ -227,6 +227,7 @@ model Departamento {
   escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
   nome          String
   cor           String   @default("#0f5c5e")
+  responsavelId String?  // responsavel padrao do departamento (1 por depto)
   ativo         Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

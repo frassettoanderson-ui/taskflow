@@ -21,6 +21,7 @@ router.get('/', async (req, res) => {
 const upsertSchema = z.object({
   nome: z.string().min(2, 'Nome muito curto.'),
   cor: z.string().optional(),
+  responsavelId: z.string().optional().nullable(),
   ativo: z.boolean().optional(),
 });
 
@@ -38,6 +39,7 @@ router.post(
         escritorioId: req.auth!.escritorioId,
         nome: req.body.nome,
         cor: req.body.cor ?? '#0f5c5e',
+        responsavelId: req.body.responsavelId ?? null,
         ativo: req.body.ativo ?? true,
       },
     });
@@ -59,6 +61,7 @@ router.put(
       data: {
         nome: req.body.nome ?? dep.nome,
         cor: req.body.cor ?? dep.cor,
+        responsavelId: req.body.responsavelId === undefined ? dep.responsavelId : req.body.responsavelId,
         ativo: req.body.ativo ?? dep.ativo,
       },
     });
