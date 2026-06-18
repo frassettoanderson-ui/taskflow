@@ -22,10 +22,15 @@ interface Cfg {
 }
 interface ConfigEscritorio { id: string; nome: string; cnpj: string | null; logoUrl: string | null; config: Cfg }
 
-const OPC_ANEXAR = ['So considerar entregue se informar protocolo', 'Considerar entregue ao anexar o arquivo'];
-const OPC_LIDA = ['Ao acessar pelo menos UM dos anexos', 'Ao acessar TODOS os anexos', 'Somente manualmente'];
-const OPC_OK_RESP = ['Manter o responsavel ja definido', 'Atribuir ao usuario que deu OK'];
-const OPC_ENVIAR = ['Sim - Agendado', 'Sim - Imediato', 'Nao'];
+const OPC_ANEXAR = ['Ja considerar como entregue', 'So considerar entregue se informar protocolo'];
+const OPC_LIDA = ['Somente quando cliente acessar TODOS os anexos', 'Ao acessar pelo menos UM dos anexos'];
+const OPC_OK_RESP = ['Manter o responsavel ja definido', 'Atualizar para o usuario que esta realizando'];
+const OPC_ENVIAR = ['Nao', 'Sim - Imediato', 'Sim - Agendado'];
+// defaults (opcao que vem selecionada no Acessorias)
+const DEF_ANEXAR = OPC_ANEXAR[1];
+const DEF_LIDA = OPC_LIDA[1];
+const DEF_OK_RESP = OPC_OK_RESP[0];
+const DEF_ENVIAR = OPC_ENVIAR[2];
 const OPC_RESPONDER = ['E-mail especificado no departamento', 'E-mail do responsavel', 'E-mail do escritorio'];
 const OPC_DISPARAR = ['Departamento correspondente a obrigacao/tarefa', 'Um departamento fixo'];
 
@@ -111,22 +116,22 @@ export default function Configuracoes() {
         <Secao titulo="Comportamento padrao nas entregas" aberto={!!aberto.entregas} onToggle={() => toggle('entregas')}>
           <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
             <Campo label="Ao anexar um arquivo nas entregas">
-              <select className={INP} value={c.entregas?.aoAnexar ?? OPC_ANEXAR[0]} onChange={(e) => patchEntregas({ aoAnexar: e.target.value })}>
+              <select className={INP} value={c.entregas?.aoAnexar ?? DEF_ANEXAR} onChange={(e) => patchEntregas({ aoAnexar: e.target.value })}>
                 {OPC_ANEXAR.map((o) => <option key={o}>{o}</option>)}
               </select>
             </Campo>
             <Campo label="Marcar entregas de anexos como lida (envelope azul)">
-              <select className={INP} value={c.entregas?.marcarLida ?? OPC_LIDA[0]} onChange={(e) => patchEntregas({ marcarLida: e.target.value })}>
+              <select className={INP} value={c.entregas?.marcarLida ?? DEF_LIDA} onChange={(e) => patchEntregas({ marcarLida: e.target.value })}>
                 {OPC_LIDA.map((o) => <option key={o}>{o}</option>)}
               </select>
             </Campo>
             <Campo label="Ao dar OK em uma entrega, quanto ao responsavel:">
-              <select className={INP} value={c.entregas?.aoOkResponsavel ?? OPC_OK_RESP[0]} onChange={(e) => patchEntregas({ aoOkResponsavel: e.target.value })}>
+              <select className={INP} value={c.entregas?.aoOkResponsavel ?? DEF_OK_RESP} onChange={(e) => patchEntregas({ aoOkResponsavel: e.target.value })}>
                 {OPC_OK_RESP.map((o) => <option key={o}>{o}</option>)}
               </select>
             </Campo>
             <Campo label="Opcao padrao do 'Enviar por e-mail?' da Lista de entregas">
-              <select className={INP} value={c.entregas?.enviarEmailPadrao ?? OPC_ENVIAR[0]} onChange={(e) => patchEntregas({ enviarEmailPadrao: e.target.value })}>
+              <select className={INP} value={c.entregas?.enviarEmailPadrao ?? DEF_ENVIAR} onChange={(e) => patchEntregas({ enviarEmailPadrao: e.target.value })}>
                 {OPC_ENVIAR.map((o) => <option key={o}>{o}</option>)}
               </select>
             </Campo>
