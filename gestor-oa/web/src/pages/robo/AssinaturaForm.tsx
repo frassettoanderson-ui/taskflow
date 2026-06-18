@@ -14,7 +14,33 @@ const SEM_DEMANDA = ['Ignorar', 'Criar entrega/demanda'];
 // secao de reconhecimento do robo escondida por ora (sera tratada junto do robo no final)
 const MOSTRAR_ROBO = false;
 
-const INFO_ANTECIPADO = `Caso o documento tenha vencimento no padrao homologado, sera exibido pelo campo padrao no e-mail.
+const INFO_ENVIA = `Em obrigacoes correspondentes configuradas em algum grupo de envio por e-mail na empresa, os disparos 'Imediato', 'Agendado' e 'Pre-agendado' serao transformados em 'Agrupado' automaticamente.`;
+
+const INFO_CAMINHO = `Caso esse campo esteja em branco, o arquivo sera salvo no Caminho Padrao!
+
+Tag's para configurar nas Pastas:
+[Empresa] = ID ou Apelido da Empresa
+[EmpresaGrupo] = Grupo da Empresa
+[DocTipo] = Tipo do Documento
+[DocNome] = Nome do Arquivo
+[DocCompAno] = Ano de Competencia do arquivo
+[DocCompMes] = Mes de Competencia do arquivo
+[DocDpto] = Departamento do Documento
+[DocDptoCompleto] = Caminho completo do Departamento
+
+Dica util:
+' / ' = Separador de Pastas
+
+Exemplo:
+[Empresa]/[DocTipo]/[DocCompAno]-[DocCompMes]_[DocNome]`;
+
+const INFO_ANTECIPAR = `Guias de FGTS por exemplo, vem sempre com vencimento dia 07, porem caso caia em fim de semana ou feriado, o pagamento precisa ser ANTECIPADO. Entao ao selecionar Sim nessa opcao, o Sistema ira atualizar a data de vencimento para o dia util anterior e exibira uma mensagem de alerta ao cliente no e-mail. Essa mensagem de alerta pode ser personalizada no campo a frente.`;
+
+const INFO_MENSAGEM = `Alerta sera exibido em vermelho a frente da data antecipada (caso seja diferente da data exibida na guia).`;
+
+const INFO_CORRESPONDENTES = `Caso seja informado mais que uma obrigacao, o e-Continuo ira considerar apenas a primeira pendencia correspondente das obrigacoes selecionadas.`;
+
+const INFO_CONSIDERA_VCTO = `Caso o documento tenha vencimento no padrao homologado, sera exibido pelo campo padrao no e-mail.
 Obs: Se o vencimento no documento tenha sofrido alteracao no local de exibicao com relacao ao padrao (casos de guias emitidas diretamente por sites do governo por exemplo), recomendamos que a entrega seja feita pelo menu Lista de Entregas onde a data de vencimento pode ser definida manualmente.`;
 
 function Info({ onClick }: { onClick?: () => void }) {
@@ -141,7 +167,7 @@ export default function AssinaturaForm() {
           <select className={INP} value={copiaLocal ? 'Sim' : 'Nao'} onChange={(e) => setCopiaLocal(e.target.value === 'Sim')}><option>Sim</option><option>Nao</option></select>
         </div>
         <div>
-          <label className={LBL}>Envia e-mail? <Info /></label>
+          <label className={LBL}>Envia e-mail? <Info onClick={() => setInfoTexto(INFO_ENVIA)} /></label>
           <select className={INP} value={enviaEmail} onChange={(e) => setEnviaEmail(e.target.value)}>{ENVIA.map((o) => <option key={o}>{o}</option>)}</select>
         </div>
         <div>
@@ -153,7 +179,7 @@ export default function AssinaturaForm() {
       {/* Linha 2 */}
       <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
         <div>
-          <label className={LBL}>Caminho local (Pastas para Salvar) <Info /></label>
+          <label className={LBL}>Caminho local (Pastas para Salvar) <Info onClick={() => setInfoTexto(INFO_CAMINHO)} /></label>
           <input className={INP} value={caminhoLocal} onChange={(e) => setCaminhoLocal(e.target.value)} placeholder="Em branco = '[Empresa]/[DocTipo]/[DocCompAno]-[DocCompMes]_[DocNome]'" />
         </div>
         <div>
@@ -169,11 +195,11 @@ export default function AssinaturaForm() {
       {/* Linha 3 */}
       <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2">
         <div>
-          <label className={LBL}>Antecipar data de vencimento em dias nao-uteis? <Info /></label>
+          <label className={LBL}>Antecipar data de vencimento em dias nao-uteis? <Info onClick={() => setInfoTexto(INFO_ANTECIPAR)} /></label>
           <select className={INP} value={anteciparVcto ? 'Sim' : 'Nao'} onChange={(e) => setAnteciparVcto(e.target.value === 'Sim')}><option>Sim</option><option>Nao</option></select>
         </div>
         <div>
-          <label className={LBL}>Mensagem de alerta de pagamento antecipado no e-mail <Info onClick={() => setInfoTexto(INFO_ANTECIPADO)} /></label>
+          <label className={LBL}>Mensagem de alerta de pagamento antecipado no e-mail <Info onClick={() => setInfoTexto(INFO_MENSAGEM)} /></label>
           <input className={INP} value={msgAlerta} onChange={(e) => setMsgAlerta(e.target.value)} placeholder="Em branco = 'Atencao! Pagamento precisa ser antecipado!'" />
         </div>
       </div>
@@ -181,7 +207,7 @@ export default function AssinaturaForm() {
       {/* Linha 4: obrigacoes correspondentes + considera vcto + acoes */}
       <div className="mt-3 grid grid-cols-1 items-end gap-x-6 gap-y-3 md:grid-cols-3">
         <div className="md:col-span-2">
-          <label className={LBL}>Obrigacoes correspondentes: <Info /></label>
+          <label className={LBL}>Obrigacoes correspondentes: <Info onClick={() => setInfoTexto(INFO_CORRESPONDENTES)} /></label>
           <div className="rounded border border-slate-300 bg-white p-1.5">
             <div className="mb-1 flex flex-wrap gap-1">
               {correspondentes.length === 0 && <span className="px-1 text-[11px] text-slate-400">Nenhuma selecionada</span>}
@@ -199,7 +225,7 @@ export default function AssinaturaForm() {
         </div>
         <div>
           <label className="mb-2 flex items-center justify-end gap-1 text-[12px] font-medium text-slate-600">
-            <input type="checkbox" checked={consideraVcto} onChange={(e) => setConsideraVcto(e.target.checked)} /> Considera vcto do documento? <Info />
+            <input type="checkbox" checked={consideraVcto} onChange={(e) => setConsideraVcto(e.target.checked)} /> Considera vcto do documento? <Info onClick={() => setInfoTexto(INFO_CONSIDERA_VCTO)} />
           </label>
           <div className="flex justify-end gap-2">
             <button onClick={salvar} disabled={salvando} className="flex items-center gap-2 rounded-md bg-status-ok px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"><Save size={16} /> {salvando ? 'Salvando...' : 'Salvar'}</button>
