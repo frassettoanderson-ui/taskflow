@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, Settings, Trash2, Mail } from 'lucide-react';
+import { Save, Settings, Trash2, Mail, Pencil, ChevronsRight } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
 import { useToast } from '../components/ui';
 import type { Departamento } from '../lib/tipos';
+import EmailModeloModal, { type ModeloEmail } from './EmailModeloModal';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
@@ -19,6 +20,8 @@ interface Cfg {
   responsaveisPadrao?: Record<string, string>;
   caminhoDownloadEcontinuo?: string;
   email?: { fromExemplo?: string; responderPara?: string; dispararVia?: string; diasLembreteGuias?: string; prefixoTituloGuias?: string; cabecalhoLembreteGuias?: string };
+  modeloIndividual?: ModeloEmail;
+  modeloAgendado?: ModeloEmail;
 }
 interface ConfigEscritorio { id: string; nome: string; cnpj: string | null; logoUrl: string | null; config: Cfg }
 
@@ -47,6 +50,7 @@ export default function Configuracoes() {
   const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
   const [salvando, setSalvando] = useState(false);
   const [aberto, setAberto] = useState<Record<string, boolean>>({ entregas: true });
+  const [modal, setModal] = useState<'individual' | 'agendado' | null>(null);
 
   useEffect(() => {
     api.get<ConfigEscritorio>('/escritorio').then(setDados).catch(() => undefined);
@@ -77,6 +81,16 @@ export default function Configuracoes() {
       toast('ok', 'Configuracoes salvas.');
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao salvar.'); }
     finally { setSalvando(false); }
+  }
+
+  async function salvarModelo(tipo: 'individual' | 'agendado', v: ModeloEmail) {
+    const novaConfig = { ...dados!.config, [tipo === 'individual' ? 'modeloIndividual' : 'modeloAgendado']: v };
+    setDados((d) => (d ? { ...d, config: novaConfig } : d));
+    setModal(null);
+    try {
+      await api.put('/escritorio', { nome: dados!.nome, cnpj: dados!.cnpj, config: novaConfig });
+      toast('ok', 'Modelo de e-mail salvo.');
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao salvar.'); }
   }
 
   async function enviarLogo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -152,16 +166,25 @@ export default function Configuracoes() {
           <div className="overflow-hidden rounded border border-slate-200 bg-white">
             <table className="w-full">
               <thead><tr className="border-b border-slate-200 text-left text-[12px] font-semibold text-slate-600">
-                <th className="px-4 py-2">Departamento</th>
+                <th className="px-4 py-2">
+                  <span className="inline-flex items-center gap-1">Departamento
+                    <button title="Cadastrar departamento" onClick={() => navigate('/cadastros')} className="text-marca-500 hover:text-marca-700"><Pencil size={13} /></button>
+                  </span>
+                </th>
                 <th className="px-4 py-2">Responsavel padrao</th>
               </tr></thead>
               <tbody className="divide-y divide-slate-100">
                 {departamentos.map((d) => (
                   <tr key={d.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-2 text-slate-700">{d.nome}</td>
+                    <td className="px-4 py-2">
+                      <span className="flex items-center justify-between text-slate-700">
+                        {d.nome}
+                        <ChevronsRight size={14} className="text-slate-300" />
+                      </span>
+                    </td>
                     <td className="px-4 py-2">
                       <select className={`${INP} max-w-md`} value={c.responsaveisPadrao?.[d.id] ?? ''} onChange={(e) => setResp(d.id, e.target.value)}>
-                        <option value="">(nenhum)</option>
+                        <option value="">Selecione...</option>
                         {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
                       </select>
                     </td>
@@ -224,8 +247,8 @@ export default function Configuracoes() {
             </Campo>
             <Campo label="Conteudo dos e-mails do sistema">
               <div className="flex gap-2">
-                <button onClick={() => navigate('/comunicacao/templates')} className="flex flex-1 items-center justify-center gap-1 rounded bg-slate-200 py-1.5 text-[12px] text-slate-600 hover:bg-slate-300"><Mail size={13} /> E-mail individual</button>
-                <button onClick={() => navigate('/comunicacao/templates')} className="flex flex-1 items-center justify-center gap-1 rounded bg-marca-500 py-1.5 text-[12px] text-white hover:bg-marca-600"><Mail size={13} /> E-mail agendado</button>
+                <button onClick={() => setModal('individual')} className="flex flex-1 items-center justify-center gap-1 rounded bg-slate-200 py-1.5 text-[12px] text-slate-600 hover:bg-slate-300"><Mail size={13} /> E-mail individual</button>
+                <button onClick={() => setModal('agendado')} className="flex flex-1 items-center justify-center gap-1 rounded bg-marca-500 py-1.5 text-[12px] text-white hover:bg-marca-600"><Mail size={13} /> E-mail agendado</button>
               </div>
             </Campo>
             <Campo label="Qtde de dias, antes do vcto, pro lembrete de guias nao acessadas">
@@ -256,6 +279,15 @@ export default function Configuracoes() {
         <button onClick={salvar} disabled={salvando} className="mt-4 flex w-full items-center justify-center gap-2 rounded-md bg-status-ok py-2.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-60">
           <Save size={16} /> {salvando ? 'Salvando...' : 'Salvar configuracoes'}
         </button>
+      )}
+
+      {modal && (
+        <EmailModeloModal
+          tipo={modal}
+          valor={(modal === 'individual' ? c.modeloIndividual : c.modeloAgendado) ?? {}}
+          onSalvar={(v) => salvarModelo(modal, v)}
+          onFechar={() => setModal(null)}
+        />
       )}
     </div>
   );
