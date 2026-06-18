@@ -4,7 +4,7 @@ import { Save, RotateCcw, ChevronDown, ChevronRight, Building2 } from 'lucide-re
 import { api, ApiError } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
 import { Spinner, useToast } from '../components/ui';
-import type { UsuarioCompleto, Departamento, Tag, JanelaAcesso } from '../lib/tipos';
+import type { UsuarioCompleto, JanelaAcesso } from '../lib/tipos';
 import { PERMISSION_GROUPS, TIPOS_USUARIO } from '../lib/tipos';
 
 // Classes compactas (flat, fundo cinza) - estilo Acessorias
@@ -57,18 +57,8 @@ export default function UsuarioForm() {
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [blocos, setBlocos] = useState(janelasParaBlocos([]));
 
-  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-
-  // secoes colapsaveis (estilo Acessorias)
+  // secao colapsavel de permissoes (estilo Acessorias)
   const [showPerm, setShowPerm] = useState(false);
-  const [showCusto, setShowCusto] = useState(false);
-  const [showFiltros, setShowFiltros] = useState(false);
-
-  useEffect(() => {
-    api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
-    api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (novo) return;
@@ -174,39 +164,6 @@ export default function UsuarioForm() {
           </div>
         )}
 
-        <SecaoLink aberto={showCusto} onToggle={() => setShowCusto((v) => !v)} titulo="Configuracao do custo e minutos uteis do colaborador" />
-        {showCusto && (
-          <div className="space-y-3 rounded border border-slate-200 bg-white p-4">
-            <p className="text-[12px] text-slate-500">Alimenta o Metodo APLA (produtividade e lucratividade). Em branco usa o custo/hora padrao do escritorio.</p>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div><label className={LBL}>Custo por hora (R$)</label><input className={INP} type="number" min={0} step="0.01" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex.: 45.00" /></div>
-              <div><label className={LBL}>Minutos uteis no mes</label><input className={INP} type="number" min={0} value={minutosUteisMes} onChange={(e) => setMinutosUteisMes(e.target.value)} placeholder="Ex.: 8800" /></div>
-            </div>
-          </div>
-        )}
-
-        <SecaoLink aberto={showFiltros} onToggle={() => setShowFiltros((v) => !v)} titulo="Filtros de visao (departamentos / tags)" />
-        {showFiltros && (
-          <div className="space-y-4 rounded border border-slate-200 bg-white p-4">
-            <p className="text-[12px] text-slate-500">Restringe a visao do usuario. Vazio = sem restricao.</p>
-            <div>
-              <div className="mb-1 text-[12px] font-semibold text-slate-700">Departamentos</div>
-              <div className="flex flex-wrap gap-3">
-                {departamentos.map((d) => (
-                  <label key={d.id} className="flex items-center gap-1 text-[12px]"><input type="checkbox" checked={depIds.includes(d.id)} onChange={(e) => setDepIds((ids) => e.target.checked ? [...ids, d.id] : ids.filter((x) => x !== d.id))} />{d.nome}</label>
-                ))}
-              </div>
-            </div>
-            <div>
-              <div className="mb-1 text-[12px] font-semibold text-slate-700">Tags</div>
-              <div className="flex flex-wrap gap-3">
-                {tags.map((t) => (
-                  <label key={t.id} className="flex items-center gap-1 text-[12px]"><input type="checkbox" checked={tagIds.includes(t.id)} onChange={(e) => setTagIds((ids) => e.target.checked ? [...ids, t.id] : ids.filter((x) => x !== t.id))} />{t.nome}</label>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Ativo + Acessos por dia + acoes (Salvar/Voltar a direita) */}
