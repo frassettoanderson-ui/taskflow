@@ -23,7 +23,8 @@ export default function Assinaturas() {
   const [editando, setEditando] = useState<AssinaturaDocumento | null>(null);
   const [novo, setNovo] = useState(false);
   const [busca, setBusca] = useState('');
-  const [filtro, setFiltro] = useState('');
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [aberto, setAberto] = useState(false);
 
   function carregar() {
     setLoading(true);
@@ -36,10 +37,17 @@ export default function Assinaturas() {
   }, []);
 
   const filtrados = useMemo(() => {
-    const q = filtro.trim().toLowerCase();
-    if (!q) return itens;
-    return itens.filter((a) => a.nome.toLowerCase().includes(q) || a.obrigacaoNome.toLowerCase().includes(q));
-  }, [itens, filtro]);
+    if (selecionados.length === 0) return itens;
+    return itens.filter((a) => selecionados.includes(a.obrigacaoNome));
+  }, [itens, selecionados]);
+
+  const opcoes = useMemo(() => {
+    const nomes = new Set<string>([...obrigacoes.map((o) => o.nome), ...itens.map((i) => i.obrigacaoNome)]);
+    const q = busca.trim().toLowerCase();
+    return [...nomes]
+      .filter((n) => n && !selecionados.includes(n) && (!q || n.toLowerCase().includes(q)))
+      .sort((a, b) => a.localeCompare(b));
+  }, [obrigacoes, itens, busca, selecionados]);
 
   async function excluir(a: AssinaturaDocumento) {
     if (!confirm(`Excluir "${a.nome}"?`)) return;
@@ -62,27 +70,41 @@ export default function Assinaturas() {
         <input className="w-48 rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" placeholder="Central de ajuda" disabled />
       </div>
 
-      {/* Barra de busca + filtrar */}
-      <div className="mb-1 flex items-stretch gap-3">
-        <input
-          className="flex-1 rounded border border-marca-300 bg-white px-3 py-2 text-[13px] outline-none focus:border-marca-500"
-          placeholder="Localizar na base de conhecimento"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') setFiltro(busca); }}
-        />
-        <div className="flex items-center px-2 text-[13px] text-marca-600">Listando {filtrados.length} registro(s)</div>
-        <button onClick={() => setFiltro(busca)} className="flex items-center gap-2 rounded bg-status-ok px-6 text-sm font-medium text-white hover:bg-emerald-600">
+      {/* Barra de busca (combobox multi de obrigacoes) + filtrar */}
+      <div className="mb-3 flex items-start gap-3">
+        <div className="relative flex-1">
+          <div className="flex flex-wrap items-center gap-1 rounded border border-marca-300 bg-white px-2 py-1.5">
+            {selecionados.map((s) => (
+              <span key={s} className="inline-flex items-center gap-1 rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[12px] text-slate-600">
+                <button onClick={() => setSelecionados((x) => x.filter((y) => y !== s))} className="text-slate-400 hover:text-red-500">×</button>{s}
+              </span>
+            ))}
+            <input
+              className="min-w-[180px] flex-1 bg-transparent text-[13px] outline-none"
+              placeholder={selecionados.length ? '' : 'Localizar na base de conhecimento'}
+              value={busca}
+              onFocus={() => setAberto(true)}
+              onBlur={() => setTimeout(() => setAberto(false), 150)}
+              onChange={(e) => { setBusca(e.target.value); setAberto(true); }}
+            />
+          </div>
+          {aberto && opcoes.length > 0 && (
+            <div className="absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded border border-slate-200 bg-white shadow-lg">
+              {opcoes.map((o) => (
+                <button key={o} onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setSelecionados((x) => [...x, o]); setBusca(''); }}
+                  className="block w-full px-3 py-1.5 text-left text-[13px] text-marca-700 hover:bg-marca-500 hover:text-white">
+                  {o}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex items-center px-1 py-2 text-[13px] text-marca-600">Listando {filtrados.length} registro(s)</div>
+        <button onClick={() => setAberto(false)} className="flex items-center gap-2 rounded bg-status-ok px-6 py-2 text-sm font-medium text-white hover:bg-emerald-600">
           <Search size={15} /> Filtrar
         </button>
       </div>
-      {filtro && (
-        <div className="mb-2">
-          <span className="inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-0.5 text-[12px] text-slate-600">
-            <button onClick={() => { setFiltro(''); setBusca(''); }} className="text-slate-400 hover:text-red-500">×</button>{filtro}
-          </span>
-        </div>
-      )}
 
       {/* Tabela */}
       <div className="overflow-hidden rounded border border-slate-200 bg-white">
