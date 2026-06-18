@@ -158,7 +158,22 @@ section { position: relative; }
    HORÁRIOS
    ════════════════════════════════════════════════ */
 .horarios { padding: 110px 28px; background: var(--ink); }
-.cards-horarios { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.horario-destaque {
+  max-width: 1120px; margin: 0 auto 22px; display: flex; gap: 44px; align-items: center; flex-wrap: wrap;
+  background: linear-gradient(135deg, rgba(205,163,73,.12), var(--ink-2)); border: 1px solid rgba(205,163,73,.42);
+  border-radius: 20px; padding: 34px 44px; box-shadow: 0 24px 55px rgba(0,0,0,.45); position: relative; overflow: hidden;
+}
+.horario-destaque::before { content: ''; position: absolute; right: -10%; top: -40%; width: 50%; height: 160%;
+  background: radial-gradient(closest-side, var(--gold-soft), transparent 70%); pointer-events: none; }
+.hd-main { position: relative; z-index: 1; min-width: 160px; }
+.hd-main .card-hora { font-size: 3.6rem; }
+.hd-body { position: relative; z-index: 1; flex: 1; min-width: 240px; }
+.hd-body .card-nome { font-size: 1.5rem; }
+.hd-body p { color: var(--text); }
+.cards-horarios { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.card-tag { display: inline-block; font-family: var(--sans); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold-2); background: var(--gold-soft); border: 1px solid rgba(205,163,73,.3); border-radius: 999px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+.cards-horarios .card-hora { font-size: 2.5rem; }
+.cards-horarios .card-nome { font-size: 1.05rem; }
 .card-horario {
   background: linear-gradient(180deg, var(--panel), var(--ink-2)); border: 1px solid var(--line);
   border-radius: 18px; padding: 36px 30px; transition: transform .35s, border-color .35s, box-shadow .35s; position: relative; overflow: hidden;
@@ -244,6 +259,9 @@ section { position: relative; }
 /* ════════════════════════════════════════════════
    RESPONSIVO
    ════════════════════════════════════════════════ */
+@media (max-width: 1080px) {
+  .cards-horarios { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 900px) {
   .nav-links, .nav-cta { display: none; }
   .nav-burger { display: flex; }
@@ -251,10 +269,13 @@ section { position: relative; }
   .nav.open .nav-links a { padding: 14px 28px; }
   .sobre-grid, .local-grid { grid-template-columns: 1fr; gap: 40px; }
   .sobre-img { max-width: 420px; margin: 0 auto; }
-  .cards-horarios, .passos { grid-template-columns: 1fr; }
+  .passos { grid-template-columns: 1fr; }
   .galeria-grid { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 180px; }
   .g-wide { grid-column: span 2; }
   .rodape-inner { grid-template-columns: 1fr; gap: 30px; }
+}
+@media (max-width: 560px) {
+  .cards-horarios { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
   .galeria-grid { grid-template-columns: 1fr; }
