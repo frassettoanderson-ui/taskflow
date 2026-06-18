@@ -416,15 +416,25 @@ model Obrigacao {
   escritorio         Escritorio @relation(fields: [escritorioId], references: [id])
 
   nome               String
+  mininome           String?
   departamentoId     String?
   departamento       Departamento? @relation(fields: [departamentoId], references: [id])
+  responsavelId      String?
   descricao          String?
   periodicidade      Periodicidade @default(MENSAL)
   // Regra de prazo (JSON): { tipoDia, dia, regraNaoUtil, sabadoEhUtil, diasAntesTecnico, tipoDiasAntes }
   regraPrazo         Json     @default("{}")
+  // Entrega mes a mes (JSON): 12 itens [{ modo: NAO_ENTREGA|DIA_FIXO|DIA_UTIL|ULT_DIA_UTIL, dia? }]
+  entregaMeses       Json     @default("[]")
   tempoPrevistoMin   Int      @default(0)
+  lembrarDiasAntes   Int      @default(5)
+  // Competencia de referencia: MES_ATUAL | MES_ANTERIOR | ANO_ATUAL | ANO_ANTERIOR
+  competenciaRef     String   @default("MES_ANTERIOR")
   exigeAnexoNaBaixa  Boolean  @default(false)
   exigeBaixaPeloRobo Boolean  @default(false)
+  passivelMulta      Boolean  @default(false)
+  alertaNaoLida      Boolean  @default(true)
+  comentarioPadrao   String?
   ativo              Boolean  @default(true)
 
   createdAt          DateTime @default(now())

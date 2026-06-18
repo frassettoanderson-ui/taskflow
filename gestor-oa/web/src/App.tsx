@@ -18,6 +18,7 @@ import EmpresaForm from './pages/empresas/EmpresaForm';
 import EmpresaFicha from './pages/empresas/EmpresaFicha';
 import ImportarCsv from './pages/empresas/ImportarCsv';
 import Catalogo from './pages/obrigacoes/Catalogo';
+import ObrigacaoForm from './pages/obrigacoes/ObrigacaoForm';
 import Regimes from './pages/obrigacoes/Regimes';
 import Grupos from './pages/obrigacoes/Grupos';
 import Feriados from './pages/obrigacoes/Feriados';
@@ -87,10 +88,12 @@ export default function App() {
         <Route path="empresas/importar" element={<ImportarCsv />} />
         <Route path="empresas/:id" element={<EmpresaFicha />} />
         <Route path="obrigacoes" element={<Catalogo />} />
+        <Route path="obrigacoes/nova" element={<ObrigacaoForm />} />
         <Route path="obrigacoes/regimes" element={<Regimes />} />
         <Route path="obrigacoes/grupos" element={<Grupos />} />
         <Route path="obrigacoes/feriados" element={<Feriados />} />
         <Route path="obrigacoes/alocacao" element={<AlocacaoMassa />} />
+        <Route path="obrigacoes/:id" element={<ObrigacaoForm />} />
         <Route path="entregas" element={<ListaEntregas />} />
         <Route path="entregas/calendario" element={<Calendario />} />
         <Route path="documentos/armazenamento" element={<Armazenamento />} />

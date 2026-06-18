@@ -127,17 +127,36 @@ export interface RegraPrazo {
   tipoDiasAntes: 'CORRIDOS' | 'UTEIS';
 }
 
+export type ModoEntregaMes = 'NAO_ENTREGA' | 'DIA_FIXO' | 'DIA_UTIL' | 'ULT_DIA_UTIL';
+export interface EntregaMes { modo: ModoEntregaMes; dia?: number | null }
+export type CompetenciaRef = 'MES_ATUAL' | 'MES_ANTERIOR' | 'ANO_ATUAL' | 'ANO_ANTERIOR';
+
+export const LABEL_COMPETENCIA: Record<CompetenciaRef, string> = {
+  MES_ATUAL: 'Mes atual',
+  MES_ANTERIOR: 'Mes anterior',
+  ANO_ATUAL: 'Ano atual',
+  ANO_ANTERIOR: 'Ano anterior',
+};
+
 export interface Obrigacao {
   id: string;
   nome: string;
+  mininome: string | null;
   departamentoId: string | null;
   departamento?: { id: string; nome: string; cor: string } | null;
+  responsavelId: string | null;
   descricao: string | null;
   periodicidade: Periodicidade;
   regraPrazo: RegraPrazo;
+  entregaMeses: EntregaMes[];
   tempoPrevistoMin: number;
+  lembrarDiasAntes: number;
+  competenciaRef: CompetenciaRef;
   exigeAnexoNaBaixa: boolean;
   exigeBaixaPeloRobo: boolean;
+  passivelMulta: boolean;
+  alertaNaoLida: boolean;
+  comentarioPadrao: string | null;
   ativo: boolean;
   _count?: { empresaObrigacoes: number };
 }

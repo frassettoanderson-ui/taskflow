@@ -61,6 +61,19 @@ router.get('/export', requirePermission('relatorios_ver'), async (req, res) => {
   return res.send('﻿' + linhas.join('\n'));
 });
 
+// Obter uma obrigacao (tela de cadastro/edicao). Static routes acima tem prioridade.
+router.get('/:id', async (req, res) => {
+  const o = await prisma.obrigacao.findFirst({
+    where: { id: req.params.id, escritorioId: req.auth!.escritorioId, deletedAt: null },
+    include: {
+      departamento: { select: { id: true, nome: true, cor: true } },
+      _count: { select: { empresaObrigacoes: true } },
+    },
+  });
+  if (!o) throw Errors.naoEncontrado('Obrigacao');
+  return ok(res, o);
+});
+
 router.post(
   '/',
   requirePermission('obrigacoes_gerenciar'),
