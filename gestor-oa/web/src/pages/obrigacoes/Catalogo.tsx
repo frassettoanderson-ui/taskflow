@@ -1,13 +1,39 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Printer, Landmark, List, Cog, Search, Plus } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Badge, Modal, Spinner, useToast } from '../../components/ui';
+import { Modal, Spinner, useToast } from '../../components/ui';
 import type { Obrigacao, Departamento, RegraPrazo, Periodicidade } from '../../lib/tipos';
-import { LABEL_PERIODICIDADE, descreverRegra } from '../../lib/tipos';
+import { LABEL_PERIODICIDADE } from '../../lib/tipos';
+
+const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+// Meses de vencimento aplicaveis conforme a periodicidade (representacao).
+function mesesAplicaveis(per: Periodicidade): number[] {
+  if (per === 'MENSAL') return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  if (per === 'TRIMESTRAL') return [0, 3, 6, 9];
+  if (per === 'ANUAL') return [0];
+  return []; // EVENTUAL
+}
+
+// Rotulo do dia conforme a regra de prazo.
+function rotuloDia(regra: RegraPrazo): string {
+  if (regra?.tipoDia === 'DIA_UTIL') return `${regra.dia}ºDU`;
+  return String(regra?.dia ?? '');
+}
+
+// Compet. de referencia (derivado do nosso modelo: vence no mes seguinte a competencia).
+function competenciaRef(per: Periodicidade): string {
+  if (per === 'ANUAL') return 'Ano anterior';
+  if (per === 'EVENTUAL') return 'Eventual';
+  return 'Mes anterior';
+}
 
 export default function Catalogo() {
   const { sessao } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
 
   const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
@@ -15,8 +41,11 @@ export default function Catalogo() {
   const [loading, setLoading] = useState(true);
   const [filtroDep, setFiltroDep] = useState('');
   const [busca, setBusca] = useState('');
+  const [status, setStatus] = useState<'ativas' | 'inativas' | 'todas'>('ativas');
   const [editando, setEditando] = useState<Obrigacao | null>(null);
   const [novo, setNovo] = useState(false);
+  const [imprimirAberto, setImprimirAberto] = useState(false);
+  const imprimirRef = useRef<HTMLDivElement>(null);
 
   function carregar() {
     setLoading(true);
@@ -33,6 +62,11 @@ export default function Catalogo() {
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtroDep, busca]);
+  useEffect(() => {
+    function fora(e: MouseEvent) { if (imprimirRef.current && !imprimirRef.current.contains(e.target as Node)) setImprimirAberto(false); }
+    document.addEventListener('mousedown', fora);
+    return () => document.removeEventListener('mousedown', fora);
+  }, []);
 
   async function excluir(o: Obrigacao) {
     if (!confirm(`Excluir a obrigacao "${o.nome}"?`)) return;
@@ -45,7 +79,8 @@ export default function Catalogo() {
     }
   }
 
-  async function exportar() {
+  async function exportarExcel() {
+    setImprimirAberto(false);
     const res = await fetch('/api/v1/obrigacoes/export', {
       headers: { Authorization: `Bearer ${getAccessToken()}` },
     });
@@ -53,77 +88,119 @@ export default function Catalogo() {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'obrigacoes_por_regime.csv'; a.click();
+    a.href = url; a.download = 'obrigacoes.csv'; a.click();
     URL.revokeObjectURL(url);
   }
 
+  const lista = obrigacoes.filter((o) =>
+    status === 'todas' ? true : status === 'ativas' ? o.ativo : !o.ativo,
+  );
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-800">Catalogo de Obrigacoes</h1>
-        <div className="flex gap-2">
-          <button className="btn-ghost border border-slate-300" onClick={exportar}>Exportar CSV</button>
-          {podeGerenciar && <button className="btn-primary" onClick={() => setNovo(true)}>+ Nova obrigacao</button>}
+    <div className="space-y-3">
+      {/* Toolbar estilo Acessorias */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-[260px] flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input className="input pl-9" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Filtrar obrigacao" />
         </div>
+
+        <div className="text-sm text-marca-600">{lista.length} reg</div>
+
+        {/* 4 icones */}
+        <div className="flex items-center gap-3">
+          <div className="relative" ref={imprimirRef}>
+            <button title="Imprimir obrigacoes" className="text-marca-600 hover:text-marca-800" onClick={() => setImprimirAberto((v) => !v)}>
+              <Printer size={20} />
+            </button>
+            {imprimirAberto && (
+              <div className="absolute left-0 top-7 z-50 flex gap-2 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+                <button className="rounded bg-red-500 px-3 py-1 text-xs font-medium text-white hover:bg-red-600" onClick={() => { setImprimirAberto(false); toast('ok', 'Exportacao PDF: em breve'); }}>PDF</button>
+                <button className="rounded bg-emerald-600 px-3 py-1 text-xs font-medium text-white hover:bg-emerald-700" onClick={exportarExcel}>EXCEL</button>
+              </div>
+            )}
+          </div>
+          <button title="Configurar regimes tributarios" className="text-marca-600 hover:text-marca-800" onClick={() => navigate('/obrigacoes/regimes')}>
+            <Landmark size={20} />
+          </button>
+          <button title="Grupos de obrigacoes" className="text-marca-600 hover:text-marca-800" onClick={() => navigate('/obrigacoes/grupos')}>
+            <List size={20} />
+          </button>
+          <button title="Configurar feriados" className="text-orange-500 hover:text-orange-600" onClick={() => navigate('/obrigacoes/feriados')}>
+            <Cog size={20} />
+          </button>
+        </div>
+
+        <select className="input w-44" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+          <option value="ativas">Apenas ativas</option>
+          <option value="inativas">Exibir inativas</option>
+          <option value="todas">Todas</option>
+        </select>
+        <select className="input w-48" value={filtroDep} onChange={(e) => setFiltroDep(e.target.value)}>
+          <option value="">Todos os departamentos</option>
+          {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+        </select>
+
+        {podeGerenciar && (
+          <button className="btn-primary" onClick={() => setNovo(true)}><Plus size={16} /> Nova obrigacao</button>
+        )}
       </div>
 
-      <div className="card flex flex-wrap items-end gap-3 p-4">
-        <div className="flex-1 min-w-[200px]">
-          <label className="label">Buscar</label>
-          <input className="input" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome da obrigacao..." />
-        </div>
-        <div>
-          <label className="label">Departamento</label>
-          <select className="input" value={filtroDep} onChange={(e) => setFiltroDep(e.target.value)}>
-            <option value="">Todos</option>
-            {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-          </select>
-        </div>
-      </div>
-
-      <div className="card overflow-hidden">
+      <div className="card overflow-x-auto">
         {loading ? <Spinner /> : (
           <table className="w-full text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
               <tr>
-                <th className="px-3 py-2">Obrigacao</th>
-                <th className="px-3 py-2">Departamento</th>
-                <th className="px-3 py-2">Periodicidade</th>
-                <th className="px-3 py-2">Prazo</th>
-                <th className="px-3 py-2">Tempo</th>
-                <th className="px-3 py-2">Empresas</th>
+                <th className="px-3 py-2">Obrigacao / Departamento / Qtde empresas</th>
+                <th className="px-3 py-2">Datas para entrega (DU = Dia Util)</th>
+                <th className="px-3 py-2">Multa? / Robo?</th>
+                <th className="px-3 py-2">Compet. / Lembrar</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>
-              {obrigacoes.map((o) => (
-                <tr key={o.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  <td className="px-3 py-2">
-                    <div className="font-medium text-slate-700">{o.nome}</div>
-                    <div className="flex gap-1">
-                      {o.exigeAnexoNaBaixa && <span className="text-[10px] text-amber-600">exige anexo</span>}
-                      {o.exigeBaixaPeloRobo && <span className="text-[10px] text-marca-600">robo</span>}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    {o.departamento ? <Badge cor={o.departamento.cor}>{o.departamento.nome}</Badge> : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-slate-600">{LABEL_PERIODICIDADE[o.periodicidade]}</td>
-                  <td className="px-3 py-2 text-slate-500">{descreverRegra(o.regraPrazo)}</td>
-                  <td className="px-3 py-2 text-slate-500">{o.tempoPrevistoMin} min</td>
-                  <td className="px-3 py-2 text-slate-500">{o._count?.empresaObrigacoes ?? 0}</td>
-                  <td className="px-3 py-2 text-right">
-                    {podeGerenciar && (
-                      <div className="flex justify-end gap-2 text-xs">
-                        <button className="text-marca-600 hover:underline" onClick={() => setEditando(o)}>editar</button>
-                        <button className="text-red-500 hover:underline" onClick={() => excluir(o)}>excluir</button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {obrigacoes.length === 0 && (
-                <tr><td colSpan={7} className="px-3 py-10 text-center text-slate-400">Nenhuma obrigacao.</td></tr>
+              {lista.map((o) => {
+                const meses = mesesAplicaveis(o.periodicidade);
+                const dia = rotuloDia(o.regraPrazo);
+                return (
+                  <tr key={o.id} className="border-b border-slate-100 hover:bg-slate-50 align-top">
+                    <td className="px-3 py-2">
+                      <button className="text-left font-medium text-marca-700 hover:underline" onClick={() => podeGerenciar && setEditando(o)}>
+                        {o.nome} {!o.ativo && <span className="text-red-500">[Inativa]</span>}
+                      </button>
+                      <div className="text-xs text-slate-500">{o.departamento?.nome ?? '—'}</div>
+                      <div className="text-xs text-slate-400">{o._count?.empresaObrigacoes ?? 0} empresas</div>
+                    </td>
+                    <td className="px-3 py-2">
+                      {meses.length === 0 ? (
+                        <span className="text-xs text-slate-400">Eventual</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-x-2 gap-y-0.5 font-mono text-[11px] text-slate-500">
+                          {meses.map((m) => <span key={m}>{dia}/{MESES[m]}</span>)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-500">
+                      <div>Multa? <span className="text-slate-400">—</span></div>
+                      <div>Robo? <span className={o.exigeBaixaPeloRobo ? 'text-marca-600' : 'text-slate-400'}>{o.exigeBaixaPeloRobo ? 'Sim' : 'Nao'}</span></div>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-500">
+                      <div>{competenciaRef(o.periodicidade)}</div>
+                      <div className="text-slate-400">{(o.regraPrazo?.diasAntesTecnico ?? 0)} dias antes</div>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {podeGerenciar && (
+                        <div className="flex justify-end gap-2 text-xs">
+                          <button className="text-marca-600 hover:underline" onClick={() => setEditando(o)}>editar</button>
+                          <button className="text-red-500 hover:underline" onClick={() => excluir(o)}>excluir</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+              {lista.length === 0 && (
+                <tr><td colSpan={5} className="px-3 py-10 text-center text-slate-400">Nenhuma obrigacao.</td></tr>
               )}
             </tbody>
           </table>
