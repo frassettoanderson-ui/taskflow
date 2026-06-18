@@ -149,35 +149,58 @@ export interface AreaNivel { v: number; label: string }
 export interface PermissionArea { id: string; label: string; niveis: AreaNivel[]; extra?: boolean; semEfeito?: boolean }
 
 const SIM_NAO: AreaNivel[] = [{ v: 0, label: 'Nao' }, { v: 1, label: 'Sim' }];
+const ACESSO: AreaNivel[] = [{ v: 0, label: 'Nao = Acesso bloqueado' }, { v: 1, label: 'Sim = Acesso permitido' }];
 
 export const PERMISSION_AREAS: PermissionArea[] = [
-  { id: 'administrativo', label: 'Administrativo? (acesso total)', niveis: SIM_NAO },
-  { id: 'sistema', label: 'Configuracoes do Sistema e do e-Continuo', niveis: [{ v: 0, label: 'Nao = Sem permissao' }, { v: 1, label: 'Sim' }] },
+  { id: 'administrativo', label: 'Administrativo?', niveis: SIM_NAO },
+  { id: 'sistema', label: 'Configuracoes do Sistema e do e-Continuo', niveis: [
+    { v: 0, label: 'Nao = Sem permissao' }, { v: 1, label: 'Sim = Acesso permitido' } ] },
   { id: 'usuarios', label: 'Controle de Usuarios', niveis: [
-    { v: 0, label: '[0] = Acesso bloqueado' }, { v: 1, label: 'Gerenciar usuarios' }, { v: 2, label: 'Usuarios e permissoes' } ] },
-  { id: 'departamentos', label: 'Cadastro de departamentos', niveis: [{ v: 0, label: '[0] = Acesso bloqueado' }, { v: 1, label: 'Gerenciar' }] },
+    { v: 0, label: '[0] = Acesso bloqueado' },
+    { v: 1, label: '[1] = Relacao, Cadastro e Permissoes' },
+    { v: 2, label: '[2] = [1] + Transf. resp. departamentos' } ] },
+  { id: 'departamentos', label: 'Cadastro de departamentos', niveis: [
+    { v: 0, label: '[0] = Acesso bloqueado' },
+    { v: 1, label: '[1] = Visualizar e disparar e-mails agendados' },
+    { v: 2, label: '[2] = [1] + Cadastro/Edicao de dptos' },
+    { v: 3, label: '[3] = [2] + Definir gestores dos dptos' } ] },
   { id: 'obrigacoes', label: 'Cadastro de Obrigacoes', niveis: [
-    { v: 0, label: '[0] = Nenhum acesso' }, { v: 1, label: 'Visualizar' }, { v: 2, label: 'Gerenciar' } ] },
-  { id: 'regimes_grupos', label: 'Regimes e Grupos de obrigacoes', niveis: [{ v: 0, label: 'Nao = Acesso bloqueado' }, { v: 1, label: 'Gerenciar' }] },
-  { id: 'empresas', label: 'Cadastro de Empresas', niveis: [
-    { v: 0, label: 'Nao = Acesso bloqueado' }, { v: 1, label: 'Visualizar' }, { v: 2, label: 'Visualizar e editar' }, { v: 3, label: 'Total' } ] },
-  { id: 'anexos_apagar', label: 'Pode apagar anexos (arquivos)?', niveis: [{ v: 0, label: 'Nao = Sem permissao' }, { v: 1, label: 'Sim' }] },
-  { id: 'processos', label: 'Gestao de processos', niveis: [
-    { v: 0, label: 'Nao = Acesso bloqueado' }, { v: 1, label: 'Visualizar' }, { v: 2, label: 'Operar' }, { v: 3, label: 'Total' } ] },
-  { id: 'entregas_dispensar', label: 'Pode dispensar demandas na Lista de Entregas?', niveis: SIM_NAO },
+    { v: 0, label: '[0] = Nenhum acesso' },
+    { v: 1, label: '[1] = Listagem' },
+    { v: 2, label: '[2] = [1] + Alocar obrigacoes em empresas' },
+    { v: 3, label: '[3] = [2] + Retroativa e avulsa' },
+    { v: 4, label: '[4] = [3] + Adicionar/Editar cadastros' } ] },
+  { id: 'regimes_grupos', label: 'Regimes e Grupos de obrigacoes', niveis: ACESSO },
+  { id: 'empresas', label: 'Cadastro de Empresas', niveis: ACESSO },
+  { id: 'anexos_apagar', label: 'Pode apagar anexos (arquivos)?', niveis: [
+    { v: 0, label: 'Nao = Sem permissao' }, { v: 1, label: 'Sim = Exclusoes permitidas' } ] },
+  { id: 'processos', label: 'Gestao de processos', niveis: ACESSO },
+  { id: 'entregas_dispensar', label: 'Pode dispensar demandas na Lista de Entregas?', niveis: [
+    { v: 0, label: 'Nao' },
+    { v: 1, label: 'Sim, mas exigir justificativa' },
+    { v: 2, label: 'Sim, inclusive em massa (diversas de uma vez)' } ] },
   { id: 'entregas', label: 'Demandas da Lista de Entregas e Solicitacoes', niveis: [
-    { v: 0, label: 'Sem permissao' }, { v: 1, label: '[1] = Visualizar somente as proprias' }, { v: 2, label: 'Visualizar todas' }, { v: 3, label: 'Operar (baixar / acoes em massa)' } ] },
+    { v: 1, label: '[1] = Visualizar somente as proprias' },
+    { v: 2, label: '[2] = [1] + das emp. que e resp. por algum dpto' },
+    { v: 3, label: '[3] = Pode visualizar todas' } ] },
   { id: 'entregas_prazos', label: 'Pode alterar prazos tecnicos/legais?', niveis: SIM_NAO },
   { id: 'apla', label: 'Permissoes do APLA', niveis: [
-    { v: 0, label: 'Sem permissao' }, { v: 1, label: 'Ver relatorios' }, { v: 2, label: 'Configurar' } ] },
-  { id: 'tempo_previsto', label: 'Tempo previsto das demandas', niveis: [{ v: 0, label: 'Sem permissao' }, { v: 1, label: 'Ver/Editar' }], semEfeito: true },
-  { id: 'salarios', label: 'Salarios e Honorarios', niveis: [{ v: 0, label: 'Sem permissao' }, { v: 1, label: 'Ver' }, { v: 2, label: 'Editar' }], semEfeito: true },
+    { v: 0, label: 'Sem permissao' }, { v: 1, label: 'Sim, pode alterar' } ] },
+  { id: 'tempo_previsto', label: 'Tempo previsto das demandas', niveis: [
+    { v: 0, label: 'Sem permissao' }, { v: 1, label: 'Sim, pode alterar' } ], semEfeito: true },
+  { id: 'salarios', label: 'Salarios e Honorarios', niveis: [
+    { v: 0, label: 'Sem permissao' }, { v: 1, label: 'Sim, pode visualizar / alterar' } ], semEfeito: true },
   { id: 'portal_config', label: 'Configuracoes Area VIP e App', niveis: SIM_NAO },
-  { id: 'comunicados', label: 'Comunicados', niveis: [{ v: 0, label: '[0] = Sem permissao' }, { v: 1, label: 'Gerenciar' }] },
-  { id: 'portal_solic', label: 'Solicitacoes', niveis: [{ v: 0, label: '[0] = Sem permissao' }, { v: 1, label: 'Gerenciar' }] },
+  { id: 'comunicados', label: 'Comunicados', niveis: [
+    { v: 0, label: '[0] = Sem permissao' },
+    { v: 1, label: '[1] = Visualizacao' },
+    { v: 2, label: '[2] = [1] + Criacao / Edicao' } ] },
+  { id: 'portal_solic', label: 'Solicitacoes', niveis: [
+    { v: 0, label: '[0] = Sem permissao' },
+    { v: 1, label: '[1] = Listagem / Interacao' },
+    { v: 2, label: '[2] = [1] + Criacao' } ] },
   { id: 'certificado', label: 'Certificado digital', niveis: SIM_NAO, semEfeito: true },
-  { id: 'documentos', label: 'AC Docs', niveis: [
-    { v: 0, label: 'Nao = Acesso bloqueado' }, { v: 1, label: 'Visualizar' }, { v: 2, label: 'Visualizar e enviar' } ] },
+  { id: 'documentos', label: 'AC Docs', niveis: ACESSO },
   // Extras nossos (nao existem no Acessorias)
   { id: 'relatorios', label: 'Relatorios', niveis: [{ v: 0, label: 'Sem permissao' }, { v: 1, label: 'Ver relatorios e insights' }], extra: true },
   { id: 'solic_internas', label: 'Solicitacoes internas', niveis: [
@@ -193,34 +216,39 @@ export function nivelParaFlags(niveis: PermissionNiveis): Record<PermissionFlag,
   const n = (id: string) => niveis[id] ?? 0;
   // Administrativo = acesso total
   if (n('administrativo') >= 1) { for (const k of PERMISSION_FLAGS) f[k] = true; return f; }
-  if (n('empresas') >= 1) f.empresas_ver = true;
-  if (n('empresas') >= 2) { f.empresas_criar = true; f.empresas_editar = true; f.empresas_importar = true; }
-  if (n('empresas') >= 3) f.empresas_excluir = true;
+  // Empresas (Sim = acesso total)
+  if (n('empresas') >= 1) { f.empresas_ver = f.empresas_criar = f.empresas_editar = f.empresas_importar = f.empresas_excluir = true; }
+  // Obrigacoes (escala 0..4)
   if (n('obrigacoes') >= 1) f.obrigacoes_ver = true;
   if (n('obrigacoes') >= 2) f.obrigacoes_gerenciar = true;
   if (n('regimes_grupos') >= 1) { f.obrigacoes_ver = true; f.obrigacoes_gerenciar = true; }
-  if (n('entregas') >= 1) f.entregas_ver = true;
-  if (n('entregas') >= 3) { f.entregas_baixar = true; f.entregas_acoes_massa = true; f.entregas_desfazer_robo = true; }
+  // Lista de entregas (todos veem ao menos as proprias; escala 1..3)
+  const ne = niveis.entregas ?? 1;
+  if (ne >= 1) { f.entregas_ver = true; f.entregas_baixar = true; }
+  if (ne >= 3) { f.entregas_acoes_massa = true; f.entregas_desfazer_robo = true; }
   if (n('entregas_dispensar') >= 1) f.entregas_dispensar = true;
+  if (n('entregas_dispensar') >= 2) f.entregas_acoes_massa = true;
   if (n('entregas_prazos') >= 1) f.entregas_editar_prazos = true;
-  if (n('processos') >= 1) f.processos_ver = true;
-  if (n('processos') >= 2) f.processos_operar = true;
-  if (n('processos') >= 3) f.processos_gerenciar_matrizes = true;
-  if (n('documentos') >= 1) f.documentos_ver = true;
-  if (n('documentos') >= 2) f.documentos_upload = true;
+  // Processos (Sim = total)
+  if (n('processos') >= 1) { f.processos_ver = f.processos_operar = f.processos_gerenciar_matrizes = true; }
+  // AC Docs / apagar anexos
+  if (n('documentos') >= 1) { f.documentos_ver = true; f.documentos_upload = true; }
   if (n('anexos_apagar') >= 1) f.documentos_excluir = true;
-  if (n('relatorios') >= 1) f.relatorios_ver = true;
-  if (n('apla') >= 1) f.apla_ver = true;
-  if (n('apla') >= 2) f.apla_configurar = true;
+  // APLA (Sim = pode alterar)
+  if (n('apla') >= 1) { f.apla_ver = true; f.apla_configurar = true; }
+  // Portal / Area VIP
   if (n('portal_config') >= 1) f.portal_configurar = true;
   if (n('comunicados') >= 1) f.portal_comunicados = true;
   if (n('portal_solic') >= 1) f.portal_solicitacoes = true;
+  // Usuarios (nivel 1 ja inclui permissoes)
+  if (n('usuarios') >= 1) { f.admin_usuarios = true; f.admin_permissoes = true; }
+  // Sistema / Departamentos -> config do escritorio
+  if (n('sistema') >= 1) f.admin_escritorio = true;
+  if (n('departamentos') >= 2) f.admin_escritorio = true;
+  // Extras nossos (nao existem no Acessorias)
+  if (n('relatorios') >= 1) f.relatorios_ver = true;
   if (n('solic_internas') >= 1) f.solicitacoes_internas_ver = true;
   if (n('solic_internas') >= 2) f.solicitacoes_internas_gerenciar = true;
-  if (n('usuarios') >= 1) f.admin_usuarios = true;
-  if (n('usuarios') >= 2) f.admin_permissoes = true;
-  if (n('departamentos') >= 1) f.admin_escritorio = true;
-  if (n('sistema') >= 1) f.admin_escritorio = true;
   if (n('auditoria') >= 1) f.admin_auditoria = true;
   return f;
 }

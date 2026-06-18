@@ -145,10 +145,9 @@ export default function UsuarioForm() {
                 <div key={a.id}>
                   <label className={`${LBL} ${a.id === 'administrativo' ? 'text-status-warn' : ''}`}>
                     {a.label}
-                    {a.semEfeito && <span className="ml-1 font-normal text-slate-400">(sem efeito ainda)</span>}
                     {a.extra && <span className="ml-1 font-normal text-marca-400">(nosso)</span>}
                   </label>
-                  <select className={INP} disabled={!podePermissoes} value={niveis[a.id] ?? 0} onChange={(e) => setNivel(a.id, Number(e.target.value))}>
+                  <select className={INP} disabled={!podePermissoes} value={niveis[a.id] ?? a.niveis[0].v} onChange={(e) => setNivel(a.id, Number(e.target.value))}>
                     {a.niveis.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
                   </select>
                 </div>
