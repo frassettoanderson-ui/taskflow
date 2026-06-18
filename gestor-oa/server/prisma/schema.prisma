@@ -230,7 +230,8 @@ model Departamento {
   escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
   nome          String
   cor           String   @default("#0f5c5e")
-  responsavelId String?  // responsavel padrao do departamento (1 por depto)
+  responsavelId String?  // responsavel padrao (= primeiro gestor)
+  gestoresIds   Json     @default("[]") // usuarios gestores do departamento (varios)
   ativo         Boolean  @default(true)
   parentId      String?  // departamento pai (hierarquia)
   envioAgendado String   @default("De hora em hora") // periodicidade do envio agrupado/agendado

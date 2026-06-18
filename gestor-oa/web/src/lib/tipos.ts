@@ -18,6 +18,7 @@ export interface Departamento {
   nome: string;
   cor: string;
   responsavelId?: string | null;
+  gestoresIds?: string[];
   ativo: boolean;
   parentId?: string | null;
   envioAgendado: string;

@@ -10,15 +10,17 @@ const router = Router();
 router.use(authenticate);
 
 function publico(d: {
-  id: string; nome: string; cor: string; responsavelId: string | null; ativo: boolean;
+  id: string; nome: string; cor: string; responsavelId: string | null; gestoresIds: unknown; ativo: boolean;
   parentId: string | null; envioAgendado: string; disponivelSolicitacoes: boolean; responderPara: string | null;
   _count?: { obrigacoes: number };
 }) {
+  const gestores = Array.isArray(d.gestoresIds) ? (d.gestoresIds as string[]) : [];
   return {
     id: d.id,
     nome: d.nome,
     cor: d.cor,
     responsavelId: d.responsavelId,
+    gestoresIds: gestores,
     ativo: d.ativo,
     parentId: d.parentId,
     envioAgendado: d.envioAgendado,
@@ -52,6 +54,7 @@ const upsertSchema = z.object({
   nome: z.string().min(2, 'Nome muito curto.'),
   cor: z.string().optional(),
   responsavelId: z.string().optional().nullable(),
+  gestoresIds: z.array(z.string()).optional(),
   ativo: z.boolean().optional(),
   parentId: z.string().optional().nullable(),
   envioAgendado: z.string().optional(),
@@ -68,12 +71,14 @@ router.post(
       where: { escritorioId: req.auth!.escritorioId, nome: req.body.nome },
     });
     if (existe) throw Errors.conflito('Ja existe um departamento com esse nome.');
+    const gestores = req.body.gestoresIds ?? [];
     const dep = await prisma.departamento.create({
       data: {
         escritorioId: req.auth!.escritorioId,
         nome: req.body.nome,
         cor: req.body.cor ?? '#0f5c5e',
-        responsavelId: req.body.responsavelId ?? null,
+        gestoresIds: gestores,
+        responsavelId: gestores[0] ?? req.body.responsavelId ?? null,
         ativo: req.body.ativo ?? true,
         parentId: req.body.parentId ?? null,
         envioAgendado: req.body.envioAgendado ?? 'De hora em hora',
@@ -98,12 +103,16 @@ router.put(
     // evita ciclo: nao pode ser pai de si mesmo
     const parentId = req.body.parentId === undefined ? dep.parentId : req.body.parentId;
     if (parentId === dep.id) throw Errors.validacao('Um departamento nao pode ser pai de si mesmo.');
+    const gestores = req.body.gestoresIds;
     const atualizado = await prisma.departamento.update({
       where: { id: dep.id },
       data: {
         nome: req.body.nome ?? dep.nome,
         cor: req.body.cor ?? dep.cor,
-        responsavelId: req.body.responsavelId === undefined ? dep.responsavelId : req.body.responsavelId,
+        gestoresIds: gestores === undefined ? undefined : gestores,
+        responsavelId: gestores === undefined
+          ? (req.body.responsavelId === undefined ? dep.responsavelId : req.body.responsavelId)
+          : (gestores[0] ?? null),
         ativo: req.body.ativo ?? dep.ativo,
         parentId,
         envioAgendado: req.body.envioAgendado ?? dep.envioAgendado,

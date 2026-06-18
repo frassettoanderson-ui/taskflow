@@ -8,7 +8,19 @@ import type { Departamento } from '../lib/tipos';
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600';
 
-const ENVIO_OPCOES = ['De hora em hora', 'No proximo dia', 'Nao enviar'];
+const ENVIO_OPCOES = [
+  'De hora em hora',
+  'No proximo dia',
+  'Toda segunda-feira',
+  'Toda terca-feira',
+  'Toda quarta-feira',
+  'Toda quinta-feira',
+  'Toda sexta-feira',
+  'Todo sabado',
+  'Todo domingo',
+  ...Array.from({ length: 20 }, (_, i) => `${i + 1}o dia util`),
+  'Somente envio manual',
+];
 
 export default function DepartamentoForm() {
   const { id } = useParams();
@@ -23,7 +35,7 @@ export default function DepartamentoForm() {
   const [nome, setNome] = useState('');
   const [cor, setCor] = useState('#0f5c5e');
   const [parentId, setParentId] = useState<string>(params.get('pai') ?? '');
-  const [responsavelId, setResponsavelId] = useState<string>('');
+  const [gestoresIds, setGestoresIds] = useState<string[]>([]);
   const [envioAgendado, setEnvioAgendado] = useState('De hora em hora');
   const [disponivelSolic, setDisponivelSolic] = useState(true);
   const [responderPara, setResponderPara] = useState('');
@@ -41,7 +53,7 @@ export default function DepartamentoForm() {
     if (novo) return;
     api.get<Departamento>(`/departamentos/${id}`).then((d) => {
       setNome(d.nome); setCor(d.cor); setParentId(d.parentId ?? '');
-      setResponsavelId(d.responsavelId ?? ''); setEnvioAgendado(d.envioAgendado);
+      setGestoresIds(d.gestoresIds ?? (d.responsavelId ? [d.responsavelId] : [])); setEnvioAgendado(d.envioAgendado);
       setDisponivelSolic(d.disponivelSolicitacoes); setResponderPara(d.responderPara ?? '');
       setObrigacoesCount(d.obrigacoesCount ?? 0);
     }).catch(() => toast('erro', 'Departamento nao encontrado.')).finally(() => setCarregando(false));
@@ -54,7 +66,7 @@ export default function DepartamentoForm() {
       const payload = {
         nome, cor,
         parentId: parentId || null,
-        responsavelId: responsavelId || null,
+        gestoresIds,
         envioAgendado,
         disponivelSolicitacoes: disponivelSolic,
         responderPara: responderPara || null,
@@ -110,10 +122,28 @@ export default function DepartamentoForm() {
 
         <div>
           <label className={LBL}>Usuarios gestores do departamento <Info /></label>
-          <select className={INP} value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)}>
-            <option value="">(nenhum)</option>
-            {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
+          <div className="rounded border border-slate-300 bg-white p-1.5">
+            <div className="mb-1 flex flex-wrap gap-1">
+              {gestoresIds.length === 0 && <span className="px-1 text-[11px] text-slate-400">Nenhum gestor selecionado</span>}
+              {gestoresIds.map((gid) => {
+                const u = usuarios.find((x) => x.id === gid);
+                return (
+                  <span key={gid} className="inline-flex items-center gap-1 rounded bg-marca-50 px-1.5 py-0.5 text-[11px] text-marca-700">
+                    {u?.nome ?? gid}
+                    <button type="button" onClick={() => setGestoresIds((g) => g.filter((x) => x !== gid))} className="text-slate-400 hover:text-red-500">×</button>
+                  </span>
+                );
+              })}
+            </div>
+            <select
+              className="w-full border-t border-slate-100 bg-transparent px-1 pt-1 text-[12px] text-slate-600 outline-none"
+              value=""
+              onChange={(e) => { if (e.target.value) setGestoresIds((g) => [...g, e.target.value]); }}
+            >
+              <option value="">+ Adicionar gestor...</option>
+              {usuarios.filter((u) => !gestoresIds.includes(u.id)).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          </div>
         </div>
 
         <div>
