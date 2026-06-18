@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Save, RotateCcw, Mail, Copy, Network } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
-import { Spinner, useToast } from '../components/ui';
+import { Spinner, useToast, InfoHint } from '../components/ui';
 import type { Departamento } from '../lib/tipos';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600';
+
+const INFO_GESTORES = 'Finalidade: alem do carater informativo, essa opcao e utilizada no envio de e-mail de documentos do robo, como balancos e DRE do contabil por exemplo, que alguns escritorios gostam que os documentos sejam enviados para o e-mail dos gestores apos a finalizacao do processo.';
+const INFO_SOLICITACOES = 'O Departamento deve aparecer como opcao para abertura de novas Solicitacoes na Area VIP / APP?';
+const INFO_RESPONDER = 'Esse endereco de e-mail sera utilizado como destino de respostas de e-mails enviados atraves das guias desse departamento, caso esteja configurado para tal nas Configuracoes do Sistema.';
 
 const ENVIO_OPCOES = [
   'De hora em hora',
@@ -121,7 +125,7 @@ export default function DepartamentoForm() {
         </div>
 
         <div>
-          <label className={LBL}>Usuarios gestores do departamento <Info /></label>
+          <label className={LBL}>Usuarios gestores do departamento <InfoHint texto={INFO_GESTORES} /></label>
           <div className="rounded border border-slate-300 bg-white p-1.5">
             <div className="mb-1 flex flex-wrap gap-1">
               {gestoresIds.length === 0 && <span className="px-1 text-[11px] text-slate-400">Nenhum gestor selecionado</span>}
@@ -147,7 +151,7 @@ export default function DepartamentoForm() {
         </div>
 
         <div>
-          <label className={LBL}>Disponivel em novas Solicitacoes? <Info /></label>
+          <label className={LBL}>Disponivel em novas Solicitacoes? <InfoHint texto={INFO_SOLICITACOES} /></label>
           <select className={INP} value={disponivelSolic ? 'sim' : 'nao'} onChange={(e) => setDisponivelSolic(e.target.value === 'sim')}>
             <option value="sim">Sim</option>
             <option value="nao">Nao</option>
@@ -155,7 +159,7 @@ export default function DepartamentoForm() {
         </div>
 
         <div>
-          <label className={LBL}>Endereco de 'Responder para' <Info /></label>
+          <label className={LBL}>Endereco de 'Responder para' <InfoHint texto={INFO_RESPONDER} /></label>
           <input className={INP} value={responderPara} onChange={(e) => setResponderPara(e.target.value)} placeholder="responder@suaempresa.com" />
         </div>
 
@@ -191,6 +195,3 @@ export default function DepartamentoForm() {
   );
 }
 
-function Info() {
-  return <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-marca-100 text-[9px] font-bold text-marca-600">i</span>;
-}
