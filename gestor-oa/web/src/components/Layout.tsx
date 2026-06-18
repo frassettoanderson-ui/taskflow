@@ -61,7 +61,7 @@ const MENU: Item[] = [
           { label: 'Consulta documento', icon: FileText, to: '/robo/revisao' },
           { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
           { label: 'Painel', icon: Activity, to: '/robo/painel' },
-          { label: 'Baixar agente (instalador)', icon: Download, href: '/agente-econtinuo.zip' },
+          { label: 'Baixar agente (instalador)', icon: Download, href: '/gestoroa-agente.exe' },
         ],
       },
       {
