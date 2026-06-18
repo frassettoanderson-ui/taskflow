@@ -14,8 +14,14 @@ const SEM_DEMANDA = ['Ignorar', 'Criar entrega/demanda'];
 // secao de reconhecimento do robo escondida por ora (sera tratada junto do robo no final)
 const MOSTRAR_ROBO = false;
 
-function Info() {
-  return <span className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-marca-100 text-[9px] font-bold text-marca-600">i</span>;
+const INFO_ANTECIPADO = `Caso o documento tenha vencimento no padrao homologado, sera exibido pelo campo padrao no e-mail.
+Obs: Se o vencimento no documento tenha sofrido alteracao no local de exibicao com relacao ao padrao (casos de guias emitidas diretamente por sites do governo por exemplo), recomendamos que a entrega seja feita pelo menu Lista de Entregas onde a data de vencimento pode ser definida manualmente.`;
+
+function Info({ onClick }: { onClick?: () => void }) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-marca-100 text-[9px] font-bold text-marca-600 ${onClick ? 'cursor-pointer hover:bg-marca-200' : ''}`}>i</button>
+  );
 }
 
 export default function AssinaturaForm() {
@@ -45,6 +51,7 @@ export default function AssinaturaForm() {
   const [ativo, setAtivo] = useState(true);
   const [temExemplo, setTemExemplo] = useState(false);
   const [mostrarLog, setMostrarLog] = useState(false);
+  const [infoTexto, setInfoTexto] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Obrigacao[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
@@ -166,7 +173,7 @@ export default function AssinaturaForm() {
           <select className={INP} value={anteciparVcto ? 'Sim' : 'Nao'} onChange={(e) => setAnteciparVcto(e.target.value === 'Sim')}><option>Sim</option><option>Nao</option></select>
         </div>
         <div>
-          <label className={LBL}>Mensagem de alerta de pagamento antecipado no e-mail <Info /></label>
+          <label className={LBL}>Mensagem de alerta de pagamento antecipado no e-mail <Info onClick={() => setInfoTexto(INFO_ANTECIPADO)} /></label>
           <input className={INP} value={msgAlerta} onChange={(e) => setMsgAlerta(e.target.value)} placeholder="Em branco = 'Atencao! Pagamento precisa ser antecipado!'" />
         </div>
       </div>
@@ -200,6 +207,17 @@ export default function AssinaturaForm() {
           </div>
         </div>
       </div>
+
+      {/* Modal de ajuda (i) */}
+      {infoTexto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setInfoTexto(null)}>
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-marca-300 text-2xl font-light text-marca-400">i</div>
+            <p className="whitespace-pre-line text-[14px] leading-relaxed text-slate-600">{infoTexto}</p>
+            <button onClick={() => setInfoTexto(null)} className="mt-5 rounded bg-marca-500 px-8 py-1.5 text-sm font-medium text-white hover:bg-marca-600">OK</button>
+          </div>
+        </div>
+      )}
 
       {/* Log's de alteracao (toggle pelo icone de relogio) */}
       {mostrarLog && (
