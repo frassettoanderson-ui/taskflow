@@ -44,6 +44,7 @@ export default function AssinaturaForm() {
   const [regexCompetencia, setRegexCompetencia] = useState('');
   const [ativo, setAtivo] = useState(true);
   const [temExemplo, setTemExemplo] = useState(false);
+  const [mostrarLog, setMostrarLog] = useState(false);
 
   useEffect(() => {
     api.get<Obrigacao[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
@@ -125,7 +126,7 @@ export default function AssinaturaForm() {
               <span className="flex-1 truncate py-1 font-medium text-status-danger" title={nome}>{nome || '—'}</span>
             )}
             <button onClick={verExemplo} title="Visualizar exemplo de guia reconhecida" className={temExemplo ? 'text-status-ok hover:opacity-70' : 'text-slate-300'}><FileText size={16} /></button>
-            <button onClick={() => toast('ok', 'Em construcao: historico.')} title="Historico" className="text-slate-400 hover:text-marca-600"><History size={15} /></button>
+            <button onClick={() => setMostrarLog((v) => !v)} title="Listar log's de alteracao" className={mostrarLog ? 'text-marca-600' : 'text-slate-400 hover:text-marca-600'}><History size={15} /></button>
           </div>
         </div>
         <div>
@@ -199,6 +200,25 @@ export default function AssinaturaForm() {
           </div>
         </div>
       </div>
+
+      {/* Log's de alteracao (toggle pelo icone de relogio) */}
+      {mostrarLog && (
+        <div className="mt-6">
+          <h3 className="mb-2 text-[13px] font-medium text-slate-700">Log's de alteracao</h3>
+          <div className="overflow-hidden rounded border border-slate-200 bg-white">
+            <table className="w-full">
+              <thead><tr className="border-b border-slate-200 text-left text-[12px] font-semibold text-slate-600">
+                <th className="px-4 py-2">Data e Hora</th>
+                <th className="px-4 py-2">Usuario</th>
+                <th className="px-4 py-2">Acao</th>
+              </tr></thead>
+              <tbody>
+                <tr><td colSpan={3} className="px-4 py-3 text-[13px] text-status-danger">Nenhum Log encontrado para esse Documento</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Secao nossa: reconhecimento do robo (escondida por ora - sera tratada junto do robo) */}
       {MOSTRAR_ROBO && (
