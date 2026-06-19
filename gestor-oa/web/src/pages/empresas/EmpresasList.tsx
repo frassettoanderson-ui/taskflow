@@ -43,18 +43,16 @@ export default function EmpresasList() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [ordenar, setOrdenar] = useState<'razao' | 'fantasia'>('razao');
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');
-  // modo "Alterar responsavel pelo dpto"
-  const [respMode, setRespMode] = useState(false);
+  // barra de acao ativa (so uma por vez; clicar de novo recolhe)
+  const [barra, setBarra] = useState<'resp' | 'tags' | 'export' | 'relacao' | 'datas' | null>(null);
+  const toggleBarra = (b: 'resp' | 'tags' | 'export' | 'relacao' | 'datas') => setBarra((atual) => (atual === b ? null : b));
   const [respDepto, setRespDepto] = useState('');
   const [respUser, setRespUser] = useState('');
-  // modo "Incluir tags em massa"
-  const [tagsMode, setTagsMode] = useState(false);
   const [tagsSel, setTagsSel] = useState<string[]>([]);
-  // modo "Exportar e-mails em bloco"
-  const [exportMode, setExportMode] = useState(false);
   const [expDepto, setExpDepto] = useState('');
   const [expBloco, setExpBloco] = useState('50');
   const [expTipo, setExpTipo] = useState<'nomes' | 'enderecos'>('nomes');
+  const [datas, setDatas] = useState({ aberturaDe: '', aberturaAte: '', desdeDe: '', desdeAte: '', ateDe: '', ateAte: '' });
 
   // Carrega filtros auxiliares uma vez
   useEffect(() => {
@@ -115,7 +113,7 @@ export default function EmpresasList() {
       if (!ids.length) return toast('erro', 'Nenhuma empresa listada.');
       const r = await api.post<{ afetadas: number }>('/empresas/acoes-massa', { empresaIds: ids, acao: 'aplicar_tags', tagIds: tagsSel });
       toast('ok', `${r.afetadas} empresa(s) atualizada(s).`);
-      setTagsMode(false); setTagsSel([]); setBusca((b) => b);
+      setBarra(null); setTagsSel([]); setBusca((b) => b);
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
 
@@ -126,7 +124,7 @@ export default function EmpresasList() {
       if (!ids.length) return toast('erro', 'Nenhuma empresa listada.');
       const r = await api.post<{ afetadas: number }>('/empresas/acoes-massa', { empresaIds: ids, acao: 'alterar_responsavel', departamentoId: respDepto, usuarioId: respUser });
       toast('ok', `${r.afetadas} empresa(s) atualizada(s).`);
-      setRespMode(false);
+      setBarra(null);
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
   function ordenarPor(campo: 'razao' | 'fantasia') {
@@ -157,13 +155,13 @@ export default function EmpresasList() {
         <button onClick={() => setMostrarFiltros((v) => !v)} className="flex items-center gap-2 rounded bg-purple-300 px-4 py-2 text-sm font-medium text-white hover:bg-purple-400"><SlidersHorizontal size={15} /> +Filtros</button>
 
         <div className="flex items-center gap-1">
-          <button title="Exporta e-mails em bloco" onClick={() => setExportMode(true)} className={`${ICONE} bg-status-ok/15 text-status-ok`}><Mail size={18} /></button>
+          <button title="Exporta e-mails em bloco" onClick={() => toggleBarra('export')} className={`${ICONE} bg-status-ok/15 text-status-ok`}><Mail size={18} /></button>
           {podeImportar && <button title="Importar cadastros" onClick={() => navigate('/empresas/importar')} className={`${ICONE} bg-marca-100 text-marca-600`}><Download size={18} /></button>}
           <button title="Motivos de cancelamento" onClick={() => navigate('/empresas/motivos')} className={`${ICONE} bg-red-100 text-red-500`}><XCircle size={18} /></button>
-          <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => { setRespMode(true); setRespDepto(departamentos[0]?.id ?? ''); setRespUser(usuarios[0]?.id ?? ''); }} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
-          <button title="Incluir tag's em massa nas empresas listadas" onClick={() => { setTagsMode(true); setTagsSel([]); }} className={`${ICONE} bg-status-ok/15 text-status-ok`}><TagsIcon size={18} /></button>
-          <button title="Relacao de empresas" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-purple-100 text-purple-500`}><Printer size={18} /></button>
-          <button title="Exibir/Ocultar datas" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-red-100 text-red-500`}><Calendar size={18} /></button>
+          <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => { toggleBarra('resp'); setRespDepto(departamentos[0]?.id ?? ''); setRespUser(usuarios[0]?.id ?? ''); }} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
+          <button title="Incluir tag's em massa nas empresas listadas" onClick={() => { toggleBarra('tags'); setTagsSel([]); }} className={`${ICONE} bg-status-ok/15 text-status-ok`}><TagsIcon size={18} /></button>
+          <button title="Relacao de empresas" onClick={() => toggleBarra('relacao')} className={`${ICONE} bg-purple-100 text-purple-500`}><Printer size={18} /></button>
+          <button title="Exibir/Ocultar datas" onClick={() => toggleBarra('datas')} className={`${ICONE} bg-red-100 text-red-500`}><Calendar size={18} /></button>
         </div>
 
         <button className="flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={16} /> Filtrar</button>
@@ -171,7 +169,7 @@ export default function EmpresasList() {
       </div>
 
       {/* Barra: Alterar responsavel pelo dpto */}
-      {respMode && (
+      {barra === 'resp' && (
         <div className="mt-2 flex flex-wrap items-end gap-2">
           <div className="min-w-[260px] flex-1">
             <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Atualizar nas {pagina?.total ?? 0} empresas listadas o responsavel do dpto:</label>
@@ -186,12 +184,12 @@ export default function EmpresasList() {
             </select>
           </div>
           <button onClick={atualizarResponsavel} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Network size={16} /> OK - Atualizar</button>
-          <button onClick={() => setRespMode(false)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
+          <button onClick={() => setBarra(null)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
         </div>
       )}
 
       {/* Barra: Incluir tags em massa */}
-      {tagsMode && (
+      {barra === 'tags' && (
         <div className="mt-2 flex flex-wrap items-end gap-2">
           <div className="min-w-[260px] flex-1">
             <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Adicionar nas {pagina?.total ?? 0} empresas listadas as Tag's:</label>
@@ -210,12 +208,39 @@ export default function EmpresasList() {
             </div>
           </div>
           <button onClick={adicionarTags} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><TagsIcon size={16} /> OK - Adicionar</button>
-          <button onClick={() => setTagsMode(false)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
+          <button onClick={() => setBarra(null)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
+        </div>
+      )}
+
+      {/* Barra: Relacao de empresas (exportacoes) */}
+      {barra === 'relacao' && (
+        <div className="mt-2 flex flex-wrap gap-2">
+          <button onClick={() => toast('ok', 'Em construcao: PDF')} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Printer size={16} /> PDF</button>
+          <button onClick={() => toast('ok', 'Em construcao: Excel Compacto')} className="flex items-center gap-2 rounded bg-purple-500 px-5 py-2 text-sm font-medium text-white hover:bg-purple-600"><Printer size={16} /> Excel Compacto</button>
+          <button onClick={() => toast('ok', 'Em construcao: Excel Completo')} className="flex items-center gap-2 rounded bg-amber-400 px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><Printer size={16} /> Excel Completo</button>
+          <button onClick={() => toast('ok', 'Em construcao: Excel Completo com Contatos')} className="flex items-center gap-2 rounded bg-slate-400 px-5 py-2 text-sm font-medium text-white hover:bg-slate-500"><Printer size={16} /> Excel Completo com Contatos</button>
+          <button onClick={() => toast('ok', 'Em construcao: Empresas inativas em uso')} className="flex items-center gap-2 rounded bg-pink-600 px-5 py-2 text-sm font-medium text-white hover:bg-pink-700"><Printer size={16} /> Empresas inativas em uso</button>
+        </div>
+      )}
+
+      {/* Barra: Exibir/Ocultar datas (filtros por data) */}
+      {barra === 'datas' && (
+        <div className="mt-2 grid grid-cols-2 gap-2 md:grid-cols-6">
+          {([
+            ['aberturaDe', 'Abertura de...'], ['aberturaAte', 'Abertura ate...'],
+            ['desdeDe', 'Cliente desde de...'], ['desdeAte', 'Cliente desde ate...'],
+            ['ateDe', 'Cliente ate de...'], ['ateAte', 'Cliente ate ate...'],
+          ] as const).map(([k, label]) => (
+            <div key={k}>
+              <label className="mb-0.5 block text-[11px] text-slate-500">{label}</label>
+              <input type="date" className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[12px]" value={datas[k]} onChange={(e) => setDatas((d) => ({ ...d, [k]: e.target.value }))} />
+            </div>
+          ))}
         </div>
       )}
 
       {/* Barra: Exportar e-mails em bloco */}
-      {exportMode && (
+      {barra === 'export' && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <select className="min-w-[220px] flex-1 rounded border border-marca-300 bg-white px-2 py-2 text-[13px]" value={expDepto} onChange={(e) => setExpDepto(e.target.value)}>
             <option value="">Dptos (todos)</option>
@@ -229,12 +254,12 @@ export default function EmpresasList() {
             <option value="enderecos">Exportar somente enderecos</option>
           </select>
           <button onClick={() => toast('ok', 'Em construcao: exportacao de e-mails em bloco.')} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Mail size={16} /> Exportar e-mail's</button>
-          <button onClick={() => setExportMode(false)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Voltar</button>
+          <button onClick={() => setBarra(null)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Voltar</button>
         </div>
       )}
 
       {/* Painel +Filtros */}
-      {!exportMode && mostrarFiltros && (
+      {!barra && mostrarFiltros && (
         <div className="mt-2 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-white p-3">
           <div>
             <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Status</label>
@@ -258,7 +283,7 @@ export default function EmpresasList() {
       )}
 
       {/* Tabela */}
-      {!exportMode && (
+      {barra !== 'export' && (
       <div className="mt-3 overflow-hidden rounded border border-slate-200 bg-white">
         {loading && !pagina ? <Spinner /> : (
           <table className="w-full">
@@ -317,7 +342,7 @@ export default function EmpresasList() {
       )}
 
       {/* Paginacao */}
-      {!exportMode && pagina && pagina.totalPages > 1 && (
+      {barra !== 'export' && pagina && pagina.totalPages > 1 && (
         <div className="mt-3 flex items-center justify-center gap-3 text-[13px]">
           <button className="btn-ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Anterior</button>
           <span className="text-slate-500">Pagina {pagina.page} de {pagina.totalPages} ({pagina.total} empresas)</span>
