@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Landmark, Search, Printer, Plus } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Modal, Spinner, useToast } from '../../components/ui';
-import { SeletorObrigacoes } from './SeletorObrigacoes';
-import type { Regime, Obrigacao } from '../../lib/tipos';
+import { Spinner } from '../../components/ui';
+import type { Regime } from '../../lib/tipos';
 
 function relUrl(tipo: 'obrigacoes' | 'empresas', r?: Regime) {
   const qs = new URLSearchParams({ tipo });
@@ -15,38 +14,23 @@ function relUrl(tipo: 'obrigacoes' | 'empresas', r?: Regime) {
 
 export default function Regimes() {
   const { sessao } = useAuth();
-  const toast = useToast();
   const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
-  const [imprimirAberto, setImprimirAberto] = useState(false);
-  const imprimirRef = useRef<HTMLDivElement>(null);
   const [regimes, setRegimes] = useState<Regime[]>([]);
-  const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<Regime | null>(null);
-  const [novo, setNovo] = useState(false);
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<'ativos' | 'inativos' | 'todos'>('ativos');
+  const [imprimirAberto, setImprimirAberto] = useState(false);
+  const imprimirRef = useRef<HTMLDivElement>(null);
 
-  function carregar() {
-    setLoading(true);
-    api.get<Regime[]>('/regimes').then(setRegimes).finally(() => setLoading(false));
-  }
   useEffect(() => {
-    carregar();
-    api.get<Obrigacao[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
+    api.get<Regime[]>('/regimes').then(setRegimes).catch(() => setRegimes([])).finally(() => setLoading(false));
   }, []);
   useEffect(() => {
     function fora(e: MouseEvent) { if (imprimirRef.current && !imprimirRef.current.contains(e.target as Node)) setImprimirAberto(false); }
     document.addEventListener('mousedown', fora);
     return () => document.removeEventListener('mousedown', fora);
   }, []);
-
-  async function excluir(r: Regime) {
-    if (!confirm(`Excluir o regime "${r.nome}"?`)) return;
-    try { await api.del(`/regimes/${r.id}`); toast('ok', 'Regime excluido.'); carregar(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
 
   if (loading) return <Spinner />;
 
@@ -79,7 +63,7 @@ export default function Regimes() {
           <option value="inativos">Inativos</option>
           <option value="todos">Todos</option>
         </select>
-        <button onClick={carregar} className="flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={16} /> Filtrar</button>
+        <button className="flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={16} /> Filtrar</button>
         <div className="flex-1 text-center text-[13px] font-medium text-marca-600">{lista.length} registros</div>
         <div className="relative" ref={imprimirRef}>
           <button title="Imprimir" onClick={() => setImprimirAberto((v) => !v)} className="text-marca-600 hover:text-marca-800"><Printer size={18} /></button>
@@ -91,7 +75,7 @@ export default function Regimes() {
           )}
         </div>
         {podeGerenciar && (
-          <button onClick={() => setNovo(true)} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo regime</button>
+          <button onClick={() => navigate('/obrigacoes/regimes/novo')} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo regime</button>
         )}
       </div>
 
@@ -110,7 +94,7 @@ export default function Regimes() {
             {lista.map((r) => (
               <tr key={r.id} className="hover:bg-slate-50">
                 <td className="px-4 py-2.5">
-                  <button onClick={() => podeGerenciar ? setEditando(r) : undefined} className="text-marca-600 hover:underline">{r.nome}{!r.ativo && <span className="text-slate-400"> [inativo]</span>}</button>
+                  <button onClick={() => navigate(`/obrigacoes/regimes/${r.id}`)} className="text-marca-600 hover:underline">{r.nome}{!r.ativo && <span className="text-slate-400"> [inativo]</span>}</button>
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="flex items-center gap-2 text-slate-600">{r.obrigacoes.length}
@@ -129,63 +113,6 @@ export default function Regimes() {
           </tbody>
         </table>
       </div>
-
-      {(novo || editando) && (
-        <RegimeModal
-          regime={editando}
-          obrigacoes={obrigacoes}
-          onFechar={() => { setNovo(false); setEditando(null); }}
-          onSalvo={() => { setNovo(false); setEditando(null); carregar(); }}
-          onExcluir={editando && podeGerenciar ? () => { const r = editando; setEditando(null); excluir(r); } : undefined}
-        />
-      )}
     </div>
-  );
-}
-
-function RegimeModal({
-  regime, obrigacoes, onFechar, onSalvo, onExcluir,
-}: { regime: Regime | null; obrigacoes: Obrigacao[]; onFechar: () => void; onSalvo: () => void; onExcluir?: () => void }) {
-  const toast = useToast();
-  const [nome, setNome] = useState(regime?.nome ?? '');
-  const [sel, setSel] = useState<Set<string>>(new Set(regime?.obrigacoes.map((o) => o.obrigacaoId) ?? []));
-  const [salvando, setSalvando] = useState(false);
-
-  function toggle(id: string) {
-    setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  }
-
-  async function salvar() {
-    setSalvando(true);
-    try {
-      const payload = { nome, obrigacoes: [...sel].map((obrigacaoId) => ({ obrigacaoId })) };
-      if (regime) await api.put(`/regimes/${regime.id}`, payload);
-      else await api.post('/regimes', payload);
-      toast('ok', 'Regime salvo.');
-      onSalvo();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-
-  return (
-    <Modal aberto titulo={regime ? 'Editar regime' : 'Novo regime'} onFechar={onFechar} largura="max-w-2xl">
-      <div className="space-y-4">
-        <div>
-          <label className="label">Nome *</label>
-          <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
-        </div>
-        <div>
-          <label className="label">Obrigacoes do regime ({sel.size})</label>
-          <SeletorObrigacoes obrigacoes={obrigacoes} selecionados={sel} onToggle={toggle} />
-        </div>
-        <div className="flex items-center justify-between gap-2">
-          <div>{onExcluir && <button className="text-sm text-red-500 hover:underline" onClick={onExcluir}>Excluir regime</button>}</div>
-          <div className="flex gap-2">
-            <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-            <button className="btn-primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
-          </div>
-        </div>
-      </div>
-    </Modal>
   );
 }

@@ -23,6 +23,7 @@ import Catalogo from './pages/obrigacoes/Catalogo';
 import ObrigacaoForm from './pages/obrigacoes/ObrigacaoForm';
 import Regimes from './pages/obrigacoes/Regimes';
 import RelatorioRegime from './pages/obrigacoes/RelatorioRegime';
+import RegimeForm from './pages/obrigacoes/RegimeForm';
 import Grupos from './pages/obrigacoes/Grupos';
 import Feriados from './pages/obrigacoes/Feriados';
 import AlocacaoMassa from './pages/obrigacoes/AlocacaoMassa';
@@ -97,6 +98,8 @@ export default function App() {
         <Route path="obrigacoes/nova" element={<ObrigacaoForm />} />
         <Route path="obrigacoes/regimes" element={<Regimes />} />
         <Route path="obrigacoes/regimes/relatorio" element={<RelatorioRegime />} />
+        <Route path="obrigacoes/regimes/novo" element={<RegimeForm />} />
+        <Route path="obrigacoes/regimes/:id" element={<RegimeForm />} />
         <Route path="obrigacoes/grupos" element={<Grupos />} />
         <Route path="obrigacoes/feriados" element={<Feriados />} />
         <Route path="obrigacoes/alocacao" element={<AlocacaoMassa />} />
