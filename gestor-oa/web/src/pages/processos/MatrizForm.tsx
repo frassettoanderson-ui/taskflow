@@ -85,8 +85,10 @@ export default function MatrizForm() {
     return [...arr.slice(0, pos), novo, ...arr.slice(pos)].map((p, idx) => ({ ...p, ordem: idx + 1 }));
   }
 
+  const ultimoIdx = () => (itens.length ? itens.length - 1 : -1);
+
   function abrirNovoPasso() {
-    setNForm({ nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false, acao: 'NENHUMA', propagacao: 'NAO_CONCLUIDOS', dica: '', inserirApos: -2 });
+    setNForm({ nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false, acao: 'NENHUMA', propagacao: 'NAO_CONCLUIDOS', dica: '', inserirApos: ultimoIdx() });
     setCriando('PASSO'); setEditando(null);
   }
   function adicionarPasso() {
@@ -101,12 +103,12 @@ export default function MatrizForm() {
   }
 
   function abrirNovaSub() {
-    setSForm({ subMatrizId: '', criarApos: 'INICIO', propagacao: 'NAO_CONCLUIDOS', inserirApos: -2 });
+    setSForm({ subMatrizId: '', criarApos: 'INICIO', propagacao: 'NAO_CONCLUIDOS', inserirApos: ultimoIdx() });
     setCriando('SUB'); setEditando(null);
   }
 
   function abrirNovoDesd() {
-    setDForm({ pergunta: '', propagacao: 'NAO_CONCLUIDOS', inserirApos: -2, opcoes: [], optLabel: '', optAlvo: '' });
+    setDForm({ pergunta: '', propagacao: 'NAO_CONCLUIDOS', inserirApos: ultimoIdx(), opcoes: [], optLabel: '', optAlvo: '' });
     setCriando('DESD'); setEditando(null);
   }
   function addOpcaoDesd() {
@@ -263,7 +265,6 @@ export default function MatrizForm() {
                         : (it.titulo || '(sem nome)');
                       return <option key={idx} value={idx}>{lbl}</option>;
                     })}
-                    <option value={-2}>Inserir no Fim</option>
                   </select>
                 </div>
                 <button onClick={adicionarDesd} className="flex items-center justify-center gap-2 rounded bg-marca-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-marca-600"><Save size={15} /> Adicionar</button>
@@ -311,7 +312,6 @@ export default function MatrizForm() {
                         : (it.titulo || '(sem nome)');
                       return <option key={idx} value={idx}>{lbl}</option>;
                     })}
-                    <option value={-2}>Inserir no Fim</option>
                   </select>
                 </div>
                 <button onClick={adicionarSub} className="flex items-center justify-center gap-2 rounded bg-marca-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-marca-600"><Save size={15} /> Adicionar</button>
@@ -371,7 +371,6 @@ export default function MatrizForm() {
                         : (it.titulo || '(sem nome)');
                       return <option key={idx} value={idx}>{lbl}</option>;
                     })}
-                    <option value={-2}>Inserir no Fim</option>
                   </select>
                 </div>
                 <button onClick={adicionarPasso} className="flex items-center justify-center gap-2 rounded bg-marca-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-marca-600"><Save size={15} /> Adicionar</button>
@@ -574,7 +573,7 @@ function FollowUpModal({ itens, matrizesDisp, onSalvar, onClose }: { itens: Matr
   const [destinatario, setDestinatario] = useState('TODOS_CONTATOS');
   const [corpo, setCorpo] = useState('');
   const [propagar, setPropagar] = useState(true);
-  const [inserirApos, setInserirApos] = useState(-2);
+  const [inserirApos, setInserirApos] = useState(itens.length ? itens.length - 1 : -1);
 
   function inserirVar(v: string) {
     const el = bodyRef.current;
@@ -659,7 +658,6 @@ function FollowUpModal({ itens, matrizesDisp, onSalvar, onClose }: { itens: Matr
                 : (it.titulo || '(sem nome)');
               return <option key={idx} value={idx}>Inserir apos: '{lbl}'</option>;
             })}
-            <option value={-2}>Inserir apos: Fim</option>
           </select>
           <button onClick={salvar} className="flex items-center justify-center gap-2 rounded bg-status-ok px-5 py-2 text-[13px] font-medium text-white hover:bg-emerald-600"><Save size={15} /> Salvar</button>
           <button onClick={() => toast('erro', 'Enviar modelo: em construcao')} className="flex items-center justify-center gap-2 rounded bg-sky-400 px-5 py-2 text-[13px] font-medium text-white hover:bg-sky-500"><Mail size={15} /> Enviar modelo</button>
