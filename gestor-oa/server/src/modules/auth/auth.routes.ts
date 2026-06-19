@@ -1,6 +1,10 @@
 import { Router, type Request, type Response } from 'express';
+import multer from 'multer';
+import path from 'node:path';
+import fs from 'node:fs';
 import { z } from 'zod';
 import { env } from '../../env.js';
+import { escritorioDir } from '../../lib/storage.js';
 import { prisma } from '../../prisma.js';
 import { durationToMs } from '../../lib/jwt.js';
 import { ok } from '../../lib/http.js';
@@ -17,6 +21,18 @@ import {
 } from './auth.schemas.js';
 
 const router = Router();
+
+// Uploads do proprio perfil (foto / assinatura) - imagens ate 2MB
+function uploadPerfil(sub: string) {
+  return multer({
+    storage: multer.diskStorage({
+      destination: (req, _f, cb) => cb(null, escritorioDir(req.auth!.escritorioId, sub)),
+      filename: (req, file, cb) => cb(null, `${req.auth!.id}${path.extname(file.originalname) || '.png'}`),
+    }),
+    limits: { fileSize: 2 * 1024 * 1024 },
+    fileFilter: (_r, file, cb) => cb(null, /^image\//.test(file.mimetype)),
+  });
+}
 
 function setRefreshCookie(res: Response, token: string): void {
   res.cookie(env.jwt.refreshCookieName, token, {
@@ -103,9 +119,15 @@ router.get('/me', authenticate, async (req, res) => {
 router.get('/perfil', authenticate, async (req, res) => {
   const u = await prisma.usuario.findUniqueOrThrow({
     where: { id: req.auth!.id },
-    select: { nome: true, email: true, tipo: true, telefone: true, observacoes: true },
+    select: {
+      nome: true, email: true, tipo: true, telefone: true, observacoes: true,
+      smtpHost: true, smtpPorta: true, smtpUsuario: true, smtpSenha: true, ccoEmails: true,
+      assinaturaArquivo: true, fotoPerfilArquivo: true,
+      notifSolicitacoesEmail: true, notifMarketingEmail: true,
+    },
   });
-  return ok(res, u);
+  const { smtpSenha, assinaturaArquivo, fotoPerfilArquivo, ...rest } = u;
+  return ok(res, { ...rest, temSmtpSenha: !!smtpSenha, temAssinatura: !!assinaturaArquivo, temFoto: !!fotoPerfilArquivo });
 });
 
 router.put(
@@ -118,28 +140,75 @@ router.put(
       observacoes: z.string().optional().nullable(),
       senhaAtual: z.string().optional(),
       novaSenha: z.string().min(8, 'Nova senha deve ter ao menos 8 caracteres.').optional(),
+      smtpHost: z.string().optional().nullable(),
+      smtpPorta: z.number().int().optional().nullable(),
+      smtpUsuario: z.string().optional().nullable(),
+      smtpSenha: z.string().optional().nullable(),
+      ccoEmails: z.string().optional().nullable(),
+      notifSolicitacoesEmail: z.boolean().optional(),
+      notifMarketingEmail: z.boolean().optional(),
     }),
   }),
   async (req, res) => {
-    const { nome, telefone, observacoes, senhaAtual, novaSenha } = req.body as {
+    const b = req.body as {
       nome: string; telefone?: string | null; observacoes?: string | null; senhaAtual?: string; novaSenha?: string;
+      smtpHost?: string | null; smtpPorta?: number | null; smtpUsuario?: string | null; smtpSenha?: string | null;
+      ccoEmails?: string | null; notifSolicitacoesEmail?: boolean; notifMarketingEmail?: boolean;
     };
     const u = await prisma.usuario.findUniqueOrThrow({ where: { id: req.auth!.id } });
 
     let senhaHash: string | undefined;
-    if (novaSenha) {
-      if (!senhaAtual || !(await verifyPassword(senhaAtual, u.senhaHash))) {
+    if (b.novaSenha) {
+      if (!b.senhaAtual || !(await verifyPassword(b.senhaAtual, u.senhaHash))) {
         throw Errors.validacao('Senha atual incorreta.');
       }
-      senhaHash = await hashPassword(novaSenha);
+      senhaHash = await hashPassword(b.novaSenha);
     }
 
     await prisma.usuario.update({
       where: { id: u.id },
-      data: { nome, telefone: telefone ?? null, observacoes: observacoes ?? null, ...(senhaHash ? { senhaHash } : {}) },
+      data: {
+        nome: b.nome, telefone: b.telefone ?? null, observacoes: b.observacoes ?? null,
+        smtpHost: b.smtpHost === undefined ? undefined : b.smtpHost,
+        smtpPorta: b.smtpPorta === undefined ? undefined : b.smtpPorta,
+        smtpUsuario: b.smtpUsuario === undefined ? undefined : b.smtpUsuario,
+        smtpSenha: b.smtpSenha ? b.smtpSenha : undefined,
+        ccoEmails: b.ccoEmails === undefined ? undefined : b.ccoEmails,
+        notifSolicitacoesEmail: b.notifSolicitacoesEmail ?? undefined,
+        notifMarketingEmail: b.notifMarketingEmail ?? undefined,
+        ...(senhaHash ? { senhaHash } : {}),
+      },
     });
     return ok(res, { atualizado: true });
   },
 );
+
+// Upload/serve foto de perfil
+router.post('/perfil/foto', authenticate, uploadPerfil('fotos-usuario').single('arquivo'), async (req, res) => {
+  if (!req.file) throw Errors.validacao('Envie uma imagem.');
+  await prisma.usuario.update({ where: { id: req.auth!.id }, data: { fotoPerfilArquivo: req.file.filename } });
+  return ok(res, { ok: true });
+});
+router.get('/perfil/foto', authenticate, async (req, res) => {
+  const u = await prisma.usuario.findUniqueOrThrow({ where: { id: req.auth!.id } });
+  if (!u.fotoPerfilArquivo) throw Errors.naoEncontrado('Foto');
+  const arq = path.join(escritorioDir(req.auth!.escritorioId, 'fotos-usuario'), u.fotoPerfilArquivo);
+  if (!fs.existsSync(arq)) throw Errors.naoEncontrado('Foto');
+  return res.sendFile(arq);
+});
+
+// Upload/serve assinatura do proprio usuario
+router.post('/perfil/assinatura', authenticate, uploadPerfil('assinaturas-usuario').single('arquivo'), async (req, res) => {
+  if (!req.file) throw Errors.validacao('Envie uma imagem.');
+  await prisma.usuario.update({ where: { id: req.auth!.id }, data: { assinaturaArquivo: req.file.filename } });
+  return ok(res, { ok: true });
+});
+router.get('/perfil/assinatura', authenticate, async (req, res) => {
+  const u = await prisma.usuario.findUniqueOrThrow({ where: { id: req.auth!.id } });
+  if (!u.assinaturaArquivo) throw Errors.naoEncontrado('Assinatura');
+  const arq = path.join(escritorioDir(req.auth!.escritorioId, 'assinaturas-usuario'), u.assinaturaArquivo);
+  if (!fs.existsSync(arq)) throw Errors.naoEncontrado('Assinatura');
+  return res.sendFile(arq);
+});
 
 export default router;

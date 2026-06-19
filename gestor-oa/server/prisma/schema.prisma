@@ -92,6 +92,9 @@ model Usuario {
   smtpSenha       String?
   ccoEmails       String?
   assinaturaArquivo String?
+  fotoPerfilArquivo String?
+  notifSolicitacoesEmail Boolean @default(true)
+  notifMarketingEmail    Boolean @default(true)
 
   // Janelas de acesso permitidas: [{ diaSemana, inicio, fim }]. Vazio = sem restricao.
   horariosAcesso Json    @default("[]")
