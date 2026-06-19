@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   CheckCircle2, Save, RotateCcw, Plus, X, Copy, CheckSquare, ChevronsDown,
-  Shuffle, Mail, ArrowUp, ArrowDown, Trash2, SquarePen,
+  Shuffle, Mail, ArrowUp, ArrowDown, Trash2, SquarePen, History,
 } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { InfoHint, Spinner, useToast } from '../../components/ui';
@@ -40,6 +40,8 @@ export default function MatrizForm() {
   const [ativo, setAtivo] = useState(true);
   const [barraVermelhaDias, setBarraVermelhaDias] = useState(45);
   const [itens, setItens] = useState<MatrizPasso[]>([]);
+  const [usadaPor, setUsadaPor] = useState<{ id: string; nome: string }[]>([]);
+  const [editSub, setEditSub] = useState<number | null>(null);
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
@@ -53,6 +55,7 @@ export default function MatrizForm() {
       setSoSubmatriz(m.soSubmatriz); setPedeAutorizacao(m.pedeAutorizacao); setAtivo(m.ativo);
       setBarraVermelhaDias(m.barraVermelhaDias ?? 45);
       setItens((m.passos ?? []).map((p) => ({ ...p, tipo: p.tipo ?? 'PASSO_SIMPLES' })));
+      setUsadaPor(m.usadaPor ?? []);
     }).catch(() => toast('erro', 'Matriz nao encontrada.')).finally(() => setCarregando(false));
   }, [id, novo]);
 
@@ -151,11 +154,13 @@ export default function MatrizForm() {
           </div>
 
           {/* cabecalho das colunas */}
-          <div className="mt-3 grid grid-cols-[130px_1.3fr_1.6fr_70px] gap-3 border-b border-slate-300 px-2 py-2 text-[12px] font-semibold text-slate-600">
+          <div className="mt-3 grid grid-cols-[130px_1.3fr_1.6fr_90px] gap-3 border-b border-slate-300 px-2 py-2 text-[12px] font-semibold text-slate-600">
             <div>Tipo</div>
             <div>Descricao / <span className="text-marca-600">Tarefas</span> / <span className="text-amber-600">Obrigacoes</span></div>
             <div>Dicas / Sub-Passos / Desdobramentos</div>
-            <div></div>
+            <div className="flex justify-end">
+              <button title="Buscar historico de alteracoes dos passos" onClick={() => toast('erro', 'Historico de alteracoes: em construcao')} className="text-emerald-500 hover:text-emerald-700"><History size={16} /></button>
+            </div>
           </div>
 
           {/* itens */}
@@ -166,20 +171,39 @@ export default function MatrizForm() {
               const Icone = info.icon;
               const sub = p.subMatrizId ? matrizesDisp.find((m) => m.id === p.subMatrizId) : null;
               return (
-                <div key={i} className="grid grid-cols-[130px_1.3fr_1.6fr_70px] items-start gap-3 bg-white px-2 py-2.5 odd:bg-slate-50/60">
-                  {/* tipo */}
+                <div key={i} className="grid grid-cols-[130px_1.3fr_1.6fr_90px] items-start gap-3 bg-white px-2 py-2.5 odd:bg-slate-50/60">
+                  {/* col 1 - tipo */}
                   <div className={`flex items-center gap-1.5 text-[12px] ${info.cor}`}><Icone size={15} /> {info.label}</div>
 
-                  {/* descricao */}
+                  {/* col 2 - descricao */}
                   <div>
-                    <div className="flex items-center gap-1.5">
-                      <SquarePen size={14} className="flex-shrink-0 text-emerald-500" />
-                      <input className="w-full rounded border border-slate-200 px-1.5 py-1 text-[13px] text-marca-700 outline-none focus:border-marca-400" placeholder="Descricao" value={p.titulo} onChange={(e) => setItem(i, { titulo: e.target.value })} />
-                    </div>
-                    {tipo === 'SUB_MATRIZ' && <div className="mt-1 pl-5 text-[11px] text-purple-500">Tarefas apos: inicio/autorizacao do processo</div>}
+                    {tipo === 'SUB_MATRIZ' ? (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <button title="Alterar sub-matriz desse passo" onClick={() => setEditSub(editSub === i ? null : i)} className="flex-shrink-0 text-emerald-500 hover:text-emerald-700"><SquarePen size={14} /></button>
+                          {sub ? (
+                            <button onClick={() => navigate(`/processos/matrizes/${sub.id}`)} className="text-marca-600 hover:underline">{sub.nome}</button>
+                          ) : (
+                            <span className="italic text-slate-400">Sub-matriz nao definida</span>
+                          )}
+                        </div>
+                        {(editSub === i || !sub) && (
+                          <select className="mt-1 w-full rounded border border-slate-200 px-1.5 py-1 text-[12px] text-slate-600 outline-none focus:border-marca-400" value={p.subMatrizId ?? ''} onChange={(e) => { setItem(i, { subMatrizId: e.target.value || null }); setEditSub(null); }}>
+                            <option value="">Selecione a sub-matriz...</option>
+                            {matrizesDisp.filter((m) => m.id !== id && m.soSubmatriz).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                          </select>
+                        )}
+                        <div className="mt-1 pl-5 text-[11px] text-purple-500">Tarefas apos: inicio/autorizacao do processo</div>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <SquarePen size={14} className="flex-shrink-0 text-emerald-500" />
+                        <input className="w-full rounded border border-slate-200 px-1.5 py-1 text-[13px] text-marca-700 outline-none focus:border-marca-400" placeholder="Descricao" value={p.titulo} onChange={(e) => setItem(i, { titulo: e.target.value })} />
+                      </div>
+                    )}
                   </div>
 
-                  {/* coluna direita por tipo */}
+                  {/* col 3 - dicas / sub-passos / desdobramentos */}
                   <div className="text-[12px]">
                     {tipo === 'PASSO_SIMPLES' && (
                       <input className="w-full rounded border border-slate-200 px-1.5 py-1 text-slate-600 outline-none focus:border-marca-400" placeholder="Dica (opcional)" value={p.descricao ?? ''} onChange={(e) => setItem(i, { descricao: e.target.value })} />
@@ -188,18 +212,12 @@ export default function MatrizForm() {
                       <input className="w-full rounded border border-slate-200 px-1.5 py-1 text-slate-600 outline-none focus:border-marca-400" placeholder="Mensagem / observacao do follow-up" value={p.descricao ?? ''} onChange={(e) => setItem(i, { descricao: e.target.value })} />
                     )}
                     {tipo === 'SUB_MATRIZ' && (
-                      <div>
-                        <select className="mb-1 w-full rounded border border-slate-200 px-1.5 py-1 text-slate-600 outline-none focus:border-marca-400" value={p.subMatrizId ?? ''} onChange={(e) => setItem(i, { subMatrizId: e.target.value || null })}>
-                          <option value="">Selecione a sub-matriz...</option>
-                          {matrizesDisp.filter((m) => m.id !== id).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                        </select>
-                        {sub && (
-                          <div className="pl-1">
-                            <div className="font-semibold text-marca-600">Sub-Passos:</div>
-                            <ul className="ml-3 list-disc text-slate-600">{sub.passos.map((sp, k) => <li key={k}>{sp.titulo}</li>)}</ul>
-                          </div>
-                        )}
-                      </div>
+                      sub ? (
+                        <div>
+                          <div className="font-semibold text-marca-600">Sub-Passos:</div>
+                          <ul className="ml-3 list-disc text-slate-600">{sub.passos.map((sp, k) => <li key={k}>{sp.titulo}</li>)}</ul>
+                        </div>
+                      ) : <span className="text-slate-300">-</span>
                     )}
                     {tipo === 'DESDOBRAMENTO' && (
                       <DesdobramentoEditor
@@ -210,11 +228,11 @@ export default function MatrizForm() {
                     )}
                   </div>
 
-                  {/* acoes */}
+                  {/* col 4 - acoes */}
                   <div className="flex items-center justify-end gap-1.5">
-                    <button onClick={() => mover(i, -1)} title="Subir" className="text-emerald-500 hover:text-emerald-700"><ArrowUp size={15} /></button>
-                    <button onClick={() => mover(i, 1)} title="Descer" className="text-amber-500 hover:text-amber-700"><ArrowDown size={15} /></button>
-                    <button onClick={() => remover(i)} title="Remover" className="text-status-danger hover:opacity-70"><Trash2 size={15} /></button>
+                    <button onClick={() => mover(i, -1)} title="Subir na ordenacao" className="text-emerald-500 hover:text-emerald-700"><ArrowUp size={15} /></button>
+                    <button onClick={() => mover(i, 1)} title="Descer na ordenacao" className="text-amber-500 hover:text-amber-700"><ArrowDown size={15} /></button>
+                    <button onClick={() => remover(i)} title="Remover do processo" className="text-status-danger hover:opacity-70"><Trash2 size={15} /></button>
                   </div>
                 </div>
               );
@@ -223,6 +241,20 @@ export default function MatrizForm() {
           </div>
 
           <button onClick={salvar} disabled={salvando} className="mt-3 flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-[13px] font-medium text-white hover:bg-emerald-600 disabled:opacity-50"><Save size={15} /> Salvar matriz</button>
+
+          {/* matrizes que usam esta como sub-matriz */}
+          {usadaPor.length > 0 && (
+            <div className="mt-6 border-t border-slate-200 pt-4">
+              <div className="mb-2 text-[13px] font-semibold text-slate-700">Matrizes que utilizam essa matriz como sub-matriz</div>
+              <div className="space-y-1">
+                {usadaPor.map((u) => (
+                  <button key={u.id} onClick={() => navigate(`/processos/matrizes/${u.id}`)} className="flex items-center gap-1.5 text-[13px] text-marca-600 hover:underline">
+                    <CheckSquare size={14} className="text-emerald-500" /> {u.nome}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

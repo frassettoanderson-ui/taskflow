@@ -559,6 +559,7 @@ export interface Matriz {
   barraVermelhaDias: number;
   passos: MatrizPasso[];
   emAndamento?: number;
+  usadaPor?: { id: string; nome: string }[];
   _count?: { processos: number };
 }
 

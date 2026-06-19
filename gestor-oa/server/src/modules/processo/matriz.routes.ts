@@ -56,7 +56,13 @@ router.get('/:id', async (req, res) => {
     include: { passos: { orderBy: { ordem: 'asc' } }, _count: { select: { processos: true } } },
   });
   if (!m) throw Errors.naoEncontrado('Matriz');
-  return ok(res, m);
+  // matrizes que usam esta como sub-matriz (passo SUB_MATRIZ apontando para ela)
+  const usadaPor = await prisma.matrizProcesso.findMany({
+    where: { escritorioId: req.auth!.escritorioId, passos: { some: { subMatrizId: m.id } } },
+    select: { id: true, nome: true },
+    orderBy: { nome: 'asc' },
+  });
+  return ok(res, { ...m, usadaPor });
 });
 
 router.post('/', requirePermission('processos_gerenciar_matrizes'), validate({ body: matrizSchema }), async (req, res) => {
