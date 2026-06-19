@@ -119,7 +119,6 @@ export default function App() {
         <Route path="area-vip/nps" element={<EmConstrucao titulo="Avaliacao NPS" descricao="Envio de pesquisa NPS aos clientes e painel de promotores/neutros/detratores." />} />
         <Route path="area-vip/avaliacoes" element={<EmConstrucao titulo="Avaliacao das Solicitacoes" descricao="Notas e comentarios que os clientes deram nas solicitacoes finalizadas." />} />
         <Route path="area-vip/usuarios-app" element={<EmConstrucao titulo="Usuarios do APP" descricao="Contatos das empresas com acesso ao portal/app (convites, ativacao, reset de senha)." />} />
-        <Route path="sistema/acesso-remoto" element={<EmConstrucao titulo="Acesso remoto" descricao="Acesso remoto / suporte (a definir o que essa tela faz no Acessorias)." />} />
         <Route path="apla/sobre" element={<EmConstrucao titulo="Conheca o APLA" descricao="Apresentacao do Metodo APLA (produtividade e lucratividade)." />} />
         <Route path="apla/produtividade" element={<EmConstrucao titulo="Analise produtividade" descricao="Analise dedicada de produtividade por colaborador/departamento." />} />
         <Route path="apla/lucratividade" element={<EmConstrucao titulo="Analise lucratividade" descricao="Analise dedicada de lucratividade por empresa." />} />

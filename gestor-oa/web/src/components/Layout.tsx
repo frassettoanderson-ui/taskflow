@@ -23,7 +23,6 @@ import {
   Download,
   Smartphone,
   Star,
-  Monitor,
   ClipboardList,
   type LucideIcon,
 } from 'lucide-react';
@@ -76,7 +75,6 @@ const MENU: Item[] = [
       },
       { label: 'Dados do meu perfil', icon: User, to: '/perfil' },
       { label: 'Trocar estilo', icon: Palette, tema: true },
-      { label: 'Acesso remoto', icon: Monitor, to: '/sistema/acesso-remoto' },
       { label: 'Auditoria', icon: ListChecks, to: '/auditoria' },
       { label: 'Tarefas e Alertas', icon: Activity, to: '/jobs' },
     ],
