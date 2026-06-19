@@ -46,6 +46,10 @@ export default function EmpresasList() {
   const [ordenar, setOrdenar] = useState<'razao' | 'fantasia'>('razao');
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');
   const [massa, setMassa] = useState<{ ids: string[]; acao: AcaoMassa } | null>(null);
+  // modo "Alterar responsavel pelo dpto"
+  const [respMode, setRespMode] = useState(false);
+  const [respDepto, setRespDepto] = useState('');
+  const [respUser, setRespUser] = useState('');
   // modo "Exportar e-mails em bloco"
   const [exportMode, setExportMode] = useState(false);
   const [expDepto, setExpDepto] = useState('');
@@ -99,6 +103,23 @@ export default function EmpresasList() {
     if (!ids.length) return toast('erro', 'Nenhuma empresa listada.');
     setMassa({ ids, acao });
   }
+
+  async function atualizarResponsavel() {
+    if (!respDepto || !respUser) return toast('erro', 'Selecione o departamento e o responsavel.');
+    const qs = new URLSearchParams({ page: '1', limit: '10000', status });
+    if (busca.trim()) qs.set('busca', busca.trim());
+    if (tagId) qs.set('tagId', tagId);
+    if (departamentoId) qs.set('departamentoId', departamentoId);
+    if (motivoUrl) { qs.set('motivoId', motivoUrl); qs.set('status', 'todos'); }
+    try {
+      const todas = await api.get<Pagina>(`/empresas?${qs}`);
+      const ids = todas.items.map((e) => e.id);
+      if (!ids.length) return toast('erro', 'Nenhuma empresa listada.');
+      const r = await api.post<{ afetadas: number }>('/empresas/acoes-massa', { empresaIds: ids, acao: 'alterar_responsavel', departamentoId: respDepto, usuarioId: respUser });
+      toast('ok', `${r.afetadas} empresa(s) atualizada(s).`);
+      setRespMode(false);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
   function ordenarPor(campo: 'razao' | 'fantasia') {
     if (ordenar === campo) setDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setOrdenar(campo); setDir('asc'); }
@@ -130,7 +151,7 @@ export default function EmpresasList() {
           <button title="Exporta e-mails em bloco" onClick={() => setExportMode(true)} className={`${ICONE} bg-status-ok/15 text-status-ok`}><Mail size={18} /></button>
           {podeImportar && <button title="Importar cadastros" onClick={() => navigate('/empresas/importar')} className={`${ICONE} bg-marca-100 text-marca-600`}><Download size={18} /></button>}
           <button title="Motivos de cancelamento" onClick={() => navigate('/empresas/motivos')} className={`${ICONE} bg-red-100 text-red-500`}><XCircle size={18} /></button>
-          <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => abrirMassa('alterar_responsavel')} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
+          <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => { setRespMode(true); setRespDepto(departamentos[0]?.id ?? ''); setRespUser(usuarios[0]?.id ?? ''); }} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
           <button title="Incluir tag's em massa nas empresas listadas" onClick={() => abrirMassa('aplicar_tags')} className={`${ICONE} bg-status-ok/15 text-status-ok`}><TagsIcon size={18} /></button>
           <button title="Relacao de empresas" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-purple-100 text-purple-500`}><Printer size={18} /></button>
           <button title="Exibir/Ocultar datas" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-red-100 text-red-500`}><Calendar size={18} /></button>
@@ -139,6 +160,26 @@ export default function EmpresasList() {
         <button className="flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={16} /> Filtrar</button>
         {podeCriar && <button onClick={() => navigate('/empresas/nova')} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Nova empresa</button>}
       </div>
+
+      {/* Barra: Alterar responsavel pelo dpto */}
+      {respMode && (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <div className="min-w-[260px] flex-1">
+            <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Atualizar nas {pagina?.total ?? 0} empresas listadas o responsavel do dpto:</label>
+            <select className="w-full rounded border border-marca-300 bg-white px-2 py-2 text-[13px]" value={respDepto} onChange={(e) => setRespDepto(e.target.value)}>
+              {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+            </select>
+          </div>
+          <div className="min-w-[220px]">
+            <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Para o responsavel:</label>
+            <select className="w-full rounded border border-slate-300 bg-white px-2 py-2 text-[13px]" value={respUser} onChange={(e) => setRespUser(e.target.value)}>
+              {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          </div>
+          <button onClick={atualizarResponsavel} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Network size={16} /> OK - Atualizar</button>
+          <button onClick={() => setRespMode(false)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
+        </div>
+      )}
 
       {/* Barra: Exportar e-mails em bloco */}
       {exportMode && (
