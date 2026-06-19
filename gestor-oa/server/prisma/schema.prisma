@@ -707,6 +707,8 @@ enum StatusProtocoloFisico {
   ENTREGUE
   DEVOLVIDO
   CANCELADO
+  PENDENTE
+  IMPRESSO
 }
 
 model DocumentoGED {
@@ -777,9 +779,12 @@ model ProtocoloFisico {
   empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   descricao     String
+  titulo        String?
+  numero        Int?
   retiradoPor   String?
   data          DateTime @default(now())
-  status        StatusProtocoloFisico @default(AGUARDANDO_RETIRADA)
+  dataEntrega   DateTime? @db.Date
+  status        StatusProtocoloFisico @default(PENDENTE)
   assinaturaPath String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

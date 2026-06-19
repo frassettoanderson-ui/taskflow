@@ -14,15 +14,27 @@ const router = Router();
 router.use(authenticate);
 router.use(requirePermission('documentos_ver'));
 
-// Listar (filtros: empresaId, status, periodo)
+const STATUS_VALIDOS = ['PENDENTE', 'IMPRESSO', 'ENTREGUE', 'CANCELADO', 'AGUARDANDO_RETIRADA', 'DEVOLVIDO'] as const;
+
+// Listar (filtros: q empresa, statusList CSV, empresaId)
 router.get('/', async (req, res) => {
   const q = req.query as Record<string, string>;
-  const where: Prisma.ProtocoloFisicoWhereInput = { escritorioId: req.auth!.escritorioId };
-  if (q.empresaId) where.empresaId = q.empresaId;
-  if (q.status) where.status = q.status as never;
+  const and: Prisma.ProtocoloFisicoWhereInput[] = [{ escritorioId: req.auth!.escritorioId }];
+  if (q.empresaId) and.push({ empresaId: q.empresaId });
+  if (q.status) and.push({ status: q.status as never });
+  if (q.statusList) {
+    const lista = q.statusList.split(',').filter(Boolean) as Prisma.ProtocoloFisicoWhereInput['status'][];
+    if (lista.length) and.push({ status: { in: lista as never[] } });
+  }
+  if (q.q?.trim()) {
+    and.push({ empresa: { OR: [
+      { razaoSocial: { contains: q.q.trim(), mode: 'insensitive' } },
+      { nomeFantasia: { contains: q.q.trim(), mode: 'insensitive' } },
+    ] } });
+  }
   const itens = await prisma.protocoloFisico.findMany({
-    where,
-    orderBy: { data: 'desc' },
+    where: { AND: and },
+    orderBy: [{ numero: 'desc' }, { data: 'desc' }],
     include: { empresa: { select: { razaoSocial: true } } },
   });
   return ok(res, itens);
@@ -30,21 +42,32 @@ router.get('/', async (req, res) => {
 
 const upsert = z.object({
   empresaId: z.string(),
-  descricao: z.string().min(1, 'Descreva os documentos.'),
+  titulo: z.string().min(1, 'Informe o titulo.'),
+  descricao: z.string().optional().nullable(),
   retiradoPor: z.string().optional().nullable(),
-  data: z.string().optional(),
-  status: z.enum(['AGUARDANDO_RETIRADA', 'ENTREGUE', 'DEVOLVIDO', 'CANCELADO']).optional(),
+  data: z.string().optional(),            // data do protocolo
+  dataEntrega: z.string().optional().nullable(),
+  status: z.enum(STATUS_VALIDOS).optional(),
 });
 
 router.post('/', requirePermission('documentos_upload'), validate({ body: upsert }), async (req, res) => {
+  // numero sequencial por escritorio ([ID])
+  const ultimo = await prisma.protocoloFisico.aggregate({
+    where: { escritorioId: req.auth!.escritorioId },
+    _max: { numero: true },
+  });
+  const numero = (ultimo._max.numero ?? 0) + 1;
   const p = await prisma.protocoloFisico.create({
     data: {
       escritorioId: req.auth!.escritorioId,
       empresaId: req.body.empresaId,
-      descricao: req.body.descricao,
+      titulo: req.body.titulo,
+      descricao: req.body.descricao || req.body.titulo,
+      numero,
       retiradoPor: req.body.retiradoPor || null,
       data: req.body.data ? new Date(req.body.data) : new Date(),
-      status: req.body.status ?? 'AGUARDANDO_RETIRADA',
+      dataEntrega: req.body.dataEntrega ? new Date(req.body.dataEntrega) : null,
+      status: req.body.status ?? 'PENDENTE',
     },
   });
   return ok(res, p, 201);
@@ -53,14 +76,31 @@ router.post('/', requirePermission('documentos_upload'), validate({ body: upsert
 router.put('/:id', requirePermission('documentos_upload'), validate({ body: upsert.partial() }), async (req, res) => {
   const existe = await prisma.protocoloFisico.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId } });
   if (!existe) throw Errors.naoEncontrado('Protocolo');
+  // status ENTREGUE preenche data de entrega automaticamente se vazia
+  const novoStatus = req.body.status ?? existe.status;
+  const dataEntrega = req.body.dataEntrega !== undefined
+    ? (req.body.dataEntrega ? new Date(req.body.dataEntrega) : null)
+    : (novoStatus === 'ENTREGUE' && !existe.dataEntrega ? new Date() : existe.dataEntrega);
   const p = await prisma.protocoloFisico.update({
     where: { id: req.params.id },
     data: {
+      titulo: req.body.titulo ?? existe.titulo,
       descricao: req.body.descricao ?? existe.descricao,
       retiradoPor: req.body.retiradoPor === undefined ? existe.retiradoPor : req.body.retiradoPor || null,
-      status: req.body.status ?? existe.status,
+      data: req.body.data ? new Date(req.body.data) : existe.data,
+      dataEntrega,
+      status: novoStatus,
     },
   });
+  return ok(res, p);
+});
+
+router.get('/:id', async (req, res) => {
+  const p = await prisma.protocoloFisico.findFirst({
+    where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
+    include: { empresa: { select: { razaoSocial: true } } },
+  });
+  if (!p) throw Errors.naoEncontrado('Protocolo');
   return ok(res, p);
 });
 

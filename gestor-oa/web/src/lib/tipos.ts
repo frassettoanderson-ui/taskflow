@@ -434,21 +434,30 @@ export interface Protocolo {
   visualizacoes: ProtocoloVisualizacao[];
 }
 
+export type StatusProtocoloFisico =
+  | 'PENDENTE' | 'IMPRESSO' | 'ENTREGUE' | 'CANCELADO' | 'AGUARDANDO_RETIRADA' | 'DEVOLVIDO';
+
 export interface ProtocoloFisico {
   id: string;
+  titulo: string | null;
+  numero: number | null;
   descricao: string;
   retiradoPor: string | null;
   data: string;
-  status: 'AGUARDANDO_RETIRADA' | 'ENTREGUE' | 'DEVOLVIDO' | 'CANCELADO';
+  dataEntrega: string | null;
+  status: StatusProtocoloFisico;
   assinaturaPath: string | null;
+  empresaId?: string;
   empresa?: { razaoSocial: string };
 }
 
-export const STATUS_FISICO_LABEL: Record<ProtocoloFisico['status'], string> = {
-  AGUARDANDO_RETIRADA: 'Aguardando retirada',
+export const STATUS_FISICO_LABEL: Record<StatusProtocoloFisico, string> = {
+  PENDENTE: 'Pendente',
+  IMPRESSO: 'Impresso',
   ENTREGUE: 'Entregue',
-  DEVOLVIDO: 'Devolvido',
   CANCELADO: 'Cancelado',
+  AGUARDANDO_RETIRADA: 'Pendente',
+  DEVOLVIDO: 'Impresso',
 };
 
 // ---------- Modulo 5 (Robo) ----------

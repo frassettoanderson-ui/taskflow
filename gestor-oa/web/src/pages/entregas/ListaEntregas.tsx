@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   CheckCircle2, SlidersHorizontal, X, SearchX, CalendarDays, SquarePen,
   Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save,
@@ -56,6 +56,7 @@ const DATA_INP = 'w-full rounded border border-slate-300 bg-white px-2 py-1.5 te
 export default function ListaEntregas() {
   const { sessao } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const podeBaixar = temPermissao(sessao, 'entregas_baixar');
   const podeDispensar = temPermissao(sessao, 'entregas_dispensar');
 
@@ -186,7 +187,7 @@ export default function ListaEntregas() {
           <div className="ml-auto flex items-center gap-1">
             <IconBtn title="Exibir filtros removedores" onClick={() => toast('erro', 'Em construcao')}><SearchX size={17} /></IconBtn>
             <IconBtn title="Exibir/ocultar datas" onClick={() => setMostrarDatas((v) => !v)}><CalendarDays size={17} /></IconBtn>
-            <IconBtn title="Protocolo fisico" onClick={() => toast('erro', 'Em construcao')}><SquarePen size={17} /></IconBtn>
+            <IconBtn title="Protocolo fisico" onClick={() => navigate('/documentos/protocolos-fisicos')}><SquarePen size={17} /></IconBtn>
             <IconBtn title="Imprimir" onClick={imprimir}><Printer size={17} /></IconBtn>
             <button onClick={filtrar} className="ml-1 flex items-center gap-2 rounded bg-status-ok px-4 py-1.5 text-[12px] font-medium text-white hover:bg-emerald-600">
               <Search size={14} /> Filtrar
