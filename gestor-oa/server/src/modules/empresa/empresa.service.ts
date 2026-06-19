@@ -84,6 +84,7 @@ export async function listar(
       include: {
         identificadores: { where: { tipo: 'CNPJ' }, take: 1 },
         tags: { include: { tag: true } },
+        regimeTributario: { select: { nome: true } },
         _count: { select: { contatos: true } },
       },
     }),
@@ -97,7 +98,10 @@ export async function listar(
       nomeFantasia: e.nomeFantasia,
       ativo: e.ativo,
       cnpj: e.identificadores[0]?.valor ?? null,
+      telefone: e.telefone ?? null,
+      cidade: e.endereco ?? null,
       regimeTributarioId: e.regimeTributarioId,
+      regimeNome: e.regimeTributario?.nome ?? null,
       tags: e.tags.map((t) => ({ id: t.tag.id, nome: t.tag.nome, cor: t.tag.cor })),
       qtdContatos: e._count.contatos,
     })),

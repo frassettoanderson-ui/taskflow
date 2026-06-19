@@ -47,7 +47,10 @@ export interface EmpresaLista {
   nomeFantasia: string | null;
   ativo: boolean;
   cnpj: string | null;
+  telefone: string | null;
+  cidade: string | null;
   regimeTributarioId: string | null;
+  regimeNome: string | null;
   tags: { id: string; nome: string; cor: string }[];
   qtdContatos: number;
 }
