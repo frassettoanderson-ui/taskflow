@@ -44,12 +44,13 @@ export default function MatrizForm() {
   const [itens, setItens] = useState<MatrizPasso[]>([]);
   const [usadaPor, setUsadaPor] = useState<{ id: string; nome: string }[]>([]);
   const [editando, setEditando] = useState<number | null>(null);
-  const [criando, setCriando] = useState(false); // form "Novo passo simples"
+  const [criando, setCriando] = useState<'PASSO' | 'SUB' | null>(null);
   const [nForm, setNForm] = useState({
     nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false,
     acao: 'NENHUMA' as 'NENHUMA' | 'CRIAR_TAREFA' | 'CRIAR_OBRIGACAO_NA_EMPRESA',
     propagacao: 'NAO_CONCLUIDOS' as 'NAO_CONCLUIDOS' | 'NOVOS', dica: '', inserirApos: -2, // -1 = inicio, -2 = fim
   });
+  const [sForm, setSForm] = useState({ subMatrizId: '', criarApos: 'INICIO', propagacao: 'NAO_CONCLUIDOS' as 'NAO_CONCLUIDOS' | 'NOVOS', inserirApos: -2 });
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
@@ -87,9 +88,14 @@ export default function MatrizForm() {
   // desdobramentos
   function setDesdob(i: number, desdobramentos: DesdobramentoOpcao[]) { setItem(i, { config: { ...(itens[i].config ?? {}), desdobramentos } }); }
 
+  function inserirNa(arr: MatrizPasso[], novo: MatrizPasso, inserirApos: number) {
+    const pos = inserirApos === -1 ? 0 : inserirApos === -2 ? arr.length : inserirApos + 1;
+    return [...arr.slice(0, pos), novo, ...arr.slice(pos)].map((p, idx) => ({ ...p, ordem: idx + 1 }));
+  }
+
   function abrirNovoPasso() {
     setNForm({ nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false, acao: 'NENHUMA', propagacao: 'NAO_CONCLUIDOS', dica: '', inserirApos: -2 });
-    setCriando(true); setEditando(null);
+    setCriando('PASSO'); setEditando(null);
   }
   function adicionarPasso() {
     if (nForm.nome.trim().length < 1) return toast('erro', 'Informe o nome do passo.');
@@ -98,12 +104,23 @@ export default function MatrizForm() {
       prazoDias: 0, basePrazo: 'INICIO', bloqueante: nForm.bloqueante, acaoAutomatica: nForm.acao,
       config: { exigeAnexo: nForm.exigeAnexo, apareceApp: nForm.apareceApp, propagacao: nForm.propagacao },
     };
-    setItens((arr) => {
-      const pos = nForm.inserirApos === -1 ? 0 : nForm.inserirApos === -2 ? arr.length : nForm.inserirApos + 1;
-      const n = [...arr.slice(0, pos), novo, ...arr.slice(pos)];
-      return n.map((p, idx) => ({ ...p, ordem: idx + 1 }));
-    });
-    setCriando(false);
+    setItens((arr) => inserirNa(arr, novo, nForm.inserirApos));
+    setCriando(null);
+  }
+
+  function abrirNovaSub() {
+    setSForm({ subMatrizId: '', criarApos: 'INICIO', propagacao: 'NAO_CONCLUIDOS', inserirApos: -2 });
+    setCriando('SUB'); setEditando(null);
+  }
+  function adicionarSub() {
+    if (!sForm.subMatrizId) return toast('erro', 'Selecione a sub-matriz.');
+    const novo: MatrizPasso = {
+      ordem: 0, tipo: 'SUB_MATRIZ', titulo: '', prazoDias: 0, basePrazo: 'INICIO', bloqueante: false,
+      acaoAutomatica: 'NENHUMA', subMatrizId: sForm.subMatrizId,
+      config: { criarApos: sForm.criarApos, propagacao: sForm.propagacao },
+    };
+    setItens((arr) => inserirNa(arr, novo, sForm.inserirApos));
+    setCriando(null);
   }
 
   async function salvar() {
@@ -178,13 +195,61 @@ export default function MatrizForm() {
           {/* botoes de tipo */}
           <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <button onClick={abrirNovoPasso} className="flex items-center justify-center gap-2 rounded bg-sky-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-sky-600"><CheckSquare size={15} /> Novo passo simples</button>
-            <button onClick={() => addItem('SUB_MATRIZ')} className="flex items-center justify-center gap-2 rounded bg-slate-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-slate-500"><ChevronsDown size={15} /> Nova sub-matriz</button>
+            <button onClick={abrirNovaSub} className="flex items-center justify-center gap-2 rounded bg-slate-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-slate-500"><ChevronsDown size={15} /> Nova sub-matriz</button>
             <button onClick={() => addItem('DESDOBRAMENTO')} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-purple-600"><Shuffle size={15} /> Novo desdobramento</button>
             <button onClick={() => addItem('FOLLOW_UP')} className="flex items-center justify-center gap-2 rounded bg-amber-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-amber-500"><Mail size={15} /> Novo follow-up</button>
           </div>
 
+          {/* form Nova sub-matriz */}
+          {criando === 'SUB' && (
+            <div className="mt-3 space-y-3 rounded border border-slate-300 bg-slate-100/60 p-3">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+                <div>
+                  <label className={LBL}>Selecione a sub-matriz desejada:</label>
+                  <select className={`${INP} text-marca-600`} value={sForm.subMatrizId} onChange={(e) => setSForm((f) => ({ ...f, subMatrizId: e.target.value }))} autoFocus>
+                    <option value="">Selecione a sub-matriz desejada</option>
+                    {matrizesDisp.filter((m) => m.id !== id).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className={LBL}>Possiveis sub-tarefas, criar apos:</label>
+                  <select className={INP} value={sForm.criarApos} onChange={(e) => setSForm((f) => ({ ...f, criarApos: e.target.value }))}>
+                    <option value="INICIO">Inicio/autorizacao do processo</option>
+                    {itens.filter((it) => (it.tipo ?? 'PASSO_SIMPLES') === 'PASSO_SIMPLES' && it.titulo).map((it, k) => (
+                      <option key={k} value={it.titulo}>Ok do '{it.titulo}'</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-[12px] font-semibold text-amber-600">Essa matriz ja esta em uso, o que deseja fazer com esta nova sub-matriz nos processos?</label>
+                <select className={`${INP} text-marca-600`} value={sForm.propagacao} onChange={(e) => setSForm((f) => ({ ...f, propagacao: e.target.value as typeof f.propagacao }))}>
+                  <option value="NAO_CONCLUIDOS">Adicionar em todos os nao-concluidos e em novos usos</option>
+                  <option value="NOVOS">Adicionar somente em novos usos dessa matriz</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[1.6fr_auto_auto] md:items-end">
+                <div>
+                  <label className={LBL}>Inserir apos:</label>
+                  <select className={INP} value={sForm.inserirApos} onChange={(e) => setSForm((f) => ({ ...f, inserirApos: Number(e.target.value) }))}>
+                    <option value={-1}>Inserir no Inicio</option>
+                    {itens.map((it, idx) => {
+                      const lbl = (it.tipo ?? 'PASSO_SIMPLES') === 'SUB_MATRIZ'
+                        ? `Sub-Proc: ${matrizesDisp.find((m) => m.id === it.subMatrizId)?.nome ?? '...'}`
+                        : (it.titulo || '(sem nome)');
+                      return <option key={idx} value={idx}>{lbl}</option>;
+                    })}
+                    <option value={-2}>Inserir no Fim</option>
+                  </select>
+                </div>
+                <button onClick={adicionarSub} className="flex items-center justify-center gap-2 rounded bg-marca-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-marca-600"><Save size={15} /> Adicionar</button>
+                <button onClick={() => setCriando(null)} className="flex items-center justify-center gap-2 rounded bg-status-danger px-5 py-2 text-[13px] font-medium text-white hover:bg-red-600"><X size={15} /> Cancelar</button>
+              </div>
+            </div>
+          )}
+
           {/* form Novo passo simples */}
-          {criando && (
+          {criando === 'PASSO' && (
             <div className="mt-3 space-y-3 rounded border border-sky-200 bg-sky-50/50 p-3">
               <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
                 <div>
@@ -238,7 +303,7 @@ export default function MatrizForm() {
                   </select>
                 </div>
                 <button onClick={adicionarPasso} className="flex items-center justify-center gap-2 rounded bg-marca-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-marca-600"><Save size={15} /> Adicionar</button>
-                <button onClick={() => setCriando(false)} className="flex items-center justify-center gap-2 rounded bg-status-danger px-5 py-2 text-[13px] font-medium text-white hover:bg-red-600"><X size={15} /> Cancelar</button>
+                <button onClick={() => setCriando(null)} className="flex items-center justify-center gap-2 rounded bg-status-danger px-5 py-2 text-[13px] font-medium text-white hover:bg-red-600"><X size={15} /> Cancelar</button>
               </div>
             </div>
           )}
@@ -279,7 +344,7 @@ export default function MatrizForm() {
                           <button onClick={() => setEditando(editavel ? null : i)} className={`text-left hover:underline ${p.titulo ? 'text-marca-600' : 'italic text-slate-400'}`}>{nomeExib}</button>
                         )}
                       </div>
-                      {tipo === 'SUB_MATRIZ' && <div className="mt-0.5 pl-5 text-[11px] text-purple-500">Tarefas apos: inicio/autorizacao do processo</div>}
+                      {tipo === 'SUB_MATRIZ' && <div className="mt-0.5 pl-5 text-[11px] text-purple-500">Tarefas apos: {!p.config?.criarApos || p.config.criarApos === 'INICIO' ? 'inicio/autorizacao do processo' : `Ok do '${p.config.criarApos}'`}</div>}
                       {p.config?.tarefas && <div className="pl-5 text-[11px] text-marca-500">Tarefas: {p.config.tarefas}</div>}
                       {p.config?.obrigacoes && <div className="pl-5 text-[11px] text-amber-600">Obrigacoes: {p.config.obrigacoes}</div>}
                     </div>
@@ -321,7 +386,7 @@ export default function MatrizForm() {
                           <label className="mb-1 block text-[12px] font-semibold text-slate-600">Sub-matriz desse passo</label>
                           <select className={`${INP} max-w-md`} value={p.subMatrizId ?? ''} onChange={(e) => setItem(i, { subMatrizId: e.target.value || null })}>
                             <option value="">Selecione a sub-matriz...</option>
-                            {matrizesDisp.filter((m) => m.id !== id && m.soSubmatriz).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+                            {matrizesDisp.filter((m) => m.id !== id).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
                           </select>
                         </div>
                       ) : (

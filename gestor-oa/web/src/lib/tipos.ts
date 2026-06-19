@@ -533,7 +533,7 @@ export type TipoPassoMatriz = 'PASSO_SIMPLES' | 'SUB_MATRIZ' | 'DESDOBRAMENTO' |
 export interface DesdobramentoOpcao { label: string; acao: 'CONCLUI' | 'SUBMATRIZ'; alvoMatrizId?: string | null }
 export interface MatrizPassoConfig {
   dica?: string; tarefas?: string; obrigacoes?: string;
-  exigeAnexo?: boolean; apareceApp?: boolean; propagacao?: string;
+  exigeAnexo?: boolean; apareceApp?: boolean; propagacao?: string; criarApos?: string;
   desdobramentos?: DesdobramentoOpcao[]; followup?: { dias?: number; mensagem?: string };
 }
 
