@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, Search, SlidersHorizontal, Mail, Download, XCircle, Network, Tags as TagsIcon, Printer, Calendar, Plus, MessageCircle, CheckCircle2, Users, ArrowUpDown, RotateCcw } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Badge, Modal, Spinner, useToast } from '../../components/ui';
+import { Badge, Spinner, useToast } from '../../components/ui';
 import type {
   EmpresaLista,
   Tag,
@@ -11,8 +11,6 @@ import type {
   UsuarioBasico,
 } from '../../lib/tipos';
 import { formatarIdent } from '../../lib/tipos';
-
-type AcaoMassa = 'aplicar_tags' | 'alterar_responsavel' | 'inativar' | 'ativar';
 
 interface Pagina {
   items: EmpresaLista[];
@@ -45,11 +43,13 @@ export default function EmpresasList() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [ordenar, setOrdenar] = useState<'razao' | 'fantasia'>('razao');
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');
-  const [massa, setMassa] = useState<{ ids: string[]; acao: AcaoMassa } | null>(null);
   // modo "Alterar responsavel pelo dpto"
   const [respMode, setRespMode] = useState(false);
   const [respDepto, setRespDepto] = useState('');
   const [respUser, setRespUser] = useState('');
+  // modo "Incluir tags em massa"
+  const [tagsMode, setTagsMode] = useState(false);
+  const [tagsSel, setTagsSel] = useState<string[]>([]);
   // modo "Exportar e-mails em bloco"
   const [exportMode, setExportMode] = useState(false);
   const [expDepto, setExpDepto] = useState('');
@@ -98,22 +98,31 @@ export default function EmpresasList() {
     });
   }, [items, ordenar, dir]);
 
-  function abrirMassa(acao: AcaoMassa) {
-    const ids = items.map((e) => e.id);
-    if (!ids.length) return toast('erro', 'Nenhuma empresa listada.');
-    setMassa({ ids, acao });
-  }
-
-  async function atualizarResponsavel() {
-    if (!respDepto || !respUser) return toast('erro', 'Selecione o departamento e o responsavel.');
+  async function idsListados(): Promise<string[]> {
     const qs = new URLSearchParams({ page: '1', limit: '10000', status });
     if (busca.trim()) qs.set('busca', busca.trim());
     if (tagId) qs.set('tagId', tagId);
     if (departamentoId) qs.set('departamentoId', departamentoId);
     if (motivoUrl) { qs.set('motivoId', motivoUrl); qs.set('status', 'todos'); }
+    const todas = await api.get<Pagina>(`/empresas?${qs}`);
+    return todas.items.map((e) => e.id);
+  }
+
+  async function adicionarTags() {
+    if (!tagsSel.length) return toast('erro', 'Selecione ao menos uma tag.');
     try {
-      const todas = await api.get<Pagina>(`/empresas?${qs}`);
-      const ids = todas.items.map((e) => e.id);
+      const ids = await idsListados();
+      if (!ids.length) return toast('erro', 'Nenhuma empresa listada.');
+      const r = await api.post<{ afetadas: number }>('/empresas/acoes-massa', { empresaIds: ids, acao: 'aplicar_tags', tagIds: tagsSel });
+      toast('ok', `${r.afetadas} empresa(s) atualizada(s).`);
+      setTagsMode(false); setTagsSel([]); setBusca((b) => b);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+
+  async function atualizarResponsavel() {
+    if (!respDepto || !respUser) return toast('erro', 'Selecione o departamento e o responsavel.');
+    try {
+      const ids = await idsListados();
       if (!ids.length) return toast('erro', 'Nenhuma empresa listada.');
       const r = await api.post<{ afetadas: number }>('/empresas/acoes-massa', { empresaIds: ids, acao: 'alterar_responsavel', departamentoId: respDepto, usuarioId: respUser });
       toast('ok', `${r.afetadas} empresa(s) atualizada(s).`);
@@ -152,7 +161,7 @@ export default function EmpresasList() {
           {podeImportar && <button title="Importar cadastros" onClick={() => navigate('/empresas/importar')} className={`${ICONE} bg-marca-100 text-marca-600`}><Download size={18} /></button>}
           <button title="Motivos de cancelamento" onClick={() => navigate('/empresas/motivos')} className={`${ICONE} bg-red-100 text-red-500`}><XCircle size={18} /></button>
           <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => { setRespMode(true); setRespDepto(departamentos[0]?.id ?? ''); setRespUser(usuarios[0]?.id ?? ''); }} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
-          <button title="Incluir tag's em massa nas empresas listadas" onClick={() => abrirMassa('aplicar_tags')} className={`${ICONE} bg-status-ok/15 text-status-ok`}><TagsIcon size={18} /></button>
+          <button title="Incluir tag's em massa nas empresas listadas" onClick={() => { setTagsMode(true); setTagsSel([]); }} className={`${ICONE} bg-status-ok/15 text-status-ok`}><TagsIcon size={18} /></button>
           <button title="Relacao de empresas" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-purple-100 text-purple-500`}><Printer size={18} /></button>
           <button title="Exibir/Ocultar datas" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-red-100 text-red-500`}><Calendar size={18} /></button>
         </div>
@@ -178,6 +187,30 @@ export default function EmpresasList() {
           </div>
           <button onClick={atualizarResponsavel} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Network size={16} /> OK - Atualizar</button>
           <button onClick={() => setRespMode(false)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
+        </div>
+      )}
+
+      {/* Barra: Incluir tags em massa */}
+      {tagsMode && (
+        <div className="mt-2 flex flex-wrap items-end gap-2">
+          <div className="min-w-[260px] flex-1">
+            <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Adicionar nas {pagina?.total ?? 0} empresas listadas as Tag's:</label>
+            <div className="rounded border border-marca-300 bg-white p-1.5">
+              <div className="mb-1 flex flex-wrap gap-1">
+                {tagsSel.length === 0 && <span className="px-1 text-[12px] text-slate-400">Tag's...</span>}
+                {tagsSel.map((id) => {
+                  const t = tags.find((x) => x.id === id);
+                  return <span key={id} className="inline-flex items-center gap-1 rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[12px] text-slate-600"><button onClick={() => setTagsSel((a) => a.filter((x) => x !== id))} className="text-slate-400 hover:text-red-500">×</button>{t?.nome ?? id}</span>;
+                })}
+              </div>
+              <select className="w-full border-t border-slate-100 bg-transparent px-1 pt-1 text-[12px] text-slate-600 outline-none" value="" onChange={(e) => { if (e.target.value) setTagsSel((a) => [...a, e.target.value]); }}>
+                <option value="">Tag's...</option>
+                {tags.filter((t) => !tagsSel.includes(t.id)).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
+              </select>
+            </div>
+          </div>
+          <button onClick={adicionarTags} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><TagsIcon size={16} /> OK - Adicionar</button>
+          <button onClick={() => setTagsMode(false)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
         </div>
       )}
 
@@ -292,131 +325,6 @@ export default function EmpresasList() {
         </div>
       )}
 
-      {massa && (
-        <ModalAcaoMassa
-          empresaIds={massa.ids}
-          acaoInicial={massa.acao}
-          tags={tags}
-          departamentos={departamentos}
-          usuarios={usuarios}
-          onFechar={() => setMassa(null)}
-          onConcluido={(msg) => { toast('ok', msg); setMassa(null); setBusca((b) => b); }}
-        />
-      )}
     </div>
-  );
-}
-
-// (bloco antigo abaixo substituido)
-
-function ModalAcaoMassa({
-  empresaIds,
-  acaoInicial,
-  tags,
-  departamentos,
-  usuarios,
-  onFechar,
-  onConcluido,
-}: {
-  empresaIds: string[];
-  acaoInicial?: AcaoMassa;
-  tags: Tag[];
-  departamentos: Departamento[];
-  usuarios: UsuarioBasico[];
-  onFechar: () => void;
-  onConcluido: (msg: string) => void;
-}) {
-  const toast = useToast();
-  const [acao, setAcao] = useState<AcaoMassa>(acaoInicial ?? 'aplicar_tags');
-  const [tagIds, setTagIds] = useState<string[]>([]);
-  const [departamentoId, setDepartamentoId] = useState('');
-  const [usuarioId, setUsuarioId] = useState('');
-  const [salvando, setSalvando] = useState(false);
-
-  async function executar() {
-    setSalvando(true);
-    try {
-      const r = await api.post<{ afetadas: number }>('/empresas/acoes-massa', {
-        empresaIds,
-        acao,
-        tagIds: acao === 'aplicar_tags' ? tagIds : undefined,
-        departamentoId: acao === 'alterar_responsavel' ? departamentoId : undefined,
-        usuarioId: acao === 'alterar_responsavel' ? usuarioId : undefined,
-      });
-      onConcluido(`${r.afetadas} empresa(s) atualizada(s).`);
-    } catch (e) {
-      toast('erro', e instanceof ApiError ? e.message : 'Erro');
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  return (
-    <Modal aberto titulo={`Acoes em massa (${empresaIds.length})`} onFechar={onFechar}>
-      <div className="space-y-4">
-        <div>
-          <label className="label">Acao</label>
-          <select className="input" value={acao} onChange={(e) => setAcao(e.target.value as never)}>
-            <option value="aplicar_tags">Aplicar tags</option>
-            <option value="alterar_responsavel">Alterar responsavel de departamento</option>
-            <option value="inativar">Inativar</option>
-            <option value="ativar">Ativar</option>
-          </select>
-        </div>
-
-        {acao === 'aplicar_tags' && (
-          <div>
-            <label className="label">Tags a aplicar</label>
-            <div className="flex flex-wrap gap-2">
-              {tags.map((t) => (
-                <label key={t.id} className="flex items-center gap-1 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={tagIds.includes(t.id)}
-                    onChange={(e) =>
-                      setTagIds((ids) =>
-                        e.target.checked ? [...ids, t.id] : ids.filter((x) => x !== t.id),
-                      )
-                    }
-                  />
-                  {t.nome}
-                </label>
-              ))}
-              {tags.length === 0 && <span className="text-slate-400">Nenhuma tag cadastrada.</span>}
-            </div>
-          </div>
-        )}
-
-        {acao === 'alterar_responsavel' && (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Departamento</label>
-              <select className="input" value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)}>
-                <option value="">Selecione</option>
-                {departamentos.map((d) => (
-                  <option key={d.id} value={d.id}>{d.nome}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label">Responsavel</label>
-              <select className="input" value={usuarioId} onChange={(e) => setUsuarioId(e.target.value)}>
-                <option value="">Selecione</option>
-                {usuarios.map((u) => (
-                  <option key={u.id} value={u.id}>{u.nome}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-end gap-2">
-          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-          <button className="btn-primary" onClick={executar} disabled={salvando}>
-            {salvando ? 'Aplicando...' : 'Aplicar'}
-          </button>
-        </div>
-      </div>
-    </Modal>
   );
 }
