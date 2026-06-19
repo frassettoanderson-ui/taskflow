@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   CheckCircle2, Save, RotateCcw, Plus, X, Copy, CheckSquare, ChevronsDown,
@@ -44,7 +44,7 @@ export default function MatrizForm() {
   const [itens, setItens] = useState<MatrizPasso[]>([]);
   const [usadaPor, setUsadaPor] = useState<{ id: string; nome: string }[]>([]);
   const [editando, setEditando] = useState<number | null>(null);
-  const [criando, setCriando] = useState<'PASSO' | 'SUB' | 'DESD' | null>(null);
+  const [criando, setCriando] = useState<'PASSO' | 'SUB' | 'DESD' | 'FOLLOW' | null>(null);
   const [nForm, setNForm] = useState({
     nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false,
     acao: 'NENHUMA' as 'NENHUMA' | 'CRIAR_TAREFA' | 'CRIAR_OBRIGACAO_NA_EMPRESA',
@@ -69,15 +69,6 @@ export default function MatrizForm() {
     }).catch(() => toast('erro', 'Matriz nao encontrada.')).finally(() => setCarregando(false));
   }, [id, novo]);
 
-  function addItem(tipo: TipoPassoMatriz) {
-    setItens((arr) => {
-      setEditando(arr.length); // abre edicao do novo item
-      return [...arr, {
-        ordem: arr.length + 1, tipo, titulo: '', prazoDias: 0, basePrazo: 'INICIO', bloqueante: false,
-        acaoAutomatica: 'NENHUMA', config: tipo === 'DESDOBRAMENTO' ? { desdobramentos: [] } : {},
-      }];
-    });
-  }
   function setItem(i: number, patch: Partial<MatrizPasso>) { setItens((arr) => arr.map((p, j) => (j === i ? { ...p, ...patch } : p))); }
   function remover(i: number) { setItens((arr) => arr.filter((_, j) => j !== i).map((p, idx) => ({ ...p, ordem: idx + 1 }))); }
   function mover(i: number, dir: -1 | 1) {
@@ -131,6 +122,11 @@ export default function MatrizForm() {
       bloqueante: false, acaoAutomatica: 'NENHUMA', config: { desdobramentos: dForm.opcoes, propagacao: dForm.propagacao },
     };
     setItens((arr) => inserirNa(arr, novo, dForm.inserirApos));
+    setCriando(null);
+  }
+
+  function adicionarFollow(novo: MatrizPasso, inserirApos: number) {
+    setItens((arr) => inserirNa(arr, novo, inserirApos));
     setCriando(null);
   }
   function adicionarSub() {
@@ -218,7 +214,7 @@ export default function MatrizForm() {
             <button onClick={abrirNovoPasso} className="flex items-center justify-center gap-2 rounded bg-sky-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-sky-600"><CheckSquare size={15} /> Novo passo simples</button>
             <button onClick={abrirNovaSub} className="flex items-center justify-center gap-2 rounded bg-slate-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-slate-500"><ChevronsDown size={15} /> Nova sub-matriz</button>
             <button onClick={abrirNovoDesd} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-purple-600"><Shuffle size={15} /> Novo desdobramento</button>
-            <button onClick={() => addItem('FOLLOW_UP')} className="flex items-center justify-center gap-2 rounded bg-amber-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-amber-500"><Mail size={15} /> Novo follow-up</button>
+            <button onClick={() => { setEditando(null); setCriando('FOLLOW'); }} className="flex items-center justify-center gap-2 rounded bg-amber-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-amber-500"><Mail size={15} /> Novo follow-up</button>
           </div>
 
           {/* form Novo desdobramento */}
@@ -495,6 +491,10 @@ export default function MatrizForm() {
 
           <button onClick={salvar} disabled={salvando} className="mt-3 flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-[13px] font-medium text-white hover:bg-emerald-600 disabled:opacity-50"><Save size={15} /> Salvar matriz</button>
 
+          {criando === 'FOLLOW' && (
+            <FollowUpModal itens={itens} matrizesDisp={matrizesDisp} onSalvar={adicionarFollow} onClose={() => setCriando(null)} />
+          )}
+
           {/* matrizes que usam esta como sub-matriz */}
           {usadaPor.length > 0 && (
             <div className="mt-6 border-t border-slate-200 pt-4">
@@ -541,6 +541,131 @@ function DesdobramentoEditor({ opcoes, matrizes, onChange }: { opcoes: Desdobram
         ))}
       </div>
       <button onClick={add} className="mt-1 flex items-center gap-1 text-[12px] text-marca-600 hover:underline"><Plus size={12} /> opcao</button>
+    </div>
+  );
+}
+
+const VARIAVEIS: { v: string; d: string }[] = [
+  { v: 'NomeMatriz', d: 'Nome da matriz do processo' },
+  { v: 'NomeResp', d: 'Gestor do processo' },
+  { v: 'NCompResp', d: 'Nome completo do gestor do processo' },
+  { v: 'Office', d: "Escritorio (mesmo do 'From' dos e-mails)" },
+  { v: 'NomeDest', d: 'Primeiro nome do destinatario' },
+  { v: 'EmpresaCli', d: 'Nome da empresa do cliente' },
+  { v: 'EmpresaCNPJ', d: 'CNPJ da empresa do cliente' },
+  { v: 'EmpresaID', d: 'ID da empresa do cliente' },
+  { v: 'EmpresaGrupo', d: 'Grupo da empresa do cliente' },
+  { v: 'EmpresaFantasia', d: 'Nome Fantasia da empresa' },
+  { v: 'DataAtual', d: 'Data atual' },
+  { v: 'ProcID', d: 'ID do processo' },
+  { v: 'ProcTitulo', d: 'Titulo do processo' },
+  { v: 'PProcesso', d: 'Porcentagem atual do processo' },
+  { v: 'PDias', d: 'Qtde de dias do inicio do processo' },
+  { v: 'LogoEmpresa', d: 'Logo da Empresa/Carteira' },
+  { v: 'SigMail', d: 'Assinatura do e-mail' },
+];
+const TOOLBAR = ['A', 'T', 'B', 'I', 'S', 'U', 'lista', 'align', 'recuo-', 'recuo+', 'tabela', 'link', 'undo', 'redo', 'cor', 'hr', 'tela', 'limpar', '</>'];
+
+function FollowUpModal({ itens, matrizesDisp, onSalvar, onClose }: { itens: MatrizPasso[]; matrizesDisp: Matriz[]; onSalvar: (item: MatrizPasso, inserirApos: number) => void; onClose: () => void }) {
+  const toast = useToast();
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [titulo, setTitulo] = useState('');
+  const [envio, setEnvio] = useState('MANUAL');
+  const [destinatario, setDestinatario] = useState('TODOS_CONTATOS');
+  const [corpo, setCorpo] = useState('');
+  const [propagar, setPropagar] = useState(true);
+  const [inserirApos, setInserirApos] = useState(-2);
+
+  function inserirVar(v: string) {
+    const el = bodyRef.current;
+    const token = `[${v}]`;
+    if (!el) { setCorpo((c) => c + token); return; }
+    const ini = el.selectionStart ?? corpo.length;
+    const fim = el.selectionEnd ?? corpo.length;
+    const novo = corpo.slice(0, ini) + token + corpo.slice(fim);
+    setCorpo(novo);
+    requestAnimationFrame(() => { el.focus(); el.selectionStart = el.selectionEnd = ini + token.length; });
+  }
+
+  function salvar() {
+    const item: MatrizPasso = {
+      ordem: 0, tipo: 'FOLLOW_UP', titulo: (titulo.trim() || 'Follow-up'), descricao: corpo.trim() || null,
+      prazoDias: 0, basePrazo: 'INICIO', bloqueante: false, acaoAutomatica: 'NENHUMA',
+      config: { followup: { mensagem: corpo }, dica: titulo, propagacao: propagar ? 'NAO_CONCLUIDOS' : 'NOVOS', envio, destinatario } as never,
+    };
+    onSalvar(item, inserirApos);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/40 p-4">
+      <div className="my-4 w-full max-w-5xl rounded-lg bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 text-[15px] font-semibold text-marca-600">Criando e-mail de Follow-Up a ser enviado <span className="text-status-danger">(nao utilizar aspas)</span></div>
+
+        {/* legenda de variaveis */}
+        <div className="mb-3 rounded bg-slate-50 p-2 text-[11px]">
+          <span className="font-semibold text-slate-600">Legenda das variaveis:</span> <span className="text-slate-500">os colchetes [...] serao substituidos no corpo do e-mail. Dica: [clique p/ inserir]</span>
+          <div className="mt-1 grid grid-cols-1 gap-x-4 gap-y-0.5 md:grid-cols-3">
+            {VARIAVEIS.map((x) => (
+              <button key={x.v} onClick={() => inserirVar(x.v)} className="text-left hover:underline"><span className="text-marca-600">[{x.v}]</span> <span className="text-slate-500">= {x.d}</span></button>
+            ))}
+          </div>
+        </div>
+
+        {/* titulo / envio / destinatario */}
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[2fr_1fr_1fr]">
+          <div>
+            <label className={LBL}>Titulo do e-mail (pode utilizar variaveis)</label>
+            <input className={INP} placeholder="Titulo do e-mail - tambem pode utilizar variaveis" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+          </div>
+          <div>
+            <label className={LBL}>Envio do follow-up ocorrera:</label>
+            <select className={INP} value={envio} onChange={(e) => setEnvio(e.target.value)}>
+              <option value="MANUAL">Manualmente</option>
+              <option value="AO_ATINGIR">Automaticamente ao atingir este passo</option>
+            </select>
+          </div>
+          <div>
+            <label className={LBL}>Destinatario do e-mail:</label>
+            <select className={INP} value={destinatario} onChange={(e) => setDestinatario(e.target.value)}>
+              <option value="TODOS_CONTATOS">Todos os contatos da empresa</option>
+              <option value="CONTATO_PRINCIPAL">Contato principal</option>
+              <option value="GESTOR">Gestor do processo</option>
+            </select>
+          </div>
+        </div>
+
+        {/* editor */}
+        <div className="mt-3 overflow-hidden rounded border border-slate-300">
+          <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-500">
+            {TOOLBAR.map((t, k) => <span key={k} className="grid h-6 min-w-[22px] place-items-center rounded px-1 hover:bg-slate-200">{t}</span>)}
+          </div>
+          <textarea ref={bodyRef} className="h-64 w-full resize-y p-3 text-[13px] text-slate-700 outline-none" placeholder="Escreva algo..." value={corpo} onChange={(e) => setCorpo(e.target.value)} />
+          <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-400">
+            <span>Palavras: {corpo.trim() ? corpo.trim().split(/\s+/).length : 0}</span><span>Caracteres: {corpo.length}</span>
+          </div>
+        </div>
+
+        <label className="mt-3 flex items-center gap-2 text-[12px] text-slate-600">
+          <input type="checkbox" checked={propagar} onChange={(e) => setPropagar(e.target.checked)} className="accent-marca-600" />
+          Inserir esse novo follow-up nos processos (nao-concluidos) que ja estao usando essa matriz
+        </label>
+
+        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-[1.4fr_auto_auto_auto] md:items-center">
+          <select className={INP} value={inserirApos} onChange={(e) => setInserirApos(Number(e.target.value))}>
+            <option value={-1}>Inserir apos: Inicio</option>
+            {itens.map((it, idx) => {
+              const lbl = (it.tipo ?? 'PASSO_SIMPLES') === 'SUB_MATRIZ'
+                ? `Sub-Proc: ${matrizesDisp.find((m) => m.id === it.subMatrizId)?.nome ?? '...'}`
+                : (it.titulo || '(sem nome)');
+              return <option key={idx} value={idx}>Inserir apos: '{lbl}'</option>;
+            })}
+            <option value={-2}>Inserir apos: Fim</option>
+          </select>
+          <button onClick={salvar} className="flex items-center justify-center gap-2 rounded bg-status-ok px-5 py-2 text-[13px] font-medium text-white hover:bg-emerald-600"><Save size={15} /> Salvar</button>
+          <button onClick={() => toast('erro', 'Enviar modelo: em construcao')} className="flex items-center justify-center gap-2 rounded bg-sky-400 px-5 py-2 text-[13px] font-medium text-white hover:bg-sky-500"><Mail size={15} /> Enviar modelo</button>
+          <button onClick={onClose} className="flex items-center justify-center gap-2 rounded bg-status-danger px-5 py-2 text-[13px] font-medium text-white hover:bg-red-600"><X size={15} /> Cancelar</button>
+        </div>
+      </div>
     </div>
   );
 }
