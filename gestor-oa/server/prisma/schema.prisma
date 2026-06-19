@@ -56,6 +56,7 @@ model Escritorio {
   dashboards          DashboardConfig[]
   notificacoes        Notificacao[]
   jobExecucoes        JobExecucao[]
+  motivosCancelamento MotivoCancelamento[]
 
   @@index([deletedAt])
 }
@@ -290,6 +291,8 @@ model Empresa {
   endereco           String?
   regimeTributarioId String?
   regimeTributario   RegimeTributario? @relation(fields: [regimeTributarioId], references: [id])
+  motivoCancelamentoId String?
+  motivoCancelamento MotivoCancelamento? @relation(fields: [motivoCancelamentoId], references: [id])
   anotacoes          String?
   ativo              Boolean  @default(true)
   dataEntrada        DateTime?
@@ -326,6 +329,21 @@ model EmpresaTag {
 
   @@id([empresaId, tagId])
   @@index([tagId])
+}
+
+model MotivoCancelamento {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  empresas      Empresa[]
+
+  @@unique([escritorioId, nome])
+  @@index([escritorioId])
 }
 
 model EmpresaIdentificador {

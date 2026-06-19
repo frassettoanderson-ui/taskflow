@@ -51,8 +51,16 @@ export interface EmpresaLista {
   cidade: string | null;
   regimeTributarioId: string | null;
   regimeNome: string | null;
+  motivoNome: string | null;
   tags: { id: string; nome: string; cor: string }[];
   qtdContatos: number;
+}
+
+export interface MotivoCancelamento {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  empresasCount: number;
 }
 
 export interface Identificador {

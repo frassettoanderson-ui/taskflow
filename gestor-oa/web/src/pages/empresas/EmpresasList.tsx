@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, Search, SlidersHorizontal, Mail, Download, XCircle, Network, Tags as TagsIcon, Printer, Calendar, Plus, MessageCircle, CheckCircle2, Users, ArrowUpDown, RotateCcw } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
@@ -28,6 +28,8 @@ export default function EmpresasList() {
   const podeEditar = temPermissao(sessao, 'empresas_editar');
   const podeCriar = temPermissao(sessao, 'empresas_criar');
   const podeImportar = temPermissao(sessao, 'empresas_importar');
+  const [searchParams] = useSearchParams();
+  const motivoUrl = searchParams.get('motivo') ?? '';
 
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<'ativos' | 'inativos' | 'todos'>('ativos');
@@ -69,6 +71,7 @@ export default function EmpresasList() {
       if (busca.trim()) qs.set('busca', busca.trim());
       if (tagId) qs.set('tagId', tagId);
       if (departamentoId) qs.set('departamentoId', departamentoId);
+      if (motivoUrl) { qs.set('motivoId', motivoUrl); qs.set('status', 'todos'); }
       api
         .get<Pagina>(`/empresas?${qs.toString()}`)
         .then(setPagina)
@@ -76,10 +79,10 @@ export default function EmpresasList() {
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [busca, status, tagId, departamentoId, page, toast]);
+  }, [busca, status, tagId, departamentoId, motivoUrl, page, toast]);
 
   // Reseta pagina ao mudar filtros
-  useEffect(() => setPage(1), [busca, status, tagId, departamentoId]);
+  useEffect(() => setPage(1), [busca, status, tagId, departamentoId, motivoUrl]);
 
   const items = pagina?.items ?? [];
   const itensOrdenados = useMemo(() => {
@@ -126,7 +129,7 @@ export default function EmpresasList() {
         <div className="flex items-center gap-1">
           <button title="Exporta e-mails em bloco" onClick={() => setExportMode(true)} className={`${ICONE} bg-status-ok/15 text-status-ok`}><Mail size={18} /></button>
           {podeImportar && <button title="Importar cadastros" onClick={() => navigate('/empresas/importar')} className={`${ICONE} bg-marca-100 text-marca-600`}><Download size={18} /></button>}
-          <button title="Motivos de cancelamento" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-red-100 text-red-500`}><XCircle size={18} /></button>
+          <button title="Motivos de cancelamento" onClick={() => navigate('/empresas/motivos')} className={`${ICONE} bg-red-100 text-red-500`}><XCircle size={18} /></button>
           <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => abrirMassa('alterar_responsavel')} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
           <button title="Incluir tag's em massa nas empresas listadas" onClick={() => abrirMassa('aplicar_tags')} className={`${ICONE} bg-status-ok/15 text-status-ok`}><TagsIcon size={18} /></button>
           <button title="Relacao de empresas" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-purple-100 text-purple-500`}><Printer size={18} /></button>
@@ -216,6 +219,8 @@ export default function EmpresasList() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="text-slate-600">{e.regimeNome ?? '—'}</div>
+                    {!e.ativo && <div className="text-[11px] text-status-warn">(Empresa inativa)</div>}
+                    {e.motivoNome && <div className="text-[11px] text-status-warn">{e.motivoNome}</div>}
                     <div className="mt-0.5 flex flex-wrap gap-1">{e.tags.map((t) => <Badge key={t.id} cor={t.cor}>{t.nome}</Badge>)}</div>
                   </td>
                   <td className="px-4 py-2" onClick={(ev) => ev.stopPropagation()}>

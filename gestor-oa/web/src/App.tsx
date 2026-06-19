@@ -16,6 +16,8 @@ import Perfil from './pages/Perfil';
 import EmConstrucao from './pages/EmConstrucao';
 import Auditoria from './pages/Auditoria';
 import EmpresasList from './pages/empresas/EmpresasList';
+import MotivosCancelamento from './pages/empresas/MotivosCancelamento';
+import MotivoForm from './pages/empresas/MotivoForm';
 import EmpresaForm from './pages/empresas/EmpresaForm';
 import EmpresaFicha from './pages/empresas/EmpresaFicha';
 import ImportarCsv from './pages/empresas/ImportarCsv';
@@ -93,6 +95,9 @@ export default function App() {
         <Route path="empresas" element={<EmpresasList />} />
         <Route path="empresas/nova" element={<EmpresaForm />} />
         <Route path="empresas/importar" element={<ImportarCsv />} />
+        <Route path="empresas/motivos" element={<MotivosCancelamento />} />
+        <Route path="empresas/motivos/novo" element={<MotivoForm />} />
+        <Route path="empresas/motivos/:id" element={<MotivoForm />} />
         <Route path="empresas/:id" element={<EmpresaFicha />} />
         <Route path="obrigacoes" element={<Catalogo />} />
         <Route path="obrigacoes/nova" element={<ObrigacaoForm />} />

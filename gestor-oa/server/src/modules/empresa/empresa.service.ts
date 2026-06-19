@@ -32,6 +32,7 @@ export interface ListarParams {
   tagId?: string;
   regimeId?: string;
   departamentoId?: string;
+  motivoId?: string;
   status?: 'ativos' | 'inativos' | 'todos';
 }
 
@@ -53,6 +54,7 @@ export async function listar(
 
   if (params.tagId) and.push({ tags: { some: { tagId: params.tagId } } });
   if (params.regimeId) and.push({ regimeTributarioId: params.regimeId });
+  if (params.motivoId) and.push({ motivoCancelamentoId: params.motivoId });
   if (params.departamentoId)
     and.push({
       responsaveis: { some: { departamentoId: params.departamentoId } },
@@ -85,6 +87,7 @@ export async function listar(
         identificadores: { where: { tipo: 'CNPJ' }, take: 1 },
         tags: { include: { tag: true } },
         regimeTributario: { select: { nome: true } },
+        motivoCancelamento: { select: { nome: true } },
         _count: { select: { contatos: true } },
       },
     }),
@@ -102,6 +105,7 @@ export async function listar(
       cidade: e.endereco ?? null,
       regimeTributarioId: e.regimeTributarioId,
       regimeNome: e.regimeTributario?.nome ?? null,
+      motivoNome: e.motivoCancelamento?.nome ?? null,
       tags: e.tags.map((t) => ({ id: t.tag.id, nome: t.tag.nome, cor: t.tag.cor })),
       qtdContatos: e._count.contatos,
     })),
