@@ -39,16 +39,18 @@ export default function Catalogo() {
   const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroDep, setFiltroDep] = useState('');
   const [busca, setBusca] = useState('');
-  const [status, setStatus] = useState<'ativas' | 'inativas' | 'todas'>('ativas');
+  const [ocultarAtivas, setOcultarAtivas] = useState(false);
+  const [exibirInativas, setExibirInativas] = useState(false);
+  const [deps, setDeps] = useState<string[]>([]);
+  const [filtrosAberto, setFiltrosAberto] = useState(false);
   const [imprimirAberto, setImprimirAberto] = useState(false);
   const imprimirRef = useRef<HTMLDivElement>(null);
+  const filtrosRef = useRef<HTMLDivElement>(null);
 
   function carregar() {
     setLoading(true);
     const qs = new URLSearchParams();
-    if (filtroDep) qs.set('departamentoId', filtroDep);
     if (busca.trim()) qs.set('busca', busca.trim());
     api.get<Obrigacao[]>(`/obrigacoes?${qs}`).then(setObrigacoes).finally(() => setLoading(false));
   }
@@ -59,12 +61,18 @@ export default function Catalogo() {
     const t = setTimeout(carregar, 250);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtroDep, busca]);
+  }, [busca]);
   useEffect(() => {
-    function fora(e: MouseEvent) { if (imprimirRef.current && !imprimirRef.current.contains(e.target as Node)) setImprimirAberto(false); }
+    function fora(e: MouseEvent) {
+      const alvo = e.target as Node;
+      if (imprimirRef.current && !imprimirRef.current.contains(alvo)) setImprimirAberto(false);
+      if (filtrosRef.current && !filtrosRef.current.contains(alvo)) setFiltrosAberto(false);
+    }
     document.addEventListener('mousedown', fora);
     return () => document.removeEventListener('mousedown', fora);
   }, []);
+
+  function toggleDep(id: string) { setDeps((d) => d.includes(id) ? d.filter((x) => x !== id) : [...d, id]); }
 
   async function exportarExcel() {
     setImprimirAberto(false);
@@ -77,9 +85,11 @@ export default function Catalogo() {
     URL.revokeObjectURL(url);
   }
 
-  const lista = obrigacoes.filter((o) =>
-    status === 'todas' ? true : status === 'ativas' ? o.ativo : !o.ativo,
-  );
+  const lista = obrigacoes.filter((o) => {
+    const statusOk = (o.ativo && !ocultarAtivas) || (!o.ativo && exibirInativas);
+    const depOk = deps.length === 0 || (o.departamentoId != null && deps.includes(o.departamentoId));
+    return statusOk && depOk;
+  });
 
   const porPagina = 10;
   const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
@@ -130,18 +140,25 @@ export default function Catalogo() {
         )}
       </div>
 
-      {/* Linha de Filtros */}
-      <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-slate-200 bg-white px-3 py-1.5">
-        <span className="text-[12px] text-slate-400">Filtros...</span>
-        <select className="rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-          <option value="ativas">Apenas ativas</option>
-          <option value="inativas">Exibir inativas</option>
-          <option value="todas">Todas</option>
-        </select>
-        <select className="rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={filtroDep} onChange={(e) => setFiltroDep(e.target.value)}>
-          <option value="">Todos os departamentos</option>
-          {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-        </select>
+      {/* Linha de Filtros (chips) */}
+      <div className="relative mt-2" ref={filtrosRef}>
+        <div className="flex min-h-[38px] flex-wrap items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1.5" onClick={() => setFiltrosAberto((v) => !v)}>
+          {ocultarAtivas && <Chip onRemove={() => setOcultarAtivas(false)}>Ocultar Ativas</Chip>}
+          {exibirInativas && <Chip onRemove={() => setExibirInativas(false)}>Exibir Inativas</Chip>}
+          {deps.map((id) => <Chip key={id} onRemove={() => toggleDep(id)}>Dpto: {departamentos.find((d) => d.id === id)?.nome ?? id}</Chip>)}
+          {!ocultarAtivas && !exibirInativas && deps.length === 0 && <span className="px-1 text-[12px] text-slate-400">Filtros...</span>}
+        </div>
+        {filtrosAberto && (
+          <div className="absolute left-0 top-full z-40 mt-1 max-h-72 w-full overflow-y-auto rounded border border-slate-200 bg-white shadow-lg">
+            <div className="bg-slate-50 px-3 py-1.5 text-[12px] font-semibold text-slate-600">Filtrar por Status</div>
+            <OpcaoFiltro ativo={ocultarAtivas} onClick={() => setOcultarAtivas((v) => !v)}>Ocultar Ativas</OpcaoFiltro>
+            <OpcaoFiltro ativo={exibirInativas} onClick={() => setExibirInativas((v) => !v)}>Exibir Inativas</OpcaoFiltro>
+            <div className="bg-slate-50 px-3 py-1.5 text-[12px] font-semibold text-slate-600">Filtrar por departamentos</div>
+            {departamentos.map((d) => (
+              <OpcaoFiltro key={d.id} ativo={deps.includes(d.id)} onClick={() => toggleDep(d.id)}>Dpto: {d.nome}</OpcaoFiltro>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="card mt-3 overflow-x-auto">
@@ -199,5 +216,19 @@ export default function Catalogo() {
         )}
       </div>
     </div>
+  );
+}
+
+function Chip({ children, onRemove }: { children: React.ReactNode; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[12px] text-slate-600">
+      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} className="text-slate-400 hover:text-red-500">×</button>{children}
+    </span>
+  );
+}
+
+function OpcaoFiltro({ ativo, onClick, children }: { ativo: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={(e) => { e.stopPropagation(); onClick(); }} className={`block w-full px-3 py-1.5 text-left text-[13px] ${ativo ? 'bg-marca-500 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{children}</button>
   );
 }
