@@ -531,7 +531,7 @@ export const STATUS_PROCESSO_INFO: Record<StatusProcesso, { label: string; cor: 
 
 export type TipoPassoMatriz = 'PASSO_SIMPLES' | 'SUB_MATRIZ' | 'DESDOBRAMENTO' | 'FOLLOW_UP';
 export interface DesdobramentoOpcao { label: string; acao: 'CONCLUI' | 'SUBMATRIZ'; alvoMatrizId?: string | null }
-export interface MatrizPassoConfig { dica?: string; desdobramentos?: DesdobramentoOpcao[]; followup?: { dias?: number; mensagem?: string } }
+export interface MatrizPassoConfig { dica?: string; tarefas?: string; obrigacoes?: string; desdobramentos?: DesdobramentoOpcao[]; followup?: { dias?: number; mensagem?: string } }
 
 export interface MatrizPasso {
   id?: string;

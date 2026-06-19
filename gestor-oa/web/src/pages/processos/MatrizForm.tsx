@@ -41,7 +41,7 @@ export default function MatrizForm() {
   const [barraVermelhaDias, setBarraVermelhaDias] = useState(45);
   const [itens, setItens] = useState<MatrizPasso[]>([]);
   const [usadaPor, setUsadaPor] = useState<{ id: string; nome: string }[]>([]);
-  const [editSub, setEditSub] = useState<number | null>(null);
+  const [editando, setEditando] = useState<number | null>(null);
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
@@ -60,10 +60,13 @@ export default function MatrizForm() {
   }, [id, novo]);
 
   function addItem(tipo: TipoPassoMatriz) {
-    setItens((arr) => [...arr, {
-      ordem: arr.length + 1, tipo, titulo: '', prazoDias: 0, basePrazo: 'INICIO', bloqueante: false,
-      acaoAutomatica: 'NENHUMA', config: tipo === 'DESDOBRAMENTO' ? { desdobramentos: [] } : {},
-    }]);
+    setItens((arr) => {
+      setEditando(arr.length); // abre edicao do novo item
+      return [...arr, {
+        ordem: arr.length + 1, tipo, titulo: '', prazoDias: 0, basePrazo: 'INICIO', bloqueante: false,
+        acaoAutomatica: 'NENHUMA', config: tipo === 'DESDOBRAMENTO' ? { desdobramentos: [] } : {},
+      }];
+    });
   }
   function setItem(i: number, patch: Partial<MatrizPasso>) { setItens((arr) => arr.map((p, j) => (j === i ? { ...p, ...patch } : p))); }
   function remover(i: number) { setItens((arr) => arr.filter((_, j) => j !== i).map((p, idx) => ({ ...p, ordem: idx + 1 }))); }
@@ -163,81 +166,103 @@ export default function MatrizForm() {
             </div>
           </div>
 
-          {/* itens */}
-          <div className="space-y-px">
+          {/* itens (lista de exibicao + painel de edicao ao clicar) */}
+          <div>
             {itens.map((p, i) => {
               const tipo = p.tipo ?? 'PASSO_SIMPLES';
               const info = TIPO_INFO[tipo];
               const Icone = info.icon;
               const sub = p.subMatrizId ? matrizesDisp.find((m) => m.id === p.subMatrizId) : null;
+              const nomeExib = tipo === 'SUB_MATRIZ' ? (sub?.nome ?? 'Sub-matriz nao definida') : (p.titulo || 'Sem descricao');
+              const editavel = editando === i;
               return (
-                <div key={i} className="grid grid-cols-[130px_1.3fr_1.6fr_90px] items-start gap-3 bg-white px-2 py-2.5 odd:bg-slate-50/60">
-                  {/* col 1 - tipo */}
-                  <div className={`flex items-center gap-1.5 text-[12px] ${info.cor}`}><Icone size={15} /> {info.label}</div>
+                <div key={i} className="border-b border-slate-100">
+                  {/* linha de exibicao */}
+                  <div className="grid grid-cols-[130px_1.3fr_1.6fr_90px] items-start gap-3 bg-white px-2 py-2.5 odd:bg-slate-50/60">
+                    {/* col 1 - tipo */}
+                    <div className={`flex items-center gap-1.5 text-[12px] ${info.cor}`}><Icone size={15} /> {info.label}</div>
 
-                  {/* col 2 - descricao */}
-                  <div>
-                    {tipo === 'SUB_MATRIZ' ? (
-                      <>
-                        <div className="flex items-center gap-1.5">
-                          <button title="Alterar sub-matriz desse passo" onClick={() => setEditSub(editSub === i ? null : i)} className="flex-shrink-0 text-emerald-500 hover:text-emerald-700"><SquarePen size={14} /></button>
-                          {sub ? (
-                            <button onClick={() => navigate(`/processos/matrizes/${sub.id}`)} className="text-marca-600 hover:underline">{sub.nome}</button>
-                          ) : (
-                            <span className="italic text-slate-400">Sub-matriz nao definida</span>
-                          )}
+                    {/* col 2 - descricao (link) + tarefas/obrigacoes */}
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <button title="Editar este passo" onClick={() => setEditando(editavel ? null : i)} className="flex-shrink-0 text-emerald-500 hover:text-emerald-700"><SquarePen size={14} /></button>
+                        {tipo === 'SUB_MATRIZ' && sub ? (
+                          <button onClick={() => navigate(`/processos/matrizes/${sub.id}`)} className="text-left text-marca-600 hover:underline">{nomeExib}</button>
+                        ) : (
+                          <button onClick={() => setEditando(editavel ? null : i)} className={`text-left hover:underline ${p.titulo ? 'text-marca-600' : 'italic text-slate-400'}`}>{nomeExib}</button>
+                        )}
+                      </div>
+                      {tipo === 'SUB_MATRIZ' && <div className="mt-0.5 pl-5 text-[11px] text-purple-500">Tarefas apos: inicio/autorizacao do processo</div>}
+                      {p.config?.tarefas && <div className="pl-5 text-[11px] text-marca-500">Tarefas: {p.config.tarefas}</div>}
+                      {p.config?.obrigacoes && <div className="pl-5 text-[11px] text-amber-600">Obrigacoes: {p.config.obrigacoes}</div>}
+                    </div>
+
+                    {/* col 3 - dicas / sub-passos / desdobramentos (exibicao) */}
+                    <div className="text-[12px] text-slate-600">
+                      {(tipo === 'PASSO_SIMPLES' || tipo === 'FOLLOW_UP') && (p.descricao || <span className="text-slate-300">-</span>)}
+                      {tipo === 'SUB_MATRIZ' && (sub ? (
+                        <div>
+                          <div className="font-semibold text-marca-600">Sub-Passos:</div>
+                          <ul className="ml-3 list-disc">{sub.passos.map((sp, k) => <li key={k}>{sp.titulo}</li>)}</ul>
                         </div>
-                        {(editSub === i || !sub) && (
-                          <select className="mt-1 w-full rounded border border-slate-200 px-1.5 py-1 text-[12px] text-slate-600 outline-none focus:border-marca-400" value={p.subMatrizId ?? ''} onChange={(e) => { setItem(i, { subMatrizId: e.target.value || null }); setEditSub(null); }}>
+                      ) : <span className="text-slate-300">-</span>)}
+                      {tipo === 'DESDOBRAMENTO' && ((p.config?.desdobramentos?.length ?? 0) > 0 ? (
+                        <div>
+                          <div className="font-semibold text-amber-600">Desdobramentos:</div>
+                          <ul className="ml-3 list-disc">
+                            {p.config!.desdobramentos!.map((o, k) => (
+                              <li key={k}>{o.label || '?'} <span className="text-slate-400">&raquo;</span> {o.acao === 'CONCLUI' ? 'Conclui o passo' : (matrizesDisp.find((m) => m.id === o.alvoMatrizId)?.nome ?? 'sub-matriz')}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : <span className="text-slate-300">-</span>)}
+                    </div>
+
+                    {/* col 4 - acoes */}
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => mover(i, -1)} title="Subir na ordenacao" className="text-emerald-500 hover:text-emerald-700"><ArrowUp size={15} /></button>
+                      <button onClick={() => mover(i, 1)} title="Descer na ordenacao" className="text-amber-500 hover:text-amber-700"><ArrowDown size={15} /></button>
+                      <button onClick={() => remover(i)} title="Remover do processo" className="text-status-danger hover:opacity-70"><Trash2 size={15} /></button>
+                    </div>
+                  </div>
+
+                  {/* painel de edicao */}
+                  {editavel && (
+                    <div className="space-y-2 border-t border-marca-100 bg-marca-50/40 px-3 py-3">
+                      {tipo === 'SUB_MATRIZ' ? (
+                        <div>
+                          <label className="mb-1 block text-[12px] font-semibold text-slate-600">Sub-matriz desse passo</label>
+                          <select className={`${INP} max-w-md`} value={p.subMatrizId ?? ''} onChange={(e) => setItem(i, { subMatrizId: e.target.value || null })}>
                             <option value="">Selecione a sub-matriz...</option>
                             {matrizesDisp.filter((m) => m.id !== id && m.soSubmatriz).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
                           </select>
-                        )}
-                        <div className="mt-1 pl-5 text-[11px] text-purple-500">Tarefas apos: inicio/autorizacao do processo</div>
-                      </>
-                    ) : (
-                      <div className="flex items-center gap-1.5">
-                        <SquarePen size={14} className="flex-shrink-0 text-emerald-500" />
-                        <input className="w-full rounded border border-slate-200 px-1.5 py-1 text-[13px] text-marca-700 outline-none focus:border-marca-400" placeholder="Descricao" value={p.titulo} onChange={(e) => setItem(i, { titulo: e.target.value })} />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* col 3 - dicas / sub-passos / desdobramentos */}
-                  <div className="text-[12px]">
-                    {tipo === 'PASSO_SIMPLES' && (
-                      <input className="w-full rounded border border-slate-200 px-1.5 py-1 text-slate-600 outline-none focus:border-marca-400" placeholder="Dica (opcional)" value={p.descricao ?? ''} onChange={(e) => setItem(i, { descricao: e.target.value })} />
-                    )}
-                    {tipo === 'FOLLOW_UP' && (
-                      <input className="w-full rounded border border-slate-200 px-1.5 py-1 text-slate-600 outline-none focus:border-marca-400" placeholder="Mensagem / observacao do follow-up" value={p.descricao ?? ''} onChange={(e) => setItem(i, { descricao: e.target.value })} />
-                    )}
-                    {tipo === 'SUB_MATRIZ' && (
-                      sub ? (
-                        <div>
-                          <div className="font-semibold text-marca-600">Sub-Passos:</div>
-                          <ul className="ml-3 list-disc text-slate-600">{sub.passos.map((sp, k) => <li key={k}>{sp.titulo}</li>)}</ul>
                         </div>
-                      ) : <span className="text-slate-300">-</span>
-                    )}
-                    {tipo === 'DESDOBRAMENTO' && (
-                      <DesdobramentoEditor
-                        opcoes={p.config?.desdobramentos ?? []}
-                        matrizes={matrizesDisp.filter((m) => m.id !== id)}
-                        onChange={(ops) => setDesdob(i, ops)}
-                      />
-                    )}
-                  </div>
-
-                  {/* col 4 - acoes */}
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button onClick={() => mover(i, -1)} title="Subir na ordenacao" className="text-emerald-500 hover:text-emerald-700"><ArrowUp size={15} /></button>
-                    <button onClick={() => mover(i, 1)} title="Descer na ordenacao" className="text-amber-500 hover:text-amber-700"><ArrowDown size={15} /></button>
-                    <button onClick={() => remover(i)} title="Remover do processo" className="text-status-danger hover:opacity-70"><Trash2 size={15} /></button>
-                  </div>
+                      ) : (
+                        <>
+                          <div>
+                            <label className="mb-1 block text-[12px] font-semibold text-slate-600">Descricao</label>
+                            <input className={`${INP} max-w-2xl`} placeholder="Descricao do passo" value={p.titulo} onChange={(e) => setItem(i, { titulo: e.target.value })} />
+                          </div>
+                          {tipo === 'DESDOBRAMENTO' ? (
+                            <div>
+                              <label className="mb-1 block text-[12px] font-semibold text-slate-600">Desdobramentos</label>
+                              <DesdobramentoEditor opcoes={p.config?.desdobramentos ?? []} matrizes={matrizesDisp.filter((m) => m.id !== id)} onChange={(ops) => setDesdob(i, ops)} />
+                            </div>
+                          ) : (
+                            <div>
+                              <label className="mb-1 block text-[12px] font-semibold text-slate-600">{tipo === 'FOLLOW_UP' ? 'Mensagem do follow-up' : 'Dica (opcional)'}</label>
+                              <input className={`${INP} max-w-2xl`} placeholder={tipo === 'FOLLOW_UP' ? 'Mensagem / observacao' : 'Dica'} value={p.descricao ?? ''} onChange={(e) => setItem(i, { descricao: e.target.value })} />
+                            </div>
+                          )}
+                        </>
+                      )}
+                      <button onClick={() => setEditando(null)} className="rounded bg-marca-500 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-marca-600">Concluir edicao</button>
+                    </div>
+                  )}
                 </div>
               );
             })}
-            {itens.length === 0 && <div className="bg-white px-3 py-10 text-center text-slate-400">Use os botoes acima para adicionar passos, sub-matrizes e desdobramentos.</div>}
+            {itens.length === 0 && <div className="border-b border-slate-100 bg-white px-3 py-10 text-center text-slate-400">Use os botoes acima para adicionar passos, sub-matrizes e desdobramentos.</div>}
           </div>
 
           <button onClick={salvar} disabled={salvando} className="mt-3 flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-[13px] font-medium text-white hover:bg-emerald-600 disabled:opacity-50"><Save size={15} /> Salvar matriz</button>
