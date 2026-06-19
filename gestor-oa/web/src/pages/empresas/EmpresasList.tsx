@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Heart, Search, SlidersHorizontal, Mail, Download, XCircle, Network, Tags as TagsIcon, Printer, Calendar, Plus, MessageCircle, CheckCircle2, Users, ArrowUpDown } from 'lucide-react';
+import { Heart, Search, SlidersHorizontal, Mail, Download, XCircle, Network, Tags as TagsIcon, Printer, Calendar, Plus, MessageCircle, CheckCircle2, Users, ArrowUpDown, RotateCcw } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Badge, Modal, Spinner, useToast } from '../../components/ui';
@@ -44,6 +44,11 @@ export default function EmpresasList() {
   const [ordenar, setOrdenar] = useState<'razao' | 'fantasia'>('razao');
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');
   const [massa, setMassa] = useState<{ ids: string[]; acao: AcaoMassa } | null>(null);
+  // modo "Exportar e-mails em bloco"
+  const [exportMode, setExportMode] = useState(false);
+  const [expDepto, setExpDepto] = useState('');
+  const [expBloco, setExpBloco] = useState('50');
+  const [expTipo, setExpTipo] = useState<'nomes' | 'enderecos'>('nomes');
 
   // Carrega filtros auxiliares uma vez
   useEffect(() => {
@@ -119,7 +124,7 @@ export default function EmpresasList() {
         <button onClick={() => setMostrarFiltros((v) => !v)} className="flex items-center gap-2 rounded bg-purple-300 px-4 py-2 text-sm font-medium text-white hover:bg-purple-400"><SlidersHorizontal size={15} /> +Filtros</button>
 
         <div className="flex items-center gap-1">
-          <button title="Exporta e-mails em bloco" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-status-ok/15 text-status-ok`}><Mail size={18} /></button>
+          <button title="Exporta e-mails em bloco" onClick={() => setExportMode(true)} className={`${ICONE} bg-status-ok/15 text-status-ok`}><Mail size={18} /></button>
           {podeImportar && <button title="Importar cadastros" onClick={() => navigate('/empresas/importar')} className={`${ICONE} bg-marca-100 text-marca-600`}><Download size={18} /></button>}
           <button title="Motivos de cancelamento" onClick={() => toast('ok', 'Em construcao')} className={`${ICONE} bg-red-100 text-red-500`}><XCircle size={18} /></button>
           <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => abrirMassa('alterar_responsavel')} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
@@ -132,8 +137,27 @@ export default function EmpresasList() {
         {podeCriar && <button onClick={() => navigate('/empresas/nova')} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Nova empresa</button>}
       </div>
 
+      {/* Barra: Exportar e-mails em bloco */}
+      {exportMode && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <select className="min-w-[220px] flex-1 rounded border border-marca-300 bg-white px-2 py-2 text-[13px]" value={expDepto} onChange={(e) => setExpDepto(e.target.value)}>
+            <option value="">Dptos (todos)</option>
+            {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+          </select>
+          <select className="rounded border border-slate-300 bg-white px-2 py-2 text-[13px]" value={expBloco} onChange={(e) => setExpBloco(e.target.value)}>
+            {['5', '15', '30', '50', '100', '300', '500'].map((n) => <option key={n} value={n}>Blocos de {n} em {n} enderecos</option>)}
+          </select>
+          <select className="rounded border border-slate-300 bg-white px-2 py-2 text-[13px]" value={expTipo} onChange={(e) => setExpTipo(e.target.value as typeof expTipo)}>
+            <option value="nomes">Exportar enderecos e nomes</option>
+            <option value="enderecos">Exportar somente enderecos</option>
+          </select>
+          <button onClick={() => toast('ok', 'Em construcao: exportacao de e-mails em bloco.')} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Mail size={16} /> Exportar e-mail's</button>
+          <button onClick={() => setExportMode(false)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Voltar</button>
+        </div>
+      )}
+
       {/* Painel +Filtros */}
-      {mostrarFiltros && (
+      {!exportMode && mostrarFiltros && (
         <div className="mt-2 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-white p-3">
           <div>
             <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Status</label>
@@ -157,6 +181,7 @@ export default function EmpresasList() {
       )}
 
       {/* Tabela */}
+      {!exportMode && (
       <div className="mt-3 overflow-hidden rounded border border-slate-200 bg-white">
         {loading && !pagina ? <Spinner /> : (
           <table className="w-full">
@@ -210,9 +235,10 @@ export default function EmpresasList() {
           </table>
         )}
       </div>
+      )}
 
       {/* Paginacao */}
-      {pagina && pagina.totalPages > 1 && (
+      {!exportMode && pagina && pagina.totalPages > 1 && (
         <div className="mt-3 flex items-center justify-center gap-3 text-[13px]">
           <button className="btn-ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Anterior</button>
           <span className="text-slate-500">Pagina {pagina.page} de {pagina.totalPages} ({pagina.total} empresas)</span>
