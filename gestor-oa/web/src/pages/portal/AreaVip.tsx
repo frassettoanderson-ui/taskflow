@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Save, Settings, Copy, Plus, Trash2, ChevronDown, ChevronRight, Smartphone } from 'lucide-react';
+import { Save, Settings, Copy, Plus, Trash2, ChevronDown, ChevronRight, Smartphone, Eye, Pencil, History, Link2, Film, MessageCircle, Globe, FileText, Phone, Mail, Calendar } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { useToast } from '../../components/ui';
@@ -15,8 +15,32 @@ const OPC_INATIVAS = ['Acesso completo', 'Acesso bloqueado', 'Acesso somente con
 const OPC_ORDENAR = ['Data da publicacao', 'Data de vencimento'];
 const OPC_CONTATO = ['Desligado', 'Ligado'];
 
-interface LinkHome { label: string; url: string }
+interface LinkHome { icone: string; titulo: string; url: string; empresas: string }
 interface Termo { titulo: string; url: string }
+
+const ICON_OPTS = [
+  { key: 'link', label: 'Link' },
+  { key: 'video', label: 'Video' },
+  { key: 'whatsapp', label: 'WhatsApp' },
+  { key: 'site', label: 'Site' },
+  { key: 'documento', label: 'Documento' },
+  { key: 'telefone', label: 'Telefone' },
+  { key: 'email', label: 'E-mail' },
+  { key: 'calendario', label: 'Calendario' },
+];
+function LinkIcon({ k, size = 15 }: { k?: string; size?: number }) {
+  switch (k) {
+    case 'video': return <Film size={size} />;
+    case 'whatsapp': return <MessageCircle size={size} />;
+    case 'site': return <Globe size={size} />;
+    case 'documento': return <FileText size={size} />;
+    case 'telefone': return <Phone size={size} />;
+    case 'email': return <Mail size={size} />;
+    case 'calendario': return <Calendar size={size} />;
+    default: return <Link2 size={size} />;
+  }
+}
+const linkVazio = (): LinkHome => ({ icone: 'link', titulo: '', url: '', empresas: 'Todas' });
 interface AreaVipCfg {
   linkVip?: string; appAndroid?: string; appApple?: string;
   linksHome?: LinkHome[];
@@ -39,6 +63,8 @@ export default function AreaVip() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [showLinksHome, setShowLinksHome] = useState(false);
+  const [novoLink, setNovoLink] = useState<LinkHome>(linkVazio());
+  const [editIdx, setEditIdx] = useState<number | null>(null);
 
   useEffect(() => {
     api.get<{ nome: string; logoUrl: string | null; config: { areaVip?: AreaVipCfg } }>('/escritorio')
@@ -103,15 +129,71 @@ export default function AreaVip() {
           Link's personalizados da Home <span className="font-normal text-marca-500">(clique para {showLinksHome ? 'ocultar' : 'exibir'})</span>
         </button>
         {showLinksHome && (
-          <div className="mt-2 rounded border border-slate-200 bg-white p-3">
-            {links.map((l, i) => (
-              <div key={i} className="mb-2 flex gap-2">
-                <input className={INP} placeholder="Titulo" value={l.label} onChange={(e) => set({ linksHome: links.map((x, j) => j === i ? { ...x, label: e.target.value } : x) })} />
-                <input className={INP} placeholder="https://..." value={l.url} onChange={(e) => set({ linksHome: links.map((x, j) => j === i ? { ...x, url: e.target.value } : x) })} />
-                <button onClick={() => set({ linksHome: links.filter((_, j) => j !== i) })} className="text-red-400 hover:text-red-600"><Trash2 size={15} /></button>
-              </div>
-            ))}
-            <button onClick={() => set({ linksHome: [...links, { label: '', url: '' }] })} className="inline-flex items-center gap-1 text-[12px] text-marca-600 hover:underline"><Plus size={14} /> Adicionar link</button>
+          <div className="mt-2 overflow-x-auto rounded border border-slate-200 bg-white p-3">
+            <table className="w-full min-w-[760px]">
+              <thead>
+                <tr className="text-left text-[12px] font-semibold text-slate-600">
+                  <th className="px-1 pb-1 w-32">Icone</th>
+                  <th className="px-1 pb-1">Titulo</th>
+                  <th className="px-1 pb-1">Link</th>
+                  <th className="px-1 pb-1 w-32">Empresa(s)</th>
+                  <th className="px-1 pb-1 w-44 text-center">Acao</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Linha de adicao */}
+                <tr>
+                  <td className="px-1 py-1">
+                    <select className={INP} value={novoLink.icone} onChange={(e) => setNovoLink((l) => ({ ...l, icone: e.target.value }))}>
+                      {ICON_OPTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-1 py-1"><input className={INP} placeholder="Titulo" value={novoLink.titulo} onChange={(e) => setNovoLink((l) => ({ ...l, titulo: e.target.value }))} /></td>
+                  <td className="px-1 py-1"><input className={INP} placeholder="Link" value={novoLink.url} onChange={(e) => setNovoLink((l) => ({ ...l, url: e.target.value }))} /></td>
+                  <td className="px-1 py-1">
+                    <select className={INP} value={novoLink.empresas} onChange={(e) => setNovoLink((l) => ({ ...l, empresas: e.target.value }))}>
+                      <option value="Todas">Todas</option>
+                      {empresas.map((e) => <option key={e.id} value={e.id}>{e.razaoSocial}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-1 py-1">
+                    <button title="Adicionar link personalizado na Home" disabled={!novoLink.titulo.trim()}
+                      onClick={() => { set({ linksHome: [...links, novoLink] }); setNovoLink(linkVazio()); }}
+                      className="flex w-full items-center justify-center rounded bg-marca-500 py-1.5 text-white hover:bg-marca-600 disabled:opacity-50"><Plus size={16} /></button>
+                  </td>
+                </tr>
+                {/* Linhas existentes */}
+                {links.map((l, i) => {
+                  const editando = editIdx === i;
+                  const upd = (patch: Partial<LinkHome>) => set({ linksHome: links.map((x, j) => j === i ? { ...x, ...patch } : x) });
+                  const empresaNome = l.empresas === 'Todas' || !l.empresas ? 'Todas' : (empresas.find((e) => e.id === l.empresas)?.razaoSocial ?? 'Todas');
+                  return (
+                    <tr key={i} className="border-t border-slate-100">
+                      <td className="px-1 py-1">
+                        {editando ? (
+                          <select className={INP} value={l.icone} onChange={(e) => upd({ icone: e.target.value })}>{ICON_OPTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
+                        ) : <span className="flex items-center justify-center text-marca-600"><LinkIcon k={l.icone} /></span>}
+                      </td>
+                      <td className="px-1 py-1">{editando ? <input className={INP} value={l.titulo} onChange={(e) => upd({ titulo: e.target.value })} /> : <span className="text-slate-600">{l.titulo}</span>}</td>
+                      <td className="px-1 py-1">{editando ? <input className={INP} value={l.url} onChange={(e) => upd({ url: e.target.value })} /> : <span className="truncate text-slate-500">{l.url}</span>}</td>
+                      <td className="px-1 py-1">
+                        {editando ? (
+                          <select className={INP} value={l.empresas} onChange={(e) => upd({ empresas: e.target.value })}><option value="Todas">Todas</option>{empresas.map((e) => <option key={e.id} value={e.id}>{e.razaoSocial}</option>)}</select>
+                        ) : <span className="text-slate-500">{empresaNome}</span>}
+                      </td>
+                      <td className="px-1 py-1">
+                        <div className="flex justify-center gap-1">
+                          <button title="Visualizar link" onClick={() => l.url && window.open(/^https?:\/\//.test(l.url) ? l.url : `https://${l.url}`, '_blank')} className="rounded bg-marca-100 p-1.5 text-marca-600 hover:bg-marca-200"><Eye size={14} /></button>
+                          <button title="Editar link personalizado na Home" onClick={() => setEditIdx(editando ? null : i)} className="rounded bg-amber-100 p-1.5 text-amber-600 hover:bg-amber-200"><Pencil size={14} /></button>
+                          <button title="Log's de alteracao do Link" onClick={() => toast('ok', 'Em construcao: log de alteracoes do link.')} className="rounded bg-slate-200 p-1.5 text-slate-500 hover:bg-slate-300"><History size={14} /></button>
+                          <button title="Deletar link personalizado na Home" onClick={() => { if (confirm('Deletar este link?')) { set({ linksHome: links.filter((_, j) => j !== i) }); setEditIdx(null); } }} className="rounded bg-red-100 p-1.5 text-red-500 hover:bg-red-200"><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
