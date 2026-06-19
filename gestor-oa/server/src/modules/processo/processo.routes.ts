@@ -46,8 +46,13 @@ router.post('/iniciar', operar, validate({ body: z.object({
   return ok(res, p, 201);
 });
 
+router.put('/:id', operar, validate({ body: z.object({ titulo: z.string().optional(), observacoes: z.string().optional(), gestorId: z.string().optional().nullable() }) }), async (req, res) => {
+  return ok(res, await svc.editar(req.auth!.escritorioId, req.params.id, req.body));
+});
+
 router.post('/passos/:passoId/concluir', operar, async (req, res) => ok(res, await svc.concluirPasso(req.auth!.escritorioId, req.params.passoId)));
 router.post('/passos/:passoId/dispensar', operar, async (req, res) => ok(res, await svc.dispensarPasso(req.auth!.escritorioId, req.params.passoId)));
+router.post('/passos/:passoId/reabrir', operar, async (req, res) => ok(res, await svc.reabrirPasso(req.auth!.escritorioId, req.params.passoId)));
 
 router.post('/:id/passos', operar, validate({ body: z.object({ titulo: z.string().min(1), descricao: z.string().optional(), departamentoId: z.string().optional(), bloqueante: z.boolean().optional(), prazoDias: z.number().int().optional() }) }), async (req, res) => {
   return ok(res, await svc.adicionarPasso(req.auth!.escritorioId, req.params.id, req.body));

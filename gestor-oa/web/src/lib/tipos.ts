@@ -587,11 +587,18 @@ export interface ProcessoPasso {
 }
 export interface ProcessoDetalhe {
   id: string;
+  numero: number | null;
   nome: string;
+  titulo: string | null;
+  observacoes: string | null;
   status: StatusProcesso;
   dataInicio: string;
+  previsaoConclusao: string | null;
+  dataConclusao: string | null;
   suspensoAte: string | null;
-  empresa: { id: string; razaoSocial: string };
+  departamentoId: string | null;
+  gestorId: string | null;
+  empresa: { id: string; razaoSocial: string; cnpjFinal?: string | null };
   matriz: { nome: string } | null;
   passos: ProcessoPasso[];
   comentarios: { id: string; texto: string; createdAt: string }[];

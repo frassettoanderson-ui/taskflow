@@ -134,14 +134,15 @@ export async function obter(escritorioId: string, id: string) {
   const p = await prisma.processo.findFirst({
     where: { id, escritorioId },
     include: {
-      empresa: { select: { id: true, razaoSocial: true } },
+      empresa: { select: { id: true, razaoSocial: true, identificadores: { select: { tipo: true, valor: true } } } },
       matriz: { select: { nome: true } },
       passos: { orderBy: { ordem: 'asc' } },
       comentarios: { orderBy: { createdAt: 'desc' } },
     },
   });
   if (!p) throw Errors.naoEncontrado('Processo');
-  return p;
+  const { identificadores, ...empresa } = p.empresa;
+  return { ...p, empresa: { ...empresa, cnpjFinal: cnpjFinal(identificadores) } };
 }
 
 async function getProcessoDoPasso(escritorioId: string, passoId: string) {
@@ -198,7 +199,7 @@ async function executarAcao(escritorioId: string, processoId: string, acao: stri
 async function verificarConclusao(processoId: string) {
   const pendentes = await prisma.processoPasso.count({ where: { processoId, status: 'PENDENTE' } });
   if (pendentes === 0) {
-    await prisma.processo.update({ where: { id: processoId }, data: { status: 'CONCLUIDO' } });
+    await prisma.processo.update({ where: { id: processoId }, data: { status: 'CONCLUIDO', dataConclusao: new Date() } });
   }
 }
 
@@ -207,6 +208,31 @@ export async function dispensarPasso(escritorioId: string, passoId: string) {
   await prisma.processoPasso.update({ where: { id: passoId }, data: { status: 'DISPENSADO', concluidoEm: new Date() } });
   await verificarConclusao(passo.processoId);
   return obter(escritorioId, passo.processoId);
+}
+
+// ---------- Reabrir passo (volta para PENDENTE) ----------
+export async function reabrirPasso(escritorioId: string, passoId: string) {
+  const passo = await getProcessoDoPasso(escritorioId, passoId);
+  await prisma.processoPasso.update({ where: { id: passoId }, data: { status: 'PENDENTE', concluidoEm: null } });
+  // reabre o processo se estava concluido
+  if (passo.processo.status === 'CONCLUIDO') {
+    await prisma.processo.update({ where: { id: passo.processoId }, data: { status: 'EM_ANDAMENTO', dataConclusao: null } });
+  }
+  return obter(escritorioId, passo.processoId);
+}
+
+// ---------- Editar cabecalho (titulo, observacoes, gestor) ----------
+export async function editar(escritorioId: string, id: string, dados: { titulo?: string; observacoes?: string; gestorId?: string | null }) {
+  const p = await prisma.processo.findFirst({ where: { id, escritorioId } });
+  if (!p) throw Errors.naoEncontrado('Processo');
+  return prisma.processo.update({
+    where: { id },
+    data: {
+      titulo: dados.titulo === undefined ? p.titulo : dados.titulo,
+      observacoes: dados.observacoes === undefined ? p.observacoes : (dados.observacoes || null),
+      gestorId: dados.gestorId === undefined ? p.gestorId : (dados.gestorId || null),
+    },
+  });
 }
 
 export async function adicionarPasso(escritorioId: string, processoId: string, dados: { titulo: string; descricao?: string; departamentoId?: string; bloqueante?: boolean; prazoDias?: number }) {
@@ -244,7 +270,8 @@ export async function suspender(escritorioId: string, processoId: string, dias: 
 export async function mudarStatus(escritorioId: string, processoId: string, status: 'EM_ANDAMENTO' | 'CANCELADO' | 'CONCLUIDO') {
   const p = await prisma.processo.findFirst({ where: { id: processoId, escritorioId } });
   if (!p) throw Errors.naoEncontrado('Processo');
-  return prisma.processo.update({ where: { id: processoId }, data: { status, suspensoAte: null } });
+  const dataConclusao = status === 'EM_ANDAMENTO' ? null : (p.dataConclusao ?? new Date());
+  return prisma.processo.update({ where: { id: processoId }, data: { status, suspensoAte: null, dataConclusao } });
 }
 
 export async function excluirMassa(escritorioId: string, ids: string[]) {
