@@ -41,6 +41,7 @@ import Matrizes from './pages/processos/Matrizes';
 import PortalApp from './portal/PortalApp';
 import ComunicadosAdmin from './pages/portal/ComunicadosAdmin';
 import SolicitacoesInbox from './pages/portal/SolicitacoesInbox';
+import AreaVip from './pages/portal/AreaVip';
 import Templates from './pages/comunicacao/Templates';
 import Chatbot from './pages/comunicacao/Chatbot';
 import SolicitacoesInternas from './pages/solicitacoes/SolicitacoesInternas';
@@ -114,7 +115,7 @@ export default function App() {
         <Route path="processos/:id" element={<ProcessoFicha />} />
         <Route path="area-vip/comunicados" element={<ComunicadosAdmin />} />
         <Route path="area-vip/solicitacoes" element={<SolicitacoesInbox />} />
-        <Route path="area-vip/app" element={<EmConstrucao titulo="Area VIP e App" descricao="Configuracao geral do portal/app do cliente (branding, boas-vindas, recursos liberados)." />} />
+        <Route path="area-vip/app" element={<AreaVip />} />
         <Route path="area-vip/nps" element={<EmConstrucao titulo="Avaliacao NPS" descricao="Envio de pesquisa NPS aos clientes e painel de promotores/neutros/detratores." />} />
         <Route path="area-vip/avaliacoes" element={<EmConstrucao titulo="Avaliacao das Solicitacoes" descricao="Notas e comentarios que os clientes deram nas solicitacoes finalizadas." />} />
         <Route path="area-vip/usuarios-app" element={<EmConstrucao titulo="Usuarios do APP" descricao="Contatos das empresas com acesso ao portal/app (convites, ativacao, reset de senha)." />} />
