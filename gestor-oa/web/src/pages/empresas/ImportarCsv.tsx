@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Heart, Download, X, Upload } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useToast } from '../../components/ui';
 
@@ -29,10 +30,12 @@ export default function ImportarCsv() {
   const [mapa, setMapa] = useState<Record<CampoKey, number>>({} as never);
   const [resultado, setResultado] = useState<{ criadas: number; erros: { linha: number; erro: string }[] } | null>(null);
   const [importando, setImportando] = useState(false);
+  const [nomeArquivo, setNomeArquivo] = useState('');
 
   function aoSelecionar(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setNomeArquivo(file.name);
     const reader = new FileReader();
     reader.onload = () => {
       const g = parseCsv(String(reader.result));
@@ -90,81 +93,106 @@ export default function ImportarCsv() {
     }
   }
 
+  const btnVerde = 'flex items-center justify-center gap-2 rounded-md bg-status-ok px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50';
+  const btnLaranja = 'flex items-center justify-center gap-2 rounded-md bg-status-warn px-4 py-2 text-sm font-medium text-white hover:bg-amber-500';
+
   return (
-    <div className="max-w-4xl space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">Importar empresas (CSV)</h1>
-        <button className="btn-ghost border border-slate-300" onClick={baixarTemplate}>Baixar modelo CSV</button>
+    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Heart size={16} className="text-slate-400" /><span>Empresas</span>
+          <span className="text-slate-300">›</span><span className="text-slate-700">Importacao de cadastros de empresas</span>
+        </div>
+        <input className="w-48 rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" placeholder="Central de ajuda" disabled />
       </div>
 
-      <div className="card space-y-3 p-6">
-        <label className="label">Arquivo CSV</label>
-        <input type="file" accept=".csv,text/csv" onChange={aoSelecionar} />
-        <p className="text-xs text-slate-400">Aceita separador , ou ; — a primeira linha deve ser o cabecalho.</p>
+      {/* Bloco 1: CSV com indicacao de colunas */}
+      <h2 className="text-[16px] font-semibold text-slate-700">Importacao de cadastros de empresas com <span className="text-marca-600">CSV</span> e indicacao de colunas <span className="text-marca-600">[de » para]</span> para dados dos campos: <button onClick={baixarTemplate} className="ml-1 text-[12px] font-normal text-marca-500 hover:underline">(baixar modelo)</button></h2>
+      <ol className="mt-2 list-decimal space-y-1 pl-6 text-slate-600">
+        <li>Atraves de seu controle de gestao atual, exporte os CNPJ's de seus clientes para um arquivo em CSV, separados por ';' (ponto-e-virgula). Se os dados estiverem em excel, utilize a opcao 'Salvar como' e selecione a opcao "CSV";</li>
+        <li>O importador ira listar todas as colunas detectadas e voce indicara quais os campos correspondentes;</li>
+        <li>CNPJ's, CPF's e CAEPF's ja existentes serao <span className="text-status-warn">atualizados</span> com os novos dados;</li>
+        <li>Para contatos e inscricoes estaduais, favor inserir uma linha para cada registro, repetindo os demais dados do cadastro principal;</li>
+        <li>Se houver uma coluna relacionada a marcacao de departamentos, os valores "S" marcarao o departamento automaticamente. Valores "N" desmarcarao o departamento. Valores em branco nao marcarao o departamento, sendo necessario faze-lo manualmente apos a importacao, se desejar.</li>
+      </ol>
+      <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto]">
+        <label className="flex cursor-pointer items-center gap-2 rounded border border-slate-300 bg-white px-2 py-2">
+          <Upload size={16} className="text-slate-400" />
+          <span className="flex-1 truncate text-slate-500">{nomeArquivo || 'Arquivo CSV com os dados a serem importados [ate 10MB]'}</span>
+          <span className="rounded bg-marca-500 px-3 py-1 text-[12px] font-medium text-white">Selecionar arquivo</span>
+          <input type="file" accept=".csv,text/csv" className="hidden" onChange={aoSelecionar} />
+        </label>
+        <button className={btnVerde} onClick={importar} disabled={importando || grade.length === 0}><Download size={16} /> {importando ? 'Importando...' : 'OK - Iniciar importacao agora'}</button>
+        <button className={btnLaranja} onClick={() => navigate('/empresas')}><X size={16} /> Cancelar</button>
       </div>
 
+      {/* Mapeamento + previa (aparece apos selecionar) */}
       {grade.length > 0 && (
-        <>
-          <div className="card space-y-3 p-6">
-            <h2 className="font-semibold text-slate-700">Mapeamento de colunas</h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="mt-3 space-y-3">
+          <div className="rounded border border-slate-200 bg-white p-4">
+            <h3 className="mb-2 text-[13px] font-semibold text-slate-700">Indique as colunas [de » para]</h3>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {CAMPOS.map((campo) => (
                 <div key={campo.key}>
-                  <label className="label">{campo.label}</label>
-                  <select
-                    className="input"
-                    value={mapa[campo.key] ?? -1}
-                    onChange={(e) => setMapa((m) => ({ ...m, [campo.key]: Number(e.target.value) }))}
-                  >
+                  <label className="mb-0.5 block text-[12px] font-medium text-slate-600">{campo.label}</label>
+                  <select className="block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={mapa[campo.key] ?? -1} onChange={(e) => setMapa((m) => ({ ...m, [campo.key]: Number(e.target.value) }))}>
                     <option value={-1}>— ignorar —</option>
-                    {(grade[0] ?? []).map((h, i) => (
-                      <option key={i} value={i}>{h || `Coluna ${i + 1}`}</option>
-                    ))}
+                    {(grade[0] ?? []).map((h, i) => <option key={i} value={i}>{h || `Coluna ${i + 1}`}</option>)}
                   </select>
                 </div>
               ))}
             </div>
           </div>
-
-          <div className="card overflow-x-auto p-4">
-            <h2 className="mb-2 font-semibold text-slate-700">Previa ({linhasDados.length} linhas)</h2>
-            <table className="w-full text-xs">
-              <thead className="text-left text-slate-500">
-                <tr>{(grade[0] ?? []).map((h, i) => <th key={i} className="px-2 py-1">{h}</th>)}</tr>
-              </thead>
-              <tbody>
-                {linhasDados.slice(0, 8).map((row, i) => (
-                  <tr key={i} className="border-t border-slate-100">{row.map((c, j) => <td key={j} className="px-2 py-1">{c}</td>)}</tr>
-                ))}
-              </tbody>
+          <div className="overflow-x-auto rounded border border-slate-200 bg-white p-3">
+            <h3 className="mb-2 text-[13px] font-semibold text-slate-700">Previa ({linhasDados.length} linhas)</h3>
+            <table className="w-full text-[11px]">
+              <thead className="text-left text-slate-500"><tr>{(grade[0] ?? []).map((h, i) => <th key={i} className="px-2 py-1">{h}</th>)}</tr></thead>
+              <tbody>{linhasDados.slice(0, 8).map((row, i) => <tr key={i} className="border-t border-slate-100">{row.map((c, j) => <td key={j} className="px-2 py-1">{c}</td>)}</tr>)}</tbody>
             </table>
-            {linhasDados.length > 8 && <p className="mt-2 text-xs text-slate-400">...e mais {linhasDados.length - 8} linhas.</p>}
+            {linhasDados.length > 8 && <p className="mt-2 text-[11px] text-slate-400">...e mais {linhasDados.length - 8} linhas.</p>}
           </div>
-
-          <div className="flex gap-2">
-            <button className="btn-primary" onClick={importar} disabled={importando}>
-              {importando ? 'Importando...' : `Importar ${linhasDados.length} empresas`}
-            </button>
-            <button className="btn-ghost" onClick={() => navigate('/empresas')}>Voltar</button>
-          </div>
-        </>
+        </div>
       )}
 
       {resultado && (
-        <div className="card space-y-2 p-6">
-          <h2 className="font-semibold text-slate-700">Resultado</h2>
-          <p className="text-emerald-700">{resultado.criadas} empresa(s) criada(s).</p>
+        <div className="mt-3 rounded border border-slate-200 bg-white p-4">
+          <p className="text-emerald-700">{resultado.criadas} empresa(s) importada(s).</p>
           {resultado.erros.length > 0 && (
-            <div>
-              <p className="font-medium text-red-600">{resultado.erros.length} erro(s):</p>
-              <ul className="mt-1 space-y-1 text-sm text-red-600">
-                {resultado.erros.map((e) => (<li key={e.linha}>Linha {e.linha}: {e.erro}</li>))}
-              </ul>
-            </div>
+            <ul className="mt-1 space-y-1 text-[12px] text-red-600">{resultado.erros.map((e) => <li key={e.linha}>Linha {e.linha}: {e.erro}</li>)}</ul>
           )}
-          <button className="btn-primary mt-2" onClick={() => navigate('/empresas')}>Ver empresas</button>
         </div>
       )}
+
+      {/* Bloco 2: deteccao automatica de CNPJs */}
+      <h2 className="mt-6 text-[16px] font-semibold text-slate-700">Importacao de cadastros de empresas com <span className="text-marca-600">deteccao automatica</span> de CNPJs:</h2>
+      <ol className="mt-2 list-decimal space-y-1 pl-6 text-slate-600">
+        <li>Atraves de seu controle de gestao atual, exporte os CNPJ's de seus clientes para um arquivo em TXT, CSV, PDF ou XLS;</li>
+        <li>O importador de cadastros ira identificar <span className="text-marca-600">automaticamente</span> todos os numeros de CNPJ's constantes no arquivo e ira relaciona-los para voce completar os dados deles;</li>
+        <li>CNPJ's ja existentes serao <span className="text-status-warn">ignorados</span>;</li>
+        <li>Apos iniciar a importacao, se por algum motivo precisar dar uma pausa no processo, sem problemas, e possivel retoma-la posteriormente no ponto em que parou tranquilamente, vamos la?</li>
+      </ol>
+      <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-[1fr_auto_auto]">
+        <label className="flex items-center gap-2 rounded border border-slate-300 bg-white px-2 py-2 opacity-70">
+          <Upload size={16} className="text-slate-400" />
+          <span className="flex-1 truncate text-slate-500">Arquivo com os CNPJs a serem importados [ate 10MB]</span>
+          <span className="rounded bg-marca-500 px-3 py-1 text-[12px] font-medium text-white">Selecionar arquivo</span>
+        </label>
+        <button className={btnVerde} onClick={() => toast('ok', 'Em construcao: deteccao automatica de CNPJs.')}><Download size={16} /> OK - Iniciar importacao agora</button>
+        <button className={btnLaranja} onClick={() => navigate('/empresas')}><X size={16} /> Cancelar</button>
+      </div>
+
+      {/* Bloco 3: historico */}
+      <h2 className="mt-6 text-[15px] font-semibold text-slate-700">Importacoes com deteccao automatica de CNPJs ja realizadas e/ou em andamento:</h2>
+      <div className="mt-1 overflow-hidden rounded border border-slate-200 bg-white">
+        <table className="w-full">
+          <thead><tr className="border-b border-slate-200 text-left text-[12px] font-semibold text-slate-600">
+            <th className="px-4 py-2">Usuario que importou</th>
+            <th className="px-4 py-2">Data/Hora Inicio | Fim</th>
+            <th className="px-4 py-2 text-right">Importados / <span className="text-status-warn">Ignorados</span> / Total</th>
+          </tr></thead>
+          <tbody><tr><td colSpan={3} className="px-4 py-4 text-center text-slate-400">Nenhuma importacao realizada.</td></tr></tbody>
+        </table>
+      </div>
     </div>
   );
 }
