@@ -26,7 +26,10 @@ const matrizSchema = z.object({
   departamentoId: z.string().optional().nullable(),
   descricao: z.string().optional().nullable(),
   ativo: z.boolean().optional(),
-  passos: z.array(passoSchema).default([]),
+  soSubmatriz: z.boolean().optional(),
+  pedeAutorizacao: z.boolean().optional(),
+  barraVermelhaDias: z.number().int().min(0).optional(),
+  passos: z.array(passoSchema).optional(),
 });
 
 router.get('/', async (req, res) => {
@@ -35,7 +38,22 @@ router.get('/', async (req, res) => {
     orderBy: { nome: 'asc' },
     include: { passos: { orderBy: { ordem: 'asc' } }, _count: { select: { processos: true } } },
   });
-  return ok(res, matrizes);
+  const emAndamento = await prisma.processo.groupBy({
+    by: ['matrizId'],
+    where: { escritorioId: req.auth!.escritorioId, status: 'EM_ANDAMENTO' },
+    _count: { _all: true },
+  });
+  const mapaAtivos = new Map(emAndamento.map((g) => [g.matrizId, g._count._all]));
+  return ok(res, matrizes.map((m) => ({ ...m, emAndamento: mapaAtivos.get(m.id) ?? 0 })));
+});
+
+router.get('/:id', async (req, res) => {
+  const m = await prisma.matrizProcesso.findFirst({
+    where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
+    include: { passos: { orderBy: { ordem: 'asc' } }, _count: { select: { processos: true } } },
+  });
+  if (!m) throw Errors.naoEncontrado('Matriz');
+  return ok(res, m);
 });
 
 router.post('/', requirePermission('processos_gerenciar_matrizes'), validate({ body: matrizSchema }), async (req, res) => {
@@ -43,7 +61,9 @@ router.post('/', requirePermission('processos_gerenciar_matrizes'), validate({ b
     data: {
       escritorioId: req.auth!.escritorioId,
       nome: req.body.nome, departamentoId: req.body.departamentoId || null, descricao: req.body.descricao || null,
-      passos: { create: req.body.passos },
+      ativo: req.body.ativo ?? true, soSubmatriz: req.body.soSubmatriz ?? false,
+      pedeAutorizacao: req.body.pedeAutorizacao ?? false, barraVermelhaDias: req.body.barraVermelhaDias ?? 45,
+      passos: { create: req.body.passos ?? [] },
     },
     include: { passos: true },
   });
@@ -56,7 +76,15 @@ router.put('/:id', requirePermission('processos_gerenciar_matrizes'), validate({
   await prisma.$transaction(async (tx) => {
     await tx.matrizProcesso.update({
       where: { id: existe.id },
-      data: { nome: req.body.nome ?? existe.nome, departamentoId: req.body.departamentoId ?? existe.departamentoId, descricao: req.body.descricao ?? existe.descricao, ativo: req.body.ativo ?? existe.ativo },
+      data: {
+        nome: req.body.nome ?? existe.nome,
+        departamentoId: req.body.departamentoId ?? existe.departamentoId,
+        descricao: req.body.descricao ?? existe.descricao,
+        ativo: req.body.ativo ?? existe.ativo,
+        soSubmatriz: req.body.soSubmatriz ?? existe.soSubmatriz,
+        pedeAutorizacao: req.body.pedeAutorizacao ?? existe.pedeAutorizacao,
+        barraVermelhaDias: req.body.barraVermelhaDias ?? existe.barraVermelhaDias,
+      },
     });
     if (req.body.passos) {
       await tx.matrizPasso.deleteMany({ where: { matrizId: existe.id } });

@@ -1,168 +1,114 @@
-import { useEffect, useState } from 'react';
-import { api, ApiError } from '../../lib/api';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Search, RotateCcw, Plus } from 'lucide-react';
+import { api } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Modal, Spinner, useToast } from '../../components/ui';
-import type { Matriz, MatrizPasso, Departamento, Obrigacao, AcaoAutomatica } from '../../lib/tipos';
+import { Spinner } from '../../components/ui';
+import type { Matriz, Departamento } from '../../lib/tipos';
 
-const ACOES: { v: AcaoAutomatica; label: string }[] = [
-  { v: 'NENHUMA', label: 'Nenhuma' },
-  { v: 'CRIAR_TAREFA', label: 'Criar tarefa' },
-  { v: 'CRIAR_OBRIGACAO_NA_EMPRESA', label: 'Criar obrigacao na empresa' },
-  { v: 'INICIAR_SUBPROCESSO', label: 'Iniciar subprocesso' },
-];
+const INP = 'rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none placeholder:text-slate-400 focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 
 export default function Matrizes() {
   const { sessao } = useAuth();
-  const toast = useToast();
+  const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'processos_gerenciar_matrizes');
+
   const [matrizes, setMatrizes] = useState<Matriz[]>([]);
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<Matriz | null>(null);
-  const [novo, setNovo] = useState(false);
+  const [nome, setNome] = useState('');
+  const [visao, setVisao] = useState<'principais' | 'todas' | 'inativas' | 'subs'>('principais');
+  const [departamentoId, setDepartamentoId] = useState('');
 
   function carregar() { setLoading(true); api.get<Matriz[]>('/matrizes').then(setMatrizes).finally(() => setLoading(false)); }
   useEffect(carregar, []);
+  useEffect(() => { api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined); }, []);
 
-  async function excluir(m: Matriz) {
-    if (!confirm(`Excluir matriz "${m.nome}"?`)) return;
-    try { await api.del(`/matrizes/${m.id}`); toast('ok', 'Excluida.'); carregar(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
+  const nomeDepto = useMemo(() => new Map(departamentos.map((x) => [x.id, x.nome])), [departamentos]);
+
+  const lista = useMemo(() => matrizes.filter((m) => {
+    if (nome.trim() && !m.nome.toLowerCase().includes(nome.trim().toLowerCase())) return false;
+    if (departamentoId && m.departamentoId !== departamentoId) return false;
+    if (visao === 'principais') return m.ativo && !m.soSubmatriz;
+    if (visao === 'todas') return true;
+    if (visao === 'inativas') return !m.ativo;
+    if (visao === 'subs') return m.soSubmatriz;
+    return true;
+  }), [matrizes, nome, departamentoId, visao]);
 
   if (loading) return <Spinner />;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">Matrizes de Processo</h1>
-        {podeGerenciar && <button className="btn-primary" onClick={() => setNovo(true)}>+ Nova matriz</button>}
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {matrizes.map((m) => (
-          <div key={m.id} className="card p-5">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-slate-700">{m.nome}</h2>
-              <span className="text-xs text-slate-400">{m._count?.processos ?? 0} processo(s)</span>
-            </div>
-            {m.descricao && <p className="mt-1 text-sm text-slate-500">{m.descricao}</p>}
-            <div className="mt-2 text-sm text-slate-500">{m.passos.length} passos</div>
-            {podeGerenciar && (
-              <div className="mt-3 flex gap-2 text-sm">
-                <button className="text-marca-600 hover:underline" onClick={() => setEditando(m)}>editar</button>
-                <button className="text-red-500 hover:underline" onClick={() => excluir(m)}>excluir</button>
-              </div>
-            )}
-          </div>
-        ))}
-        {matrizes.length === 0 && <p className="text-slate-400">Nenhuma matriz.</p>}
-      </div>
-
-      {(novo || editando) && (
-        <MatrizModal matriz={editando} onFechar={() => { setNovo(false); setEditando(null); }} onSalvo={() => { setNovo(false); setEditando(null); carregar(); }} />
-      )}
-    </div>
-  );
-}
-
-function MatrizModal({ matriz, onFechar, onSalvo }: { matriz: Matriz | null; onFechar: () => void; onSalvo: () => void }) {
-  const toast = useToast();
-  const [nome, setNome] = useState(matriz?.nome ?? '');
-  const [descricao, setDescricao] = useState(matriz?.descricao ?? '');
-  const [passos, setPassos] = useState<MatrizPasso[]>(matriz?.passos ?? []);
-  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-  const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
-  const [matrizesDisp, setMatrizesDisp] = useState<Matriz[]>([]);
-  const [salvando, setSalvando] = useState(false);
-
-  useEffect(() => {
-    api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
-    api.get<Obrigacao[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
-    api.get<Matriz[]>('/matrizes').then(setMatrizesDisp).catch(() => undefined);
-  }, []);
-
-  function addPasso() {
-    setPassos((arr) => [...arr, { ordem: arr.length + 1, titulo: '', prazoDias: 0, basePrazo: 'INICIO', bloqueante: false, acaoAutomatica: 'NENHUMA' }]);
-  }
-  function setPasso(i: number, patch: Partial<MatrizPasso>) {
-    setPassos((arr) => arr.map((p, j) => (j === i ? { ...p, ...patch } : p)));
-  }
-  function removerPasso(i: number) {
-    setPassos((arr) => arr.filter((_, j) => j !== i).map((p, idx) => ({ ...p, ordem: idx + 1 })));
-  }
-
-  async function salvar() {
-    if (!nome.trim()) return toast('erro', 'Informe o nome.');
-    setSalvando(true);
-    try {
-      const payload = { nome, descricao: descricao || null, passos: passos.map((p, i) => ({ ...p, ordem: i + 1, prazoDias: Number(p.prazoDias) })) };
-      if (matriz) await api.put(`/matrizes/${matriz.id}`, payload);
-      else await api.post('/matrizes', payload);
-      toast('ok', 'Matriz salva.');
-      onSalvo();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-
-  return (
-    <Modal aberto titulo={matriz ? 'Editar matriz' : 'Nova matriz'} onFechar={onFechar} largura="max-w-3xl">
-      <div className="max-h-[70vh] space-y-3 overflow-y-auto">
-        <div><label className="label">Nome</label><input className="input" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
-        <div><label className="label">Descricao</label><input className="input" value={descricao} onChange={(e) => setDescricao(e.target.value)} /></div>
-
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-600">Passos ({passos.length})</span>
-          <button className="btn-ghost border border-slate-300 text-xs" onClick={addPasso}>+ Passo</button>
+    <div className="-m-6 min-h-full bg-slate-100 p-4 text-[13px]">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-600">
+          <CheckCircle2 size={16} className="text-slate-400" />
+          <span className="font-medium text-slate-700">Gestao de processos</span>
+          <span className="text-slate-400">[F10]</span>
         </div>
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400">
+          <Search size={13} /><span className="text-[12px]">Central de ajuda</span>
+        </div>
+      </div>
 
-        {passos.map((p, i) => (
-          <div key={i} className="space-y-2 rounded-md border border-slate-200 p-3">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">#{i + 1}</span>
-              <input className="input flex-1" placeholder="Titulo do passo" value={p.titulo} onChange={(e) => setPasso(i, { titulo: e.target.value })} />
-              <button className="btn-ghost text-xs" onClick={() => removerPasso(i)}>✕</button>
-            </div>
-            <input className="input" placeholder="Descricao (opcional)" value={p.descricao ?? ''} onChange={(e) => setPasso(i, { descricao: e.target.value })} />
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <select className="input" value={p.departamentoId ?? ''} onChange={(e) => setPasso(i, { departamentoId: e.target.value || null })}>
-                <option value="">Departamento</option>
-                {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-              </select>
-              <input type="number" className="input" placeholder="Prazo (dias)" value={p.prazoDias} onChange={(e) => setPasso(i, { prazoDias: Number(e.target.value) })} />
-              <select className="input" value={p.basePrazo} onChange={(e) => setPasso(i, { basePrazo: e.target.value as MatrizPasso['basePrazo'] })}>
-                <option value="INICIO">do inicio</option>
-                <option value="PASSO_ANTERIOR">do passo anterior</option>
-              </select>
-              <label className="flex items-center gap-1 text-sm text-slate-600"><input type="checkbox" checked={p.bloqueante} onChange={(e) => setPasso(i, { bloqueante: e.target.checked })} /> bloqueante</label>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <select className="input" value={p.acaoAutomatica} onChange={(e) => setPasso(i, { acaoAutomatica: e.target.value as AcaoAutomatica, acaoRef: null })}>
-                {ACOES.map((a) => <option key={a.v} value={a.v}>{a.label}</option>)}
-              </select>
-              {p.acaoAutomatica === 'CRIAR_OBRIGACAO_NA_EMPRESA' && (
-                <select className="input" value={p.acaoRef ?? ''} onChange={(e) => setPasso(i, { acaoRef: e.target.value })}>
-                  <option value="">Obrigacao...</option>
-                  {obrigacoes.map((o) => <option key={o.id} value={o.nome}>{o.nome}</option>)}
-                </select>
-              )}
-              {p.acaoAutomatica === 'INICIAR_SUBPROCESSO' && (
-                <select className="input" value={p.acaoRef ?? ''} onChange={(e) => setPasso(i, { acaoRef: e.target.value })}>
-                  <option value="">Matriz...</option>
-                  {matrizesDisp.filter((m) => m.id !== matriz?.id).map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
-                </select>
-              )}
-              {p.acaoAutomatica === 'CRIAR_TAREFA' && (
-                <input className="input" placeholder="Descricao da tarefa" value={p.acaoRef ?? ''} onChange={(e) => setPasso(i, { acaoRef: e.target.value })} />
-              )}
-            </div>
+      {/* barra */}
+      <div className="rounded border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search size={13} className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input className={`${INP} w-64 pl-7`} placeholder="Filtrar pelo nome" value={nome} onChange={(e) => setNome(e.target.value)} />
           </div>
-        ))}
+          <select className={`${INP} w-48`} value={visao} onChange={(e) => setVisao(e.target.value as never)}>
+            <option value="principais">Principais / Ativos</option>
+            <option value="todas">Todas</option>
+            <option value="inativas">Inativas</option>
+            <option value="subs">Somente sub-matrizes</option>
+          </select>
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[12px] font-medium text-marca-600">{lista.length} registros</span>
+            <button onClick={() => navigate('/processos')} className="flex items-center gap-2 rounded bg-status-warn px-4 py-1.5 text-[12px] font-medium text-white hover:bg-amber-500"><RotateCcw size={14} /> Voltar</button>
+            {podeGerenciar && <button onClick={() => navigate('/processos/matrizes/novo')} className="flex items-center gap-2 rounded bg-marca-500 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-marca-600"><Plus size={14} /> Nova matriz de processo</button>}
+          </div>
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <select className={`${INP} w-72`} value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)}>
+            <option value="">Filtrar por departamento</option>
+            {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
+          </select>
+          <button className="flex items-center gap-2 rounded bg-status-ok px-5 py-1.5 text-[12px] font-medium text-white hover:bg-emerald-600"><Search size={14} /> Filtrar</button>
+        </div>
       </div>
 
-      <div className="mt-3 flex justify-end gap-2 border-t border-slate-100 pt-3">
-        <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-        <button className="btn-primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+      {/* tabela */}
+      <div className="mt-2 overflow-hidden rounded border border-slate-200 bg-white shadow-sm">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-200 text-left text-[12px] font-semibold text-slate-600">
+              <th className="px-3 py-2">Nome da matriz [Departamento]</th>
+              <th className="px-3 py-2 text-center">Passos / Etapas</th>
+              <th className="px-3 py-2 text-center">Em andamento</th>
+              <th className="px-3 py-2 text-center">So Sub's?</th>
+              <th className="px-3 py-2 text-center">Ativo?</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((m) => (
+              <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50">
+                <td className="px-3 py-2">
+                  <button onClick={() => navigate(`/processos/matrizes/${m.id}`)} className="text-marca-600 hover:underline">
+                    {m.nome}{m.departamentoId && <span className="text-slate-500"> [{nomeDepto.get(m.departamentoId) ?? 'Departamento'}]</span>}
+                  </button>
+                </td>
+                <td className="px-3 py-2 text-center text-slate-600">{m.passos.length}</td>
+                <td className="px-3 py-2 text-center text-slate-600">{m.emAndamento ?? 0}</td>
+                <td className="px-3 py-2 text-center text-slate-600">{m.soSubmatriz ? 'Sim' : 'Nao'}</td>
+                <td className="px-3 py-2 text-center text-slate-600">{m.ativo ? 'Sim' : 'Nao'}</td>
+              </tr>
+            ))}
+            {lista.length === 0 && <tr><td colSpan={5} className="px-3 py-12 text-center text-slate-400">Nenhuma matriz.</td></tr>}
+          </tbody>
+        </table>
       </div>
-    </Modal>
+    </div>
   );
 }

@@ -915,6 +915,9 @@ model MatrizProcesso {
   departamentoId String?
   descricao     String?
   ativo         Boolean  @default(true)
+  soSubmatriz   Boolean  @default(false)
+  pedeAutorizacao Boolean @default(false)
+  barraVermelhaDias Int   @default(45)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

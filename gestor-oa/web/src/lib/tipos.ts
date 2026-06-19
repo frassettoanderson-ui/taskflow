@@ -547,7 +547,11 @@ export interface Matriz {
   departamentoId: string | null;
   descricao: string | null;
   ativo: boolean;
+  soSubmatriz: boolean;
+  pedeAutorizacao: boolean;
+  barraVermelhaDias: number;
   passos: MatrizPasso[];
+  emAndamento?: number;
   _count?: { processos: number };
 }
 

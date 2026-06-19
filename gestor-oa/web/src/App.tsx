@@ -44,6 +44,7 @@ import Processos from './pages/processos/Processos';
 import ProcessoForm from './pages/processos/ProcessoForm';
 import ProcessoFicha from './pages/processos/ProcessoFicha';
 import Matrizes from './pages/processos/Matrizes';
+import MatrizForm from './pages/processos/MatrizForm';
 import PortalApp from './portal/PortalApp';
 import ComunicadosAdmin from './pages/portal/ComunicadosAdmin';
 import SolicitacoesInbox from './pages/portal/SolicitacoesInbox';
@@ -127,6 +128,8 @@ export default function App() {
         <Route path="processos" element={<Processos />} />
         <Route path="processos/novo" element={<ProcessoForm />} />
         <Route path="processos/matrizes" element={<Matrizes />} />
+        <Route path="processos/matrizes/novo" element={<MatrizForm />} />
+        <Route path="processos/matrizes/:id" element={<MatrizForm />} />
         <Route path="processos/:id" element={<ProcessoFicha />} />
         <Route path="area-vip/comunicados" element={<ComunicadosAdmin />} />
         <Route path="area-vip/solicitacoes" element={<SolicitacoesInbox />} />
