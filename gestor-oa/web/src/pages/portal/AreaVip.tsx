@@ -50,6 +50,29 @@ function LinkIcon({ k, size = 15 }: { k?: string; size?: number }) {
   }
 }
 const linkVazio = (): LinkHome => ({ icone: 'link', titulo: '', url: '', empresas: 'Todas' });
+const INFO_EMPRESAS = 'Define para quais empresas este link aparece na Home da Area VIP / App (Todas ou uma empresa especifica).';
+
+function IconePicker({ value, onChange, disabled }: { value: string; onChange: (k: string) => void; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button type="button" disabled={disabled} onClick={() => setOpen((o) => !o)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="flex w-full items-center justify-between rounded border border-slate-300 bg-white px-2 py-1.5 text-marca-600 disabled:bg-slate-50 disabled:opacity-70">
+        <LinkIcon k={value} /><ChevronDown size={12} className="text-slate-400" />
+      </button>
+      {open && !disabled && (
+        <div className="absolute z-30 mt-1 grid grid-cols-4 gap-1 rounded border border-slate-200 bg-white p-1 shadow-lg">
+          {ICON_OPTS.map((o) => (
+            <button key={o.key} type="button" title={o.label} onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange(o.key); setOpen(false); }}
+              className={`flex h-7 w-7 items-center justify-center rounded hover:bg-marca-100 ${value === o.key ? 'bg-marca-100 text-marca-700' : 'text-slate-500'}`}>
+              <LinkIcon k={o.key} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 interface AreaVipCfg {
   linkVip?: string; appAndroid?: string; appApple?: string;
   linksHome?: LinkHome[];
@@ -145,18 +168,14 @@ export default function AreaVip() {
                   <th className="px-1 pb-1 w-32">Icone</th>
                   <th className="px-1 pb-1">Titulo</th>
                   <th className="px-1 pb-1">Link</th>
-                  <th className="px-1 pb-1 w-32">Empresa(s)</th>
+                  <th className="px-1 pb-1 w-32">Empresa(s) <InfoHint texto={INFO_EMPRESAS} /></th>
                   <th className="px-1 pb-1 w-44 text-center">Acao</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Linha de adicao */}
                 <tr>
-                  <td className="px-1 py-1">
-                    <select className={INP} value={novoLink.icone} onChange={(e) => setNovoLink((l) => ({ ...l, icone: e.target.value }))}>
-                      {ICON_OPTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-                    </select>
-                  </td>
+                  <td className="px-1 py-1"><IconePicker value={novoLink.icone} onChange={(k) => setNovoLink((l) => ({ ...l, icone: k }))} /></td>
                   <td className="px-1 py-1"><input className={INP} placeholder="Titulo" value={novoLink.titulo} onChange={(e) => setNovoLink((l) => ({ ...l, titulo: e.target.value }))} /></td>
                   <td className="px-1 py-1"><input className={INP} placeholder="Link" value={novoLink.url} onChange={(e) => setNovoLink((l) => ({ ...l, url: e.target.value }))} /></td>
                   <td className="px-1 py-1">
@@ -166,29 +185,25 @@ export default function AreaVip() {
                     </select>
                   </td>
                   <td className="px-1 py-1">
-                    <button title="Adicionar link personalizado na Home" disabled={!novoLink.titulo.trim()}
-                      onClick={() => { set({ linksHome: [...links, novoLink] }); setNovoLink(linkVazio()); }}
-                      className="flex w-full items-center justify-center rounded bg-marca-500 py-1.5 text-white hover:bg-marca-600 disabled:opacity-50"><Plus size={16} /></button>
+                    <button title="Adicionar link personalizado na Home"
+                      onClick={() => { if (!novoLink.titulo.trim()) { toast('erro', 'Informe o titulo.'); return; } set({ linksHome: [...links, novoLink] }); setNovoLink(linkVazio()); }}
+                      className="flex w-full items-center justify-center rounded bg-marca-500 py-1.5 text-white hover:bg-marca-600"><Plus size={16} /></button>
                   </td>
                 </tr>
-                {/* Linhas existentes */}
+                {/* Linhas existentes (inputs acinzentados; habilitam ao editar) */}
                 {links.map((l, i) => {
                   const editando = editIdx === i;
                   const upd = (patch: Partial<LinkHome>) => set({ linksHome: links.map((x, j) => j === i ? { ...x, ...patch } : x) });
-                  const empresaNome = l.empresas === 'Todas' || !l.empresas ? 'Todas' : (empresas.find((e) => e.id === l.empresas)?.razaoSocial ?? 'Todas');
+                  const dCls = `${INP} disabled:bg-slate-50 disabled:text-slate-400`;
                   return (
                     <tr key={i} className="border-t border-slate-100">
+                      <td className="px-1 py-1"><IconePicker value={l.icone} onChange={(k) => upd({ icone: k })} disabled={!editando} /></td>
+                      <td className="px-1 py-1"><input className={dCls} value={l.titulo} disabled={!editando} onChange={(e) => upd({ titulo: e.target.value })} /></td>
+                      <td className="px-1 py-1"><input className={dCls} value={l.url} disabled={!editando} onChange={(e) => upd({ url: e.target.value })} /></td>
                       <td className="px-1 py-1">
-                        {editando ? (
-                          <select className={INP} value={l.icone} onChange={(e) => upd({ icone: e.target.value })}>{ICON_OPTS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
-                        ) : <span className="flex items-center justify-center text-marca-600"><LinkIcon k={l.icone} /></span>}
-                      </td>
-                      <td className="px-1 py-1">{editando ? <input className={INP} value={l.titulo} onChange={(e) => upd({ titulo: e.target.value })} /> : <span className="text-slate-600">{l.titulo}</span>}</td>
-                      <td className="px-1 py-1">{editando ? <input className={INP} value={l.url} onChange={(e) => upd({ url: e.target.value })} /> : <span className="truncate text-slate-500">{l.url}</span>}</td>
-                      <td className="px-1 py-1">
-                        {editando ? (
-                          <select className={INP} value={l.empresas} onChange={(e) => upd({ empresas: e.target.value })}><option value="Todas">Todas</option>{empresas.map((e) => <option key={e.id} value={e.id}>{e.razaoSocial}</option>)}</select>
-                        ) : <span className="text-slate-500">{empresaNome}</span>}
+                        <select className={dCls} value={l.empresas} disabled={!editando} onChange={(e) => upd({ empresas: e.target.value })}>
+                          <option value="Todas">Todas</option>{empresas.map((e) => <option key={e.id} value={e.id}>{e.razaoSocial}</option>)}
+                        </select>
                       </td>
                       <td className="px-1 py-1">
                         <div className="flex justify-center gap-1">
