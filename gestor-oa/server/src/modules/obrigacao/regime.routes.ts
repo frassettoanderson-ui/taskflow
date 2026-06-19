@@ -22,6 +22,27 @@ router.get('/', async (req, res) => {
   return ok(res, regimes);
 });
 
+// Relatorio: empresas por regime (todas ou de um regime especifico)
+router.get('/relatorio/empresas', async (req, res) => {
+  const regimeId = typeof req.query.regimeId === 'string' && req.query.regimeId ? req.query.regimeId : undefined;
+  const empresas = await prisma.empresa.findMany({
+    where: {
+      escritorioId: req.auth!.escritorioId,
+      deletedAt: null,
+      regimeTributarioId: regimeId ?? { not: null },
+    },
+    orderBy: [{ razaoSocial: 'asc' }],
+    include: { regimeTributario: true, identificadores: true },
+  });
+  const linhas = empresas.map((e) => ({
+    regime: e.regimeTributario?.nome ?? '—',
+    razaoSocial: e.razaoSocial,
+    cnpj: e.identificadores.find((i) => i.tipo === 'CNPJ')?.valor ?? '',
+    fone: e.telefone ?? '',
+  }));
+  return ok(res, linhas);
+});
+
 router.post(
   '/',
   requirePermission('obrigacoes_gerenciar'),

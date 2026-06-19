@@ -22,6 +22,7 @@ import ImportarCsv from './pages/empresas/ImportarCsv';
 import Catalogo from './pages/obrigacoes/Catalogo';
 import ObrigacaoForm from './pages/obrigacoes/ObrigacaoForm';
 import Regimes from './pages/obrigacoes/Regimes';
+import RelatorioRegime from './pages/obrigacoes/RelatorioRegime';
 import Grupos from './pages/obrigacoes/Grupos';
 import Feriados from './pages/obrigacoes/Feriados';
 import AlocacaoMassa from './pages/obrigacoes/AlocacaoMassa';
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="obrigacoes" element={<Catalogo />} />
         <Route path="obrigacoes/nova" element={<ObrigacaoForm />} />
         <Route path="obrigacoes/regimes" element={<Regimes />} />
+        <Route path="obrigacoes/regimes/relatorio" element={<RelatorioRegime />} />
         <Route path="obrigacoes/grupos" element={<Grupos />} />
         <Route path="obrigacoes/feriados" element={<Feriados />} />
         <Route path="obrigacoes/alocacao" element={<AlocacaoMassa />} />

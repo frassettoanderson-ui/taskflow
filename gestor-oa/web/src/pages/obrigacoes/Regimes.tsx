@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Landmark, Search, Printer, Plus } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
@@ -6,10 +7,19 @@ import { Modal, Spinner, useToast } from '../../components/ui';
 import { SeletorObrigacoes } from './SeletorObrigacoes';
 import type { Regime, Obrigacao } from '../../lib/tipos';
 
+function relUrl(tipo: 'obrigacoes' | 'empresas', r?: Regime) {
+  const qs = new URLSearchParams({ tipo });
+  if (r) { qs.set('regimeId', r.id); qs.set('regimeNome', r.nome); }
+  return `/obrigacoes/regimes/relatorio?${qs}`;
+}
+
 export default function Regimes() {
   const { sessao } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
+  const [imprimirAberto, setImprimirAberto] = useState(false);
+  const imprimirRef = useRef<HTMLDivElement>(null);
   const [regimes, setRegimes] = useState<Regime[]>([]);
   const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +35,11 @@ export default function Regimes() {
   useEffect(() => {
     carregar();
     api.get<Obrigacao[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    function fora(e: MouseEvent) { if (imprimirRef.current && !imprimirRef.current.contains(e.target as Node)) setImprimirAberto(false); }
+    document.addEventListener('mousedown', fora);
+    return () => document.removeEventListener('mousedown', fora);
   }, []);
 
   async function excluir(r: Regime) {
@@ -66,7 +81,15 @@ export default function Regimes() {
         </select>
         <button onClick={carregar} className="flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={16} /> Filtrar</button>
         <div className="flex-1 text-center text-[13px] font-medium text-marca-600">{lista.length} registros</div>
-        <button title="Imprimir" onClick={() => toast('ok', 'Exportacao: em breve')} className="text-marca-600 hover:text-marca-800"><Printer size={18} /></button>
+        <div className="relative" ref={imprimirRef}>
+          <button title="Imprimir" onClick={() => setImprimirAberto((v) => !v)} className="text-marca-600 hover:text-marca-800"><Printer size={18} /></button>
+          {imprimirAberto && (
+            <div className="absolute right-0 top-8 z-50 flex flex-col gap-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+              <button onClick={() => navigate(relUrl('empresas'))} className="flex items-center gap-2 whitespace-nowrap rounded bg-purple-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-600"><Printer size={13} /> Empresas por regime</button>
+              <button onClick={() => navigate(relUrl('obrigacoes'))} className="flex items-center gap-2 whitespace-nowrap rounded bg-amber-400 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500"><Printer size={13} /> Obrigacoes por regime</button>
+            </div>
+          )}
+        </div>
         {podeGerenciar && (
           <button onClick={() => setNovo(true)} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo regime</button>
         )}
@@ -91,12 +114,12 @@ export default function Regimes() {
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="flex items-center gap-2 text-slate-600">{r.obrigacoes.length}
-                    <button title="Imprimir obrigacoes do regime" onClick={() => toast('ok', 'Em construcao')} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
+                    <button title="Relacao de obrigacoes desse regime" onClick={() => navigate(relUrl('obrigacoes', r))} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
                   </span>
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="flex items-center gap-2 text-slate-600">{r._count?.empresas ?? 0}
-                    <button title="Imprimir empresas do regime" onClick={() => toast('ok', 'Em construcao')} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
+                    <button title="Relacao de empresas desse regime" onClick={() => navigate(relUrl('empresas', r))} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right text-slate-600">{r.ativo ? 'Sim' : 'Nao'}</td>
