@@ -15,6 +15,43 @@
   --marca-700: 46 103 136;
   --marca-800: 40 82 108;
   --marca-900: 31 63 84;
+
+  /* Skin do menu lateral (Trocar estilo) - padrao Claro */
+  --m-bg: #ffffff;
+  --m-bd: #e2e8f0;
+  --m-fg: #64748b;
+  --m-ic: #94a3b8;
+  --m-hv: #f1f5f9;
+  --m-abg: rgb(238 246 251);
+  --m-afg: rgb(46 103 136);
+  --m-acc: rgb(63 140 186);
+  --m-title: #334155;
+}
+
+/* Skin do menu: Escuro (preto + verde) */
+[data-menu='escuro'] {
+  --m-bg: #1b1f24;
+  --m-bd: #2b3036;
+  --m-fg: #cbd5e1;
+  --m-ic: #8b97a7;
+  --m-hv: #262b31;
+  --m-abg: #10151a;
+  --m-afg: #34d399;
+  --m-acc: #34d399;
+  --m-title: #e5e7eb;
+}
+
+/* Skin do menu: Azul (marinho) */
+[data-menu='azul'] {
+  --m-bg: #163a72;
+  --m-bd: #1f4a8c;
+  --m-fg: #d3def0;
+  --m-ic: #a8bdde;
+  --m-hv: #1d4a8f;
+  --m-abg: #0f2a55;
+  --m-afg: #ffffff;
+  --m-acc: #f0b429;
+  --m-title: #ffffff;
 }
 
 /* Estilo "Verde" (petroleo) */

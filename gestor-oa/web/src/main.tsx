@@ -6,8 +6,10 @@ import { ToastProvider } from './components/ui';
 import App from './App';
 import './index.css';
 import { initTema } from './lib/tema';
+import { initMenuEstilo } from './lib/menuEstilo';
 
 initTema();
+initMenuEstilo();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

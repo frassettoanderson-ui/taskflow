@@ -28,10 +28,10 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
-import { useToast, Modal } from './ui';
+import { useToast } from './ui';
 import FAB from './FAB';
 import NotificacoesBell from './NotificacoesBell';
-import { TEMAS, getTema, setTema, type TemaId } from '../lib/tema';
+import { ciclarMenuEstilo } from '../lib/menuEstilo';
 
 interface Item {
   label: string;
@@ -114,7 +114,6 @@ export default function Layout() {
   const { sessao, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
-  const [temaAberto, setTemaAberto] = useState(false);
   const [recolhido, setRecolhido] = useState(() => localStorage.getItem('goa_menu_recolhido') === '1');
 
   function toggleRecolhido() {
@@ -129,13 +128,13 @@ export default function Layout() {
   return (
     <div className="flex h-full">
       {/* Sidebar branca (estreita, estilo Acessorias) */}
-      <aside className={`flex flex-col border-r border-slate-200 bg-white transition-all ${recolhido ? 'w-16' : 'w-56'}`}>
+      <aside className={`flex flex-col border-r bg-[var(--m-bg)] border-[color:var(--m-bd)] transition-all ${recolhido ? 'w-16' : 'w-56'}`}>
         {/* Logo */}
         <div className={`flex items-center gap-2 px-4 py-3 ${recolhido ? 'justify-center' : ''}`}>
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-marca-500 text-sm font-bold text-marca-600">
             G
           </span>
-          {!recolhido && <span className="text-base font-bold text-slate-700">GestorOA</span>}
+          {!recolhido && <span className="text-base font-bold text-[color:var(--m-title)]">GestorOA</span>}
         </div>
 
         {/* Botoes de acesso rapido - ocupam toda a largura */}
@@ -158,15 +157,15 @@ export default function Layout() {
 
         {/* Menu */}
         <nav className="flex-1 px-1.5 pb-2 text-[13px]">
-          <MenuLista itens={MENU} toast={toast} onTema={() => setTemaAberto(true)} recolhido={recolhido} topo />
+          <MenuLista itens={MENU} toast={toast} onTema={() => { const e = ciclarMenuEstilo(); toast('ok', `Estilo do menu: ${e}`); }} recolhido={recolhido} topo />
         </nav>
 
         {/* Botao redondo para recolher/expandir o menu */}
-        <div className="flex justify-center border-t border-slate-100 py-2">
+        <div className="flex justify-center border-t border-[color:var(--m-bd)] py-2">
           <button
             onClick={toggleRecolhido}
             title={recolhido ? 'Expandir menu' : 'Recolher menu'}
-            className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm hover:bg-slate-50 hover:text-marca-600"
+            className="grid h-7 w-7 place-items-center rounded-full border border-[color:var(--m-bd)] bg-[var(--m-bg)] text-[color:var(--m-ic)] shadow-sm hover:bg-[var(--m-hv)] hover:text-[color:var(--m-afg)]"
           >
             {recolhido ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
           </button>
@@ -192,33 +191,7 @@ export default function Layout() {
       </div>
 
       <FAB />
-      {temaAberto && <TrocarEstiloModal onFechar={() => setTemaAberto(false)} />}
     </div>
-  );
-}
-
-function TrocarEstiloModal({ onFechar }: { onFechar: () => void }) {
-  const [sel, setSel] = useState<TemaId>(getTema());
-  function escolher(id: TemaId) { setSel(id); setTema(id); }
-  return (
-    <Modal aberto titulo="Trocar estilo" onFechar={onFechar}>
-      <div className="space-y-3">
-        <p className="text-sm text-slate-500">Escolha a cor de destaque do sistema. A mudanca e' aplicada na hora.</p>
-        <div className="grid grid-cols-2 gap-3">
-          {TEMAS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => escolher(t.id)}
-              className={`flex items-center gap-3 rounded-lg border p-3 text-left transition ${sel === t.id ? 'border-marca-500 ring-2 ring-marca-200' : 'border-slate-200 hover:border-slate-300'}`}
-            >
-              <span className="h-8 w-8 shrink-0 rounded-full" style={{ background: t.cor }} />
-              <span className="text-sm font-medium text-slate-700">{t.nome}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex justify-end"><button className="btn-primary" onClick={onFechar}>Concluir</button></div>
-      </div>
-    </Modal>
   );
 }
 
@@ -240,7 +213,7 @@ function MenuLista({ itens, toast, onTema, recolhido = false, topo = false }: { 
     fecharTimer.current = setTimeout(() => setAberto(null), 350);
   }
 
-  const divisoria = topo ? 'border-b border-slate-100 last:border-0' : '';
+  const divisoria = topo ? 'border-b border-[color:var(--m-bd)] last:border-0' : '';
 
   return (
     <div>
@@ -256,16 +229,16 @@ function MenuLista({ itens, toast, onTema, recolhido = false, topo = false }: { 
               <button
                 title={recolhido ? item.label : undefined}
                 className={`flex w-full items-center gap-3 rounded px-3 py-2 text-left transition ${recolhido ? 'justify-center' : ''} ${
-                  aberto === item.label ? 'bg-marca-50 text-marca-700' : 'text-slate-500 hover:bg-slate-100'
+                  aberto === item.label ? 'bg-[var(--m-abg)] text-[color:var(--m-afg)]' : 'text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]'
                 }`}
               >
-                <item.icon size={17} className={aberto === item.label ? 'text-marca-600' : 'text-slate-400'} />
+                <item.icon size={17} className={aberto === item.label ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
                 {!recolhido && <span className="flex-1">{item.label}</span>}
-                {!recolhido && <ChevronRight size={15} className="text-slate-300" />}
+                {!recolhido && <ChevronRight size={15} className="text-[color:var(--m-ic)]" />}
               </button>
               {aberto === item.label && (
                 <div
-                  className="absolute left-full top-0 z-50 min-w-60 rounded-md border border-slate-200 bg-white p-1 pl-2 shadow-xl"
+                  className="absolute left-full top-0 z-50 min-w-60 rounded-md border border-[color:var(--m-bd)] bg-[var(--m-bg)] p-1 pl-2 shadow-xl"
                   onMouseEnter={() => abrir(item.label)}
                   onMouseLeave={agendarFechar}
                 >
@@ -290,26 +263,26 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
 
   if (item.tema) {
     return (
-      <button onClick={onTema} title={recolhido ? item.label : undefined} className={`${baseCls} text-slate-500 hover:bg-slate-100`}>
-        <item.icon size={17} className="text-slate-400" />
+      <button onClick={onTema} title={recolhido ? item.label : undefined} className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}>
+        <item.icon size={17} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
       </button>
     );
   }
   if (item.href) {
     return (
-      <a href={item.href} download title={recolhido ? item.label : undefined} className={`${baseCls} text-slate-500 hover:bg-slate-100`}>
-        <item.icon size={17} className="text-slate-400" />
+      <a href={item.href} download title={recolhido ? item.label : undefined} className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}>
+        <item.icon size={17} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
       </a>
     );
   }
   if (item.emBreve) {
     return (
-      <button onClick={() => toast('ok', `${item.label}: em breve`)} title="Em breve" className={`${baseCls} text-slate-400`}>
-        <item.icon size={17} className="text-slate-300" />
+      <button onClick={() => toast('ok', `${item.label}: em breve`)} title="Em breve" className={`${baseCls} text-[color:var(--m-ic)]`}>
+        <item.icon size={17} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
-        {!recolhido && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-400">em breve</span>}
+        {!recolhido && <span className="rounded bg-[var(--m-hv)] px-1.5 py-0.5 text-[10px] text-[color:var(--m-ic)]">em breve</span>}
       </button>
     );
   }
@@ -319,12 +292,12 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
       end={item.to === '/'}
       title={recolhido ? item.label : undefined}
       className={({ isActive }) =>
-        `${baseCls} border-l-[3px] ${isActive ? 'border-marca-500 bg-marca-50 font-medium text-marca-700' : 'border-transparent text-slate-500 hover:bg-slate-100'}`
+        `${baseCls} border-l-[3px] ${isActive ? 'border-[color:var(--m-acc)] bg-[var(--m-abg)] font-medium text-[color:var(--m-afg)]' : 'border-transparent text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]'}`
       }
     >
       {({ isActive }) => (
         <>
-          <item.icon size={17} className={isActive ? 'text-marca-600' : 'text-slate-400'} />
+          <item.icon size={17} className={isActive ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
           {!recolhido && <span className="flex-1">{item.label}</span>}
         </>
       )}
