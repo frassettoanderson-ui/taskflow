@@ -29,7 +29,27 @@ const listQuery = z.object({
   responsavelId: z.string().optional(),
   tagId: z.string().optional(),
   status: z.string().optional(),
+  // tela [F2]
+  q: z.string().optional(),
+  statusList: z.string().optional(),       // CSV de StatusEntrega
+  compDe: z.string().optional(),           // "YYYY-MM"
+  compAte: z.string().optional(),
+  prazoTecDe: z.string().optional(),
+  prazoTecAte: z.string().optional(),
+  prazoLegalDe: z.string().optional(),
+  prazoLegalAte: z.string().optional(),
+  entregaDe: z.string().optional(),
+  entregaAte: z.string().optional(),
+  ordem: z.string().optional(),
+  dir: z.string().optional(),
 });
+
+function parseComp(s?: string): { ano: number; mes: number } | undefined {
+  if (!s) return undefined;
+  const [ano, mes] = s.split('-').map(Number);
+  if (!ano || !mes) return undefined;
+  return { ano, mes };
+}
 
 router.get('/', validate({ query: listQuery }), async (req, res) => {
   const pag = parsePagination(req.query);
@@ -45,6 +65,18 @@ router.get('/', validate({ query: listQuery }), async (req, res) => {
       responsavelId: q.responsavelId,
       tagId: q.tagId,
       status: q.status as StatusEntrega | undefined,
+      q: q.q,
+      statusList: q.statusList ? (q.statusList.split(',').filter(Boolean) as StatusEntrega[]) : undefined,
+      compDe: parseComp(q.compDe),
+      compAte: parseComp(q.compAte),
+      prazoTecDe: q.prazoTecDe,
+      prazoTecAte: q.prazoTecAte,
+      prazoLegalDe: q.prazoLegalDe,
+      prazoLegalAte: q.prazoLegalAte,
+      entregaDe: q.entregaDe,
+      entregaAte: q.entregaAte,
+      ordem: q.ordem as svc.OrdemEntrega | undefined,
+      dir: q.dir === 'desc' ? 'desc' : 'asc',
     },
     req.auth!.filtrosForcados,
     pag,
@@ -133,6 +165,9 @@ router.post(
         dataEntrega: req.body.dataEntrega,
         atualizarResponsavel: req.body.atualizarResponsavel === 'true' || req.body.atualizarResponsavel === true,
         justificativa: req.body.justificativa,
+        numeroProtocolo: req.body.numeroProtocolo,
+        vencimentoGuia: req.body.vencimentoGuia,
+        comentario: req.body.comentario,
         anexosCount: files.length,
       },
       req.auth!.id,

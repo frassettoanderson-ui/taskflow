@@ -259,7 +259,7 @@ export const STATUS_INFO: Record<StatusEntrega, { label: string; cor: string }> 
 
 export interface Entrega {
   id: string;
-  empresa: { id: string; razaoSocial: string };
+  empresa: { id: string; razaoSocial: string; nomeFantasia?: string | null; cnpjFinal?: string | null };
   obrigacao: { id: string; nome: string; exigeAnexoNaBaixa: boolean; departamento: { nome: string; cor: string } | null };
   competencia: string;
   competenciaAno: number;
@@ -274,6 +274,8 @@ export interface Entrega {
   justificativa: string | null;
   origemBaixa: 'MANUAL' | 'ROBO' | null;
   qtdAnexos: number;
+  qtdComentarios?: number;
+  numeroProtocolo?: string | null;
 }
 
 // ---------- Modulo 4 ----------

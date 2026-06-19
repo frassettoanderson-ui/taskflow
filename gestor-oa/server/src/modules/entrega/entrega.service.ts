@@ -286,6 +286,9 @@ export async function gerarAvulsaObrigacao(
 }
 
 // ---------- Listagem ----------
+export type OrdemEntrega =
+  | 'obrigacao' | 'empresa' | 'prazoTecnico' | 'prazoLegal' | 'competencia';
+
 export interface FiltrosEntrega {
   ano?: number;
   mes?: number;
@@ -295,6 +298,23 @@ export interface FiltrosEntrega {
   responsavelId?: string;
   tagId?: string;
   status?: StatusEntrega;
+  // tela [F2]
+  q?: string;                       // busca por empresa (razao/fantasia)
+  statusList?: StatusEntrega[];     // grupos das flags (Pendentes/Justificadas/Entregues/Dispensadas)
+  compDe?: { ano: number; mes: number };
+  compAte?: { ano: number; mes: number };
+  prazoTecDe?: string;
+  prazoTecAte?: string;
+  prazoLegalDe?: string;
+  prazoLegalAte?: string;
+  entregaDe?: string;
+  entregaAte?: string;
+  ordem?: OrdemEntrega;
+  dir?: 'asc' | 'desc';
+}
+
+function diaUTC(d: string, fimDoDia = false): Date {
+  return new Date(`${d}T${fimDoDia ? '23:59:59' : '00:00:00'}.000Z`);
 }
 
 function baseWhere(
@@ -309,11 +329,39 @@ function baseWhere(
   if (f.obrigacaoId) and.push({ obrigacaoId: f.obrigacaoId });
   if (f.departamentoId) and.push({ obrigacao: { departamentoId: f.departamentoId } });
   if (f.status) and.push({ status: f.status });
+  if (f.statusList?.length) and.push({ status: { in: f.statusList } });
   if (f.responsavelId)
     and.push({
       OR: [{ responsavelPrazoId: f.responsavelId }, { responsavelEntregaId: f.responsavelId }],
     });
   if (f.tagId) and.push({ empresa: { tags: { some: { tagId: f.tagId } } } });
+
+  // busca por empresa (texto)
+  if (f.q?.trim()) {
+    const q = f.q.trim();
+    and.push({ empresa: { OR: [
+      { razaoSocial: { contains: q, mode: 'insensitive' } },
+      { nomeFantasia: { contains: q, mode: 'insensitive' } },
+    ] } });
+  }
+
+  // competencia de/ate (composto ano,mes)
+  if (f.compDe) and.push({ OR: [
+    { competenciaAno: { gt: f.compDe.ano } },
+    { competenciaAno: f.compDe.ano, competenciaMes: { gte: f.compDe.mes } },
+  ] });
+  if (f.compAte) and.push({ OR: [
+    { competenciaAno: { lt: f.compAte.ano } },
+    { competenciaAno: f.compAte.ano, competenciaMes: { lte: f.compAte.mes } },
+  ] });
+
+  // ranges de data
+  if (f.prazoTecDe) and.push({ prazoTecnico: { gte: diaUTC(f.prazoTecDe) } });
+  if (f.prazoTecAte) and.push({ prazoTecnico: { lte: diaUTC(f.prazoTecAte, true) } });
+  if (f.prazoLegalDe) and.push({ prazoLegal: { gte: diaUTC(f.prazoLegalDe) } });
+  if (f.prazoLegalAte) and.push({ prazoLegal: { lte: diaUTC(f.prazoLegalAte, true) } });
+  if (f.entregaDe) and.push({ dataEntrega: { gte: diaUTC(f.entregaDe) } });
+  if (f.entregaAte) and.push({ dataEntrega: { lte: diaUTC(f.entregaAte, true) } });
 
   // filtros forcados do usuario
   if (ff?.departamentos?.length)
@@ -321,6 +369,25 @@ function baseWhere(
   if (ff?.tags?.length) and.push({ empresa: { tags: { some: { tagId: { in: ff.tags } } } } });
 
   return { AND: and };
+}
+
+function orderByDe(f: FiltrosEntrega): Prisma.EntregaOrderByWithRelationInput[] {
+  const dir = f.dir ?? 'asc';
+  switch (f.ordem) {
+    case 'obrigacao': return [{ obrigacao: { nome: dir } }];
+    case 'empresa': return [{ empresa: { razaoSocial: dir } }];
+    case 'prazoTecnico': return [{ prazoTecnico: dir }];
+    case 'competencia': return [{ competenciaAno: dir }, { competenciaMes: dir }];
+    case 'prazoLegal':
+    default: return [{ prazoLegal: dir }];
+  }
+}
+
+// "0001-65" a partir do CNPJ (14 digitos): filial(4) + DV(2)
+function cnpjFinal(identificadores: { tipo: string; valor: string }[]): string | null {
+  const cnpj = identificadores.find((i) => i.tipo === 'CNPJ')?.valor?.replace(/\D/g, '');
+  if (!cnpj || cnpj.length < 14) return null;
+  return `${cnpj.slice(8, 12)}-${cnpj.slice(12, 14)}`;
 }
 
 export async function listar(
@@ -336,13 +403,13 @@ export async function listar(
   const [items, total] = await Promise.all([
     prisma.entrega.findMany({
       where,
-      orderBy: [{ prazoLegal: 'asc' }],
+      orderBy: orderByDe(filtros),
       skip: pag.skip,
       take: pag.take,
       include: {
-        empresa: { select: { id: true, razaoSocial: true } },
+        empresa: { select: { id: true, razaoSocial: true, nomeFantasia: true, identificadores: { select: { tipo: true, valor: true } } } },
         obrigacao: { select: { id: true, nome: true, exigeAnexoNaBaixa: true, departamento: { select: { nome: true, cor: true } } } },
-        _count: { select: { anexos: true } },
+        _count: { select: { anexos: true, comentarios: true } },
       },
     }),
     prisma.entrega.count({ where }),
@@ -351,7 +418,7 @@ export async function listar(
   return {
     items: items.map((e) => ({
       id: e.id,
-      empresa: e.empresa,
+      empresa: { id: e.empresa.id, razaoSocial: e.empresa.razaoSocial, nomeFantasia: e.empresa.nomeFantasia, cnpjFinal: cnpjFinal(e.empresa.identificadores) },
       obrigacao: e.obrigacao,
       competencia: `${String(e.competenciaMes).padStart(2, '0')}/${e.competenciaAno}`,
       competenciaAno: e.competenciaAno,
@@ -366,6 +433,8 @@ export async function listar(
       justificativa: e.justificativa,
       origemBaixa: e.origemBaixa,
       qtdAnexos: e._count.anexos,
+      qtdComentarios: e._count.comentarios,
+      numeroProtocolo: e.numeroProtocolo ?? null,
     })),
     total,
   };
@@ -388,6 +457,9 @@ export async function baixar(
     dataEntrega?: string;
     atualizarResponsavel?: boolean;
     justificativa?: string;
+    numeroProtocolo?: string;
+    vencimentoGuia?: string;
+    comentario?: string;
     anexosCount: number;
   },
   userId: string,
@@ -404,16 +476,26 @@ export async function baixar(
     throw Errors.validacao('Baixa apos o prazo legal exige justificativa.');
   }
 
-  return prisma.entrega.update({
+  const entrega = await prisma.entrega.update({
     where: { id: e.id },
     data: {
       status: aposLegal ? 'ENTREGUE_JUSTIFICADA' : 'ENTREGUE',
       dataEntrega,
+      numeroProtocolo: dados.numeroProtocolo?.trim() || null,
+      vencimentoGuia: dados.vencimentoGuia ? new Date(dados.vencimentoGuia + 'T12:00:00') : null,
       justificativa: dados.justificativa?.trim() || null,
       origemBaixa: 'MANUAL',
       responsavelEntregaId: dados.atualizarResponsavel ? userId : e.responsavelEntregaId,
     },
   });
+
+  if (dados.comentario?.trim()) {
+    await prisma.entregaComentario.create({
+      data: { escritorioId, entregaId: e.id, autorId: userId, texto: dados.comentario.trim() },
+    });
+  }
+
+  return entrega;
 }
 
 // ---------- Desfazer baixa ----------

@@ -624,6 +624,8 @@ model Entrega {
   responsavelEntregaId String?
 
   dataEntrega         DateTime?
+  numeroProtocolo     String?
+  vencimentoGuia      DateTime? @db.Date
   justificativa       String?
   motivoDispensa      String?
   origemBaixa         OrigemBaixa?

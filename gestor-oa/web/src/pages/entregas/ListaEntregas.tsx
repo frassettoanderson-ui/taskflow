@@ -1,392 +1,441 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  CheckCircle2, SlidersHorizontal, X, SearchX, CalendarDays, SquarePen,
+  Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save,
+} from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Badge, Modal, Spinner, useToast } from '../../components/ui';
-import type {
-  Entrega, StatusEntrega, Departamento, UsuarioBasico, Obrigacao, Tag,
-} from '../../lib/tipos';
-import { STATUS_INFO, dataBR } from '../../lib/tipos';
+import { Spinner, useToast } from '../../components/ui';
+import type { Entrega, StatusEntrega, Departamento, UsuarioBasico } from '../../lib/tipos';
 
 interface Pagina { items: Entrega[]; total: number; totalPages: number; page: number }
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+// flag -> grupo de status (stored)
+const GRUPO_STATUS: Record<string, StatusEntrega[]> = {
+  pendentes: ['PENDENTE', 'PENDENTE_ANTECIPADO', 'EM_ATRASO_TECNICO', 'EM_ATRASO_LEGAL'],
+  justificadas: ['ENTREGUE_JUSTIFICADA'],
+  entregues: ['ENTREGUE'],
+  dispensadas: ['DISPENSADA'],
+};
+
+// rotulo curto + cor do "Status Entrega"
+const ROTULO: Record<StatusEntrega, string> = {
+  PENDENTE_ANTECIPADO: 'Antecipado',
+  PENDENTE: 'No prazo',
+  EM_ATRASO_TECNICO: 'Prazo tecnico',
+  EM_ATRASO_LEGAL: 'Atrasada!',
+  ENTREGUE: 'Entregue',
+  ENTREGUE_JUSTIFICADA: 'Entregue c/ multa',
+  DISPENSADA: 'Dispensada',
+};
+const COR: Record<StatusEntrega, string> = {
+  PENDENTE_ANTECIPADO: '#3a9d3a',
+  PENDENTE: '#5b9bd5',
+  EM_ATRASO_TECNICO: '#e08a1e',
+  EM_ATRASO_LEGAL: '#cf3c5d',
+  ENTREGUE: '#3a9d3a',
+  ENTREGUE_JUSTIFICADA: '#cf3c5d',
+  DISPENSADA: '#94a3b8',
+};
+
+function dataCurta(d: string | Date): string {
+  const x = new Date(d);
+  const dd = String(x.getUTCDate()).padStart(2, '0');
+  const mm = String(x.getUTCMonth() + 1).padStart(2, '0');
+  const yy = String(x.getUTCFullYear()).slice(2);
+  return `${dd}/${mm}/${yy}`;
+}
+
+const mesAtual = () => { const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}`; };
+
+const INP = 'rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none placeholder:text-slate-400 focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
+const DATA_INP = 'w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-center text-[12px] text-slate-600 outline-none focus:border-marca-400';
 
 export default function ListaEntregas() {
   const { sessao } = useAuth();
   const toast = useToast();
   const podeBaixar = temPermissao(sessao, 'entregas_baixar');
-  const podeEditarPrazo = temPermissao(sessao, 'entregas_editar_prazos');
-  const podeMassa = temPermissao(sessao, 'entregas_acoes_massa');
   const podeDispensar = temPermissao(sessao, 'entregas_dispensar');
 
-  const hoje = new Date();
-  const [ano, setAno] = useState(hoje.getFullYear());
-  const [mes, setMes] = useState(hoje.getMonth() + 1);
+  // ---- filtros (rascunho; aplicados ao clicar Filtrar) ----
+  const [q, setQ] = useState('');
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [departamentoId, setDepartamentoId] = useState('');
-  const [status, setStatus] = useState('');
-  const [responsavelId, setResponsavelId] = useState('');
-  const [tagId, setTagId] = useState('');
-  const [page, setPage] = useState(1);
+  const [flags, setFlags] = useState({ pendentes: true, justificadas: true, entregues: false, dispensadas: false });
+  const [mostrarDatas, setMostrarDatas] = useState(true);
+  const [d, setD] = useState({
+    compDe: mesAtual(), compAte: mesAtual(),
+    prazoTecDe: '', prazoTecAte: '', prazoLegalDe: '', prazoLegalAte: '', entregaDe: '', entregaAte: '',
+  });
 
+  // ---- ordenacao + paginacao ----
+  const [ordem, setOrdem] = useState<'obrigacao' | 'empresa' | 'prazoTecnico' | 'prazoLegal' | 'competencia'>('prazoLegal');
+  const [dir, setDir] = useState<'asc' | 'desc'>('asc');
+  const [page, setPage] = useState(1);
+  const [tick, setTick] = useState(0); // incrementa ao clicar Filtrar
+
+  // ---- dados ----
   const [pagina, setPagina] = useState<Pagina | null>(null);
   const [loading, setLoading] = useState(true);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [sel, setSel] = useState<Set<string>>(new Set());
-  const [baixando, setBaixando] = useState<Entrega | null>(null);
-  const [modalMassa, setModalMassa] = useState(false);
-  const [editPrazo, setEditPrazo] = useState<Entrega | null>(null);
+  const [expandida, setExpandida] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
-    api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
   }, []);
 
   function carregar() {
     setLoading(true);
-    const qs = new URLSearchParams({ ano: String(ano), mes: String(mes), page: String(page), limit: '50' });
+    const statusList = Object.entries(flags).filter(([, v]) => v).flatMap(([k]) => GRUPO_STATUS[k]);
+    const qs = new URLSearchParams({ page: String(page), limit: '50', ordem, dir });
+    if (q.trim()) qs.set('q', q.trim());
     if (departamentoId) qs.set('departamentoId', departamentoId);
-    if (status) qs.set('status', status);
-    if (responsavelId) qs.set('responsavelId', responsavelId);
-    if (tagId) qs.set('tagId', tagId);
-    api.get<Pagina>(`/entregas?${qs}`).then(setPagina).catch((e) => toast('erro', e instanceof ApiError ? e.message : 'Erro')).finally(() => setLoading(false));
+    if (statusList.length) qs.set('statusList', statusList.join(','));
+    if (d.compDe) qs.set('compDe', d.compDe);
+    if (d.compAte) qs.set('compAte', d.compAte);
+    for (const k of ['prazoTecDe', 'prazoTecAte', 'prazoLegalDe', 'prazoLegalAte', 'entregaDe', 'entregaAte'] as const) {
+      if (d[k]) qs.set(k, d[k]);
+    }
+    api.get<Pagina>(`/entregas?${qs}`).then(setPagina)
+      .catch((e) => toast('erro', e instanceof ApiError ? e.message : 'Erro')).finally(() => setLoading(false));
   }
-  useEffect(carregar, [ano, mes, departamentoId, status, responsavelId, tagId, page]);
-  useEffect(() => setPage(1), [ano, mes, departamentoId, status, responsavelId, tagId]);
+  useEffect(carregar, [tick, page, ordem, dir]);
+
+  function filtrar() { setExpandida(null); page === 1 ? setTick((t) => t + 1) : setPage(1); }
 
   const items = pagina?.items ?? [];
-  const nomeUsuario = useMemo(() => new Map(usuarios.map((u) => [u.id, u.nome.split(' ')[0]])), [usuarios]);
-  const todosSel = items.length > 0 && items.every((e) => sel.has(e.id));
+  const nomeUsuario = useMemo(() => new Map(usuarios.map((u) => [u.id, u.nome])), [usuarios]);
 
-  function toggle(id: string) {
-    setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  function ordenar(o: typeof ordem) {
+    if (ordem === o) { setDir((x) => (x === 'asc' ? 'desc' : 'asc')); }
+    else { setOrdem(o); setDir('asc'); }
   }
-  function toggleTodos() {
-    setSel((s) => { const n = new Set(s); todosSel ? items.forEach((e) => n.delete(e.id)) : items.forEach((e) => n.add(e.id)); return n; });
-  }
+  const seta = (o: typeof ordem) => (ordem === o ? (dir === 'asc' ? ' ↓' : ' ↑') : '');
 
-  async function gerarCompetencia() {
-    if (!confirm(`Gerar entregas da competencia ${String(mes).padStart(2, '0')}/${ano}?`)) return;
-    try {
-      const r = await api.post<{ criadas: number }>('/entregas/gerar', { ano, mes });
-      toast('ok', `${r.criadas} entrega(s) geradas.`);
-      carregar();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
-  async function recalcular() {
-    try { const r = await api.post<{ atualizadas: number }>('/entregas/recalcular'); toast('ok', `${r.atualizadas} status atualizados.`); carregar(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
-  async function desfazer(e: Entrega) {
-    if (!confirm('Desfazer a baixa desta entrega?')) return;
-    try { await api.post(`/entregas/${e.id}/desfazer`); toast('ok', 'Baixa desfeita.'); carregar(); }
-    catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro'); }
-  }
   async function dispensar(e: Entrega) {
-    const motivo = prompt('Motivo da dispensa:');
+    const motivo = prompt('Motivo da dispensa da entrega:');
     if (motivo === null) return;
-    try { await api.post(`/entregas/${e.id}/dispensar`, { motivo }); toast('ok', 'Dispensada.'); carregar(); }
+    try { await api.post(`/entregas/${e.id}/dispensar`, { motivo }); toast('ok', 'Entrega dispensada.'); carregar(); }
     catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro'); }
   }
-  async function exportar() {
-    const qs = new URLSearchParams({ ano: String(ano), mes: String(mes) });
-    if (status) qs.set('status', status);
-    const res = await fetch(`/api/v1/entregas/export?${qs}`, { headers: { Authorization: `Bearer ${getAccessToken()}` } });
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = 'entregas.csv'; a.click(); URL.revokeObjectURL(url);
+  async function entregaRapida(e: Entrega) {
+    try {
+      const fd = new FormData();
+      fd.append('dataEntrega', new Date().toISOString().slice(0, 10));
+      fd.append('atualizarResponsavel', 'true');
+      await api.upload(`/entregas/${e.id}/baixar`, fd);
+      toast('ok', 'Entrega rapida registrada.'); carregar();
+    } catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro'); }
+  }
+  function imprimir() {
+    const qs = new URLSearchParams();
+    if (d.compDe) qs.set('ano', d.compDe.split('-')[0]);
+    if (d.compDe) qs.set('mes', String(Number(d.compDe.split('-')[1])));
+    fetch(`/api/v1/entregas/export?${qs}`, { headers: { Authorization: `Bearer ${getAccessToken()}` } })
+      .then((r) => r.blob()).then((b) => {
+        const url = URL.createObjectURL(b); const a = document.createElement('a');
+        a.href = url; a.download = 'obrigacoes.csv'; a.click(); URL.revokeObjectURL(url);
+      });
   }
 
-  const baixada = (e: Entrega) => ['ENTREGUE', 'ENTREGUE_JUSTIFICADA'].includes(e.status);
+  const Flag = ({ k, label, cor }: { k: keyof typeof flags; label: string; cor: string }) => (
+    <label className="flex cursor-pointer select-none items-center gap-1.5 rounded px-1.5 py-1" style={{ background: cor }}>
+      <input type="checkbox" checked={flags[k]} onChange={(e) => setFlags((f) => ({ ...f, [k]: e.target.checked }))} className="accent-marca-600" />
+      <span className="text-[12px] font-medium text-slate-700">{label}</span>
+    </label>
+  );
+  const IconBtn = ({ title, onClick, children }: { title: string; onClick: () => void; children: React.ReactNode }) => (
+    <button title={title} onClick={onClick} className="grid h-8 w-8 place-items-center rounded text-marca-600 hover:bg-marca-50">{children}</button>
+  );
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-800">Lista de Entregas</h1>
-        <div className="flex flex-wrap gap-2">
-          <Link to="/entregas/calendario" className="btn-ghost border border-slate-300">Calendario</Link>
-          <button className="btn-ghost border border-slate-300" onClick={exportar}>Exportar</button>
-          {podeEditarPrazo && <button className="btn-ghost border border-slate-300" onClick={recalcular}>Recalcular status</button>}
-          {podeEditarPrazo && <button className="btn-primary" onClick={gerarCompetencia}>Gerar competencia</button>}
+    <div className="-m-6 min-h-full bg-slate-100 p-4 text-[13px]">
+      {/* cabecalho */}
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-600">
+          <CheckCircle2 size={16} className="text-slate-400" />
+          <span className="font-medium text-slate-700">Gestao das Obrigacoes e Tarefas</span>
+          <span className="text-slate-400">[F2]</span>
+        </div>
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400">
+          <Search size={13} /><span className="text-[12px]">Central de ajuda</span>
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="card flex flex-wrap items-end gap-3 p-4">
-        <div>
-          <label className="label">Mes</label>
-          <select className="input" value={mes} onChange={(e) => setMes(Number(e.target.value))}>
-            {MESES.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Ano</label>
-          <input type="number" className="input w-24" value={ano} onChange={(e) => setAno(Number(e.target.value))} />
-        </div>
-        <div>
-          <label className="label">Departamento</label>
-          <select className="input" value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)}>
-            <option value="">Todos</option>
-            {departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Status</label>
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Todos</option>
-            {Object.entries(STATUS_INFO).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Responsavel</label>
-          <select className="input" value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)}>
-            <option value="">Todos</option>
-            {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Tag</label>
-          <select className="input" value={tagId} onChange={(e) => setTagId(e.target.value)}>
-            <option value="">Todas</option>
-            {tags.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-          </select>
-        </div>
-      </div>
+      {/* barra de filtros */}
+      <div className="rounded border border-slate-200 bg-white p-2 shadow-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <input className={`${INP} w-56`} placeholder="Filtrar por Empresa" value={q}
+            onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && filtrar()} />
+          <button onClick={() => setMostrarFiltros((v) => !v)}
+            className={`flex items-center gap-2 rounded px-3 py-1.5 text-[12px] font-medium text-white ${mostrarFiltros ? 'bg-status-danger hover:bg-red-600' : 'bg-marca-400 hover:bg-marca-500'}`}>
+            {mostrarFiltros ? <X size={14} /> : <SlidersHorizontal size={14} />} {mostrarFiltros ? 'Filtros' : '+Filtros'}
+          </button>
 
-      {sel.size > 0 && podeMassa && (
-        <div className="flex items-center gap-3 rounded-md bg-marca-50 px-4 py-2 text-sm">
-          <span className="font-medium text-marca-700">{sel.size} selecionada(s)</span>
-          <button className="btn-ghost" onClick={() => setModalMassa(true)}>Acoes em massa</button>
-          <button className="btn-ghost" onClick={() => setSel(new Set())}>Limpar</button>
-        </div>
-      )}
+          <div className="flex items-center gap-1">
+            <Flag k="pendentes" label="Pendentes" cor="#fff3cd" />
+            <Flag k="justificadas" label="Justificadas" cor="#e7f1ff" />
+            <Flag k="entregues" label="Entregues" cor="#e8f6ec" />
+            <Flag k="dispensadas" label="Dispensadas" cor="#eef0f2" />
+          </div>
 
-      <div className="card overflow-x-auto">
-        {loading ? <Spinner /> : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr>
-                {podeMassa && <th className="px-3 py-2"><input type="checkbox" checked={todosSel} onChange={toggleTodos} /></th>}
-                <th className="px-3 py-2">Empresa</th>
-                <th className="px-3 py-2">Obrigacao</th>
-                <th className="px-3 py-2">Comp.</th>
-                <th className="px-3 py-2">Prazo tec.</th>
-                <th className="px-3 py-2">Prazo legal</th>
-                <th className="px-3 py-2">Resp.</th>
-                <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Acoes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((e) => (
-                <tr key={e.id} className="border-b border-slate-100 hover:bg-slate-50">
-                  {podeMassa && <td className="px-3 py-2"><input type="checkbox" checked={sel.has(e.id)} onChange={() => toggle(e.id)} /></td>}
-                  <td className="px-3 py-2 font-medium text-slate-700">{e.empresa.razaoSocial}</td>
-                  <td className="px-3 py-2">
-                    {e.obrigacao.departamento && <span className="mr-1 inline-block h-2 w-2 rounded-full" style={{ background: e.obrigacao.departamento.cor }} />}
-                    {e.obrigacao.nome}
-                  </td>
-                  <td className="px-3 py-2 text-slate-500">{e.competencia}</td>
-                  <td className="px-3 py-2 text-slate-500">{dataBR(e.prazoTecnico)}</td>
-                  <td className="px-3 py-2 text-slate-600">
-                    {podeEditarPrazo ? (
-                      <button className="hover:underline" onClick={() => setEditPrazo(e)}>{dataBR(e.prazoLegal)}</button>
-                    ) : dataBR(e.prazoLegal)}
-                  </td>
-                  <td className="px-3 py-2 text-xs text-slate-500">
-                    {e.responsavelPrazoId ? nomeUsuario.get(e.responsavelPrazoId) ?? '—' : '—'}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Badge cor={STATUS_INFO[e.status].cor}>{STATUS_INFO[e.status].label}</Badge>
-                    {e.origemBaixa === 'ROBO' && <span className="ml-1 text-[10px] text-marca-600">robo</span>}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-2 text-xs">
-                      {!baixada(e) && e.status !== 'DISPENSADA' && podeBaixar && (
-                        <button className="font-medium text-status-ok hover:underline" onClick={() => setBaixando(e)}>OK</button>
-                      )}
-                      {baixada(e) && podeBaixar && (
-                        <button className="text-amber-600 hover:underline" onClick={() => desfazer(e)}>desfazer</button>
-                      )}
-                      {!baixada(e) && podeDispensar && (
-                        <button className="text-slate-400 hover:underline" onClick={() => dispensar(e)}>dispensar</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+          <div className="ml-auto flex items-center gap-1">
+            <IconBtn title="Exibir filtros removedores" onClick={() => toast('erro', 'Em construcao')}><SearchX size={17} /></IconBtn>
+            <IconBtn title="Exibir/ocultar datas" onClick={() => setMostrarDatas((v) => !v)}><CalendarDays size={17} /></IconBtn>
+            <IconBtn title="Protocolo fisico" onClick={() => toast('erro', 'Em construcao')}><SquarePen size={17} /></IconBtn>
+            <IconBtn title="Imprimir" onClick={imprimir}><Printer size={17} /></IconBtn>
+            <button onClick={filtrar} className="ml-1 flex items-center gap-2 rounded bg-status-ok px-4 py-1.5 text-[12px] font-medium text-white hover:bg-emerald-600">
+              <Search size={14} /> Filtrar
+            </button>
+          </div>
+        </div>
+
+        {/* +Filtros: chip por departamento */}
+        {mostrarFiltros && (
+          <div className="mt-2 border-t border-slate-100 pt-2">
+            <div className="mb-1 text-[11px] font-semibold uppercase text-slate-400">Filtrar por departamento</div>
+            <div className="flex flex-wrap gap-1.5">
+              <Chip ativo={departamentoId === ''} onClick={() => setDepartamentoId('')}>Todos</Chip>
+              {departamentos.map((dp) => (
+                <Chip key={dp.id} ativo={departamentoId === dp.id} cor={dp.cor} onClick={() => setDepartamentoId(dp.id)}>
+                  Dpto: {dp.nome}
+                </Chip>
               ))}
-              {items.length === 0 && (
-                <tr><td colSpan={9} className="px-3 py-10 text-center text-slate-400">
-                  Nenhuma entrega nesta competencia. Use "Gerar competencia".
-                </td></tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+          </div>
+        )}
+
+        {/* linha de datas */}
+        {mostrarDatas && (
+          <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-slate-100 pt-2 md:grid-cols-4 lg:grid-cols-8">
+            <Mes label="Competencia de" value={d.compDe} onChange={(v) => setD((s) => ({ ...s, compDe: v }))} />
+            <Mes label="Competencia ate" value={d.compAte} onChange={(v) => setD((s) => ({ ...s, compAte: v }))} />
+            <Dia label="Prazo tec. de" value={d.prazoTecDe} onChange={(v) => setD((s) => ({ ...s, prazoTecDe: v }))} />
+            <Dia label="Prazo tec. ate" value={d.prazoTecAte} onChange={(v) => setD((s) => ({ ...s, prazoTecAte: v }))} />
+            <Dia label="Prazo legal de" value={d.prazoLegalDe} onChange={(v) => setD((s) => ({ ...s, prazoLegalDe: v }))} />
+            <Dia label="Prazo legal ate" value={d.prazoLegalAte} onChange={(v) => setD((s) => ({ ...s, prazoLegalAte: v }))} />
+            <Dia label="Entrega do dia" value={d.entregaDe} onChange={(v) => setD((s) => ({ ...s, entregaDe: v }))} />
+            <Dia label="Entrega ate dia" value={d.entregaAte} onChange={(v) => setD((s) => ({ ...s, entregaAte: v }))} />
+          </div>
         )}
       </div>
 
+      {/* tabela */}
+      <div className="mt-2 overflow-hidden rounded border border-slate-200 bg-white shadow-sm">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-200 bg-white text-left align-top text-[12px] text-slate-500">
+              <th className="px-3 py-2 font-normal">
+                <button onClick={() => ordenar('obrigacao')} className="font-semibold text-marca-600 hover:underline">Obrigacao{seta('obrigacao')}</button>
+                <span className="text-slate-400"> / Tarefa</span>
+                <div className="mt-0.5">
+                  <button onClick={() => ordenar('empresa')} className="text-marca-600 hover:underline">Empresa{seta('empresa')}</button>
+                  <span className="text-slate-400"> [ID | Final CNPJ]</span>
+                </div>
+              </th>
+              <th className="px-3 py-2 font-normal">
+                <button onClick={() => ordenar('prazoTecnico')} className="font-semibold text-marca-600 hover:underline">Prazo{seta('prazoTecnico')}</button>
+                <span className="text-slate-400"> &rarr; Status Entrega</span>
+                <div className="mt-0.5 text-slate-400">Dpto - Resp. [Prazo/Entrega]</div>
+              </th>
+              <th className="px-3 py-2 font-normal">
+                <button onClick={() => ordenar('prazoLegal')} className="font-semibold text-marca-600 hover:underline">Prazo legal{seta('prazoLegal')}</button>
+                <div className="mt-0.5">
+                  <button onClick={() => ordenar('competencia')} className="text-marca-600 hover:underline">Competencia{seta('competencia')}</button>
+                </div>
+              </th>
+              <th className="px-3 py-2 font-normal">
+                <div className="font-semibold text-slate-600">Protocolo de entrega</div>
+                <div className="mt-0.5 text-slate-400">Comentarios</div>
+              </th>
+              <th className="px-3 py-2 text-right font-normal align-middle">
+                <span className="text-marca-600">&laquo; {pagina?.total ?? 0} reg &raquo;</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={5} className="py-12"><Spinner /></td></tr>
+            ) : items.length === 0 ? (
+              <tr><td colSpan={5} className="px-3 py-12 text-center text-slate-400">Nenhuma obrigacao/tarefa para os filtros selecionados.</td></tr>
+            ) : items.map((e) => {
+              const cor = e.obrigacao.departamento?.cor ?? '#64748b';
+              const respId = e.responsavelEntregaId ?? e.responsavelPrazoId;
+              const resp = respId ? nomeUsuario.get(respId) ?? '-' : '-';
+              const aberta = expandida === e.id;
+              return (
+                <Fragment key={e.id}>
+                  <tr onClick={() => setExpandida(aberta ? null : e.id)}
+                    className={`cursor-pointer border-b border-slate-100 align-top hover:bg-slate-50 ${aberta ? 'bg-slate-50' : ''}`}>
+                    {/* col 1 */}
+                    <td className="px-3 py-2">
+                      <div className="font-semibold" style={{ color: cor }}>{e.obrigacao.nome}</div>
+                      <div className="text-slate-600">
+                        {e.empresa.razaoSocial}
+                        <span className="text-slate-400"> [{e.empresa.cnpjFinal ?? '----'}]</span>
+                      </div>
+                    </td>
+                    {/* col 2 */}
+                    <td className="px-3 py-2">
+                      <span className="inline-block rounded px-1.5 py-0.5 text-[12px] font-medium" style={{ background: COR[e.status] + '22', color: COR[e.status] }}>
+                        {dataCurta(e.prazoTecnico)} {ROTULO[e.status]}
+                      </span>
+                      <div className="mt-0.5 text-slate-500">
+                        {e.obrigacao.departamento?.nome ?? '-'} - {resp}
+                      </div>
+                    </td>
+                    {/* col 3 */}
+                    <td className="px-3 py-2">
+                      <div className="text-slate-600">{dataCurta(e.prazoLegal)}</div>
+                      <div className="mt-0.5 font-medium text-marca-700">{MESES[e.competenciaMes - 1]}/{e.competenciaAno}</div>
+                    </td>
+                    {/* col 4 */}
+                    <td className="px-3 py-2">
+                      <div className="text-slate-600">{e.numeroProtocolo || <span className="text-slate-300">-</span>}</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-slate-400">
+                        {e.qtdComentarios ?? 0} <MessageSquare size={13} />
+                      </div>
+                    </td>
+                    {/* col 5 */}
+                    <td className="px-3 py-2">
+                      <div className="flex items-center justify-end gap-2">
+                        {podeDispensar && (
+                          <button title="Dispensar entrega" onClick={(ev) => { ev.stopPropagation(); dispensar(e); }} className="text-status-danger hover:opacity-70"><XCircle size={20} /></button>
+                        )}
+                        {podeBaixar && (
+                          <button title="Entrega rapida" onClick={(ev) => { ev.stopPropagation(); entregaRapida(e); }} className="text-status-ok hover:opacity-70"><ThumbsUp size={20} /></button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {aberta && (
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <td colSpan={5} className="px-3 py-3">
+                        <LinhaBaixa entrega={e} onBaixado={() => { setExpandida(null); carregar(); }} onDispensar={() => dispensar(e)} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* paginacao */}
       {pagina && pagina.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 text-sm">
-          <button className="btn-ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Anterior</button>
+        <div className="mt-3 flex items-center justify-center gap-3 text-[12px]">
+          <button className="rounded border border-slate-300 bg-white px-3 py-1 disabled:opacity-40" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Anterior</button>
           <span className="text-slate-500">Pagina {pagina.page} de {pagina.totalPages} ({pagina.total})</span>
-          <button className="btn-ghost" disabled={page >= pagina.totalPages} onClick={() => setPage((p) => p + 1)}>Proxima</button>
+          <button className="rounded border border-slate-300 bg-white px-3 py-1 disabled:opacity-40" disabled={page >= pagina.totalPages} onClick={() => setPage((p) => p + 1)}>Proxima</button>
         </div>
       )}
 
-      {baixando && <ModalBaixa entrega={baixando} onFechar={() => setBaixando(null)} onBaixado={() => { setBaixando(null); carregar(); }} />}
-      {editPrazo && <ModalPrazo entrega={editPrazo} onFechar={() => setEditPrazo(null)} onSalvo={() => { setEditPrazo(null); carregar(); }} />}
-      {modalMassa && <ModalMassa entregaIds={[...sel]} usuarios={usuarios} onFechar={() => setModalMassa(false)} onFeito={() => { setModalMassa(false); setSel(new Set()); carregar(); }} />}
+      <div className="mt-3 text-center text-[11px] text-slate-400">
+        <Link to="/entregas/calendario" className="text-marca-600 hover:underline">Ver calendario</Link>
+      </div>
     </div>
   );
 }
 
-function ModalBaixa({ entrega, onFechar, onBaixado }: { entrega: Entrega; onFechar: () => void; onBaixado: () => void }) {
+function Chip({ ativo, cor, onClick, children }: { ativo: boolean; cor?: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick}
+      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] ${ativo ? 'border-marca-400 bg-marca-50 text-marca-700' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
+      {cor && <span className="h-2 w-2 rounded-full" style={{ background: cor }} />}
+      {children}
+    </button>
+  );
+}
+
+function Mes({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return <div><div className="mb-0.5 text-[10px] uppercase text-slate-400">{label}</div>
+    <input type="month" className={DATA_INP} value={value} onChange={(e) => onChange(e.target.value)} /></div>;
+}
+function Dia({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return <div><div className="mb-0.5 text-[10px] uppercase text-slate-400">{label}</div>
+    <input type="date" className={DATA_INP} value={value} onChange={(e) => onChange(e.target.value)} /></div>;
+}
+
+// ---------- Linha expandida: baixa / dispensa ----------
+function LinhaBaixa({ entrega, onBaixado, onDispensar }: { entrega: Entrega; onBaixado: () => void; onDispensar: () => void }) {
   const toast = useToast();
-  const [data, setData] = useState(new Date().toISOString().slice(0, 10));
-  const [atualizarResp, setAtualizarResp] = useState(true);
+  const [protocolo, setProtocolo] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [enviarEmail, setEnviarEmail] = useState<'nao' | 'imediato' | 'agendado' | 'preagendado'>('nao');
+  const [vcto, setVcto] = useState('');
+  const [obsEmail, setObsEmail] = useState('');
+  const [comentario, setComentario] = useState('');
   const [justificativa, setJustificativa] = useState('');
-  const [enviarCliente, setEnviarCliente] = useState(false);
-  const [arquivos, setArquivos] = useState<FileList | null>(null);
   const [salvando, setSalvando] = useState(false);
 
-  const aposLegal = new Date(data + 'T12:00:00') > new Date(entrega.prazoLegal);
-
-  async function confirmar() {
-    if (entrega.obrigacao.exigeAnexoNaBaixa && (!arquivos || arquivos.length === 0))
-      return toast('erro', 'Esta obrigacao exige anexo na baixa.');
-    if (aposLegal && !justificativa.trim()) return toast('erro', 'Justificativa obrigatoria (apos prazo legal).');
+  async function salvar() {
     setSalvando(true);
     try {
       const fd = new FormData();
-      fd.append('dataEntrega', data);
-      fd.append('atualizarResponsavel', String(atualizarResp));
-      fd.append('justificativa', justificativa);
-      fd.append('enviarCliente', String(enviarCliente));
-      if (arquivos) Array.from(arquivos).forEach((f) => fd.append('anexos', f));
+      fd.append('dataEntrega', new Date().toISOString().slice(0, 10));
+      fd.append('atualizarResponsavel', 'true');
+      if (protocolo.trim()) fd.append('numeroProtocolo', protocolo.trim());
+      if (vcto) fd.append('vencimentoGuia', vcto);
+      if (justificativa.trim()) fd.append('justificativa', justificativa.trim());
+      if (comentario.trim() || obsEmail.trim()) fd.append('comentario', [comentario.trim(), obsEmail.trim()].filter(Boolean).join(' | '));
+      if (enviarEmail === 'imediato') fd.append('enviarCliente', 'true');
+      if (arquivo) fd.append('anexos', arquivo);
       await api.upload(`/entregas/${entrega.id}/baixar`, fd);
-      toast('ok', enviarCliente ? 'Baixado! (envio ao cliente: Modulo 8)' : 'Entrega baixada.');
+      toast('ok', enviarEmail === 'agendado' || enviarEmail === 'preagendado' ? 'Baixado. (envio agendado: em construcao)' : 'Entrega registrada.');
       onBaixado();
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
     finally { setSalvando(false); }
   }
 
   return (
-    <Modal aberto titulo="Dar baixa (OK)" onFechar={onFechar}>
-      <div className="space-y-3">
-        <div className="rounded bg-slate-50 px-3 py-2 text-sm">
-          <strong>{entrega.empresa.razaoSocial}</strong><br />
-          {entrega.obrigacao.nome} — comp. {entrega.competencia}
+    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-[1.4fr_1.2fr_1fr_0.8fr]">
+        <div>
+          <label className="mb-0.5 block text-[11px] text-slate-500">Numero do protocolo de entrega</label>
+          <input className={`${INP} w-full`} placeholder="Informe para marcar como 'Entregue'" value={protocolo} onChange={(e) => setProtocolo(e.target.value)} />
         </div>
         <div>
-          <label className="label">Data da entrega</label>
-          <input type="date" className="input" value={data} onChange={(e) => setData(e.target.value)} />
+          <label className="mb-0.5 block text-[11px] text-slate-500">Anexar arquivo</label>
+          <label className="flex cursor-pointer items-center gap-2 rounded border border-slate-300 bg-white px-2 py-1.5">
+            <span className="rounded bg-marca-500 px-2 py-0.5 text-[11px] font-medium text-white">Escolher</span>
+            <span className="flex items-center gap-1 truncate text-[12px] text-slate-500"><Paperclip size={12} />{arquivo ? arquivo.name : 'Anexo [ate 60MB]'}</span>
+            <input type="file" className="hidden" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+          </label>
         </div>
-        {aposLegal && (
-          <div>
-            <label className="label text-red-600">Justificativa (apos prazo legal) *</label>
-            <textarea className="input" rows={2} value={justificativa} onChange={(e) => setJustificativa(e.target.value)} />
-          </div>
-        )}
         <div>
-          <label className="label">Anexos {entrega.obrigacao.exigeAnexoNaBaixa && <span className="text-red-600">*</span>}</label>
-          <input type="file" multiple onChange={(e) => setArquivos(e.target.files)} />
-        </div>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" checked={atualizarResp} onChange={(e) => setAtualizarResp(e.target.checked)} />
-          Definir-me como responsavel pela entrega
-        </label>
-        <label className="flex items-center gap-2 text-sm text-slate-600">
-          <input type="checkbox" checked={enviarCliente} onChange={(e) => setEnviarCliente(e.target.checked)} />
-          Enviar ao cliente agora (Modulo 8)
-        </label>
-        <div className="flex justify-end gap-2">
-          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-          <button className="btn-primary" onClick={confirmar} disabled={salvando}>{salvando ? 'Salvando...' : 'Confirmar baixa'}</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function ModalPrazo({ entrega, onFechar, onSalvo }: { entrega: Entrega; onFechar: () => void; onSalvo: () => void }) {
-  const toast = useToast();
-  const [legal, setLegal] = useState(entrega.prazoLegal.slice(0, 10));
-  const [tecnico, setTecnico] = useState(entrega.prazoTecnico.slice(0, 10));
-  const [salvando, setSalvando] = useState(false);
-  async function salvar() {
-    setSalvando(true);
-    try { await api.put(`/entregas/${entrega.id}/prazo`, { prazoLegal: legal, prazoTecnico: tecnico }); toast('ok', 'Prazo atualizado.'); onSalvo(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-  return (
-    <Modal aberto titulo="Editar prazos" onFechar={onFechar}>
-      <div className="space-y-3">
-        <div><label className="label">Prazo tecnico</label><input type="date" className="input" value={tecnico} onChange={(e) => setTecnico(e.target.value)} /></div>
-        <div><label className="label">Prazo legal</label><input type="date" className="input" value={legal} onChange={(e) => setLegal(e.target.value)} /></div>
-        <div className="flex justify-end gap-2">
-          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-          <button className="btn-primary" onClick={salvar} disabled={salvando}>Salvar</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
-function ModalMassa({ entregaIds, usuarios, onFechar, onFeito }: { entregaIds: string[]; usuarios: UsuarioBasico[]; onFechar: () => void; onFeito: () => void }) {
-  const toast = useToast();
-  const [acao, setAcao] = useState<'postergar' | 'transferir' | 'baixar' | 'dispensar'>('postergar');
-  const [dias, setDias] = useState(0);
-  const [novaData, setNovaData] = useState('');
-  const [responsavelId, setResponsavelId] = useState('');
-  const [motivo, setMotivo] = useState('');
-  const [salvando, setSalvando] = useState(false);
-
-  async function executar() {
-    setSalvando(true);
-    try {
-      await api.post('/entregas/acoes-massa', {
-        entregaIds, acao,
-        dias: acao === 'postergar' && !novaData ? dias : undefined,
-        novaData: acao === 'postergar' && novaData ? novaData : undefined,
-        responsavelId: acao === 'transferir' ? responsavelId : undefined,
-        motivo: acao === 'dispensar' ? motivo : undefined,
-      });
-      toast('ok', 'Acao aplicada.');
-      onFeito();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-
-  return (
-    <Modal aberto titulo={`Acoes em massa (${entregaIds.length})`} onFechar={onFechar}>
-      <div className="space-y-3">
-        <select className="input" value={acao} onChange={(e) => setAcao(e.target.value as never)}>
-          <option value="postergar">Postergar/atualizar prazo</option>
-          <option value="transferir">Transferir responsavel</option>
-          <option value="baixar">Dar baixa</option>
-          <option value="dispensar">Dispensar</option>
-        </select>
-        {acao === 'postergar' && (
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">+ N dias</label><input type="number" className="input" value={dias} onChange={(e) => setDias(Number(e.target.value))} /></div>
-            <div><label className="label">ou nova data legal</label><input type="date" className="input" value={novaData} onChange={(e) => setNovaData(e.target.value)} /></div>
-          </div>
-        )}
-        {acao === 'transferir' && (
-          <select className="input" value={responsavelId} onChange={(e) => setResponsavelId(e.target.value)}>
-            <option value="">Selecione o responsavel</option>
-            {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+          <label className="mb-0.5 block text-[11px] text-slate-500">Enviar por email?</label>
+          <select className={`${INP} w-full`} value={enviarEmail} onChange={(e) => setEnviarEmail(e.target.value as never)}>
+            <option value="nao">Nao</option>
+            <option value="imediato">Sim - Imediato</option>
+            <option value="agendado">Sim - Agendado</option>
+            <option value="preagendado">Sim - Pre-agendado</option>
           </select>
-        )}
-        {acao === 'dispensar' && <input className="input" placeholder="Motivo" value={motivo} onChange={(e) => setMotivo(e.target.value)} />}
-        <div className="flex justify-end gap-2">
-          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-          <button className="btn-primary" onClick={executar} disabled={salvando}>Aplicar</button>
+        </div>
+        <div>
+          <label className="mb-0.5 block text-[11px] text-slate-500">Vcto (caso seja guia)</label>
+          <input type="date" className={`${INP} w-full`} value={vcto} onChange={(e) => setVcto(e.target.value)} />
         </div>
       </div>
-    </Modal>
+
+      <input className={`${INP} w-full`} placeholder="Comentario / observacao para esse arquivo no e-mail (opcional)" value={obsEmail} onChange={(e) => setObsEmail(e.target.value)} />
+
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-[auto_1fr_1fr]">
+        <div className="flex flex-col gap-2">
+          <button onClick={salvar} disabled={salvando} className="flex items-center justify-center gap-2 rounded bg-status-ok px-5 py-1.5 text-[13px] font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
+            <Save size={15} /> {salvando ? '...' : 'OK - Salvar'}
+          </button>
+          <button onClick={onDispensar} className="flex items-center justify-center gap-2 rounded bg-status-danger px-5 py-1.5 text-[13px] font-medium text-white hover:bg-red-600">
+            <X size={15} /> Dispensar
+          </button>
+        </div>
+        <input className={`${INP} w-full`} placeholder="Adicionar comentario..." value={comentario} onChange={(e) => setComentario(e.target.value)} />
+        <input className={`${INP} w-full`} placeholder="Justificativa de atraso/dispensa" value={justificativa} onChange={(e) => setJustificativa(e.target.value)} />
+      </div>
+    </div>
   );
 }
