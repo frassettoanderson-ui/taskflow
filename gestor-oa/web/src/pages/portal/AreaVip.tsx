@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Save, Settings, Copy, Plus, Trash2, ChevronDown, ChevronRight, Smartphone, Eye, Pencil, History, Link2, Film, MessageCircle, Globe, FileText, Phone, Mail, Calendar } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { useToast } from '../../components/ui';
+import { useToast, InfoHint } from '../../components/ui';
 import type { Departamento, EmpresaLista } from '../../lib/tipos';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
@@ -14,6 +14,15 @@ const OPC_DOCS = ['Disponivel a partir da postagem', 'Somente apos o envio do e-
 const OPC_INATIVAS = ['Acesso completo', 'Acesso bloqueado', 'Acesso somente consulta'];
 const OPC_ORDENAR = ['Data da publicacao', 'Data de vencimento'];
 const OPC_CONTATO = ['Desligado', 'Ligado'];
+
+const INFO_CALENDARIO = `No mes atual e possivel definir se todos os prazos ja vem exibidos ou somente os do dia atual.
+
+Nos demais meses, todos os prazos do mes serao exibidos por padrao.`;
+const INFO_CONTATO = `Na tela de login da Area VIP e APP, os usuarios podem preencher um formulario de contato para se tornarem clientes. Apos o preenchimento, uma solicitacao sera gerada com as informacoes de contato fornecidas.`;
+const INFO_DOCS = `Caso esteja desmarcada a opcao: "Recebe e-mails ref. documentos postados" e esteja selecionada a opcao "somente apos o envio do e-mail" os documentos tambem ficarao disponiveis na Area VIP.`;
+const INFO_INATIVAS = `Ao selecionar acesso bloqueado somente empresas ativas serao exibidas para os usuarios do app e area vip, ja o acesso somente consulta os usuarios terao permissao para consultar os dados impossibilitando inserir novas informacoes e por ultimo o acesso completo garante aos usuarios acesso total sem nenhuma restricao mesmo que a empresa esteja inativa.
+
+Por padrao a opcao selecionada e de acesso completo.`;
 
 interface LinkHome { icone: string; titulo: string; url: string; empresas: string }
 interface Termo { titulo: string; url: string }
@@ -203,19 +212,19 @@ export default function AreaVip() {
         <Campo label="Pagina inicial da Area VIP">
           <select className={INP} value={cfg.paginaInicial ?? 'Calendario'} onChange={(e) => set({ paginaInicial: e.target.value })}>{OPC_PAGINA.map((o) => <option key={o}>{o}</option>)}</select>
         </Campo>
-        <Campo label="Visualizacao padrao do calendario (mes atual)">
+        <Campo label="Visualizacao padrao do calendario (mes atual)" info={INFO_CALENDARIO}>
           <select className={INP} value={cfg.visualizacaoCalendario ?? OPC_CALENDARIO[0]} onChange={(e) => set({ visualizacaoCalendario: e.target.value })}>{OPC_CALENDARIO.map((o) => <option key={o}>{o}</option>)}</select>
         </Campo>
-        <Campo label="Visualizacao dos documentos agendados / agrupados">
+        <Campo label="Visualizacao dos documentos agendados / agrupados" info={INFO_DOCS}>
           <select className={INP} value={cfg.visualizacaoDocs ?? OPC_DOCS[1]} onChange={(e) => set({ visualizacaoDocs: e.target.value })}>{OPC_DOCS.map((o) => <option key={o}>{o}</option>)}</select>
         </Campo>
-        <Campo label="Tipo de acesso em empresas inativas">
+        <Campo label="Tipo de acesso em empresas inativas" info={INFO_INATIVAS}>
           <select className={INP} value={cfg.acessoInativas ?? OPC_INATIVAS[0]} onChange={(e) => set({ acessoInativas: e.target.value })}>{OPC_INATIVAS.map((o) => <option key={o}>{o}</option>)}</select>
         </Campo>
         <Campo label="Ordenar docs do calendario:">
           <select className={INP} value={cfg.ordenarDocs ?? OPC_ORDENAR[0]} onChange={(e) => set({ ordenarDocs: e.target.value })}>{OPC_ORDENAR.map((o) => <option key={o}>{o}</option>)}</select>
         </Campo>
-        <Campo label="Opcao / Contato nao cliente">
+        <Campo label="Opcao / Contato nao cliente" info={INFO_CONTATO}>
           <select className={INP} value={cfg.contatoNaoCliente ?? 'Ligado'} onChange={(e) => set({ contatoNaoCliente: e.target.value })}>{OPC_CONTATO.map((o) => <option key={o}>{o}</option>)}</select>
         </Campo>
         <Campo label="Departamento da solicitacao">
@@ -272,6 +281,6 @@ function LinhaLink({ label, valor, onChange, onCopy, placeholder, editavel }: { 
   );
 }
 
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><label className={LBL}>{label}</label>{children}</div>;
+function Campo({ label, children, info }: { label: string; children: React.ReactNode; info?: string }) {
+  return <div><label className={LBL}>{label}{info && <span className="ml-1"><InfoHint texto={info} /></span>}</label>{children}</div>;
 }
