@@ -11,9 +11,9 @@ import type { Matriz, MatrizPasso, TipoPassoMatriz, DesdobramentoOpcao, Departam
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-2 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-1 flex items-center gap-1 text-[13px] font-semibold text-slate-700';
 
-const INFO_SUB = 'Marque "Sim" se esta matriz so pode ser usada como SUB-processo (chamada de dentro de outra matriz), nao aparecendo na lista de "Novo processo".';
-const INFO_AUTORIZA = 'Se "Sim", ao iniciar um processo desta matriz o sistema exigira uma autorizacao antes de prosseguir.';
-const INFO_BARRA = 'Numero de dias a partir do inicio. Apos esse prazo, a barra de evolucao do processo fica VERMELHA (indicando atraso).';
+const INFO_SUB = 'Marque como Sim caso essa seja uma matriz que so sera utilizada dentro de uma outra matriz, seja em forma de sub-matriz ou em uma opcao de desdobramento.\n\nExemplo: sub-matriz "Registro na junta comercial", que so e disparada pela matriz "Constituicao de empresa".';
+const INFO_AUTORIZA = 'Marque Sim caso seja um processo que so pode ser iniciado mediante aprovacao de algum usuario com permissao para autorizacao de processos.';
+const INFO_BARRA = 'Quantidade de dias corridos apos o inicio do processo, para a barra de progresso da % de evolucao do processo ficar vermelha.';
 
 const TIPO_INFO: Record<TipoPassoMatriz, { label: string; icon: typeof CheckSquare; cor: string }> = {
   PASSO_SIMPLES: { label: 'Passo simples', icon: CheckSquare, cor: 'text-sky-600' },
