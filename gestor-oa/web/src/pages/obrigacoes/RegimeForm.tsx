@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Landmark, Save, Plus, RotateCcw, Copy, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { Landmark, Save, Plus, RotateCcw, Copy, Trash2 } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
@@ -44,7 +44,7 @@ export default function RegimeForm() {
       setItens(r.obrigacoes.map((l) => ({
         obrigacaoId: l.obrigacaoId, nome: l.obrigacao.nome,
         departamento: l.obrigacao.departamento?.nome ?? 'Sem departamento',
-        tempoPrevisto: l.tempoPrevistoOverride != null ? String(l.tempoPrevistoOverride) : '',
+        tempoPrevisto: String(l.tempoPrevistoOverride ?? 0),
       })));
     }).catch(() => toast('erro', 'Regime nao encontrado.')).finally(() => setCarregando(false));
   }, [id, novo]);
@@ -63,7 +63,7 @@ export default function RegimeForm() {
     if (!novoSel) return;
     const o = catalogo.find((x) => x.id === novoSel);
     if (!o) return;
-    setItens((arr) => [...arr, { obrigacaoId: o.id, nome: o.nome, departamento: o.departamento?.nome ?? 'Sem departamento', tempoPrevisto: '' }]);
+    setItens((arr) => [...arr, { obrigacaoId: o.id, nome: o.nome, departamento: o.departamento?.nome ?? 'Sem departamento', tempoPrevisto: '0' }]);
     setNovoSel('');
   }
   function setTempo(obrigacaoId: string, v: string) { setItens((arr) => arr.map((i) => i.obrigacaoId === obrigacaoId ? { ...i, tempoPrevisto: v } : i)); }
@@ -128,34 +128,32 @@ export default function RegimeForm() {
           <button onClick={adicionar} className="flex items-center gap-2 whitespace-nowrap rounded-md bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Adicionar</button>
         </div>
 
-        <div className="mt-3 space-y-2">
+        <div className="mt-2">
+          {/* cabecalho da coluna Tempo previsto */}
+          {itens.length > 0 && (
+            <div className="flex items-center gap-3 pb-1">
+              <span className="flex-1" />
+              <span className="w-1/3 text-center text-[12px] font-medium text-slate-600">Tempo previsto (min)</span>
+              <span className="w-40" />
+            </div>
+          )}
           {Object.keys(grupos).length === 0 && <p className="text-[12px] text-slate-400">Nenhuma obrigacao adicionada.</p>}
           {Object.entries(grupos).map(([dep, lista]) => {
             const fechado = grupoFechado[dep];
             return (
-              <div key={dep}>
-                <button onClick={() => setGrupoFechado((g) => ({ ...g, [dep]: !g[dep] }))} className="flex items-center gap-1 text-[13px] font-medium text-marca-700">
-                  {fechado ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+              <div key={dep} className="mb-1">
+                <button onClick={() => setGrupoFechado((g) => ({ ...g, [dep]: !g[dep] }))} className="text-left text-[13px] font-medium text-marca-700">
                   {dep} <span className="font-normal text-marca-500">(clique para exibir/ocultar)</span>
                 </button>
                 {!fechado && (
-                  <div className="mt-1 overflow-hidden rounded border border-slate-200 bg-white">
-                    <table className="w-full">
-                      <thead><tr className="border-b border-slate-200 text-left text-[12px] font-semibold text-slate-600">
-                        <th className="px-4 py-1.5">Obrigacao</th>
-                        <th className="px-4 py-1.5 w-44 text-right">Tempo previsto (min)</th>
-                        <th className="px-4 py-1.5 w-12"></th>
-                      </tr></thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {lista.map((it) => (
-                          <tr key={it.obrigacaoId}>
-                            <td className="px-4 py-1.5 text-slate-700">{it.nome}</td>
-                            <td className="px-4 py-1.5 text-right"><input className={`${INP} w-28 text-right`} value={it.tempoPrevisto} onChange={(e) => setTempo(it.obrigacaoId, e.target.value.replace(/\D/g, ''))} placeholder="—" /></td>
-                            <td className="px-4 py-1.5 text-right"><button onClick={() => remover(it.obrigacaoId)} className="text-red-400 hover:text-red-600"><Trash2 size={15} /></button></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="mt-1 space-y-1">
+                    {lista.map((it) => (
+                      <div key={it.obrigacaoId} className="flex items-center gap-3">
+                        <button onClick={() => navigate(`/obrigacoes/${it.obrigacaoId}`)} className="flex-1 text-left text-marca-600 hover:underline">{it.nome}</button>
+                        <input className={`${INP} w-1/3 text-center`} value={it.tempoPrevisto} onChange={(e) => setTempo(it.obrigacaoId, e.target.value.replace(/\D/g, ''))} />
+                        <button onClick={() => remover(it.obrigacaoId)} className="flex w-40 items-center justify-center gap-2 rounded bg-status-danger py-1.5 text-sm font-medium text-white hover:bg-red-600"><Trash2 size={15} /> Remover</button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
