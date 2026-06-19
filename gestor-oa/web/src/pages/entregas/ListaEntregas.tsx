@@ -66,6 +66,7 @@ export default function ListaEntregas() {
   const [departamentoId, setDepartamentoId] = useState('');
   const [flags, setFlags] = useState({ pendentes: true, justificadas: true, entregues: false, dispensadas: false });
   const [mostrarDatas, setMostrarDatas] = useState(false);
+  const [mostrarImprimir, setMostrarImprimir] = useState(false);
   const [d, setD] = useState({
     compDe: mesAtual(), compAte: mesAtual(),
     prazoTecDe: '', prazoTecAte: '', prazoLegalDe: '', prazoLegalAte: '', entregaDe: '', entregaAte: '',
@@ -188,12 +189,25 @@ export default function ListaEntregas() {
             <IconBtn title="Exibir filtros removedores" onClick={() => toast('erro', 'Em construcao')}><SearchX size={17} /></IconBtn>
             <IconBtn title="Exibir/ocultar datas" onClick={() => setMostrarDatas((v) => !v)}><CalendarDays size={17} /></IconBtn>
             <IconBtn title="Protocolo fisico" onClick={() => navigate('/documentos/protocolos-fisicos')}><SquarePen size={17} /></IconBtn>
-            <IconBtn title="Imprimir" onClick={imprimir}><Printer size={17} /></IconBtn>
+            <IconBtn title="Imprimir" onClick={() => setMostrarImprimir((v) => !v)}><Printer size={17} /></IconBtn>
             <button onClick={filtrar} className="ml-1 flex items-center gap-2 rounded bg-status-ok px-4 py-1.5 text-[12px] font-medium text-white hover:bg-emerald-600">
               <Search size={14} /> Filtrar
             </button>
           </div>
         </div>
+
+        {/* Imprimir: opcoes de exportacao */}
+        {mostrarImprimir && (
+          <div className="mt-2 grid grid-cols-1 gap-1.5 border-t border-slate-100 pt-2 md:grid-cols-5">
+            <BotaoExport cor="bg-status-ok hover:bg-emerald-600" onClick={() => toast('erro', 'Em construcao')}>
+              Planejamento Semanal <span className="font-normal opacity-90">(do seu usuario)</span>
+            </BotaoExport>
+            <BotaoExport cor="bg-pink-600 hover:bg-pink-700" onClick={() => toast('erro', 'Em construcao')}>PDF relacao</BotaoExport>
+            <BotaoExport cor="bg-sky-500 hover:bg-sky-600" onClick={() => toast('erro', 'Em construcao')}>PDF relacao com comentarios</BotaoExport>
+            <BotaoExport cor="bg-purple-500 hover:bg-purple-600" onClick={() => toast('erro', 'Em construcao')}>PDF grade</BotaoExport>
+            <BotaoExport cor="bg-amber-400 hover:bg-amber-500" onClick={imprimir}>Excel completo</BotaoExport>
+          </div>
+        )}
 
         {/* +Filtros: chip por departamento */}
         {mostrarFiltros && (
@@ -340,6 +354,14 @@ export default function ListaEntregas() {
         <Link to="/entregas/calendario" className="text-marca-600 hover:underline">Ver calendario</Link>
       </div>
     </div>
+  );
+}
+
+function BotaoExport({ cor, onClick, children }: { cor: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} className={`flex items-center justify-center gap-2 rounded px-3 py-2 text-[13px] font-medium text-white ${cor}`}>
+      <Printer size={15} /> {children}
+    </button>
   );
 }
 
