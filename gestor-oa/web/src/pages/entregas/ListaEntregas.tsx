@@ -64,7 +64,7 @@ export default function ListaEntregas() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [departamentoId, setDepartamentoId] = useState('');
   const [flags, setFlags] = useState({ pendentes: true, justificadas: true, entregues: false, dispensadas: false });
-  const [mostrarDatas, setMostrarDatas] = useState(true);
+  const [mostrarDatas, setMostrarDatas] = useState(false);
   const [d, setD] = useState({
     compDe: mesAtual(), compAte: mesAtual(),
     prazoTecDe: '', prazoTecAte: '', prazoLegalDe: '', prazoLegalAte: '', entregaDe: '', entregaAte: '',
