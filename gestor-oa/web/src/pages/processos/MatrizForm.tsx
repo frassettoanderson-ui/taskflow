@@ -14,6 +14,8 @@ const LBL = 'mb-1 flex items-center gap-1 text-[13px] font-semibold text-slate-7
 const INFO_SUB = 'Marque como Sim caso essa seja uma matriz que so sera utilizada dentro de uma outra matriz, seja em forma de sub-matriz ou em uma opcao de desdobramento.\n\nExemplo: sub-matriz "Registro na junta comercial", que so e disparada pela matriz "Constituicao de empresa".';
 const INFO_AUTORIZA = 'Marque Sim caso seja um processo que so pode ser iniciado mediante aprovacao de algum usuario com permissao para autorizacao de processos.';
 const INFO_BARRA = 'Quantidade de dias corridos apos o inicio do processo, para a barra de progresso da % de evolucao do processo ficar vermelha.';
+const INFO_BLOQ = 'Se "Sim", os passos seguintes so poderao ser concluidos depois que este passo for concluido (passo bloqueante).';
+const INFO_ANEXO = 'Se "Sim", sera obrigatorio anexar um arquivo para concluir este passo.';
 
 const TIPO_INFO: Record<TipoPassoMatriz, { label: string; icon: typeof CheckSquare; cor: string }> = {
   PASSO_SIMPLES: { label: 'Passo simples', icon: CheckSquare, cor: 'text-sky-600' },
@@ -42,6 +44,12 @@ export default function MatrizForm() {
   const [itens, setItens] = useState<MatrizPasso[]>([]);
   const [usadaPor, setUsadaPor] = useState<{ id: string; nome: string }[]>([]);
   const [editando, setEditando] = useState<number | null>(null);
+  const [criando, setCriando] = useState(false); // form "Novo passo simples"
+  const [nForm, setNForm] = useState({
+    nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false,
+    acao: 'NENHUMA' as 'NENHUMA' | 'CRIAR_TAREFA' | 'CRIAR_OBRIGACAO_NA_EMPRESA',
+    propagacao: 'NAO_CONCLUIDOS' as 'NAO_CONCLUIDOS' | 'NOVOS', dica: '', inserirApos: -2, // -1 = inicio, -2 = fim
+  });
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
@@ -78,6 +86,25 @@ export default function MatrizForm() {
   }
   // desdobramentos
   function setDesdob(i: number, desdobramentos: DesdobramentoOpcao[]) { setItem(i, { config: { ...(itens[i].config ?? {}), desdobramentos } }); }
+
+  function abrirNovoPasso() {
+    setNForm({ nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false, acao: 'NENHUMA', propagacao: 'NAO_CONCLUIDOS', dica: '', inserirApos: -2 });
+    setCriando(true); setEditando(null);
+  }
+  function adicionarPasso() {
+    if (nForm.nome.trim().length < 1) return toast('erro', 'Informe o nome do passo.');
+    const novo: MatrizPasso = {
+      ordem: 0, tipo: 'PASSO_SIMPLES', titulo: nForm.nome.trim(), descricao: nForm.dica.trim() || null,
+      prazoDias: 0, basePrazo: 'INICIO', bloqueante: nForm.bloqueante, acaoAutomatica: nForm.acao,
+      config: { exigeAnexo: nForm.exigeAnexo, apareceApp: nForm.apareceApp, propagacao: nForm.propagacao },
+    };
+    setItens((arr) => {
+      const pos = nForm.inserirApos === -1 ? 0 : nForm.inserirApos === -2 ? arr.length : nForm.inserirApos + 1;
+      const n = [...arr.slice(0, pos), novo, ...arr.slice(pos)];
+      return n.map((p, idx) => ({ ...p, ordem: idx + 1 }));
+    });
+    setCriando(false);
+  }
 
   async function salvar() {
     if (nome.trim().length < 2) return toast('erro', 'Informe o nome da matriz.');
@@ -150,11 +177,71 @@ export default function MatrizForm() {
         <>
           {/* botoes de tipo */}
           <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
-            <button onClick={() => addItem('PASSO_SIMPLES')} className="flex items-center justify-center gap-2 rounded bg-sky-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-sky-600"><CheckSquare size={15} /> Novo passo simples</button>
+            <button onClick={abrirNovoPasso} className="flex items-center justify-center gap-2 rounded bg-sky-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-sky-600"><CheckSquare size={15} /> Novo passo simples</button>
             <button onClick={() => addItem('SUB_MATRIZ')} className="flex items-center justify-center gap-2 rounded bg-slate-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-slate-500"><ChevronsDown size={15} /> Nova sub-matriz</button>
             <button onClick={() => addItem('DESDOBRAMENTO')} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-purple-600"><Shuffle size={15} /> Novo desdobramento</button>
             <button onClick={() => addItem('FOLLOW_UP')} className="flex items-center justify-center gap-2 rounded bg-amber-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-amber-500"><Mail size={15} /> Novo follow-up</button>
           </div>
+
+          {/* form Novo passo simples */}
+          {criando && (
+            <div className="mt-3 space-y-3 rounded border border-sky-200 bg-sky-50/50 p-3">
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
+                <div>
+                  <label className={LBL}>Nome do passo</label>
+                  <input className={INP} placeholder="Nome do novo passo" value={nForm.nome} onChange={(e) => setNForm((f) => ({ ...f, nome: e.target.value }))} autoFocus />
+                </div>
+                <div>
+                  <label className={LBL}>Bloqueante? <InfoHint texto={INFO_BLOQ} /></label>
+                  <select className={INP} value={nForm.bloqueante ? 'sim' : 'nao'} onChange={(e) => setNForm((f) => ({ ...f, bloqueante: e.target.value === 'sim' }))}><option value="nao">Nao</option><option value="sim">Sim</option></select>
+                </div>
+                <div>
+                  <label className={LBL}>Exige anexo? <InfoHint texto={INFO_ANEXO} /></label>
+                  <select className={INP} value={nForm.exigeAnexo ? 'sim' : 'nao'} onChange={(e) => setNForm((f) => ({ ...f, exigeAnexo: e.target.value === 'sim' }))}><option value="nao">Nao</option><option value="sim">Sim</option></select>
+                </div>
+                <div>
+                  <label className={LBL}>Aparece no App?</label>
+                  <select className={INP} value={nForm.apareceApp ? 'sim' : 'nao'} onChange={(e) => setNForm((f) => ({ ...f, apareceApp: e.target.value === 'sim' }))}><option value="nao">Nao</option><option value="sim">Sim</option></select>
+                </div>
+                <div>
+                  <label className={LBL}>Passo criara tarefa ou obrigacao?</label>
+                  <select className={INP} value={nForm.acao} onChange={(e) => setNForm((f) => ({ ...f, acao: e.target.value as typeof f.acao }))}>
+                    <option value="NENHUMA">Nao</option>
+                    <option value="CRIAR_TAREFA">Criara uma Tarefa</option>
+                    <option value="CRIAR_OBRIGACAO_NA_EMPRESA">Criara uma Obrigacao</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-[12px] font-semibold text-amber-600">Essa matriz ja esta em uso, o que deseja fazer com este novo passo nos processos?</label>
+                <select className={`${INP} text-marca-600`} value={nForm.propagacao} onChange={(e) => setNForm((f) => ({ ...f, propagacao: e.target.value as typeof f.propagacao }))}>
+                  <option value="NAO_CONCLUIDOS">Adicionar em todos os nao-concluidos e em novos usos</option>
+                  <option value="NOVOS">Adicionar somente em novos usos dessa matriz</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[1.6fr_1fr_auto_auto] md:items-end">
+                <div>
+                  <label className={LBL}>Dicas / Macetes</label>
+                  <input className={INP} placeholder="Dicas / Macetes para realizar o passo" value={nForm.dica} onChange={(e) => setNForm((f) => ({ ...f, dica: e.target.value }))} />
+                </div>
+                <div>
+                  <label className={LBL}>Inserir apos:</label>
+                  <select className={INP} value={nForm.inserirApos} onChange={(e) => setNForm((f) => ({ ...f, inserirApos: Number(e.target.value) }))}>
+                    <option value={-1}>Inserir no Inicio</option>
+                    {itens.map((it, idx) => {
+                      const lbl = (it.tipo ?? 'PASSO_SIMPLES') === 'SUB_MATRIZ'
+                        ? `Sub-Proc: ${matrizesDisp.find((m) => m.id === it.subMatrizId)?.nome ?? '...'}`
+                        : (it.titulo || '(sem nome)');
+                      return <option key={idx} value={idx}>{lbl}</option>;
+                    })}
+                    <option value={-2}>Inserir no Fim</option>
+                  </select>
+                </div>
+                <button onClick={adicionarPasso} className="flex items-center justify-center gap-2 rounded bg-marca-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-marca-600"><Save size={15} /> Adicionar</button>
+                <button onClick={() => setCriando(false)} className="flex items-center justify-center gap-2 rounded bg-status-danger px-5 py-2 text-[13px] font-medium text-white hover:bg-red-600"><X size={15} /> Cancelar</button>
+              </div>
+            </div>
+          )}
 
           {/* cabecalho das colunas */}
           <div className="mt-3 grid grid-cols-[130px_1.3fr_1.6fr_90px] gap-3 border-b border-slate-300 px-2 py-2 text-[12px] font-semibold text-slate-600">
