@@ -529,9 +529,14 @@ export const STATUS_PROCESSO_INFO: Record<StatusProcesso, { label: string; cor: 
   CANCELADO: { label: 'Cancelado', cor: '#94a3b8' },
 };
 
+export type TipoPassoMatriz = 'PASSO_SIMPLES' | 'SUB_MATRIZ' | 'DESDOBRAMENTO' | 'FOLLOW_UP';
+export interface DesdobramentoOpcao { label: string; acao: 'CONCLUI' | 'SUBMATRIZ'; alvoMatrizId?: string | null }
+export interface MatrizPassoConfig { dica?: string; desdobramentos?: DesdobramentoOpcao[]; followup?: { dias?: number; mensagem?: string } }
+
 export interface MatrizPasso {
   id?: string;
   ordem: number;
+  tipo?: TipoPassoMatriz;
   titulo: string;
   descricao?: string | null;
   departamentoId?: string | null;
@@ -540,6 +545,8 @@ export interface MatrizPasso {
   bloqueante: boolean;
   acaoAutomatica: AcaoAutomatica;
   acaoRef?: string | null;
+  subMatrizId?: string | null;
+  config?: MatrizPassoConfig | null;
 }
 export interface Matriz {
   id: string;

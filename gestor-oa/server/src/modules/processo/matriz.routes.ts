@@ -12,6 +12,7 @@ router.use(requirePermission('processos_ver'));
 
 const passoSchema = z.object({
   ordem: z.number().int(),
+  tipo: z.enum(['PASSO_SIMPLES', 'SUB_MATRIZ', 'DESDOBRAMENTO', 'FOLLOW_UP']).default('PASSO_SIMPLES'),
   titulo: z.string().min(1),
   descricao: z.string().optional().nullable(),
   departamentoId: z.string().optional().nullable(),
@@ -20,6 +21,8 @@ const passoSchema = z.object({
   bloqueante: z.boolean().default(false),
   acaoAutomatica: z.enum(['NENHUMA', 'CRIAR_TAREFA', 'CRIAR_OBRIGACAO_NA_EMPRESA', 'INICIAR_SUBPROCESSO']).default('NENHUMA'),
   acaoRef: z.string().optional().nullable(),
+  subMatrizId: z.string().optional().nullable(),
+  config: z.any().optional().nullable(),
 });
 const matrizSchema = z.object({
   nome: z.string().min(2),

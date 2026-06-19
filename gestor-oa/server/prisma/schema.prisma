@@ -933,6 +933,7 @@ model MatrizPasso {
   matrizId      String
   matriz        MatrizProcesso @relation(fields: [matrizId], references: [id], onDelete: Cascade)
   ordem         Int
+  tipo          String   @default("PASSO_SIMPLES") // PASSO_SIMPLES | SUB_MATRIZ | DESDOBRAMENTO | FOLLOW_UP
   titulo        String
   descricao     String?
   departamentoId String?
@@ -941,6 +942,8 @@ model MatrizPasso {
   bloqueante    Boolean  @default(false)
   acaoAutomatica AcaoAutomatica @default(NENHUMA)
   acaoRef       String?  // obrigacaoNome ou matrizId, conforme a acao
+  subMatrizId   String?  // alvo quando tipo = SUB_MATRIZ
+  config        Json?    // dica / desdobramentos / follow-up
 
   @@index([matrizId])
 }
