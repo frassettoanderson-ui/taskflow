@@ -44,13 +44,14 @@ export default function MatrizForm() {
   const [itens, setItens] = useState<MatrizPasso[]>([]);
   const [usadaPor, setUsadaPor] = useState<{ id: string; nome: string }[]>([]);
   const [editando, setEditando] = useState<number | null>(null);
-  const [criando, setCriando] = useState<'PASSO' | 'SUB' | null>(null);
+  const [criando, setCriando] = useState<'PASSO' | 'SUB' | 'DESD' | null>(null);
   const [nForm, setNForm] = useState({
     nome: '', bloqueante: false, exigeAnexo: false, apareceApp: false,
     acao: 'NENHUMA' as 'NENHUMA' | 'CRIAR_TAREFA' | 'CRIAR_OBRIGACAO_NA_EMPRESA',
     propagacao: 'NAO_CONCLUIDOS' as 'NAO_CONCLUIDOS' | 'NOVOS', dica: '', inserirApos: -2, // -1 = inicio, -2 = fim
   });
   const [sForm, setSForm] = useState({ subMatrizId: '', criarApos: 'INICIO', propagacao: 'NAO_CONCLUIDOS' as 'NAO_CONCLUIDOS' | 'NOVOS', inserirApos: -2 });
+  const [dForm, setDForm] = useState({ pergunta: '', propagacao: 'NAO_CONCLUIDOS' as 'NAO_CONCLUIDOS' | 'NOVOS', inserirApos: -2, opcoes: [] as DesdobramentoOpcao[], optLabel: '', optAlvo: '' });
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
@@ -111,6 +112,26 @@ export default function MatrizForm() {
   function abrirNovaSub() {
     setSForm({ subMatrizId: '', criarApos: 'INICIO', propagacao: 'NAO_CONCLUIDOS', inserirApos: -2 });
     setCriando('SUB'); setEditando(null);
+  }
+
+  function abrirNovoDesd() {
+    setDForm({ pergunta: '', propagacao: 'NAO_CONCLUIDOS', inserirApos: -2, opcoes: [], optLabel: '', optAlvo: '' });
+    setCriando('DESD'); setEditando(null);
+  }
+  function addOpcaoDesd() {
+    if (!dForm.optLabel.trim()) return toast('erro', 'Informe a opcao de desdobramento.');
+    const op: DesdobramentoOpcao = { label: dForm.optLabel.trim(), acao: dForm.optAlvo ? 'SUBMATRIZ' : 'CONCLUI', alvoMatrizId: dForm.optAlvo || null };
+    setDForm((f) => ({ ...f, opcoes: [...f.opcoes, op], optLabel: '', optAlvo: '' }));
+  }
+  function adicionarDesd() {
+    if (dForm.pergunta.trim().length < 1) return toast('erro', 'Informe o nome/pergunta do desdobramento.');
+    if (dForm.opcoes.length === 0) return toast('erro', 'Adicione ao menos uma opcao de desdobramento.');
+    const novo: MatrizPasso = {
+      ordem: 0, tipo: 'DESDOBRAMENTO', titulo: dForm.pergunta.trim(), prazoDias: 0, basePrazo: 'INICIO',
+      bloqueante: false, acaoAutomatica: 'NENHUMA', config: { desdobramentos: dForm.opcoes, propagacao: dForm.propagacao },
+    };
+    setItens((arr) => inserirNa(arr, novo, dForm.inserirApos));
+    setCriando(null);
   }
   function adicionarSub() {
     if (!sForm.subMatrizId) return toast('erro', 'Selecione a sub-matriz.');
@@ -196,9 +217,64 @@ export default function MatrizForm() {
           <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <button onClick={abrirNovoPasso} className="flex items-center justify-center gap-2 rounded bg-sky-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-sky-600"><CheckSquare size={15} /> Novo passo simples</button>
             <button onClick={abrirNovaSub} className="flex items-center justify-center gap-2 rounded bg-slate-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-slate-500"><ChevronsDown size={15} /> Nova sub-matriz</button>
-            <button onClick={() => addItem('DESDOBRAMENTO')} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-purple-600"><Shuffle size={15} /> Novo desdobramento</button>
+            <button onClick={abrirNovoDesd} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-purple-600"><Shuffle size={15} /> Novo desdobramento</button>
             <button onClick={() => addItem('FOLLOW_UP')} className="flex items-center justify-center gap-2 rounded bg-amber-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-amber-500"><Mail size={15} /> Novo follow-up</button>
           </div>
+
+          {/* form Novo desdobramento */}
+          {criando === 'DESD' && (
+            <div className="mt-3 space-y-3 rounded border border-purple-200 bg-purple-50/50 p-3">
+              <div>
+                <label className="mb-1 block text-[12px] font-semibold text-amber-600">Essa matriz ja esta em uso, o que deseja fazer com este novo desdobramento nos processos?</label>
+                <select className={`${INP} text-marca-600`} value={dForm.propagacao} onChange={(e) => setDForm((f) => ({ ...f, propagacao: e.target.value as typeof f.propagacao }))}>
+                  <option value="NAO_CONCLUIDOS">Adicionar em todos os nao-concluidos e em novos usos</option>
+                  <option value="NOVOS">Adicionar somente em novos usos dessa matriz</option>
+                </select>
+              </div>
+              {/* construtor de opcoes */}
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1.4fr_1fr_1.4fr_auto] md:items-center">
+                <input className={INP} placeholder="Nome ou pergunta para o desdobramento" value={dForm.pergunta} onChange={(e) => setDForm((f) => ({ ...f, pergunta: e.target.value }))} autoFocus />
+                <input className={INP} placeholder="Opcao de desdobramento" value={dForm.optLabel} onChange={(e) => setDForm((f) => ({ ...f, optLabel: e.target.value }))} onKeyDown={(e) => e.key === 'Enter' && addOpcaoDesd()} />
+                <select className={INP} value={dForm.optAlvo} onChange={(e) => setDForm((f) => ({ ...f, optAlvo: e.target.value }))}>
+                  <option value="">Desdobramento: conclui o passo</option>
+                  {matrizesDisp.filter((m) => m.id !== id).map((m) => <option key={m.id} value={m.id}>Sub-matriz: {m.nome}</option>)}
+                </select>
+                <button onClick={addOpcaoDesd} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-4 py-2 text-[12px] font-medium text-white hover:bg-purple-600"><Plus size={14} /> Adicionar</button>
+              </div>
+              {/* opcoes adicionadas */}
+              {dForm.opcoes.length === 0 ? (
+                <div className="text-[12px] italic text-amber-600">Nenhum desdobramento criado ainda</div>
+              ) : (
+                <ul className="space-y-1">
+                  {dForm.opcoes.map((o, k) => (
+                    <li key={k} className="flex items-center gap-2 text-[12px] text-slate-600">
+                      <span className="font-medium text-purple-700">{o.label}</span>
+                      <span className="text-slate-400">&raquo;</span>
+                      <span>{o.acao === 'CONCLUI' ? 'Conclui o passo' : `Sub-matriz: ${matrizesDisp.find((m) => m.id === o.alvoMatrizId)?.nome ?? '...'}`}</span>
+                      <button onClick={() => setDForm((f) => ({ ...f, opcoes: f.opcoes.filter((_, j) => j !== k) }))} className="text-slate-300 hover:text-status-danger"><X size={13} /></button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[1.6fr_auto_auto] md:items-end">
+                <div>
+                  <label className={LBL}>Inserir apos:</label>
+                  <select className={INP} value={dForm.inserirApos} onChange={(e) => setDForm((f) => ({ ...f, inserirApos: Number(e.target.value) }))}>
+                    <option value={-1}>Inserir no Inicio</option>
+                    {itens.map((it, idx) => {
+                      const lbl = (it.tipo ?? 'PASSO_SIMPLES') === 'SUB_MATRIZ'
+                        ? `Sub-Proc: ${matrizesDisp.find((m) => m.id === it.subMatrizId)?.nome ?? '...'}`
+                        : (it.titulo || '(sem nome)');
+                      return <option key={idx} value={idx}>{lbl}</option>;
+                    })}
+                    <option value={-2}>Inserir no Fim</option>
+                  </select>
+                </div>
+                <button onClick={adicionarDesd} className="flex items-center justify-center gap-2 rounded bg-marca-500 px-5 py-2 text-[13px] font-medium text-white hover:bg-marca-600"><Save size={15} /> Adicionar</button>
+                <button onClick={() => setCriando(null)} className="flex items-center justify-center gap-2 rounded bg-status-danger px-5 py-2 text-[13px] font-medium text-white hover:bg-red-600"><X size={15} /> Cancelar</button>
+              </div>
+            </div>
+          )}
 
           {/* form Nova sub-matriz */}
           {criando === 'SUB' && (
