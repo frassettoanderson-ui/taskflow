@@ -952,8 +952,15 @@ model Processo {
   empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   nome          String
+  numero        Int?
+  titulo        String?
+  observacoes   String?
+  departamentoId String?
+  gestorId      String?
   status        StatusProcesso @default(EM_ANDAMENTO)
   dataInicio    DateTime @default(now())
+  previsaoConclusao DateTime?
+  dataConclusao DateTime?
   suspensoAte   DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

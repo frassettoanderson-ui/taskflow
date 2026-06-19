@@ -553,12 +553,20 @@ export interface Matriz {
 
 export interface ProcessoLista {
   id: string;
+  numero: number | null;
   nome: string;
+  titulo: string | null;
+  observacoes: string | null;
   status: StatusProcesso;
   dataInicio: string;
+  previsaoConclusao: string | null;
+  dataConclusao: string | null;
   suspensoAte: string | null;
-  empresa: { razaoSocial: string } | null;
+  departamentoId: string | null;
+  gestorId: string | null;
+  empresa: { razaoSocial: string; cnpjFinal?: string | null } | null;
   matriz: { nome: string } | null;
+  diasCorridos: number;
   progresso: number;
   totalPassos: number;
   passosConcluidos: number;

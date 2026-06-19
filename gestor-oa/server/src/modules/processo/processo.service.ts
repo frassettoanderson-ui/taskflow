@@ -4,7 +4,12 @@ import { Errors } from '../../lib/errors.js';
 import * as empresaObrigacao from '../obrigacao/empresaObrigacao.service.js';
 
 // ---------- Instanciar um processo a partir de uma matriz ----------
-export async function instanciar(escritorioId: string, matrizId: string, empresaId: string) {
+export async function instanciar(
+  escritorioId: string,
+  matrizId: string,
+  empresaId: string,
+  extra: { titulo?: string; observacoes?: string; gestorId?: string } = {},
+) {
   const matriz = await prisma.matrizProcesso.findFirst({
     where: { id: matrizId, escritorioId },
     include: { passos: { orderBy: { ordem: 'asc' } } },
@@ -15,10 +20,11 @@ export async function instanciar(escritorioId: string, matrizId: string, empresa
 
   const inicio = new Date();
   let prazoAnterior = inicio;
+  let previsao: Date | null = null;
   const passosData = matriz.passos.map((p) => {
     const base = p.basePrazo === 'PASSO_ANTERIOR' ? prazoAnterior : inicio;
     const prazo = p.prazoDias > 0 ? addDays(base, p.prazoDias) : null;
-    if (prazo) prazoAnterior = prazo;
+    if (prazo) { prazoAnterior = prazo; previsao = prazo; }
     return {
       ordem: p.ordem,
       titulo: p.titulo,
@@ -31,12 +37,21 @@ export async function instanciar(escritorioId: string, matrizId: string, empresa
     };
   });
 
+  // numero sequencial por escritorio ([ID])
+  const ultimo = await prisma.processo.aggregate({ where: { escritorioId }, _max: { numero: true } });
+
   return prisma.processo.create({
     data: {
       escritorioId,
       matrizId,
       empresaId,
       nome: matriz.nome,
+      numero: (ultimo._max.numero ?? 0) + 1,
+      titulo: extra.titulo?.trim() || matriz.nome,
+      observacoes: extra.observacoes?.trim() || null,
+      departamentoId: matriz.departamentoId,
+      gestorId: extra.gestorId || null,
+      previsaoConclusao: previsao,
       dataInicio: inicio,
       passos: { create: passosData },
     },
@@ -44,34 +59,71 @@ export async function instanciar(escritorioId: string, matrizId: string, empresa
   });
 }
 
+// "0001-17" a partir do CNPJ (14 digitos): filial(4) + DV(2)
+function cnpjFinal(identificadores: { tipo: string; valor: string }[]): string | null {
+  const cnpj = identificadores.find((i) => i.tipo === 'CNPJ')?.valor?.replace(/\D/g, '');
+  if (!cnpj || cnpj.length < 14) return null;
+  return `${cnpj.slice(8, 12)}-${cnpj.slice(12, 14)}`;
+}
+
+interface FiltrosProcesso {
+  status?: string;
+  statusList?: string[];
+  matrizId?: string;
+  empresaId?: string;
+  q?: string;
+  inicioDe?: string; inicioAte?: string;
+  conclusaoDe?: string; conclusaoAte?: string;
+}
+
 // ---------- Listagem (auto-retoma suspensos vencidos) ----------
-export async function listar(escritorioId: string, filtros: { status?: string; matrizId?: string; empresaId?: string }) {
+export async function listar(escritorioId: string, filtros: FiltrosProcesso) {
   // retoma processos cuja suspensao expirou
   await prisma.processo.updateMany({
     where: { escritorioId, status: 'SUSPENSO', suspensoAte: { lte: new Date() } },
     data: { status: 'EM_ANDAMENTO', suspensoAte: null },
   });
 
+  const and: Record<string, unknown>[] = [{ escritorioId }];
+  if (filtros.status) and.push({ status: filtros.status });
+  if (filtros.statusList?.length) and.push({ status: { in: filtros.statusList } });
+  if (filtros.matrizId) and.push({ matrizId: filtros.matrizId });
+  if (filtros.empresaId) and.push({ empresaId: filtros.empresaId });
+  if (filtros.inicioDe) and.push({ dataInicio: { gte: new Date(`${filtros.inicioDe}T00:00:00.000Z`) } });
+  if (filtros.inicioAte) and.push({ dataInicio: { lte: new Date(`${filtros.inicioAte}T23:59:59.000Z`) } });
+  if (filtros.conclusaoDe) and.push({ previsaoConclusao: { gte: new Date(`${filtros.conclusaoDe}T00:00:00.000Z`) } });
+  if (filtros.conclusaoAte) and.push({ previsaoConclusao: { lte: new Date(`${filtros.conclusaoAte}T23:59:59.000Z`) } });
+  if (filtros.q?.trim()) {
+    const q = filtros.q.trim();
+    and.push({ OR: [
+      { titulo: { contains: q, mode: 'insensitive' } },
+      { nome: { contains: q, mode: 'insensitive' } },
+      { observacoes: { contains: q, mode: 'insensitive' } },
+      { empresa: { razaoSocial: { contains: q, mode: 'insensitive' } } },
+    ] });
+  }
+
   const processos = await prisma.processo.findMany({
-    where: {
-      escritorioId,
-      ...(filtros.status ? { status: filtros.status as never } : {}),
-      ...(filtros.matrizId ? { matrizId: filtros.matrizId } : {}),
-      ...(filtros.empresaId ? { empresaId: filtros.empresaId } : {}),
-    },
-    orderBy: { createdAt: 'desc' },
+    where: { AND: and as never },
+    orderBy: { numero: 'desc' },
     include: {
-      empresa: { select: { razaoSocial: true } },
+      empresa: { select: { razaoSocial: true, identificadores: { select: { tipo: true, valor: true } } } },
       matriz: { select: { nome: true } },
       passos: { select: { status: true } },
     },
   });
+  const hoje = new Date();
   return processos.map((p) => {
     const total = p.passos.length;
     const concluidos = p.passos.filter((x) => x.status !== 'PENDENTE').length;
+    const fim = p.dataConclusao ?? hoje;
+    const diasCorridos = Math.max(0, Math.round((fim.getTime() - p.dataInicio.getTime()) / 86400000));
     return {
-      id: p.id, nome: p.nome, status: p.status, dataInicio: p.dataInicio, suspensoAte: p.suspensoAte,
-      empresa: p.empresa, matriz: p.matriz,
+      id: p.id, numero: p.numero, nome: p.nome, titulo: p.titulo, observacoes: p.observacoes,
+      status: p.status, dataInicio: p.dataInicio, previsaoConclusao: p.previsaoConclusao, dataConclusao: p.dataConclusao,
+      suspensoAte: p.suspensoAte, departamentoId: p.departamentoId, gestorId: p.gestorId,
+      empresa: p.empresa ? { razaoSocial: p.empresa.razaoSocial, cnpjFinal: cnpjFinal(p.empresa.identificadores) } : null,
+      matriz: p.matriz, diasCorridos,
       progresso: total ? Math.round((concluidos / total) * 100) : 0,
       totalPassos: total, passosConcluidos: concluidos,
     };

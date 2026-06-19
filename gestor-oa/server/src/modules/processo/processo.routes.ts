@@ -14,7 +14,11 @@ const operar = requirePermission('processos_operar');
 
 router.get('/', async (req, res) => {
   const q = req.query as Record<string, string>;
-  const r = await svc.listar(req.auth!.escritorioId, { status: q.status, matrizId: q.matrizId, empresaId: q.empresaId });
+  const r = await svc.listar(req.auth!.escritorioId, {
+    status: q.status, matrizId: q.matrizId, empresaId: q.empresaId, q: q.q,
+    statusList: q.statusList ? q.statusList.split(',').filter(Boolean) : undefined,
+    inicioDe: q.inicioDe, inicioAte: q.inicioAte, conclusaoDe: q.conclusaoDe, conclusaoAte: q.conclusaoAte,
+  });
   return ok(res, r);
 });
 
@@ -32,8 +36,13 @@ router.get('/export', requirePermission('relatorios_ver'), async (req, res) => {
 
 router.get('/:id', async (req, res) => ok(res, await svc.obter(req.auth!.escritorioId, req.params.id)));
 
-router.post('/iniciar', operar, validate({ body: z.object({ matrizId: z.string(), empresaId: z.string() }) }), async (req, res) => {
-  const p = await svc.instanciar(req.auth!.escritorioId, req.body.matrizId, req.body.empresaId);
+router.post('/iniciar', operar, validate({ body: z.object({
+  matrizId: z.string(), empresaId: z.string(),
+  titulo: z.string().optional(), observacoes: z.string().optional(), gestorId: z.string().optional(),
+}) }), async (req, res) => {
+  const p = await svc.instanciar(req.auth!.escritorioId, req.body.matrizId, req.body.empresaId, {
+    titulo: req.body.titulo, observacoes: req.body.observacoes, gestorId: req.body.gestorId,
+  });
   return ok(res, p, 201);
 });
 

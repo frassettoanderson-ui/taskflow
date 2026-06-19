@@ -41,6 +41,7 @@ import Assinaturas from './pages/robo/Assinaturas';
 import AssinaturaForm from './pages/robo/AssinaturaForm';
 import ConsultaDocumento from './pages/robo/ConsultaDocumento';
 import Processos from './pages/processos/Processos';
+import ProcessoForm from './pages/processos/ProcessoForm';
 import ProcessoFicha from './pages/processos/ProcessoFicha';
 import Matrizes from './pages/processos/Matrizes';
 import PortalApp from './portal/PortalApp';
@@ -124,6 +125,7 @@ export default function App() {
         <Route path="robo/assinaturas/novo" element={<AssinaturaForm />} />
         <Route path="robo/assinaturas/:id" element={<AssinaturaForm />} />
         <Route path="processos" element={<Processos />} />
+        <Route path="processos/novo" element={<ProcessoForm />} />
         <Route path="processos/matrizes" element={<Matrizes />} />
         <Route path="processos/:id" element={<ProcessoFicha />} />
         <Route path="area-vip/comunicados" element={<ComunicadosAdmin />} />
