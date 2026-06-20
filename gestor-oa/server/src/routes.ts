@@ -29,6 +29,7 @@ import comunicacaoRoutes from './modules/comunicacao/comunicacao.routes.js';
 import solicitacaoInternaRoutes from './modules/solicitacaoInterna/solicitacaoInterna.routes.js';
 import notificacaoRoutes from './modules/jobs/notificacao.routes.js';
 import aplaRoutes from './modules/apla/apla.routes.js';
+import acdoxRoutes from './modules/acdox/acdox.routes.js';
 
 const api = Router();
 
@@ -66,5 +67,6 @@ api.use('/comunicacao', comunicacaoRoutes);
 api.use('/solicitacoes-internas', solicitacaoInternaRoutes);
 api.use('/notificacoes', notificacaoRoutes);
 api.use('/apla', aplaRoutes);
+api.use('/acdox', acdoxRoutes);
 
 export default api;

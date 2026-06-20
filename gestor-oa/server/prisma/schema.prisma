@@ -1417,6 +1417,82 @@ model CustoFixo {
   @@index([escritorioId])
 }
 
+// ------------------------------------------------------------
+// Acessorias DOCS (ACDOX): regua de cobranca de documentos
+// ------------------------------------------------------------
+model ReguaCobranca {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  nome          String
+  diaLimite     Int      @default(10)    // dia do mes limite p/ recebimento
+  departamentoId String?
+  lembreteAntesDias  Int? // dispara lembrete N dias antes do limite
+  lembreteDepoisDias Int? // cobranca N dias apos o vencimento
+  modeloEmail   String?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  itens         ReguaCobrancaItem[]
+  empresas      ReguaCobrancaEmpresa[]
+  cobrancas     CobrancaDoc[]
+
+  @@index([escritorioId])
+}
+
+model ReguaCobrancaItem {
+  id        String   @id @default(cuid())
+  reguaId   String
+  regua     ReguaCobranca @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+  nome      String
+  ordem     Int      @default(0)
+
+  @@index([reguaId])
+}
+
+model ReguaCobrancaEmpresa {
+  reguaId   String
+  regua     ReguaCobranca @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+  empresaId String
+
+  @@id([reguaId, empresaId])
+  @@index([empresaId])
+}
+
+model CobrancaDoc {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  reguaId       String
+  regua         ReguaCobranca @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+  empresaId     String
+  competenciaAno Int
+  competenciaMes Int
+  dataLimite    DateTime
+  // PENDENTE | RECEBIDO | VALIDADO | RECUSADO | VENCIDO
+  status        String   @default("PENDENTE")
+  createdAt     DateTime @default(now())
+
+  itens         CobrancaDocItem[]
+
+  @@unique([reguaId, empresaId, competenciaAno, competenciaMes])
+  @@index([escritorioId, status])
+  @@index([empresaId])
+}
+
+model CobrancaDocItem {
+  id            String   @id @default(cuid())
+  cobrancaId    String
+  cobranca      CobrancaDoc @relation(fields: [cobrancaId], references: [id], onDelete: Cascade)
+  nome          String
+  // PENDENTE | RECEBIDO | VALIDADO | RECUSADO
+  status        String   @default("PENDENTE")
+  arquivo       String?
+  justificativa String?
+  validadoPorId String?
+  validadoEm    DateTime?
+
+  @@index([cobrancaId])
+}
+
 // ============================================================
 // MODULO 13 - Notificacoes/Alertas internos + Jobs (scheduler)
 // ============================================================

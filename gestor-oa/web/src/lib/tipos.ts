@@ -180,6 +180,22 @@ export interface IndicadorCalculado {
 }
 export interface PainelCalculado { id: string; nome: string; transicaoSeg: number; indicadores: IndicadorCalculado[] }
 
+// ---------- ACDOX (Acessorias DOCS) ----------
+export interface ReguaCobranca {
+  id: string; nome: string; diaLimite: number; departamentoId: string | null;
+  lembreteAntesDias: number | null; lembreteDepoisDias: number | null; modeloEmail: string | null;
+  ativo: boolean; itens: { id: string; nome: string; ordem: number }[]; empresasCount: number; cobrancasCount: number;
+}
+export interface CobrancaLista {
+  id: string; reguaNome: string; reguaId: string; empresa: string; empresaNumero: number | null;
+  competencia: string; dataLimite: string; status: string; totalItens: number; porStatus: Record<string, number>;
+}
+export interface CobrancaDetalhe {
+  id: string; reguaNome: string; empresa: string; empresaNumero: number | null; competencia: string; dataLimite: string; status: string;
+  itens: { id: string; nome: string; status: string; arquivo: string | null; justificativa: string | null; validadoEm: string | null }[];
+}
+export interface AcdoxDashboard { total: number; PENDENTE: number; VENCIDO: number; RECEBIDO: number; VALIDADO: number; RECUSADO: number }
+
 export interface LogAuditoria {
   id: string;
   acao: string;

@@ -96,7 +96,14 @@ const MENU: Item[] = [
       { label: 'Analise lucratividade', icon: TrendingUp, to: '/apla/lucratividade' },
     ],
   },
-  { label: 'AC Doc`s', icon: FileText, to: '/documentos/armazenamento' },
+  {
+    label: 'AC Doc`s',
+    icon: FileText,
+    filhos: [
+      { label: 'Cobranca de documentos', icon: FileText, to: '/acdox' },
+      { label: 'Armazenamento (GED)', icon: FileText, to: '/documentos/armazenamento' },
+    ],
+  },
   {
     label: 'Relatorios',
     icon: ClipboardList,
