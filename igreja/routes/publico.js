@@ -12,9 +12,10 @@ const publicoLimiter = rateLimit({
 // Cadastro publico de membro (sem login) — usado pelo formulario que a pessoa preenche.
 // Hoje a igreja e unica (id da primeira). Quando virar multi-igreja, recebe um token/slug.
 router.post('/cadastro-membro', publicoLimiter, async (req, res) => {
-  const { nome, telefone, endereco, data_nascimento, sexo, slug } = req.body;
+  const { nome, telefone, endereco, data_nascimento, sexo, slug, consentimento } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome é obrigatório' });
   if (!slug) return res.status(400).json({ erro: 'Link de cadastro inválido (igreja não identificada).' });
+  if (!consentimento) return res.status(400).json({ erro: 'É necessário aceitar a Política de Privacidade.' });
 
   try {
     // Multi-tenant: a igreja é identificada pelo slug do link, nunca "a primeira".
@@ -33,8 +34,8 @@ router.post('/cadastro-membro', publicoLimiter, async (req, res) => {
     if (dup.rows.length) return res.status(409).json({ erro: 'Você já está cadastrado (mesmo nome e telefone).' });
 
     await db.query(
-      `INSERT INTO membros (igreja_id, nome, telefone, endereco, data_nascimento, sexo, origem)
-       VALUES ($1,$2,$3,$4,$5,$6,'publico')`,
+      `INSERT INTO membros (igreja_id, nome, telefone, endereco, data_nascimento, sexo, origem, consentimento_em)
+       VALUES ($1,$2,$3,$4,$5,$6,'publico', NOW())`,
       [igreja_id, nome.trim(), telefone || '', endereco || '', data_nascimento || null, sexo || null]
     );
     res.status(201).json({ ok: true });

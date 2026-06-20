@@ -70,8 +70,10 @@ CREATE TABLE IF NOT EXISTS membros (
   sexo            VARCHAR(1),            -- M | F
   ativo           BOOLEAN DEFAULT TRUE,
   origem          VARCHAR(20) DEFAULT 'interno', -- interno | publico
+  consentimento_em TIMESTAMP,                    -- LGPD: quando o titular consentiu (cadastro público)
   criado_em       TIMESTAMP DEFAULT NOW()
 );
+ALTER TABLE membros ADD COLUMN IF NOT EXISTS consentimento_em TIMESTAMP;
 
 -- Fornecedores
 CREATE TABLE IF NOT EXISTS fornecedores (

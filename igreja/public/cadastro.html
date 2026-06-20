@@ -18,6 +18,7 @@
       <select id="sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Feminino</option></select>
     </label>
     <label>Bairro<input type="text" id="endereco"></label>
+    <label class="check-linha"><input type="checkbox" id="consent" required> Li e aceito a <a href="privacidade.html" target="_blank" style="color:var(--accent)">Política de Privacidade</a></label>
     <button type="submit">Enviar cadastro</button>
     <p id="msg" class="erro"></p>
   </form>
@@ -31,6 +32,7 @@
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           slug,
+          consentimento: document.getElementById('consent').checked,
           nome: document.getElementById('nome').value,
           telefone: document.getElementById('telefone').value,
           data_nascimento: document.getElementById('data_nascimento').value || null,
