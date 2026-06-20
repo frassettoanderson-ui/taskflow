@@ -31,6 +31,7 @@ export async function instanciar(
       descricao: p.descricao,
       departamentoId: p.departamentoId,
       bloqueante: p.bloqueante,
+      visivelCliente: p.visivelCliente,
       prazo,
       acaoAutomatica: p.acaoAutomatica,
       acaoRef: p.acaoRef,

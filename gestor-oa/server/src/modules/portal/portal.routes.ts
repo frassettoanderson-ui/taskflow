@@ -233,6 +233,44 @@ router.post('/colaborador', validate({ body: z.object({ nome: z.string().min(2),
   return ok(res, { processoId: proc.id }, 201);
 });
 
+// ---------- Processos da empresa (acompanhamento, somente leitura) ----------
+router.get('/processos', async (req, res) => {
+  const empresaId = req.contato!.empresaAtual;
+  const processos = await prisma.processo.findMany({
+    where: { escritorioId: req.contato!.escritorioId, empresaId },
+    orderBy: { dataInicio: 'desc' },
+    include: { passos: { select: { status: true } } },
+  });
+  const gestorIds = [...new Set(processos.map((p) => p.gestorId).filter(Boolean) as string[])];
+  const gestores = await prisma.usuario.findMany({ where: { id: { in: gestorIds } }, select: { id: true, nome: true } });
+  const gMap = new Map(gestores.map((g) => [g.id, g.nome]));
+  return ok(res, processos.map((p) => {
+    const total = p.passos.length;
+    const concluidos = p.passos.filter((s) => s.status === 'CONCLUIDO' || s.status === 'DISPENSADO').length;
+    return {
+      id: p.id, nome: p.titulo || p.nome, status: p.status,
+      gestor: p.gestorId ? gMap.get(p.gestorId) ?? null : null,
+      dataInicio: p.dataInicio, previsaoConclusao: p.previsaoConclusao, dataConclusao: p.dataConclusao,
+      progresso: total ? Math.round((concluidos / total) * 100) : 0, total, concluidos,
+    };
+  }));
+});
+
+router.get('/processos/:id', async (req, res) => {
+  const empresaId = req.contato!.empresaAtual;
+  const p = await prisma.processo.findFirst({
+    where: { id: req.params.id, escritorioId: req.contato!.escritorioId, empresaId },
+    include: { passos: { where: { visivelCliente: true }, orderBy: { ordem: 'asc' } } },
+  });
+  if (!p) throw Errors.naoEncontrado('Processo');
+  const gestor = p.gestorId ? await prisma.usuario.findUnique({ where: { id: p.gestorId }, select: { nome: true } }) : null;
+  return ok(res, {
+    id: p.id, nome: p.titulo || p.nome, status: p.status, gestor: gestor?.nome ?? null,
+    dataInicio: p.dataInicio, previsaoConclusao: p.previsaoConclusao, dataConclusao: p.dataConclusao,
+    passos: p.passos.map((s) => ({ id: s.id, titulo: s.titulo, descricao: s.descricao, status: s.status, prazo: s.prazo, concluidoEm: s.concluidoEm })),
+  });
+});
+
 // ---------- Meus dados (perfil do contato) ----------
 router.put('/perfil', validate({ body: z.object({ nome: z.string().min(2).optional(), senhaAtual: z.string().optional(), novaSenha: z.string().min(8).optional() }) }), async (req, res) => {
   const { escritorioId, email } = req.contato!;

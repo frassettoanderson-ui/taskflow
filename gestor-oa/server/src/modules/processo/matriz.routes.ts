@@ -19,6 +19,7 @@ const passoSchema = z.object({
   prazoDias: z.number().int().min(0).default(0),
   basePrazo: z.enum(['INICIO', 'PASSO_ANTERIOR']).default('INICIO'),
   bloqueante: z.boolean().default(false),
+  visivelCliente: z.boolean().default(false),
   acaoAutomatica: z.enum(['NENHUMA', 'CRIAR_TAREFA', 'CRIAR_OBRIGACAO_NA_EMPRESA', 'INICIAR_SUBPROCESSO']).default('NENHUMA'),
   acaoRef: z.string().optional().nullable(),
   subMatrizId: z.string().optional().nullable(),

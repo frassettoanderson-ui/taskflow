@@ -677,6 +677,7 @@ export interface ProcessoPasso {
   descricao: string | null;
   departamentoId: string | null;
   bloqueante: boolean;
+  visivelCliente?: boolean;
   status: StatusPasso;
   prazo: string | null;
   concluidoEm: string | null;

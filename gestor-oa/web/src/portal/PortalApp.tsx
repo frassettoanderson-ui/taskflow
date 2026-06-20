@@ -120,6 +120,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
     { to: '/portal/calendario', label: 'Calendario' },
     { to: '/portal/comunicados', label: 'Comunicados' },
     { to: '/portal/solicitacoes', label: 'Solicitacoes' },
+    { to: '/portal/processos', label: 'Processos' },
     { to: '/portal/colaborador', label: 'Cadastrar colaborador' },
     { to: '/portal/meus-dados', label: 'Meus dados' },
     { to: '/portal/lgpd', label: 'Privacidade' },
@@ -162,6 +163,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
           <Route path="calendario" element={<Calendario />} />
           <Route path="comunicados" element={<Comunicados />} />
           <Route path="solicitacoes" element={<Solicitacoes />} />
+          <Route path="processos" element={<Processos />} />
           <Route path="colaborador" element={<Colaborador />} />
           <Route path="meus-dados" element={<MeusDados />} />
           <Route path="lgpd" element={<Lgpd onAceito={() => setLgpdOk(true)} />} />
@@ -448,6 +450,62 @@ function MeusDados() {
           <button className="btn-primary" onClick={salvar}>Salvar</button>
         </div>
       </Card>
+    </div>
+  );
+}
+
+interface ProcLista { id: string; nome: string; status: string; gestor: string | null; dataInicio: string; previsaoConclusao: string | null; progresso: number; total: number; concluidos: number }
+interface ProcDetalhe { id: string; nome: string; status: string; gestor: string | null; dataInicio: string; previsaoConclusao: string | null; dataConclusao: string | null; passos: { id: string; titulo: string; descricao: string | null; status: string; prazo: string | null; concluidoEm: string | null }[] }
+const COR_PASSO: Record<string, string> = { PENDENTE: '#f0ad4e', EM_ANDAMENTO: '#5b9bd5', CONCLUIDO: '#5cb85c', DISPENSADO: '#94a3b8' };
+
+function Processos() {
+  const [lista, setLista] = useState<ProcLista[] | null>(null);
+  const [aberto, setAberto] = useState<ProcDetalhe | null>(null);
+  useEffect(() => { portalApi.get<ProcLista[]>('/processos').then(setLista).catch(() => setLista([])); }, []);
+
+  function abrir(id: string) { portalApi.get<ProcDetalhe>(`/processos/${id}`).then(setAberto); }
+
+  if (!lista) return <p className="text-slate-400">Carregando...</p>;
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold text-slate-800">Processos</h1>
+      <p className="text-sm text-slate-500">Acompanhe o andamento dos processos da sua empresa.</p>
+      {lista.length === 0 && <Card><p className="text-sm text-slate-400">Nenhum processo em andamento.</p></Card>}
+      {lista.map((p) => (
+        <button key={p.id} className="block w-full text-left" onClick={() => abrir(p.id)}>
+          <Card>
+            <div className="flex items-center justify-between">
+              <div className="font-semibold text-slate-700">{p.nome}</div>
+              <span className="text-xs text-slate-400">{p.status === 'EM_ANDAMENTO' ? 'Em andamento' : p.status === 'SUSPENSO' ? 'Suspenso' : p.status}</span>
+            </div>
+            <div className="mt-1 text-xs text-slate-400">{p.gestor ? `Gestor: ${p.gestor} · ` : ''}Inicio: {new Date(p.dataInicio).toLocaleDateString('pt-BR')}{p.previsaoConclusao ? ` · Previsao: ${new Date(p.previsaoConclusao).toLocaleDateString('pt-BR')}` : ''}</div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded bg-slate-100"><div className="h-full bg-emerald-500" style={{ width: `${p.progresso}%` }} /></div>
+            <div className="mt-1 text-xs text-slate-500">{p.progresso}% · {p.concluidos}/{p.total} etapas</div>
+          </Card>
+        </button>
+      ))}
+      {aberto && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={() => setAberto(null)}>
+          <div className="w-full max-w-lg rounded-lg bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-slate-800">{aberto.nome}</h2>
+            <p className="text-xs text-slate-400">{aberto.gestor ? `Gestor: ${aberto.gestor}` : ''}</p>
+            <div className="mt-3 space-y-2">
+              {aberto.passos.length === 0 && <p className="text-sm text-slate-400">Nenhuma etapa compartilhada.</p>}
+              {aberto.passos.map((s) => (
+                <div key={s.id} className="flex items-start gap-2 border-b border-slate-100 pb-2">
+                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full" style={{ background: COR_PASSO[s.status] ?? '#94a3b8' }} />
+                  <div>
+                    <div className="text-sm text-slate-700">{s.titulo}</div>
+                    {s.descricao && <div className="text-xs text-slate-400">{s.descricao}</div>}
+                    <div className="text-xs text-slate-400">{s.status === 'CONCLUIDO' && s.concluidoEm ? `Concluido em ${new Date(s.concluidoEm).toLocaleDateString('pt-BR')}` : s.prazo ? `Prazo: ${new Date(s.prazo).toLocaleDateString('pt-BR')}` : ''}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex justify-end"><button className="btn-ghost" onClick={() => setAberto(null)}>Fechar</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

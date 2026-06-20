@@ -999,6 +999,7 @@ model MatrizPasso {
   prazoDias     Int      @default(0)
   basePrazo     BasePrazoPasso @default(INICIO)
   bloqueante    Boolean  @default(false)
+  visivelCliente Boolean @default(false) // passo compartilhado no portal do cliente
   acaoAutomatica AcaoAutomatica @default(NENHUMA)
   acaoRef       String?  // obrigacaoNome ou matrizId, conforme a acao
   subMatrizId   String?  // alvo quando tipo = SUB_MATRIZ
@@ -1046,6 +1047,7 @@ model ProcessoPasso {
   descricao     String?
   departamentoId String?
   bloqueante    Boolean  @default(false)
+  visivelCliente Boolean @default(false) // passo compartilhado no portal do cliente
   status        StatusPasso @default(PENDENTE)
   prazo         DateTime?
   concluidoEm   DateTime?

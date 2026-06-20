@@ -54,6 +54,14 @@ router.post('/passos/:passoId/concluir', operar, async (req, res) => ok(res, awa
 router.post('/passos/:passoId/dispensar', operar, async (req, res) => ok(res, await svc.dispensarPasso(req.auth!.escritorioId, req.params.passoId)));
 router.post('/passos/:passoId/reabrir', operar, async (req, res) => ok(res, await svc.reabrirPasso(req.auth!.escritorioId, req.params.passoId)));
 
+// alterna a visibilidade do passo para o cliente (portal)
+router.post('/passos/:passoId/visivel-cliente', operar, validate({ body: z.object({ visivel: z.boolean() }) }), async (req, res) => {
+  const passo = await prisma.processoPasso.findFirst({ where: { id: req.params.passoId, processo: { escritorioId: req.auth!.escritorioId } } });
+  if (!passo) throw new Error('Passo nao encontrado');
+  await prisma.processoPasso.update({ where: { id: passo.id }, data: { visivelCliente: req.body.visivel } });
+  return ok(res, { visivelCliente: req.body.visivel });
+});
+
 router.post('/:id/passos', operar, validate({ body: z.object({ titulo: z.string().min(1), descricao: z.string().optional(), departamentoId: z.string().optional(), bloqueante: z.boolean().optional(), prazoDias: z.number().int().optional() }) }), async (req, res) => {
   return ok(res, await svc.adicionarPasso(req.auth!.escritorioId, req.params.id, req.body));
 });

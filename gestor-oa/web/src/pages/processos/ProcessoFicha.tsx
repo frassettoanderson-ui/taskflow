@@ -200,6 +200,15 @@ export default function ProcessoFicha() {
                         {passo.descricao && (
                           <span className="hidden items-center gap-1 text-[12px] text-amber-600 md:flex"><Lightbulb size={13} /> {passo.descricao}</span>
                         )}
+                        {/* visivel ao cliente (portal) */}
+                        {podeOperar && (
+                          <button
+                            title={passo.visivelCliente ? 'Visivel ao cliente (clique para ocultar)' : 'Oculto do cliente (clique para compartilhar)'}
+                            onClick={() => acao(() => api.post(`/processos/passos/${passo.id}/visivel-cliente`, { visivel: !passo.visivelCliente }), passo.visivelCliente ? 'Passo ocultado do cliente.' : 'Passo compartilhado com o cliente.')}
+                            className={passo.visivelCliente ? 'text-marca-600' : 'text-slate-300 hover:text-slate-500'}>
+                            {passo.visivelCliente ? <Eye size={15} /> : <EyeOff size={15} />}
+                          </button>
+                        )}
                         {/* acoes */}
                         {podeOperar && !ok && !disp && (
                           <button title="Dispensar" onClick={() => acao(() => api.post(`/processos/passos/${passo.id}/dispensar`), 'Passo dispensado.')} className="text-slate-300 hover:text-status-danger"><Ban size={15} /></button>
