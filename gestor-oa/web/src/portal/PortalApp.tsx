@@ -116,6 +116,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
   const nav_itens = [
     { to: '/portal', label: 'Inicio', end: true },
     { to: '/portal/documentos', label: 'Documentos' },
+    { to: '/portal/enviar-documentos', label: 'Enviar documentos' },
     { to: '/portal/calendario', label: 'Calendario' },
     { to: '/portal/comunicados', label: 'Comunicados' },
     { to: '/portal/solicitacoes', label: 'Solicitacoes' },
@@ -156,6 +157,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
         <Routes>
           <Route index element={<Home />} />
           <Route path="documentos" element={<Documentos />} />
+          <Route path="enviar-documentos" element={<EnviarDocumentos />} />
           <Route path="calendario" element={<Calendario />} />
           <Route path="comunicados" element={<Comunicados />} />
           <Route path="solicitacoes" element={<Solicitacoes />} />
@@ -404,6 +406,66 @@ function Lgpd({ onAceito }: { onAceito: () => void }) {
       <h1 className="text-2xl font-semibold text-slate-800">Politica de Privacidade</h1>
       <Card><p className="whitespace-pre-wrap text-sm text-slate-600">{d.texto}</p></Card>
       {d.aceito ? <p className="text-sm text-emerald-700">Voce aceitou a versao {d.versao}.</p> : <button className="btn-primary" onClick={aceitar}>Li e aceito</button>}
+    </div>
+  );
+}
+
+interface CobItemCli { id: string; nome: string; status: string; temArquivo: boolean; justificativa: string | null }
+interface CobCli { id: string; reguaNome: string; competencia: string; dataLimite: string; status: string; itens: CobItemCli[] }
+const COR_COB: Record<string, string> = { PENDENTE: '#f0ad4e', VENCIDO: '#cf3c5d', RECEBIDO: '#5b9bd5', VALIDADO: '#5cb85c', RECUSADO: '#cf3c5d' };
+
+function EnviarDocumentos() {
+  const [lista, setLista] = useState<CobCli[] | null>(null);
+  const [enviando, setEnviando] = useState<string | null>(null);
+  function carregar() { portalApi.get<CobCli[]>('/cobrancas').then(setLista).catch(() => setLista([])); }
+  useEffect(carregar, []);
+
+  async function enviar(cobId: string, itemId: string, file: File) {
+    setEnviando(itemId);
+    try {
+      const fd = new FormData(); fd.append('arquivo', file);
+      const res = await fetch(`/api/v1/portal/cobrancas/${cobId}/itens/${itemId}/enviar`, { method: 'POST', headers: portalApi.authHeaders(), body: fd });
+      if (!res.ok) throw new Error();
+      carregar();
+    } catch { alert('Falha ao enviar o documento.'); }
+    finally { setEnviando(null); }
+  }
+
+  if (!lista) return <p className="text-slate-400">Carregando...</p>;
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold text-slate-800">Enviar documentos</h1>
+      <p className="text-sm text-slate-500">Anexe os documentos solicitados pelo seu escritorio contabil.</p>
+      {lista.length === 0 && <Card><p className="text-sm text-slate-400">Nenhum documento solicitado no momento.</p></Card>}
+      {lista.map((c) => (
+        <Card key={c.id}>
+          <div className="mb-2 flex items-center justify-between">
+            <div>
+              <div className="font-semibold text-slate-700">{c.reguaNome} · {c.competencia}</div>
+              <div className="text-xs text-slate-400">Limite: {new Date(c.dataLimite).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
+            </div>
+            <span className="rounded px-2 py-0.5 text-xs font-medium text-white" style={{ background: COR_COB[c.status] ?? '#94a3b8' }}>{c.status}</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {c.itens.map((it) => (
+              <div key={it.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                <div>
+                  <div className="text-sm text-slate-700">{it.nome}</div>
+                  {it.status === 'RECUSADO' && it.justificativa && <div className="text-xs text-red-500">Recusado: {it.justificativa}. Reenvie.</div>}
+                  {it.status === 'VALIDADO' && <div className="text-xs text-emerald-600">Validado ✓</div>}
+                  {it.status === 'RECEBIDO' && <div className="text-xs text-sky-600">Recebido, aguardando validacao</div>}
+                </div>
+                {it.status !== 'VALIDADO' && (
+                  <label className="cursor-pointer rounded border border-slate-300 px-3 py-1 text-xs text-slate-600 hover:bg-slate-50">
+                    {enviando === it.id ? 'Enviando...' : it.temArquivo ? 'Reenviar' : 'Anexar documento'}
+                    <input type="file" className="hidden" disabled={enviando === it.id} onChange={(e) => e.target.files?.[0] && enviar(c.id, it.id, e.target.files[0])} />
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      ))}
     </div>
   );
 }

@@ -188,6 +188,35 @@ export async function acaoItem(
   return obterCobranca(escritorioId, cobrancaId);
 }
 
+// ---------- Portal do cliente (recepcao) ----------
+export async function listarCobrancasCliente(escritorioId: string, empresaId: string) {
+  const cobrancas = await prisma.cobrancaDoc.findMany({
+    where: { escritorioId, empresaId },
+    orderBy: { dataLimite: 'desc' },
+    include: { regua: { select: { nome: true } }, itens: true },
+  });
+  return cobrancas.map((c) => ({
+    id: c.id, reguaNome: c.regua.nome,
+    competencia: `${String(c.competenciaMes).padStart(2, '0')}/${c.competenciaAno}`,
+    dataLimite: c.dataLimite, status: statusVigente(c.status, c.dataLimite),
+    itens: c.itens.map((it) => ({ id: it.id, nome: it.nome, status: it.status, temArquivo: !!it.arquivo, justificativa: it.justificativa })),
+  }));
+}
+
+export async function enviarItemCliente(escritorioId: string, empresaId: string, cobrancaId: string, itemId: string, arquivo: string) {
+  const cob = await prisma.cobrancaDoc.findFirst({ where: { id: cobrancaId, escritorioId, empresaId } });
+  if (!cob) throw Errors.naoEncontrado('Cobranca');
+  const item = await prisma.cobrancaDocItem.findFirst({ where: { id: itemId, cobrancaId } });
+  if (!item) throw Errors.naoEncontrado('Item');
+  await prisma.cobrancaDocItem.update({
+    where: { id: itemId },
+    // reenvio apos recusa volta para RECEBIDO; limpa a justificativa anterior
+    data: { status: 'RECEBIDO', arquivo, justificativa: null, validadoPorId: null, validadoEm: null },
+  });
+  await recomputar(cobrancaId);
+  return { enviado: true };
+}
+
 // ---------- Dashboard ----------
 export async function dashboard(escritorioId: string, ano?: number, mes?: number) {
   const cobrancas = await prisma.cobrancaDoc.findMany({

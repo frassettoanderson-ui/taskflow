@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import fs from 'node:fs';
 import path from 'node:path';
+import multer from 'multer';
 import archiver from 'archiver';
 import { z } from 'zod';
 import { prisma } from '../../prisma.js';
@@ -9,10 +10,11 @@ import { ok } from '../../lib/http.js';
 import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { hashPassword, verifyPassword, generateToken, sha256 } from '../../lib/password.js';
-import { isInsideStorage } from '../../lib/storage.js';
+import { isInsideStorage, ensureDir, STORAGE_ROOT } from '../../lib/storage.js';
 import { statusEfetivo, type StatusEntrega } from '../entrega/entrega.status.js';
 import { signContatoToken, authenticateContato, permissaoContato } from './contatoAuth.js';
 import * as processoSvc from '../processo/processo.service.js';
+import * as acdoxSvc from '../acdox/acdox.service.js';
 
 const router = Router();
 
@@ -229,6 +231,27 @@ router.post('/colaborador', validate({ body: z.object({ nome: z.string().min(2),
     data: { processoId: proc.id, texto: `Cadastro preliminar (Area VIP): ${b.nome} | CPF ${b.cpf ?? '-'} | Cargo ${b.cargo ?? '-'} | Salario ${b.salario ?? '-'} | Admissao ${b.admissao ?? '-'}` },
   });
   return ok(res, { processoId: proc.id }, 201);
+});
+
+// ---------- ACDOX: documentos a enviar (recepcao pelo cliente) ----------
+router.get('/cobrancas', async (req, res) => {
+  const lista = await acdoxSvc.listarCobrancasCliente(req.contato!.escritorioId, req.contato!.empresaAtual);
+  return ok(res, lista);
+});
+
+const uploadCobranca = multer({
+  storage: multer.diskStorage({
+    destination: (req, _f, cb) => cb(null, ensureDir(path.join(STORAGE_ROOT, 'acdox', req.params.id))),
+    filename: (_r, file, cb) => cb(null, `${Date.now()}_${file.originalname.replace(/[^\w.\-]/g, '_')}`),
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
+
+router.post('/cobrancas/:id/itens/:itemId/enviar', uploadCobranca.single('arquivo'), async (req, res) => {
+  const arquivo = (req.file as Express.Multer.File | undefined)?.path;
+  if (!arquivo) throw Errors.validacao('Anexe o documento.');
+  const r = await acdoxSvc.enviarItemCliente(req.contato!.escritorioId, req.contato!.empresaAtual, req.params.id, req.params.itemId, arquivo);
+  return ok(res, r);
 });
 
 export default router;
