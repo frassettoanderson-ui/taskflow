@@ -31,6 +31,7 @@ function publico(u: {
   smtpSenha?: string | null;
   ccoEmails?: string | null;
   assinaturaArquivo?: string | null;
+  fotoPerfilArquivo?: string | null;
   horariosAcesso: unknown;
   filtrosForcados: unknown;
   permissao: Record<string, unknown> | null;
@@ -63,6 +64,7 @@ function publico(u: {
     temSmtpSenha: !!u.smtpSenha,
     ccoEmails: u.ccoEmails ?? null,
     temAssinatura: !!u.assinaturaArquivo,
+    temFoto: !!u.fotoPerfilArquivo,
     horariosAcesso: (u.horariosAcesso as JanelaAcesso[]) ?? [],
     filtrosForcados: (u.filtrosForcados as FiltrosForcados) ?? {},
     permissoes,

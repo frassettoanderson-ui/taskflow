@@ -34,10 +34,12 @@ export async function authenticate(
 ): Promise<void> {
   try {
     const header = req.headers.authorization;
-    if (!header?.startsWith('Bearer ')) {
+    // Fallback por query param (?token=) para <img>/download que nao enviam header.
+    const queryToken = typeof req.query.token === 'string' ? req.query.token : undefined;
+    if (!header?.startsWith('Bearer ') && !queryToken) {
       throw Errors.naoAutenticado();
     }
-    const token = header.slice(7);
+    const token = header?.startsWith('Bearer ') ? header.slice(7) : queryToken!;
 
     let payload;
     try {

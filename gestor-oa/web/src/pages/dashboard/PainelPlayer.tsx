@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { SkipBack, SkipForward, ChevronLeft, ChevronRight, Pause, Play, X, User, Network } from 'lucide-react';
-import { api } from '../../lib/api';
+import { api, getAccessToken } from '../../lib/api';
 import { Spinner } from '../../components/ui';
 import type { PainelCalculado, IndicadorCalculado, IndicadorItem } from '../../lib/tipos';
 
@@ -132,7 +132,7 @@ function CardEntidade({ it, icone }: { it: IndicadorItem; icone: React.ReactNode
     <div className="card overflow-hidden">
       <div className="flex items-center gap-3 border-b border-slate-100 p-3">
         <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-slate-100 text-slate-400" style={it.cor ? { background: it.cor + '22', color: it.cor } : undefined}>
-          {icone}
+          {it.foto ? <img src={`/api/v1/usuarios/${it.id}/foto?token=${getAccessToken() ?? ''}`} alt="" className="h-full w-full object-cover" /> : icone}
         </div>
         <div className="font-semibold text-status-ok">{it.nome}</div>
       </div>

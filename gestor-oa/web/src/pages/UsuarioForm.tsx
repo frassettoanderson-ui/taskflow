@@ -83,6 +83,8 @@ export default function UsuarioForm() {
   const [smtpSenha, setSmtpSenha] = useState('');
   const [ccoEmails, setCcoEmails] = useState('');
   const [temAssinatura, setTemAssinatura] = useState(false);
+  const [temFoto, setTemFoto] = useState(false);
+  const [fotoTick, setFotoTick] = useState(0);
 
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
@@ -108,7 +110,7 @@ export default function UsuarioForm() {
       setEncargos(u.encargos != null ? String(u.encargos) : '');
       setBeneficios(u.beneficios != null ? String(u.beneficios) : '');
       setSmtpHost(u.smtpHost ?? ''); setSmtpPorta(u.smtpPorta != null ? String(u.smtpPorta) : '');
-      setSmtpUsuario(u.smtpUsuario ?? ''); setCcoEmails(u.ccoEmails ?? ''); setTemAssinatura(u.temAssinatura);
+      setSmtpUsuario(u.smtpUsuario ?? ''); setCcoEmails(u.ccoEmails ?? ''); setTemAssinatura(u.temAssinatura); setTemFoto(!!u.temFoto);
       setNiveis(u.niveis ?? flagsParaNiveis(u.permissoes ?? {}));
       setDepIds(u.filtrosForcados?.departamentos ?? []);
       setTagIds(u.filtrosForcados?.tags ?? []);
@@ -130,6 +132,13 @@ export default function UsuarioForm() {
       if (!res.ok) throw new Error();
       window.open(URL.createObjectURL(await res.blob()), '_blank');
     } catch { toast('erro', 'Sem assinatura.'); }
+  }
+  async function enviarFoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    const fd = new FormData(); fd.append('arquivo', file);
+    try { await api.upload(`/usuarios/${id}/foto`, fd); setTemFoto(true); setFotoTick((t) => t + 1); toast('ok', 'Foto atualizada.'); }
+    catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro (use imagem).'); }
   }
 
   function setNivel(areaId: string, v: number) { setNiveis((n) => ({ ...n, [areaId]: v })); }
@@ -201,6 +210,19 @@ export default function UsuarioForm() {
           </select>
         </div>
       </div>
+
+      {/* Foto de perfil */}
+      {!novo && (
+        <div className="mt-3 flex items-center gap-3">
+          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-slate-100 text-slate-400">
+            {temFoto ? <img src={`/api/v1/usuarios/${id}/foto?t=${fotoTick}&token=${getAccessToken() ?? ''}`} alt="" className="h-full w-full object-cover" /> : <span className="text-2xl">{(nome[0] ?? '?').toUpperCase()}</span>}
+          </div>
+          <div>
+            <label className={LBL}>Foto de perfil <span className="font-normal text-slate-400">(usada nos indicadores por colaborador)</span></label>
+            <input type="file" accept="image/*" onChange={enviarFoto} className="block text-[12px] file:mr-2 file:rounded file:border-0 file:bg-marca-500 file:px-3 file:py-1 file:text-white" />
+          </div>
+        </div>
+      )}
 
       {/* Secoes colapsaveis (links chapados) */}
       <div className="mt-3 space-y-1">

@@ -23,6 +23,15 @@ const uploadAssinatura = multer({
   fileFilter: (_r, file, cb) => cb(null, /^image\//.test(file.mimetype)),
 });
 
+const uploadFoto = multer({
+  storage: multer.diskStorage({
+    destination: (req, _f, cb) => cb(null, escritorioDir(req.auth!.escritorioId, 'fotos-usuario')),
+    filename: (req, file, cb) => cb(null, `${req.params.id}${path.extname(file.originalname) || '.png'}`),
+  }),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (_r, file, cb) => cb(null, /^image\//.test(file.mimetype)),
+});
+
 const janelaSchema = z.object({
   diaSemana: z.number().int().min(0).max(6),
   inicio: z.string(),
@@ -126,6 +135,24 @@ router.get('/:id/assinatura', async (req, res) => {
   if (!u || !u.assinaturaArquivo) throw Errors.naoEncontrado('Assinatura');
   const arquivo = path.join(escritorioDir(req.auth!.escritorioId, 'assinaturas-usuario'), u.assinaturaArquivo);
   if (!fs.existsSync(arquivo)) throw Errors.naoEncontrado('Assinatura');
+  return res.sendFile(arquivo);
+});
+
+// Foto de perfil do usuario (upload + servir)
+router.post('/:id/foto', uploadFoto.single('arquivo'), async (req, res) => {
+  if (req.params.id !== req.auth!.id && !req.auth!.permissoes['admin_usuarios']) throw Errors.semPermissao('admin_usuarios');
+  const u = await prisma.usuario.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId, deletedAt: null } });
+  if (!u) throw Errors.naoEncontrado('Usuario');
+  if (!req.file) throw Errors.validacao('Envie uma imagem.');
+  await prisma.usuario.update({ where: { id: u.id }, data: { fotoPerfilArquivo: req.file.filename } });
+  return ok(res, { fotoPerfilArquivo: req.file.filename });
+});
+
+router.get('/:id/foto', async (req, res) => {
+  const u = await prisma.usuario.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId, deletedAt: null } });
+  if (!u || !u.fotoPerfilArquivo) throw Errors.naoEncontrado('Foto');
+  const arquivo = path.join(escritorioDir(req.auth!.escritorioId, 'fotos-usuario'), u.fotoPerfilArquivo);
+  if (!fs.existsSync(arquivo)) throw Errors.naoEncontrado('Foto');
   return res.sendFile(arquivo);
 });
 

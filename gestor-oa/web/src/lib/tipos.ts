@@ -386,6 +386,7 @@ export interface UsuarioCompleto {
   temSmtpSenha: boolean;
   ccoEmails: string | null;
   temAssinatura: boolean;
+  temFoto?: boolean;
   horariosAcesso: JanelaAcesso[];
   filtrosForcados: { departamentos?: string[]; tags?: string[] };
   permissoes: Record<string, boolean>;
