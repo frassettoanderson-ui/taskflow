@@ -123,6 +123,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
     { to: '/portal/processos', label: 'Processos' },
     { to: '/portal/colaborador', label: 'Cadastrar colaborador' },
     { to: '/portal/meus-dados', label: 'Meus dados' },
+    { to: '/portal/avalie-nos', label: 'Avalie-nos' },
     { to: '/portal/lgpd', label: 'Privacidade' },
   ];
 
@@ -166,6 +167,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
           <Route path="processos" element={<Processos />} />
           <Route path="colaborador" element={<Colaborador />} />
           <Route path="meus-dados" element={<MeusDados />} />
+          <Route path="avalie-nos" element={<AvalieNos />} />
           <Route path="lgpd" element={<Lgpd onAceito={() => setLgpdOk(true)} />} />
           <Route path="*" element={<Navigate to="/portal" replace />} />
         </Routes>
@@ -449,6 +451,51 @@ function MeusDados() {
           {msg && <p className="text-sm text-marca-600">{msg}</p>}
           <button className="btn-primary" onClick={salvar}>Salvar</button>
         </div>
+      </Card>
+    </div>
+  );
+}
+
+function AvalieNos() {
+  const [nota, setNota] = useState<number | null>(null);
+  const [comentario, setComentario] = useState('');
+  const [enviado, setEnviado] = useState(false);
+  const [erro, setErro] = useState('');
+
+  async function enviar() {
+    setErro('');
+    if (nota === null) { setErro('Escolha uma nota de 0 a 10.'); return; }
+    if (nota <= 8 && !comentario.trim()) { setErro('Para notas ate 8, conte-nos o motivo.'); return; }
+    try { await portalApi.post('/nps', { nota, comentario: comentario.trim() || undefined }); setEnviado(true); }
+    catch (e) { setErro(e instanceof PortalError ? e.message : 'Erro ao enviar.'); }
+  }
+
+  if (enviado) return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold text-slate-800">Avalie-nos</h1>
+      <Card><p className="text-sm text-emerald-700">Obrigado pela sua avaliacao! 🙏</p></Card>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold text-slate-800">Avalie-nos</h1>
+      <Card>
+        <p className="text-sm text-slate-600">Em uma escala de 0 a 10, o quanto voce recomendaria nosso escritorio a um amigo ou colega?</p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {Array.from({ length: 11 }, (_, i) => i).map((n) => (
+            <button key={n} onClick={() => setNota(n)}
+              className={`h-9 w-9 rounded text-sm font-medium ${nota === n ? 'text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              style={nota === n ? { background: n <= 6 ? '#cf3c5d' : n <= 8 ? '#f0ad4e' : '#5cb85c' } : { border: '1px solid #e2e8f0' }}>{n}</button>
+          ))}
+        </div>
+        <div className="mt-2 flex justify-between text-xs text-slate-400"><span>Pouco provavel</span><span>Muito provavel</span></div>
+        <div className="mt-3">
+          <label className="label">Comentario {nota !== null && nota <= 8 ? '(obrigatorio)' : '(opcional)'}</label>
+          <textarea className="input" rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder="Conte-nos o motivo da sua nota" />
+        </div>
+        {erro && <p className="mt-2 text-sm text-red-500">{erro}</p>}
+        <button className="btn-primary mt-3" onClick={enviar}>Enviar avaliacao</button>
       </Card>
     </div>
   );

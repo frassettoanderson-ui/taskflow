@@ -86,4 +86,19 @@ router.post('/solicitacoes/:id/status', solGerenciar, validate({ body: z.object(
   return ok(res, { ok: true });
 });
 
+// ===== NPS (painel interno) =====
+router.get('/nps', requirePermission('portal_configurar'), async (req, res) => {
+  const avaliacoes = await prisma.npsAvaliacao.findMany({ where: { escritorioId: req.auth!.escritorioId }, orderBy: { createdAt: 'desc' }, take: 500 });
+  const total = avaliacoes.length;
+  const promotores = avaliacoes.filter((a) => a.nota >= 9).length;
+  const neutros = avaliacoes.filter((a) => a.nota >= 7 && a.nota <= 8).length;
+  const detratores = avaliacoes.filter((a) => a.nota <= 6).length;
+  const score = total ? Math.round(((promotores - detratores) / total) * 100) : 0;
+  return ok(res, {
+    score, total, promotores, neutros, detratores,
+    media: total ? Math.round((avaliacoes.reduce((s, a) => s + a.nota, 0) / total) * 10) / 10 : 0,
+    avaliacoes: avaliacoes.map((a) => ({ id: a.id, nota: a.nota, comentario: a.comentario, contatoNome: a.contatoNome, contatoEmail: a.contatoEmail, createdAt: a.createdAt })),
+  });
+});
+
 export default router;

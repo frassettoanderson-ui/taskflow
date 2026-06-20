@@ -271,6 +271,19 @@ router.get('/processos/:id', async (req, res) => {
   });
 });
 
+// ---------- NPS / Avalie-nos ----------
+router.post('/nps', validate({ body: z.object({ nota: z.number().int().min(0).max(10), comentario: z.string().optional() }) }), async (req, res) => {
+  if (req.body.nota <= 8 && !req.body.comentario?.trim()) throw Errors.validacao('Para notas ate 8, conte-nos o motivo.');
+  await prisma.npsAvaliacao.create({
+    data: {
+      escritorioId: req.contato!.escritorioId, empresaId: req.contato!.empresaAtual,
+      contatoEmail: req.contato!.email, contatoNome: req.contato!.nome,
+      nota: req.body.nota, comentario: req.body.comentario?.trim() || null,
+    },
+  });
+  return ok(res, { registrado: true });
+});
+
 // ---------- Meus dados (perfil do contato) ----------
 router.put('/perfil', validate({ body: z.object({ nome: z.string().min(2).optional(), senhaAtual: z.string().optional(), novaSenha: z.string().min(8).optional() }) }), async (req, res) => {
   const { escritorioId, email } = req.contato!;

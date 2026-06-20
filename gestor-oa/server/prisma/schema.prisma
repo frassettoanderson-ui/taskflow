@@ -1420,6 +1420,22 @@ model CustoFixo {
 }
 
 // ------------------------------------------------------------
+// NPS (Avalie-nos): avaliacao do cliente 0-10
+// ------------------------------------------------------------
+model NpsAvaliacao {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  empresaId     String?
+  contatoEmail  String
+  contatoNome   String?
+  nota          Int      // 0..10
+  comentario    String?
+  createdAt     DateTime @default(now())
+
+  @@index([escritorioId, createdAt])
+}
+
+// ------------------------------------------------------------
 // Acessorias DOCS (ACDOX): regua de cobranca de documentos
 // ------------------------------------------------------------
 model ReguaCobranca {

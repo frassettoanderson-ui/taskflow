@@ -53,6 +53,7 @@ import PortalApp from './portal/PortalApp';
 import ComunicadosAdmin from './pages/portal/ComunicadosAdmin';
 import SolicitacoesInbox from './pages/portal/SolicitacoesInbox';
 import AreaVip from './pages/portal/AreaVip';
+import NpsPanel from './pages/portal/NpsPanel';
 import Templates from './pages/comunicacao/Templates';
 import Chatbot from './pages/comunicacao/Chatbot';
 import SolicitacoesInternas from './pages/solicitacoes/SolicitacoesInternas';
@@ -142,7 +143,7 @@ export default function App() {
         <Route path="area-vip/comunicados" element={<ComunicadosAdmin />} />
         <Route path="area-vip/solicitacoes" element={<SolicitacoesInbox />} />
         <Route path="area-vip/app" element={<AreaVip />} />
-        <Route path="area-vip/nps" element={<EmConstrucao titulo="Avaliacao NPS" descricao="Envio de pesquisa NPS aos clientes e painel de promotores/neutros/detratores." />} />
+        <Route path="area-vip/nps" element={<NpsPanel />} />
         <Route path="area-vip/avaliacoes" element={<EmConstrucao titulo="Avaliacao das Solicitacoes" descricao="Notas e comentarios que os clientes deram nas solicitacoes finalizadas." />} />
         <Route path="area-vip/usuarios-app" element={<EmConstrucao titulo="Usuarios do APP" descricao="Contatos das empresas com acesso ao portal/app (convites, ativacao, reset de senha)." />} />
         <Route path="apla/sobre" element={<EmConstrucao titulo="Conheca o APLA" descricao="Apresentacao do Metodo APLA (produtividade e lucratividade)." />} />
