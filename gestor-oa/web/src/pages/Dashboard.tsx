@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   SkipBack,
   SkipForward,
@@ -8,10 +9,15 @@ import {
   Play,
   User,
   Network,
+  Pencil,
+  Gauge,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { Donut, type Segmento } from '../components/Donut';
 import { Spinner } from '../components/ui';
+import PainelPlayer from './dashboard/PainelPlayer';
+import type { PainelDef } from '../lib/tipos';
 
 interface Metrica {
   count: number;
@@ -52,6 +58,68 @@ const VISOES = [
 ] as const;
 
 export default function Dashboard() {
+  const { sessao } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const [paineis, setPaineis] = useState<PainelDef[]>([]);
+  const [preferidoId, setPreferidoId] = useState<string | null>(null);
+  const [carregou, setCarregou] = useState(false);
+
+  const painelUrl = params.get('painel');
+
+  useEffect(() => {
+    api.get<PainelDef[]>('/dashboard/paineis').then(setPaineis).catch(() => undefined);
+    api.get<{ painelPreferidoId: string | null }>('/dashboard/preferido')
+      .then((r) => setPreferidoId(r.painelPreferidoId)).catch(() => undefined)
+      .finally(() => setCarregou(true));
+  }, []);
+
+  // painel ativo: o da URL ou, na 1a carga, o preferido do usuario
+  const ativoId = painelUrl ?? (carregou && !params.has('fixo') ? preferidoId : null);
+  const nome = sessao?.usuario?.nome?.split(' ')[0] ?? '';
+  const hora = new Date().getHours();
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+
+  async function fixarPreferido(id: string | null) {
+    setPreferidoId(id);
+    await api.put('/dashboard/preferido', { painelId: id }).catch(() => undefined);
+  }
+
+  function abrir(id: string) { setParams(id ? { painel: id } : {}); }
+  function sair() { setParams({ fixo: '1' }); }
+
+  const header = (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-700">{saudacao}{nome ? `, ${nome}` : ''}!</h2>
+        <p className="text-xs text-slate-400">Escolha um painel para exibir ou gerencie seus indicadores.</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-600"
+          value={ativoId ?? ''} onChange={(e) => (e.target.value ? abrir(e.target.value) : sair())}>
+          <option value="">Painel padrao (fixo)</option>
+          {paineis.filter((p) => p.ativo).map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+        </select>
+        {ativoId && (
+          <label className="flex items-center gap-1.5 text-xs text-slate-500">
+            <input type="checkbox" checked={preferidoId === ativoId} onChange={(e) => fixarPreferido(e.target.checked ? ativoId : null)} />
+            Sempre exibir ao iniciar
+          </label>
+        )}
+        <Link to="/dashboard/paineis" title="Gerenciar paineis" className="grid h-8 w-8 place-items-center rounded border border-slate-300 text-slate-500 hover:bg-slate-50"><Pencil size={15} /></Link>
+        <Link to="/dashboard/indicadores" title="Gerenciar indicadores" className="grid h-8 w-8 place-items-center rounded border border-slate-300 text-slate-500 hover:bg-slate-50"><Gauge size={15} /></Link>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {header}
+      {ativoId ? <PainelPlayer painelId={ativoId} onSair={sair} /> : <PainelFixo />}
+    </div>
+  );
+}
+
+function PainelFixo() {
   const [painel, setPainel] = useState<Painel | null>(null);
   const [visao, setVisao] = useState(0);
   const [tocando, setTocando] = useState(

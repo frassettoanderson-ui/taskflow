@@ -6,6 +6,8 @@ import EsqueciSenha from './pages/EsqueciSenha';
 import RedefinirSenha from './pages/RedefinirSenha';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import Indicadores from './pages/dashboard/Indicadores';
+import Paineis from './pages/dashboard/Paineis';
 import Configuracoes from './pages/Configuracoes';
 import Departamentos from './pages/Departamentos';
 import DepartamentoForm from './pages/DepartamentoForm';
@@ -96,6 +98,8 @@ export default function App() {
         }
       >
         <Route index element={<Dashboard />} />
+        <Route path="dashboard/indicadores" element={<Indicadores />} />
+        <Route path="dashboard/paineis" element={<Paineis />} />
         <Route path="empresas" element={<EmpresasList />} />
         <Route path="empresas/nova" element={<EmpresaForm />} />
         <Route path="empresas/importar" element={<ImportarCsv />} />

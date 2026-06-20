@@ -102,6 +102,8 @@ const MENU: Item[] = [
     icon: ClipboardList,
     filhos: [
       { label: 'Insights com filtros', icon: TrendingUp, to: '/insights' },
+      { label: 'Indicadores (Dashboard)', icon: TrendingUp, to: '/dashboard/indicadores' },
+      { label: 'Paineis (Dashboard)', icon: TrendingUp, to: '/dashboard/paineis' },
       { label: 'Estatisticas semanais', icon: ClipboardList, to: '/relatorios/semanais' },
       { label: 'Estatisticas mensais', icon: ClipboardList, to: '/relatorios/mensais' },
       { label: 'Responsaveis Dptos', icon: Users, to: '/relatorios/responsaveis' },

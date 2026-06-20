@@ -151,6 +151,35 @@ export interface TarefaAgendada {
   concluidaEm: string | null;
 }
 
+// ---------- Dashboard Flexivel ----------
+export interface Indicador {
+  id: string;
+  nome: string;
+  tipo: 'numerico' | 'colaborador' | 'departamento';
+  metrica: string;
+  prazo: 'mes_atual' | 'semana_atual' | '7d' | '30d';
+  visibilidade: 'todos' | 'somente_meu';
+  ativo: boolean;
+  filtroDepartamentoId: string | null;
+  filtroGrupoId: string | null;
+  filtroRegimeId: string | null;
+}
+export interface PainelDef {
+  id: string;
+  nome: string;
+  transicaoSeg: number;
+  visibilidade: 'todos' | 'somente_meu';
+  ativo: boolean;
+  indicadores: { indicadorId: string; ordem: number; indicador: Indicador }[];
+}
+export interface IndicadorItem { id: string; nome: string; cor?: string; foto?: string | null; baixadas: number; pendentes: number }
+export interface IndicadorCalculado {
+  id: string; nome: string; tipo: string; metrica: string; prazo: string;
+  valor?: number;
+  itens?: IndicadorItem[];
+}
+export interface PainelCalculado { id: string; nome: string; transicaoSeg: number; indicadores: IndicadorCalculado[] }
+
 export interface LogAuditoria {
   id: string;
   acao: string;

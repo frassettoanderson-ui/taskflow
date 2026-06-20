@@ -97,6 +97,7 @@ model Usuario {
   fotoPerfilArquivo String?
   notifSolicitacoesEmail Boolean @default(true)
   notifMarketingEmail    Boolean @default(true)
+  painelPreferidoId String?  // Dashboard Flexivel: painel exibido ao iniciar
 
   // Janelas de acesso permitidas: [{ diaSemana, inicio, fim }]. Vazio = sem restricao.
   horariosAcesso Json    @default("[]")
@@ -1341,6 +1342,60 @@ model DashboardConfig {
   updatedAt     DateTime @updatedAt
 
   @@index([escritorioId])
+}
+
+// ------------------------------------------------------------
+// Dashboard Flexivel: Indicadores + Paineis (carrossel)
+// ------------------------------------------------------------
+model Indicador {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  nome          String
+  // tipo: numerico | colaborador | departamento
+  tipo          String   @default("numerico")
+  // metrica calculada (ex.: entregas_baixadas, a_realizar, atrasadas, pendentes, processos, docs, solicitacoes)
+  metrica       String
+  // prazo/janela: 7d | 30d | semana_atual | mes_atual
+  prazo         String   @default("mes_atual")
+  // visibilidade: todos | somente_meu
+  visibilidade  String   @default("todos")
+  ativo         Boolean  @default(true)
+  criadoPorId   String?
+  // filtros fixos opcionais
+  filtroDepartamentoId String?
+  filtroGrupoId        String?
+  filtroRegimeId       String?
+  createdAt     DateTime @default(now())
+
+  paineis       PainelIndicador[]
+
+  @@index([escritorioId])
+}
+
+model Painel {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  nome          String
+  transicaoSeg  Int      @default(60)
+  visibilidade  String   @default("todos")
+  ativo         Boolean  @default(true)
+  criadoPorId   String?
+  createdAt     DateTime @default(now())
+
+  indicadores   PainelIndicador[]
+
+  @@index([escritorioId])
+}
+
+model PainelIndicador {
+  painelId      String
+  painel        Painel    @relation(fields: [painelId], references: [id], onDelete: Cascade)
+  indicadorId   String
+  indicador     Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+  ordem         Int       @default(0)
+
+  @@id([painelId, indicadorId])
+  @@index([indicadorId])
 }
 
 // ============================================================
