@@ -72,6 +72,7 @@ const MENU: Item[] = [
           { label: 'Comunicados', icon: MessageSquare, to: '/area-vip/comunicados' },
           { label: 'Avaliacao NPS', icon: Star, to: '/area-vip/nps' },
           { label: 'Avaliacao das Solicitacoes', icon: Star, to: '/area-vip/avaliacoes' },
+          { label: 'Formularios de Solicitacao', icon: MessageSquare, to: '/area-vip/formularios' },
           { label: 'Usuarios do APP', icon: Users, to: '/area-vip/usuarios-app' },
         ],
       },

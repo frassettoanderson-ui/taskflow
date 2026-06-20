@@ -169,13 +169,27 @@ router.get('/solicitacoes', async (req, res) => {
   return ok(res, itens);
 });
 
-router.post('/solicitacoes', validate({ body: z.object({ titulo: z.string().min(2), descricao: z.string().min(2) }) }), async (req, res) => {
+// formularios flexiveis ativos (para o cliente escolher ao abrir)
+router.get('/formularios', async (req, res) => {
+  const itens = await prisma.formularioSolicitacao.findMany({ where: { escritorioId: req.contato!.escritorioId, ativo: true }, orderBy: { nome: 'asc' } });
+  return ok(res, itens.map((f) => ({ id: f.id, nome: f.nome, descricao: f.descricao, campos: f.campos })));
+});
+
+router.post('/solicitacoes', validate({ body: z.object({
+  titulo: z.string().min(2), descricao: z.string().min(2),
+  formularioId: z.string().optional().nullable(),
+  respostas: z.array(z.object({ campoId: z.string(), label: z.string(), valor: z.string() })).optional(),
+}) }), async (req, res) => {
+  const respostas = req.body.respostas ?? [];
+  const resumo = respostas.length ? '\n\n' + respostas.map((r: { label: string; valor: string }) => `${r.label}: ${r.valor}`).join('\n') : '';
   const s = await prisma.solicitacaoPortal.create({
     data: {
       escritorioId: req.contato!.escritorioId, empresaId: req.contato!.empresaAtual,
       contatoEmail: req.contato!.email, contatoNome: req.contato!.nome,
       titulo: req.body.titulo, descricao: req.body.descricao,
-      mensagens: { create: { autorTipo: 'CONTATO', autorNome: req.contato!.nome, texto: req.body.descricao } },
+      formularioId: req.body.formularioId || null,
+      respostas: respostas.length ? respostas : undefined,
+      mensagens: { create: { autorTipo: 'CONTATO', autorNome: req.contato!.nome, texto: req.body.descricao + resumo } },
     },
   });
   return ok(res, s, 201);

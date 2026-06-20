@@ -86,6 +86,41 @@ router.post('/solicitacoes/:id/status', solGerenciar, validate({ body: z.object(
   return ok(res, { ok: true });
 });
 
+// ===== Formularios flexiveis de solicitacao =====
+const formGerenciar = requirePermission('portal_solicitacoes');
+const campoSchema = z.object({
+  id: z.string(),
+  label: z.string().min(1),
+  tipo: z.enum(['texto', 'textarea', 'numero', 'data', 'select']),
+  opcoes: z.array(z.string()).optional(),
+  obrigatorio: z.boolean().optional(),
+});
+const formSchema = z.object({
+  nome: z.string().min(1, 'Informe o nome.'),
+  descricao: z.string().optional().nullable(),
+  ativo: z.boolean().default(true),
+  campos: z.array(campoSchema).default([]),
+});
+
+router.get('/formularios', formGerenciar, async (req, res) => {
+  const itens = await prisma.formularioSolicitacao.findMany({ where: { escritorioId: req.auth!.escritorioId }, orderBy: { createdAt: 'desc' } });
+  return ok(res, itens);
+});
+router.post('/formularios', formGerenciar, validate({ body: formSchema }), async (req, res) => {
+  const r = await prisma.formularioSolicitacao.create({ data: { escritorioId: req.auth!.escritorioId, ...req.body } });
+  return ok(res, r, 201);
+});
+router.put('/formularios/:id', formGerenciar, validate({ body: formSchema.partial() }), async (req, res) => {
+  const f = await prisma.formularioSolicitacao.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId } });
+  if (!f) throw Errors.naoEncontrado('Formulario');
+  const r = await prisma.formularioSolicitacao.update({ where: { id: f.id }, data: req.body });
+  return ok(res, r);
+});
+router.delete('/formularios/:id', formGerenciar, async (req, res) => {
+  await prisma.formularioSolicitacao.deleteMany({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId } });
+  return ok(res, { removido: true });
+});
+
 // ===== Avaliacoes das solicitacoes (cliente avaliou ao finalizar) =====
 router.get('/avaliacoes-solicitacoes', requirePermission('portal_configurar'), async (req, res) => {
   const escritorioId = req.auth!.escritorioId;

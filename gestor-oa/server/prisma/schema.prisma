@@ -1141,6 +1141,8 @@ model SolicitacaoPortal {
   prazo         DateTime?
   avaliacaoNota Int?
   avaliacaoComentario String?
+  formularioId  String?
+  respostas     Json?    // respostas do formulario flexivel [{ campoId, label, valor }]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -1414,6 +1416,22 @@ model CustoFixo {
   empresaId     String?
   valor         Decimal  @db.Decimal(12, 2)
   ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([escritorioId])
+}
+
+// ------------------------------------------------------------
+// Formularios flexiveis de solicitacao (cliente preenche antes de abrir)
+// ------------------------------------------------------------
+model FormularioSolicitacao {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  nome          String
+  descricao     String?
+  ativo         Boolean  @default(true)
+  // campos: [{ id, label, tipo (texto|textarea|numero|data|select), opcoes[], obrigatorio }]
+  campos        Json     @default("[]")
   createdAt     DateTime @default(now())
 
   @@index([escritorioId])

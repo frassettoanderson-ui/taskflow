@@ -319,16 +319,63 @@ function Solicitacoes() {
   );
 }
 
+interface CampoForm { id: string; label: string; tipo: string; opcoes?: string[]; obrigatorio?: boolean }
+interface FormDef { id: string; nome: string; descricao: string | null; campos: CampoForm[] }
+
 function NovaSolicitacao({ onFechar, onCriada }: { onFechar: () => void; onCriada: () => void }) {
   const [titulo, setTitulo] = useState(''); const [descricao, setDescricao] = useState('');
-  async function salvar() { if (!titulo || !descricao) return; await portalApi.post('/solicitacoes', { titulo, descricao }); onCriada(); }
+  const [forms, setForms] = useState<FormDef[]>([]);
+  const [formId, setFormId] = useState('');
+  const [resp, setResp] = useState<Record<string, string>>({});
+  const [erro, setErro] = useState('');
+  useEffect(() => { portalApi.get<FormDef[]>('/formularios').then(setForms).catch(() => undefined); }, []);
+
+  const form = forms.find((f) => f.id === formId);
+
+  async function salvar() {
+    setErro('');
+    if (!titulo || !descricao) { setErro('Preencha titulo e descricao.'); return; }
+    let respostas: { campoId: string; label: string; valor: string }[] | undefined;
+    if (form) {
+      for (const c of form.campos) if (c.obrigatorio && !resp[c.id]?.trim()) { setErro(`Preencha: ${c.label}`); return; }
+      respostas = form.campos.filter((c) => resp[c.id]?.trim()).map((c) => ({ campoId: c.id, label: c.label, valor: resp[c.id] }));
+    }
+    await portalApi.post('/solicitacoes', { titulo, descricao, formularioId: formId || undefined, respostas });
+    onCriada();
+  }
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4" onClick={onFechar}>
-      <div className="w-full max-w-md rounded-lg bg-white p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-3 text-lg font-semibold">Nova solicitacao</h2>
         <div className="space-y-3">
+          {forms.length > 0 && (
+            <div>
+              <label className="label">Tipo de solicitacao</label>
+              <select className="input" value={formId} onChange={(e) => { setFormId(e.target.value); setResp({}); }}>
+                <option value="">Solicitacao livre</option>
+                {forms.map((f) => <option key={f.id} value={f.id}>{f.nome}</option>)}
+              </select>
+              {form?.descricao && <p className="mt-1 text-xs text-slate-400">{form.descricao}</p>}
+            </div>
+          )}
           <input className="input" placeholder="Titulo" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
-          <textarea className="input" rows={4} placeholder="Descreva o que precisa" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          <textarea className="input" rows={3} placeholder="Descreva o que precisa" value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          {form?.campos.map((c) => (
+            <div key={c.id}>
+              <label className="label">{c.label}{c.obrigatorio ? ' *' : ''}</label>
+              {c.tipo === 'textarea' ? (
+                <textarea className="input" rows={2} value={resp[c.id] ?? ''} onChange={(e) => setResp((r) => ({ ...r, [c.id]: e.target.value }))} />
+              ) : c.tipo === 'select' ? (
+                <select className="input" value={resp[c.id] ?? ''} onChange={(e) => setResp((r) => ({ ...r, [c.id]: e.target.value }))}>
+                  <option value="">Selecione</option>{(c.opcoes ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
+              ) : (
+                <input className="input" type={c.tipo === 'numero' ? 'number' : c.tipo === 'data' ? 'date' : 'text'} value={resp[c.id] ?? ''} onChange={(e) => setResp((r) => ({ ...r, [c.id]: e.target.value }))} />
+              )}
+            </div>
+          ))}
+          {erro && <p className="text-sm text-red-500">{erro}</p>}
           <div className="flex justify-end gap-2"><button className="btn-ghost" onClick={onFechar}>Cancelar</button><button className="btn-primary" onClick={salvar}>Enviar</button></div>
         </div>
       </div>
