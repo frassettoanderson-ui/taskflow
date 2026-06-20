@@ -1,10 +1,17 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const db = require('../db');
 const router = express.Router();
 
+// Anti-spam no cadastro público (sem login)
+const publicoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false,
+  message: { erro: 'Muitos cadastros a partir deste acesso. Tente mais tarde.' },
+});
+
 // Cadastro publico de membro (sem login) — usado pelo formulario que a pessoa preenche.
 // Hoje a igreja e unica (id da primeira). Quando virar multi-igreja, recebe um token/slug.
-router.post('/cadastro-membro', async (req, res) => {
+router.post('/cadastro-membro', publicoLimiter, async (req, res) => {
   const { nome, telefone, endereco, data_nascimento, sexo, slug } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome é obrigatório' });
   if (!slug) return res.status(400).json({ erro: 'Link de cadastro inválido (igreja não identificada).' });

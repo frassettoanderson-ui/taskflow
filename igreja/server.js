@@ -2,6 +2,7 @@ require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
+const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -9,15 +10,26 @@ const BASE = process.env.BASE_PATH || ''; // ex.: '/igreja' em producao
 
 const router = express.Router();
 
+app.set('trust proxy', 1); // atras do nginx (https + IP real p/ rate limit)
+
+// Headers de segurança. CSP desligado por ora (app usa CDN do Chart.js + scripts inline);
+// os demais headers (HSTS, X-Frame-Options, noSniff, referrer) ficam ativos.
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.set('trust proxy', 1);
 app.use(
   session({
+    name: 'cf.sid',
     secret: process.env.SESSION_SECRET || 'dev-secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, maxAge: 1000 * 60 * 60 * 8 },
+    cookie: {
+      httpOnly: true,
+      secure: 'auto',   // cookie só por HTTPS quando atrás do proxy seguro
+      sameSite: 'lax',  // mitiga CSRF
+      maxAge: 1000 * 60 * 60 * 8,
+    },
   })
 );
 

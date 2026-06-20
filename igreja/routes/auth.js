@@ -1,11 +1,22 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const db = require('../db');
 
 const router = express.Router();
 
+// Anti força-bruta no login e anti-abuso no cadastro
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 12, standardHeaders: true, legacyHeaders: false,
+  message: { erro: 'Muitas tentativas de login. Tente novamente em alguns minutos.' },
+});
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 6, standardHeaders: true, legacyHeaders: false,
+  message: { erro: 'Muitos cadastros a partir deste acesso. Tente mais tarde.' },
+});
+
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, senha } = req.body;
   if (!email || !senha) return res.status(400).json({ erro: 'Informe email e senha' });
 
@@ -42,7 +53,7 @@ function slugify(s) {
   return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '')
     .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'igreja';
 }
-router.post('/signup', async (req, res) => {
+router.post('/signup', signupLimiter, async (req, res) => {
   const { igreja_nome, nome, email, senha } = req.body;
   if (!igreja_nome || !igreja_nome.trim()) return res.status(400).json({ erro: 'Informe o nome da igreja' });
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe seu nome' });
