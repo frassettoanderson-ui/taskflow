@@ -59,6 +59,7 @@ export default function ListaEntregas() {
   const navigate = useNavigate();
   const podeBaixar = temPermissao(sessao, 'entregas_baixar');
   const podeDispensar = temPermissao(sessao, 'entregas_dispensar');
+  const podeMassa = temPermissao(sessao, 'entregas_acoes_massa');
 
   // ---- filtros (rascunho; aplicados ao clicar Filtrar) ----
   const [q, setQ] = useState('');
@@ -91,6 +92,15 @@ export default function ListaEntregas() {
   const [obrigacoes, setObrigacoes] = useState<{ id: string; nome: string }[]>([]);
   const [expandida, setExpandida] = useState<string | null>(null);
 
+  // ---- selecao em massa ([F2] acoes em lote) ----
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const [massaAcao, setMassaAcao] = useState<'transferir' | 'postergar' | 'baixar' | 'dispensar'>('transferir');
+  const [massaResp, setMassaResp] = useState('');
+  const [massaDias, setMassaDias] = useState('');
+  const [massaData, setMassaData] = useState('');
+  const [massaMotivo, setMassaMotivo] = useState('');
+  const [massaExec, setMassaExec] = useState(false);
+
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
@@ -119,10 +129,44 @@ export default function ListaEntregas() {
   }
   useEffect(carregar, [tick, page, ordem, dir]);
 
-  function filtrar() { setExpandida(null); page === 1 ? setTick((t) => t + 1) : setPage(1); }
+  function filtrar() { setExpandida(null); setSel(new Set()); page === 1 ? setTick((t) => t + 1) : setPage(1); }
 
   const items = pagina?.items ?? [];
   const nomeUsuario = useMemo(() => new Map(usuarios.map((u) => [u.id, u.nome])), [usuarios]);
+  const todasMarcadas = items.length > 0 && items.every((e) => sel.has(e.id));
+  const ncols = podeMassa ? 6 : 5;
+
+  function toggleSel(id: string) {
+    setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  }
+  function toggleTodas() {
+    setSel((s) => (items.every((e) => s.has(e.id)) ? new Set() : new Set(items.map((e) => e.id))));
+  }
+
+  async function executarMassa() {
+    if (sel.size === 0) return;
+    const payload: Record<string, unknown> = { entregaIds: [...sel], acao: massaAcao };
+    if (massaAcao === 'transferir') {
+      if (!massaResp) { toast('erro', 'Escolha o responsavel.'); return; }
+      payload.responsavelId = massaResp;
+    } else if (massaAcao === 'postergar') {
+      if (massaData) payload.novaData = massaData;
+      else if (massaDias) payload.dias = Number(massaDias);
+      else { toast('erro', 'Informe os dias ou a nova data.'); return; }
+    } else if (massaAcao === 'dispensar') {
+      payload.motivo = massaMotivo || undefined;
+    }
+    const verbo = { transferir: 'transferir o responsavel de', postergar: 'alterar o prazo de', baixar: 'dar baixa em', dispensar: 'dispensar' }[massaAcao];
+    if (!window.confirm(`Confirma ${verbo} ${sel.size} demanda(s)?`)) return;
+    setMassaExec(true);
+    try {
+      const r = await api.post<{ afetadas: number }>('/entregas/acoes-massa', payload);
+      toast('ok', `${r.afetadas} demanda(s) atualizada(s).`);
+      setSel(new Set()); setMassaResp(''); setMassaDias(''); setMassaData(''); setMassaMotivo('');
+      carregar();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    finally { setMassaExec(false); }
+  }
 
   function ordenar(o: typeof ordem) {
     if (ordem === o) { setDir((x) => (x === 'asc' ? 'desc' : 'asc')); }
@@ -273,11 +317,52 @@ export default function ListaEntregas() {
         )}
       </div>
 
+      {/* barra de acoes em massa */}
+      {podeMassa && sel.size > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-marca-200 bg-marca-50 p-2 text-[12px]">
+          <span className="font-semibold text-marca-700">{sel.size} selecionada(s):</span>
+          <select className={INP} value={massaAcao} onChange={(e) => setMassaAcao(e.target.value as never)}>
+            <option value="transferir">Transferir responsavel</option>
+            <option value="postergar">Alterar prazo</option>
+            {podeBaixar && <option value="baixar">Dar baixa</option>}
+            {podeDispensar && <option value="dispensar">Dispensar</option>}
+          </select>
+          {massaAcao === 'transferir' && (
+            <select className={`${INP} w-48`} value={massaResp} onChange={(e) => setMassaResp(e.target.value)}>
+              <option value="">Escolher responsavel...</option>
+              {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          )}
+          {massaAcao === 'postergar' && (
+            <>
+              <input className={`${INP} w-24`} type="number" placeholder="+ dias" value={massaDias}
+                onChange={(e) => { setMassaDias(e.target.value); if (e.target.value) setMassaData(''); }} />
+              <span className="text-slate-400">ou</span>
+              <input className={INP} type="date" value={massaData}
+                onChange={(e) => { setMassaData(e.target.value); if (e.target.value) setMassaDias(''); }} />
+            </>
+          )}
+          {massaAcao === 'dispensar' && (
+            <input className={`${INP} w-56`} placeholder="Motivo (opcional)" value={massaMotivo} onChange={(e) => setMassaMotivo(e.target.value)} />
+          )}
+          <button onClick={executarMassa} disabled={massaExec}
+            className="ml-auto rounded bg-status-ok px-4 py-1.5 font-medium text-white hover:bg-emerald-600 disabled:opacity-50">
+            {massaExec ? '...' : 'Aplicar'}
+          </button>
+          <button onClick={() => setSel(new Set())} className="rounded border border-slate-300 bg-white px-3 py-1.5 text-slate-600 hover:bg-slate-50">Limpar</button>
+        </div>
+      )}
+
       {/* tabela */}
       <div className="mt-2 overflow-hidden rounded border border-slate-200 bg-white shadow-sm">
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-200 bg-white text-left align-top text-[12px] text-slate-500">
+              {podeMassa && (
+                <th className="w-8 px-2 py-2 align-middle">
+                  <input type="checkbox" checked={todasMarcadas} onChange={toggleTodas} className="accent-marca-600" title="Selecionar todas" />
+                </th>
+              )}
               <th className="px-3 py-2 font-normal">
                 <button onClick={() => ordenar('obrigacao')} className="font-semibold text-marca-600 hover:underline">Obrigacao{seta('obrigacao')}</button>
                 <span className="text-slate-400"> / Tarefa</span>
@@ -308,9 +393,9 @@ export default function ListaEntregas() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="py-12"><Spinner /></td></tr>
+              <tr><td colSpan={ncols} className="py-12"><Spinner /></td></tr>
             ) : items.length === 0 ? (
-              <tr><td colSpan={5} className="px-3 py-12 text-center text-slate-400">Nenhuma obrigacao/tarefa para os filtros selecionados.</td></tr>
+              <tr><td colSpan={ncols} className="px-3 py-12 text-center text-slate-400">Nenhuma obrigacao/tarefa para os filtros selecionados.</td></tr>
             ) : items.map((e) => {
               const cor = e.obrigacao.departamento?.cor ?? '#64748b';
               const respId = e.responsavelEntregaId ?? e.responsavelPrazoId;
@@ -319,7 +404,12 @@ export default function ListaEntregas() {
               return (
                 <Fragment key={e.id}>
                   <tr onClick={() => setExpandida(aberta ? null : e.id)}
-                    className={`cursor-pointer border-b border-slate-100 align-top hover:bg-slate-50 ${aberta ? 'bg-slate-50' : ''}`}>
+                    className={`cursor-pointer border-b border-slate-100 align-top hover:bg-slate-50 ${aberta ? 'bg-slate-50' : ''} ${sel.has(e.id) ? 'bg-marca-50' : ''}`}>
+                    {podeMassa && (
+                      <td className="px-2 py-2 align-middle" onClick={(ev) => ev.stopPropagation()}>
+                        <input type="checkbox" checked={sel.has(e.id)} onChange={() => toggleSel(e.id)} className="accent-marca-600" />
+                      </td>
+                    )}
                     {/* col 1 */}
                     <td className="px-3 py-2">
                       <div className="font-semibold" style={{ color: cor }}>{e.obrigacao.nome}</div>
@@ -363,7 +453,7 @@ export default function ListaEntregas() {
                   </tr>
                   {aberta && (
                     <tr className="border-b border-slate-200 bg-slate-50">
-                      <td colSpan={5} className="px-3 py-3">
+                      <td colSpan={ncols} className="px-3 py-3">
                         <LinhaBaixa entrega={e} nomeUsuario={nomeUsuario} onBaixado={() => { setExpandida(null); carregar(); }} onDispensar={() => dispensar(e)} />
                       </td>
                     </tr>

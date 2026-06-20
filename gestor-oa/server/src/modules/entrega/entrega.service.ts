@@ -601,12 +601,14 @@ export async function acoesMassa(
         novoTecnico = addDays(e.prazoTecnico, input.dias);
       }
       await prisma.entrega.update({ where: { id: e.id }, data: { prazoLegal: novoLegal, prazoTecnico: novoTecnico } });
+      await registrarEvento(escritorioId, e.id, `Prazo alterado em lote para ${novoLegal.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`, userId);
     } else if (input.acao === 'transferir') {
       if (!input.responsavelId) continue;
       await prisma.entrega.update({
         where: { id: e.id },
         data: { responsavelPrazoId: input.responsavelId, responsavelEntregaId: input.responsavelId },
       });
+      await registrarEvento(escritorioId, e.id, 'Responsavel transferido em lote', userId);
     } else if (input.acao === 'baixar') {
       await prisma.entrega.update({
         where: { id: e.id },
@@ -618,8 +620,10 @@ export async function acoesMassa(
           responsavelEntregaId: e.responsavelEntregaId ?? userId,
         },
       });
+      await registrarEvento(escritorioId, e.id, 'Baixa em lote', userId);
     } else if (input.acao === 'dispensar') {
       await prisma.entrega.update({ where: { id: e.id }, data: { status: 'DISPENSADA', motivoDispensa: input.motivo || 'Dispensada em lote' } });
+      await registrarEvento(escritorioId, e.id, `Dispensada em lote${input.motivo ? ': ' + input.motivo : ''}`, userId);
     }
     afetadas++;
   }
