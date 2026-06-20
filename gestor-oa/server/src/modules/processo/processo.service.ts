@@ -107,7 +107,7 @@ export async function listar(escritorioId: string, filtros: FiltrosProcesso) {
     where: { AND: and as never },
     orderBy: { numero: 'desc' },
     include: {
-      empresa: { select: { razaoSocial: true, identificadores: { select: { tipo: true, valor: true } } } },
+      empresa: { select: { numero: true, razaoSocial: true, identificadores: { select: { tipo: true, valor: true } } } },
       matriz: { select: { nome: true } },
       passos: { select: { status: true } },
     },
@@ -122,7 +122,7 @@ export async function listar(escritorioId: string, filtros: FiltrosProcesso) {
       id: p.id, numero: p.numero, nome: p.nome, titulo: p.titulo, observacoes: p.observacoes,
       status: p.status, dataInicio: p.dataInicio, previsaoConclusao: p.previsaoConclusao, dataConclusao: p.dataConclusao,
       suspensoAte: p.suspensoAte, departamentoId: p.departamentoId, gestorId: p.gestorId,
-      empresa: p.empresa ? { razaoSocial: p.empresa.razaoSocial, cnpjFinal: cnpjFinal(p.empresa.identificadores) } : null,
+      empresa: p.empresa ? { numero: p.empresa.numero, razaoSocial: p.empresa.razaoSocial, cnpjFinal: cnpjFinal(p.empresa.identificadores) } : null,
       matriz: p.matriz, diasCorridos,
       progresso: total ? Math.round((concluidos / total) * 100) : 0,
       totalPassos: total, passosConcluidos: concluidos,
@@ -134,7 +134,7 @@ export async function obter(escritorioId: string, id: string) {
   const p = await prisma.processo.findFirst({
     where: { id, escritorioId },
     include: {
-      empresa: { select: { id: true, razaoSocial: true, identificadores: { select: { tipo: true, valor: true } } } },
+      empresa: { select: { id: true, numero: true, razaoSocial: true, identificadores: { select: { tipo: true, valor: true } } } },
       matriz: { select: { nome: true } },
       passos: { orderBy: { ordem: 'asc' } },
       comentarios: { orderBy: { createdAt: 'desc' } },

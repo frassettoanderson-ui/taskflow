@@ -286,6 +286,9 @@ model Empresa {
 
   razaoSocial        String
   nomeFantasia       String?
+  numero             Int?               // [ID] sequencial por escritorio (max 5 digitos)
+  honorario          Decimal?           @db.Decimal(12, 2)
+  apelidoEcontinuo   String?            // nome usado na pasta de backup do e-Continuo
   emailPrincipal     String?
   telefone           String?
   endereco           String?

@@ -305,7 +305,7 @@ export default function EmpresasList() {
               {itensOrdenados.map((e) => (
                 <tr key={e.id} className="cursor-pointer align-top hover:bg-slate-50" onClick={() => navigate(`/empresas/${e.id}`)}>
                   <td className="px-4 py-2">
-                    <div className="font-medium text-marca-600">{e.razaoSocial}{!e.ativo && <span className="text-slate-400"> [inativa]</span>}</div>
+                    <div className="font-medium text-marca-600">{e.razaoSocial} <span className="font-normal text-slate-400">[{e.numero ?? '-'}]</span>{!e.ativo && <span className="text-slate-400"> [inativa]</span>}</div>
                     <div className="text-slate-500">{e.nomeFantasia ?? '—'}</div>
                   </td>
                   <td className="px-4 py-2">

@@ -147,6 +147,8 @@ function AbaDados({
   const [form, setForm] = useState({
     razaoSocial: empresa.razaoSocial,
     nomeFantasia: empresa.nomeFantasia ?? '',
+    honorario: empresa.honorario != null ? String(empresa.honorario) : '',
+    apelidoEcontinuo: empresa.apelidoEcontinuo ?? '',
     emailPrincipal: empresa.emailPrincipal ?? '',
     telefone: empresa.telefone ?? '',
     endereco: empresa.endereco ?? '',
@@ -174,6 +176,8 @@ function AbaDados({
     try {
       await api.put(`/empresas/${empresa.id}`, {
         ...form,
+        honorario: form.honorario === '' ? null : Number(form.honorario),
+        apelidoEcontinuo: form.apelidoEcontinuo || null,
         emailPrincipal: form.emailPrincipal || null,
         tagIds,
       });
@@ -201,7 +205,10 @@ function AbaDados({
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <section className="card space-y-4 p-6 lg:col-span-2">
-        <h2 className="font-semibold text-slate-700">Dados cadastrais</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-slate-700">Dados cadastrais</h2>
+          <span className="text-sm font-medium text-marca-600">ID: {empresa.numero ?? '—'}</span>
+        </div>
         <div>
           <label className="label">Razao social</label>
           <input className="input" value={form.razaoSocial} disabled={!podeEditar} onChange={(e) => set('razaoSocial', e.target.value)} />
@@ -210,6 +217,14 @@ function AbaDados({
           <div>
             <label className="label">Nome fantasia</label>
             <input className="input" value={form.nomeFantasia} disabled={!podeEditar} onChange={(e) => set('nomeFantasia', e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Honorario (R$)</label>
+            <input className="input" type="number" step="0.01" min="0" placeholder="0,00" value={form.honorario} disabled={!podeEditar} onChange={(e) => set('honorario', e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Apelido e-Continuo <span className="font-normal text-slate-400">(em branco = ID)</span></label>
+            <input className="input" value={form.apelidoEcontinuo} disabled={!podeEditar} onChange={(e) => set('apelidoEcontinuo', e.target.value)} />
           </div>
           <div>
             <label className="label">E-mail principal</label>

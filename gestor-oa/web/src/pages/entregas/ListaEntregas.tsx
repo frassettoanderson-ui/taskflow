@@ -291,7 +291,7 @@ export default function ListaEntregas() {
                       <div className="font-semibold" style={{ color: cor }}>{e.obrigacao.nome}</div>
                       <div className="text-slate-600">
                         {e.empresa.razaoSocial}
-                        <span className="text-slate-400"> [{e.empresa.cnpjFinal ?? '----'}]</span>
+                        <span className="text-slate-400"> [{e.empresa.numero ?? '-'} | {e.empresa.cnpjFinal ?? '----'}]</span>
                       </div>
                     </td>
                     {/* col 2 */}

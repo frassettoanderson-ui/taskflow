@@ -110,7 +110,7 @@ export default function ProcessoFicha() {
             <label className={`${LBL} flex items-center gap-1.5`}>Empresa <Heart size={13} className="text-marca-400" /></label>
             <span className="mb-1 text-[12px] font-medium text-marca-600">Inicio: {dataBR(p.dataInicio)}{p.gestorId && usuarios.length ? ` - ${usuarios.find((u) => u.id === p.gestorId)?.nome ?? ''}` : ''}</span>
           </div>
-          <input className={`${INP} bg-slate-50`} value={`${p.empresa.razaoSocial}${p.empresa.cnpjFinal ? ` [${p.empresa.cnpjFinal}]` : ''}`} readOnly />
+          <input className={`${INP} bg-slate-50`} value={`${p.empresa.razaoSocial} [${p.empresa.numero ?? '-'} | ${p.empresa.cnpjFinal ?? '----'}]`} readOnly />
         </div>
 
         <div>

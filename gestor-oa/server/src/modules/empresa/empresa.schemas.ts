@@ -17,6 +17,9 @@ export const identificadorInput = z.object({
 export const criarEmpresaSchema = z.object({
   razaoSocial: z.string().min(2, 'Razao social e obrigatoria.'),
   nomeFantasia: z.string().optional().nullable(),
+  numero: z.number().int().min(0).max(99999).optional().nullable(),
+  honorario: z.number().min(0).optional().nullable(),
+  apelidoEcontinuo: z.string().optional().nullable(),
   emailPrincipal: z.string().email('E-mail invalido.').optional().nullable().or(z.literal('')),
   telefone: z.string().optional().nullable(),
   endereco: z.string().optional().nullable(),

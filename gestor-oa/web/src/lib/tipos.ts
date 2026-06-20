@@ -43,6 +43,7 @@ export interface UsuarioBasico {
 
 export interface EmpresaLista {
   id: string;
+  numero: number | null;
   razaoSocial: string;
   nomeFantasia: string | null;
   ativo: boolean;
@@ -104,6 +105,9 @@ export interface Responsavel {
 
 export interface EmpresaDetalhe {
   id: string;
+  numero: number | null;
+  honorario: string | number | null;
+  apelidoEcontinuo: string | null;
   razaoSocial: string;
   nomeFantasia: string | null;
   emailPrincipal: string | null;
@@ -259,7 +263,7 @@ export const STATUS_INFO: Record<StatusEntrega, { label: string; cor: string }> 
 
 export interface Entrega {
   id: string;
-  empresa: { id: string; razaoSocial: string; nomeFantasia?: string | null; cnpjFinal?: string | null };
+  empresa: { id: string; numero?: number | null; razaoSocial: string; nomeFantasia?: string | null; cnpjFinal?: string | null };
   obrigacao: { id: string; nome: string; exigeAnexoNaBaixa: boolean; departamento: { nome: string; cor: string } | null };
   competencia: string;
   competenciaAno: number;
@@ -580,7 +584,7 @@ export interface ProcessoLista {
   suspensoAte: string | null;
   departamentoId: string | null;
   gestorId: string | null;
-  empresa: { razaoSocial: string; cnpjFinal?: string | null } | null;
+  empresa: { numero?: number | null; razaoSocial: string; cnpjFinal?: string | null } | null;
   matriz: { nome: string } | null;
   diasCorridos: number;
   progresso: number;
@@ -614,7 +618,7 @@ export interface ProcessoDetalhe {
   suspensoAte: string | null;
   departamentoId: string | null;
   gestorId: string | null;
-  empresa: { id: string; razaoSocial: string; cnpjFinal?: string | null };
+  empresa: { id: string; numero?: number | null; razaoSocial: string; cnpjFinal?: string | null };
   matriz: { nome: string } | null;
   passos: ProcessoPasso[];
   comentarios: { id: string; texto: string; createdAt: string }[];

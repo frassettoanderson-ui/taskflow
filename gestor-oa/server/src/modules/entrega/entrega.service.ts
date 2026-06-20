@@ -407,7 +407,7 @@ export async function listar(
       skip: pag.skip,
       take: pag.take,
       include: {
-        empresa: { select: { id: true, razaoSocial: true, nomeFantasia: true, identificadores: { select: { tipo: true, valor: true } } } },
+        empresa: { select: { id: true, numero: true, razaoSocial: true, nomeFantasia: true, identificadores: { select: { tipo: true, valor: true } } } },
         obrigacao: { select: { id: true, nome: true, exigeAnexoNaBaixa: true, departamento: { select: { nome: true, cor: true } } } },
         _count: { select: { anexos: true, comentarios: true } },
       },
@@ -418,7 +418,7 @@ export async function listar(
   return {
     items: items.map((e) => ({
       id: e.id,
-      empresa: { id: e.empresa.id, razaoSocial: e.empresa.razaoSocial, nomeFantasia: e.empresa.nomeFantasia, cnpjFinal: cnpjFinal(e.empresa.identificadores) },
+      empresa: { id: e.empresa.id, numero: e.empresa.numero, razaoSocial: e.empresa.razaoSocial, nomeFantasia: e.empresa.nomeFantasia, cnpjFinal: cnpjFinal(e.empresa.identificadores) },
       obrigacao: e.obrigacao,
       competencia: `${String(e.competenciaMes).padStart(2, '0')}/${e.competenciaAno}`,
       competenciaAno: e.competenciaAno,

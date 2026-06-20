@@ -20,6 +20,8 @@ export default function EmpresaForm() {
   const [form, setForm] = useState({
     razaoSocial: '',
     nomeFantasia: '',
+    honorario: '',
+    apelidoEcontinuo: '',
     emailPrincipal: '',
     telefone: '',
     endereco: '',
@@ -47,6 +49,8 @@ export default function EmpresaForm() {
         .map((i) => ({ tipo: i.tipo, valor: i.valor, apelido: i.apelido || undefined }));
       const empresa = await api.post<{ id: string }>('/empresas', {
         ...form,
+        honorario: form.honorario === '' ? undefined : Number(form.honorario),
+        apelidoEcontinuo: form.apelidoEcontinuo || undefined,
         emailPrincipal: form.emailPrincipal || undefined,
         tagIds,
         identificadores,
@@ -86,6 +90,14 @@ export default function EmpresaForm() {
             <div>
               <label className="label">Endereco</label>
               <input className="input" value={form.endereco} onChange={(e) => set('endereco', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Honorario (R$)</label>
+              <input className="input" type="number" step="0.01" min="0" placeholder="0,00" value={form.honorario} onChange={(e) => set('honorario', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Apelido e-Continuo <span className="font-normal text-slate-400">(em branco = ID)</span></label>
+              <input className="input" value={form.apelidoEcontinuo} onChange={(e) => set('apelidoEcontinuo', e.target.value)} />
             </div>
           </div>
           <div>

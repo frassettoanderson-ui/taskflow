@@ -192,7 +192,7 @@ export default function Processos() {
                       {dep && <span className="text-marca-600"> [{dep}]</span>}
                     </div>
                     <div className="text-marca-700">{p.titulo}</div>
-                    <div className="text-slate-600">{p.empresa?.razaoSocial}{p.empresa?.cnpjFinal && <span className="text-slate-400"> [{p.empresa.cnpjFinal}]</span>}</div>
+                    <div className="text-slate-600">{p.empresa?.razaoSocial}<span className="text-slate-400"> [{p.empresa?.numero ?? '-'} | {p.empresa?.cnpjFinal ?? '----'}]</span></div>
                   </div>
                   {/* col 2+3 */}
                   <div>

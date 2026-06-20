@@ -97,6 +97,7 @@ export async function listar(
   return {
     items: items.map((e) => ({
       id: e.id,
+      numero: e.numero,
       razaoSocial: e.razaoSocial,
       nomeFantasia: e.nomeFantasia,
       ativo: e.ativo,
@@ -164,6 +165,9 @@ async function validarIdentificadores(
 interface CriarInput {
   razaoSocial: string;
   nomeFantasia?: string | null;
+  numero?: number | null;
+  honorario?: number | null;
+  apelidoEcontinuo?: string | null;
   emailPrincipal?: string | null;
   telefone?: string | null;
   endereco?: string | null;
@@ -180,11 +184,21 @@ export async function criar(escritorioId: string, input: CriarInput) {
   const ids = input.identificadores ?? [];
   await validarIdentificadores(escritorioId, ids);
 
+  // [ID] sequencial por escritorio (usa o informado ou max+1)
+  let numero = input.numero ?? null;
+  if (numero == null) {
+    const ultimo = await prisma.empresa.aggregate({ where: { escritorioId }, _max: { numero: true } });
+    numero = (ultimo._max.numero ?? 0) + 1;
+  }
+
   return prisma.empresa.create({
     data: {
       escritorioId,
       razaoSocial: input.razaoSocial,
       nomeFantasia: input.nomeFantasia || null,
+      numero,
+      honorario: input.honorario ?? null,
+      apelidoEcontinuo: input.apelidoEcontinuo || null,
       emailPrincipal: input.emailPrincipal || null,
       telefone: input.telefone || null,
       endereco: input.endereco || null,
@@ -235,6 +249,10 @@ export async function editar(
       razaoSocial: input.razaoSocial ?? empresa.razaoSocial,
       nomeFantasia:
         input.nomeFantasia === undefined ? empresa.nomeFantasia : input.nomeFantasia || null,
+      numero: input.numero === undefined ? empresa.numero : input.numero,
+      honorario: input.honorario === undefined ? empresa.honorario : (input.honorario ?? null),
+      apelidoEcontinuo:
+        input.apelidoEcontinuo === undefined ? empresa.apelidoEcontinuo : input.apelidoEcontinuo || null,
       emailPrincipal:
         input.emailPrincipal === undefined ? empresa.emailPrincipal : input.emailPrincipal || null,
       telefone: input.telefone === undefined ? empresa.telefone : input.telefone || null,
