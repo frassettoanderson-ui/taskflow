@@ -294,7 +294,18 @@ VIEWS['admin-igrejas'] = async () => {
     ['Membros', (i) => i.membros],
     ['Lançamentos', (i) => i.lancamentos],
     ['Criada', (i) => dataBR(i.criado_em)],
+    ['', (i) => `<button class="acao-link" data-users="${i.id}" data-nome="${esc(i.nome)}">👥 Ver usuários</button>`],
   ], 'Nenhuma igreja.');
+
+  document.querySelectorAll('[data-users]').forEach((b) => b.addEventListener('click', async () => {
+    const us = await getJSON('admin/igrejas/' + b.dataset.users + '/usuarios');
+    abrirModal('Usuários — ' + b.dataset.nome, `<div style="max-height:60vh;overflow:auto">${tabela(us, [
+      ['Nome', (u) => esc(u.nome) + (u.super_admin ? ' <span class="badge recebido">super</span>' : '')],
+      ['E-mail', (u) => esc(u.email)],
+      ['Papel', (u) => esc(u.papel)],
+      ['Situação', (u) => `<span class="badge ${u.ativo ? 'ativo' : 'inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</span>`],
+    ], 'Nenhum usuário.')}</div>`);
+  }));
 };
 
 // ─── Configuração: Usuários (gestão por igreja) ───

@@ -26,4 +26,14 @@ router.get('/igrejas', requireSuperAdmin, async (req, res) => {
   })));
 });
 
+// GET /api/admin/igrejas/:id/usuarios — usuários (contas) de uma igreja (suporte)
+router.get('/igrejas/:id/usuarios', requireSuperAdmin, async (req, res) => {
+  const { rows } = await db.query(
+    `SELECT id, nome, email, papel, ativo, senha_provisoria, super_admin
+     FROM usuarios WHERE igreja_id=$1 ORDER BY nome`,
+    [req.params.id]
+  );
+  res.json(rows);
+});
+
 module.exports = router;
