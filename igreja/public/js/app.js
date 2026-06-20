@@ -79,6 +79,7 @@ const TITULOS = {
   'membro-consultar': 'Consultar Membros',
   'membro-aniversariantes': 'Aniversariantes',
   cadastros: 'Cadastros',
+  usuarios: 'Usuários',
   'relatorio-despesas': 'Despesas',
   'relatorio-dizimos': 'Dízimos / Ofertas',
   extrato: 'Extrato Bancário',
@@ -294,6 +295,93 @@ VIEWS['admin-igrejas'] = async () => {
     ['Lançamentos', (i) => i.lancamentos],
     ['Criada', (i) => dataBR(i.criado_em)],
   ], 'Nenhuma igreja.');
+};
+
+// ─── Configuração: Usuários (gestão por igreja) ───
+const PAPEIS_OPT = ['admin', 'tesoureiro', 'pastor', 'contador', 'leitura'];
+const optPapel = (sel) => PAPEIS_OPT.map((p) => `<option value="${p}"${p === sel ? ' selected' : ''}>${p.charAt(0).toUpperCase() + p.slice(1)}</option>`).join('');
+
+VIEWS.usuarios = async () => {
+  app.innerHTML = `
+  <div class="painel">
+    <h2>Novo usuário</h2>
+    <p class="desc">O usuário recebe uma <b>senha provisória</b> (mostrada ao criar) e a troca no primeiro acesso.</p>
+    <form id="f" class="form-grid">
+      <label>Nome *<input type="text" id="nome" required></label>
+      <div class="linha">
+        <label>E-mail *<input type="email" id="email" required></label>
+        <label>Papel<select id="papel">${optPapel('leitura')}</select></label>
+      </div>
+      <button type="submit">Criar usuário</button>
+      <p id="msg" class="erro"></p>
+    </form>
+  </div>
+  <div class="painel"><h2>Usuários da igreja</h2><div id="lista"></div></div>`;
+
+  function mostrarSenha(titulo, senha) {
+    abrirModal(titulo, `<p class="desc" style="margin:0 0 12px">Compartilhe esta senha provisória com a pessoa. Ela troca no primeiro acesso.</p>
+      <div class="toolbar"><input class="cresce" id="sp" value="${esc(senha)}" readonly style="font-size:18px;font-weight:600;text-align:center"></div>`);
+  }
+
+  document.getElementById('f').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('msg');
+    const r = await api('usuarios', { method: 'POST', body: JSON.stringify({
+      nome: document.getElementById('nome').value,
+      email: document.getElementById('email').value,
+      papel: document.getElementById('papel').value,
+    }) });
+    const d = await r.json();
+    if (!r.ok) { msg.textContent = d.erro; return; }
+    document.getElementById('f').reset();
+    listar();
+    mostrarSenha('Usuário criado', d.senha);
+  });
+
+  let cache = [];
+  async function listar() {
+    cache = await getJSON('usuarios');
+    document.getElementById('lista').innerHTML = tabela(cache, [
+      ['Nome', (u) => esc(u.nome)],
+      ['E-mail', (u) => esc(u.email)],
+      ['Papel', (u) => esc(u.papel)],
+      ['Situação', (u) => `<span class="badge ${u.ativo ? 'ativo' : 'inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</span>${u.senha_provisoria ? ' <span class="badge pendente">senha provisória</span>' : ''}`],
+      ['', (u) => `<button class="acao-link" data-edit="${u.id}">✎ Editar</button>
+                   <button class="acao-link" data-reset="${u.id}">🔑 Resetar senha</button>`],
+    ], 'Nenhum usuário.');
+    document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => editar(cache.find((x) => String(x.id) === b.dataset.edit))));
+    document.querySelectorAll('[data-reset]').forEach((b) => b.addEventListener('click', async () => {
+      if (!confirm('Resetar a senha deste usuário? Será gerada uma nova senha provisória.')) return;
+      const r = await api('usuarios/' + b.dataset.reset + '/reset-senha', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok) { alert(d.erro); return; }
+      listar(); mostrarSenha('Senha resetada', d.senha);
+    }));
+  }
+
+  function editar(u) {
+    const m = abrirModal('Editar usuário', `
+      <form id="fe" class="form-grid" style="max-width:none">
+        <label>Nome *<input type="text" id="e-nome" required value="${esc(u.nome)}"></label>
+        <label>E-mail<input type="email" value="${esc(u.email)}" disabled></label>
+        <label>Papel<select id="e-papel">${optPapel(u.papel)}</select></label>
+        <label class="check-linha"><input type="checkbox" id="e-ativo" ${u.ativo ? 'checked' : ''}> Usuário ativo</label>
+        <button type="submit">Salvar</button>
+        <p id="e-msg" class="erro"></p>
+      </form>`);
+    m.el.querySelector('#fe').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await api('usuarios/' + u.id, { method: 'PUT', body: JSON.stringify({
+        nome: m.el.querySelector('#e-nome').value,
+        papel: m.el.querySelector('#e-papel').value,
+        ativo: m.el.querySelector('#e-ativo').checked,
+      }) });
+      const d = await r.json();
+      if (!r.ok) { m.el.querySelector('#e-msg').textContent = d.erro; return; }
+      m.fechar(); listar();
+    });
+  }
+  listar();
 };
 
 // ─── Lançar Dízimo / Oferta (entrada) ───
@@ -1839,6 +1927,10 @@ function marcarAniversarioNoMenu(qtd) {
   if (me.usuario.super_admin) {
     const ms = document.getElementById('menu-super');
     if (ms) ms.style.display = '';
+  }
+  if (me.usuario.papel === 'admin' || me.usuario.papel === 'pastor' || me.usuario.super_admin) {
+    const mu = document.getElementById('menu-usuarios');
+    if (mu) mu.style.display = '';
   }
   if (me.usuario.teste) {
     const bt = document.getElementById('badge-teste');
