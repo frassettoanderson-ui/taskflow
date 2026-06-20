@@ -9,6 +9,7 @@ import type {
   Tag,
   Departamento,
   UsuarioBasico,
+  GrupoEmpresa,
 } from '../../lib/tipos';
 import { formatarIdent } from '../../lib/tipos';
 
@@ -28,11 +29,14 @@ export default function EmpresasList() {
   const podeImportar = temPermissao(sessao, 'empresas_importar');
   const [searchParams] = useSearchParams();
   const motivoUrl = searchParams.get('motivo') ?? '';
+  const grupoUrl = searchParams.get('grupo') ?? '';
 
   const [busca, setBusca] = useState('');
   const [status, setStatus] = useState<'ativos' | 'inativos' | 'todos'>('ativos');
   const [tagId, setTagId] = useState('');
   const [departamentoId, setDepartamentoId] = useState('');
+  const [grupoId, setGrupoId] = useState(grupoUrl);
+  const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
   const [page, setPage] = useState(1);
 
   const [pagina, setPagina] = useState<Pagina | null>(null);
@@ -56,6 +60,7 @@ export default function EmpresasList() {
 
   // Carrega filtros auxiliares uma vez
   useEffect(() => {
+    api.get<GrupoEmpresa[]>('/grupos-empresa').then(setGrupos).catch(() => undefined);
     api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
@@ -73,6 +78,7 @@ export default function EmpresasList() {
       if (busca.trim()) qs.set('busca', busca.trim());
       if (tagId) qs.set('tagId', tagId);
       if (departamentoId) qs.set('departamentoId', departamentoId);
+      if (grupoId) qs.set('grupoId', grupoId);
       if (motivoUrl) { qs.set('motivoId', motivoUrl); qs.set('status', 'todos'); }
       api
         .get<Pagina>(`/empresas?${qs.toString()}`)
@@ -81,10 +87,10 @@ export default function EmpresasList() {
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [busca, status, tagId, departamentoId, motivoUrl, page, toast]);
+  }, [busca, status, tagId, departamentoId, grupoId, motivoUrl, page, toast]);
 
   // Reseta pagina ao mudar filtros
-  useEffect(() => setPage(1), [busca, status, tagId, departamentoId, motivoUrl]);
+  useEffect(() => setPage(1), [busca, status, tagId, departamentoId, grupoId, motivoUrl]);
 
   const items = pagina?.items ?? [];
   const itensOrdenados = useMemo(() => {
@@ -279,6 +285,14 @@ export default function EmpresasList() {
               <option value="">Todos</option>{departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
             </select>
           </div>
+          <div>
+            <label className="mb-0.5 flex items-center justify-between text-[12px] font-medium text-slate-600">Grupo de empresas
+              <button type="button" onClick={() => navigate('/empresas/grupos')} className="text-[11px] font-normal text-marca-600 hover:underline">gerenciar</button>
+            </label>
+            <select className="rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={grupoId} onChange={(e) => setGrupoId(e.target.value)}>
+              <option value="">Todos</option>{grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+            </select>
+          </div>
         </div>
       )}
 
@@ -314,7 +328,7 @@ export default function EmpresasList() {
                   </td>
                   <td className="px-4 py-2">
                     <div className="text-slate-600">{e.cidade ?? '—'}</div>
-                    <div className="text-slate-400">Geral</div>
+                    <div className="text-slate-400">{e.grupoNome ?? 'Geral'}</div>
                   </td>
                   <td className="px-4 py-2">
                     <div className="text-slate-600">{e.regimeNome ?? '—'}</div>

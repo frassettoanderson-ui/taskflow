@@ -57,6 +57,7 @@ model Escritorio {
   notificacoes        Notificacao[]
   jobExecucoes        JobExecucao[]
   motivosCancelamento MotivoCancelamento[]
+  gruposEmpresa       GrupoEmpresa[]
 
   @@index([deletedAt])
 }
@@ -296,6 +297,8 @@ model Empresa {
   regimeTributario   RegimeTributario? @relation(fields: [regimeTributarioId], references: [id])
   motivoCancelamentoId String?
   motivoCancelamento MotivoCancelamento? @relation(fields: [motivoCancelamentoId], references: [id])
+  grupoEmpresaId     String?
+  grupoEmpresa       GrupoEmpresa? @relation(fields: [grupoEmpresaId], references: [id])
   anotacoes          String?
   ativo              Boolean  @default(true)
   dataEntrada        DateTime?
@@ -332,6 +335,17 @@ model EmpresaTag {
 
   @@id([empresaId, tagId])
   @@index([tagId])
+}
+
+model GrupoEmpresa {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  nome          String
+  createdAt     DateTime @default(now())
+  empresas      Empresa[]
+
+  @@index([escritorioId])
 }
 
 model MotivoCancelamento {

@@ -10,6 +10,7 @@ import type {
   UsuarioBasico,
   TipoIdentificador,
   LogAuditoria,
+  GrupoEmpresa,
 } from '../../lib/tipos';
 import { LABEL_TIPO_IDENT, formatarIdent, formatarBytes } from '../../lib/tipos';
 import AbaObrigacoes from './AbaObrigacoes';
@@ -147,6 +148,7 @@ function AbaDados({
   const [form, setForm] = useState({
     razaoSocial: empresa.razaoSocial,
     nomeFantasia: empresa.nomeFantasia ?? '',
+    grupoEmpresaId: empresa.grupoEmpresaId ?? '',
     honorario: empresa.honorario != null ? String(empresa.honorario) : '',
     apelidoEcontinuo: empresa.apelidoEcontinuo ?? '',
     emailPrincipal: empresa.emailPrincipal ?? '',
@@ -159,12 +161,14 @@ function AbaDados({
   const [tagIds, setTagIds] = useState<string[]>(empresa.tags.map((t) => t.tag.id));
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
+  const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
     api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
+    api.get<GrupoEmpresa[]>('/grupos-empresa').then(setGrupos).catch(() => undefined);
   }, []);
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
@@ -178,6 +182,7 @@ function AbaDados({
         ...form,
         honorario: form.honorario === '' ? null : Number(form.honorario),
         apelidoEcontinuo: form.apelidoEcontinuo || null,
+        grupoEmpresaId: form.grupoEmpresaId || null,
         emailPrincipal: form.emailPrincipal || null,
         tagIds,
       });
@@ -225,6 +230,13 @@ function AbaDados({
           <div>
             <label className="label">Apelido e-Continuo <span className="font-normal text-slate-400">(em branco = ID)</span></label>
             <input className="input" value={form.apelidoEcontinuo} disabled={!podeEditar} onChange={(e) => set('apelidoEcontinuo', e.target.value)} />
+          </div>
+          <div>
+            <label className="label">Grupo de empresas</label>
+            <select className="input" value={form.grupoEmpresaId} disabled={!podeEditar} onChange={(e) => set('grupoEmpresaId', e.target.value)}>
+              <option value="">— Sem grupo —</option>
+              {grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+            </select>
           </div>
           <div>
             <label className="label">E-mail principal</label>

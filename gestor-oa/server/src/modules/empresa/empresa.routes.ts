@@ -41,6 +41,7 @@ router.get('/', validate({ query: listarEmpresasQuery }), async (req, res) => {
       regimeId: req.query.regimeId as string | undefined,
       departamentoId: req.query.departamentoId as string | undefined,
       motivoId: req.query.motivoId as string | undefined,
+      grupoId: req.query.grupoId as string | undefined,
       status: req.query.status as 'ativos' | 'inativos' | 'todos' | undefined,
     },
     pag,

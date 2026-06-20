@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../lib/api';
 import { useToast } from '../../components/ui';
-import type { Tag, TipoIdentificador } from '../../lib/tipos';
+import type { Tag, TipoIdentificador, GrupoEmpresa } from '../../lib/tipos';
 import { LABEL_TIPO_IDENT } from '../../lib/tipos';
 
 interface IdentLinha {
@@ -15,11 +15,13 @@ export default function EmpresaForm() {
   const navigate = useNavigate();
   const toast = useToast();
   const [tags, setTags] = useState<Tag[]>([]);
+  const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
   const [salvando, setSalvando] = useState(false);
 
   const [form, setForm] = useState({
     razaoSocial: '',
     nomeFantasia: '',
+    grupoEmpresaId: '',
     honorario: '',
     apelidoEcontinuo: '',
     emailPrincipal: '',
@@ -34,7 +36,18 @@ export default function EmpresaForm() {
 
   useEffect(() => {
     api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
+    api.get<GrupoEmpresa[]>('/grupos-empresa').then(setGrupos).catch(() => undefined);
   }, []);
+
+  async function criarGrupo() {
+    const nome = prompt('Nome do novo grupo de empresas:');
+    if (!nome?.trim()) return;
+    try {
+      const g = await api.post<GrupoEmpresa>('/grupos-empresa', { nome: nome.trim() });
+      setGrupos((arr) => [...arr, g]);
+      set('grupoEmpresaId', g.id);
+    } catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro'); }
+  }
 
   function set(campo: keyof typeof form, valor: string) {
     setForm((f) => ({ ...f, [campo]: valor }));
@@ -51,6 +64,7 @@ export default function EmpresaForm() {
         ...form,
         honorario: form.honorario === '' ? undefined : Number(form.honorario),
         apelidoEcontinuo: form.apelidoEcontinuo || undefined,
+        grupoEmpresaId: form.grupoEmpresaId || undefined,
         emailPrincipal: form.emailPrincipal || undefined,
         tagIds,
         identificadores,
@@ -98,6 +112,16 @@ export default function EmpresaForm() {
             <div>
               <label className="label">Apelido e-Continuo <span className="font-normal text-slate-400">(em branco = ID)</span></label>
               <input className="input" value={form.apelidoEcontinuo} onChange={(e) => set('apelidoEcontinuo', e.target.value)} />
+            </div>
+            <div>
+              <label className="label">Grupo de empresas</label>
+              <div className="flex gap-2">
+                <select className="input flex-1" value={form.grupoEmpresaId} onChange={(e) => set('grupoEmpresaId', e.target.value)}>
+                  <option value="">— Sem grupo —</option>
+                  {grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+                </select>
+                <button type="button" className="btn-ghost border border-slate-300" onClick={criarGrupo}>+ Novo</button>
+              </div>
             </div>
           </div>
           <div>

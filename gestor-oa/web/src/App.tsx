@@ -17,6 +17,7 @@ import EmConstrucao from './pages/EmConstrucao';
 import Auditoria from './pages/Auditoria';
 import EmpresasList from './pages/empresas/EmpresasList';
 import MotivosCancelamento from './pages/empresas/MotivosCancelamento';
+import GruposEmpresa from './pages/empresas/GruposEmpresa';
 import MotivoForm from './pages/empresas/MotivoForm';
 import EmpresaForm from './pages/empresas/EmpresaForm';
 import EmpresaFicha from './pages/empresas/EmpresaFicha';
@@ -99,6 +100,7 @@ export default function App() {
         <Route path="empresas/nova" element={<EmpresaForm />} />
         <Route path="empresas/importar" element={<ImportarCsv />} />
         <Route path="empresas/motivos" element={<MotivosCancelamento />} />
+        <Route path="empresas/grupos" element={<GruposEmpresa />} />
         <Route path="empresas/motivos/novo" element={<MotivoForm />} />
         <Route path="empresas/motivos/:id" element={<MotivoForm />} />
         <Route path="empresas/:id" element={<EmpresaFicha />} />

@@ -33,6 +33,7 @@ export interface ListarParams {
   regimeId?: string;
   departamentoId?: string;
   motivoId?: string;
+  grupoId?: string;
   status?: 'ativos' | 'inativos' | 'todos';
 }
 
@@ -55,6 +56,7 @@ export async function listar(
   if (params.tagId) and.push({ tags: { some: { tagId: params.tagId } } });
   if (params.regimeId) and.push({ regimeTributarioId: params.regimeId });
   if (params.motivoId) and.push({ motivoCancelamentoId: params.motivoId });
+  if (params.grupoId) and.push({ grupoEmpresaId: params.grupoId });
   if (params.departamentoId)
     and.push({
       responsaveis: { some: { departamentoId: params.departamentoId } },
@@ -88,6 +90,7 @@ export async function listar(
         tags: { include: { tag: true } },
         regimeTributario: { select: { nome: true } },
         motivoCancelamento: { select: { nome: true } },
+        grupoEmpresa: { select: { nome: true } },
         _count: { select: { contatos: true } },
       },
     }),
@@ -107,6 +110,7 @@ export async function listar(
       regimeTributarioId: e.regimeTributarioId,
       regimeNome: e.regimeTributario?.nome ?? null,
       motivoNome: e.motivoCancelamento?.nome ?? null,
+      grupoNome: e.grupoEmpresa?.nome ?? null,
       tags: e.tags.map((t) => ({ id: t.tag.id, nome: t.tag.nome, cor: t.tag.cor })),
       qtdContatos: e._count.contatos,
     })),
@@ -168,6 +172,7 @@ interface CriarInput {
   numero?: number | null;
   honorario?: number | null;
   apelidoEcontinuo?: string | null;
+  grupoEmpresaId?: string | null;
   emailPrincipal?: string | null;
   telefone?: string | null;
   endereco?: string | null;
@@ -199,6 +204,7 @@ export async function criar(escritorioId: string, input: CriarInput) {
       numero,
       honorario: input.honorario ?? null,
       apelidoEcontinuo: input.apelidoEcontinuo || null,
+      grupoEmpresaId: input.grupoEmpresaId || null,
       emailPrincipal: input.emailPrincipal || null,
       telefone: input.telefone || null,
       endereco: input.endereco || null,
@@ -253,6 +259,8 @@ export async function editar(
       honorario: input.honorario === undefined ? empresa.honorario : (input.honorario ?? null),
       apelidoEcontinuo:
         input.apelidoEcontinuo === undefined ? empresa.apelidoEcontinuo : input.apelidoEcontinuo || null,
+      grupoEmpresaId:
+        input.grupoEmpresaId === undefined ? empresa.grupoEmpresaId : input.grupoEmpresaId || null,
       emailPrincipal:
         input.emailPrincipal === undefined ? empresa.emailPrincipal : input.emailPrincipal || null,
       telefone: input.telefone === undefined ? empresa.telefone : input.telefone || null,

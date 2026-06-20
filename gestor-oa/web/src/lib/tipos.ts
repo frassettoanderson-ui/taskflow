@@ -53,8 +53,15 @@ export interface EmpresaLista {
   regimeTributarioId: string | null;
   regimeNome: string | null;
   motivoNome: string | null;
+  grupoNome: string | null;
   tags: { id: string; nome: string; cor: string }[];
   qtdContatos: number;
+}
+
+export interface GrupoEmpresa {
+  id: string;
+  nome: string;
+  empresasCount: number;
 }
 
 export interface MotivoCancelamento {
@@ -108,6 +115,7 @@ export interface EmpresaDetalhe {
   numero: number | null;
   honorario: string | number | null;
   apelidoEcontinuo: string | null;
+  grupoEmpresaId: string | null;
   razaoSocial: string;
   nomeFantasia: string | null;
   emailPrincipal: string | null;
