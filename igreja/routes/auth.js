@@ -11,7 +11,9 @@ router.post('/login', async (req, res) => {
 
   try {
     const { rows } = await db.query(
-      'SELECT * FROM usuarios WHERE email = $1 AND ativo = TRUE',
+      `SELECT u.*, i.nome AS igreja_nome, i.teste AS igreja_teste
+       FROM usuarios u JOIN igrejas i ON i.id = u.igreja_id
+       WHERE u.email = $1 AND u.ativo = TRUE`,
       [email.toLowerCase().trim()]
     );
     const user = rows[0];
@@ -23,6 +25,8 @@ router.post('/login', async (req, res) => {
       nome: user.nome,
       papel: user.papel,
       igreja_id: user.igreja_id,
+      igreja_nome: user.igreja_nome,
+      teste: user.igreja_teste === true,
       senha_provisoria: user.senha_provisoria,
     };
     res.json({ ok: true, usuario: req.session.usuario });

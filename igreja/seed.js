@@ -23,16 +23,29 @@ const dinheiro = (a, b) => Math.round((Math.random() * (b - a) + a) * 100) / 100
 (async () => {
   const client = db.pool;
   try {
-    const { rows: igr } = await client.query('SELECT id FROM igrejas ORDER BY id LIMIT 1');
+    // SEGURANÇA: o seed SÓ mexe na ÁREA DE TESTE (teste=TRUE). Nunca toca nos dados reais.
+    const { rows: igr } = await client.query('SELECT id FROM igrejas WHERE teste = TRUE ORDER BY id LIMIT 1');
+    if (!igr.length) {
+      console.error('Área de teste não encontrada. Rode o schema.sql primeiro.');
+      process.exit(1);
+    }
     const igreja_id = igr[0].id;
+    console.log(`Populando a ÁREA DE TESTE (igreja_id=${igreja_id})...`);
 
-    console.log('Limpando dados antigos...');
+    console.log('Limpando dados antigos da área de teste...');
     await client.query('DELETE FROM lancamentos WHERE igreja_id=$1', [igreja_id]);
     await client.query('DELETE FROM despesas_fixas WHERE igreja_id=$1', [igreja_id]);
     await client.query('DELETE FROM membros WHERE igreja_id=$1', [igreja_id]);
     await client.query('DELETE FROM fornecedores WHERE igreja_id=$1', [igreja_id]);
 
-    // Bancos e centros já existem (schema/criar-usuario)
+    // Garante dados-base na área de teste (bancos, centros, formas)
+    await client.query(`INSERT INTO bancos (igreja_id, nome) SELECT $1, b FROM (VALUES ('Sicoob'),('CREDIFOZ')) AS t(b)
+      WHERE NOT EXISTS (SELECT 1 FROM bancos WHERE igreja_id=$1)`, [igreja_id]);
+    await client.query(`INSERT INTO centros_custo (igreja_id, nome) SELECT $1, c FROM (VALUES ('Manutenção Geral'),('Energia'),('Aluguel'),('Internet'),('Pastoral')) AS t(c)
+      WHERE NOT EXISTS (SELECT 1 FROM centros_custo WHERE igreja_id=$1)`, [igreja_id]);
+    await client.query(`INSERT INTO formas_pagamento (igreja_id, nome) SELECT $1, f FROM (VALUES ('Pix'),('Cartão'),('Débito automático'),('Dinheiro')) AS t(f)
+      WHERE NOT EXISTS (SELECT 1 FROM formas_pagamento WHERE igreja_id=$1)`, [igreja_id]);
+
     const { rows: bancos } = await client.query('SELECT id FROM bancos WHERE igreja_id=$1', [igreja_id]);
     const { rows: centros } = await client.query('SELECT id FROM centros_custo WHERE igreja_id=$1', [igreja_id]);
     const bancoId = () => pick(bancos).id;

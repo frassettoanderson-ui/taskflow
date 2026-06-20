@@ -188,6 +188,11 @@ button.pequeno { padding: 7px 12px; font-size: 13px; }
 }
 .topo h1 { font-size: 19px; margin: 0; }
 .topo-dir { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 14px; color: var(--muted); }
+.badge-teste {
+  background: var(--amarelo-bg); color: var(--amarelo); border: 1px solid rgba(251,191,36,.4);
+  font-size: 11px; font-weight: 700; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px;
+  animation: pulse 2s ease-in-out infinite;
+}
 .conteudo { padding: 26px; width: 100%; }
 .conteudo:not(:has(.dash)) { max-width: 1300px; }
 

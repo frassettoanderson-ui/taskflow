@@ -3,12 +3,14 @@
 --  Fase 0 + 1: fundação + financeiro
 -- ═══════════════════════════════════════════════
 
--- Igreja (hoje uma; preparado para várias no futuro)
+-- Igreja / área de dados. `teste`=TRUE é a área isolada (sandbox) para usuários sem acesso ao real.
 CREATE TABLE IF NOT EXISTS igrejas (
   id        SERIAL PRIMARY KEY,
   nome      VARCHAR(150) NOT NULL,
+  teste     BOOLEAN DEFAULT FALSE,
   criado_em TIMESTAMP DEFAULT NOW()
 );
+ALTER TABLE igrejas ADD COLUMN IF NOT EXISTS teste BOOLEAN DEFAULT FALSE;
 
 -- Usuários do sistema (login próprio)
 CREATE TABLE IF NOT EXISTS usuarios (
@@ -140,11 +142,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_fixa_mes
   WHERE despesa_fixa_id IS NOT NULL;
 
 -- ─── Dados iniciais ───────────────────────────────
-INSERT INTO igrejas (nome) VALUES ('Minha Igreja') ON CONFLICT DO NOTHING;
+-- Área real (única) e área de teste (sandbox). Não duplica em re-execuções.
+INSERT INTO igrejas (nome, teste)
+  SELECT 'Abarim', FALSE WHERE NOT EXISTS (SELECT 1 FROM igrejas WHERE teste = FALSE);
+INSERT INTO igrejas (nome, teste)
+  SELECT 'Abarim (Teste)', TRUE WHERE NOT EXISTS (SELECT 1 FROM igrejas WHERE teste = TRUE);
 
 INSERT INTO bancos (igreja_id, nome)
-  SELECT 1, b FROM (VALUES ('Sicoob'), ('CREDIFOZ')) AS t(b)
-  WHERE NOT EXISTS (SELECT 1 FROM bancos WHERE igreja_id = 1);
+  SELECT (SELECT id FROM igrejas WHERE teste=FALSE ORDER BY id LIMIT 1), b
+  FROM (VALUES ('Sicoob'), ('CREDIFOZ')) AS t(b)
+  WHERE NOT EXISTS (SELECT 1 FROM bancos WHERE igreja_id = (SELECT id FROM igrejas WHERE teste=FALSE ORDER BY id LIMIT 1));
 
 -- Corrige o nome que estava errado (SICOBE -> Sicoob)
 UPDATE bancos SET nome = 'Sicoob' WHERE nome IN ('SICOBE', 'SICOOB', 'Sicobe');

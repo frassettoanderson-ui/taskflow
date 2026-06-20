@@ -1811,6 +1811,11 @@ function marcarAniversarioNoMenu(qtd) {
   const me = await getJSON('auth/me');
   USUARIO = me.usuario;
   document.getElementById('usuario-nome').textContent = me.usuario.nome;
+  if (me.usuario.teste) {
+    const bt = document.getElementById('badge-teste');
+    if (bt) { bt.hidden = false; bt.title = 'Você está na área de testes — estes dados não são reais.'; }
+    document.title = '[TESTE] ' + document.title;
+  }
   initShell();
   navegar('dashboard');
   if (me.usuario.senha_provisoria) trocaSenhaObrigatoria(() => versiculoDoDia());
