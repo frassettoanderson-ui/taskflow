@@ -86,7 +86,15 @@ const MENU: Item[] = [
   { label: 'Empresas', icon: Building2, to: '/empresas' },
   { label: 'Lista de Entregas', icon: CalendarCheck, to: '/entregas' },
   { label: 'Gestao de processos', icon: GitBranch, to: '/processos' },
-  { label: 'Solicitacoes', icon: MessageSquare, to: '/solicitacoes-internas' },
+  {
+    label: 'Solicitacoes',
+    icon: MessageSquare,
+    filhos: [
+      { label: 'Gestao (internas + externas)', icon: MessageSquare, to: '/solicitacoes' },
+      { label: 'Solicitacoes internas', icon: MessageSquare, to: '/solicitacoes-internas' },
+      { label: 'Solicitacoes de clientes', icon: MessageSquare, to: '/area-vip/solicitacoes' },
+    ],
+  },
   {
     label: 'Metodo APLA',
     icon: TrendingUp,

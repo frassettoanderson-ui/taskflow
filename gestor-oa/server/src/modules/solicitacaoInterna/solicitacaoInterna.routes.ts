@@ -67,6 +67,42 @@ router.get('/', verPerm, async (req, res) => {
   return ok(res, itens.map((s) => enriquecer(s as never, mapa)));
 });
 
+// ---------- Listagem UNIFICADA (internas + externas/portal) ----------
+// Espelha a "Gestao de Solicitacoes" do Acessorias: uma tela so, com cadeado
+// interna/externa. Os dois modelos seguem separados; aqui apenas mesclamos.
+router.get('/unificadas', verPerm, async (req, res) => {
+  const escritorioId = req.auth!.escritorioId;
+  const tipoFiltro = (req.query.tipo as string) || ''; // ''|interna|externa
+  const verExternas = !!req.auth!.permissoes['portal_solicitacoes'] || !!req.auth!.permissoes['portal_configurar'];
+
+  const mapa = await nomes(escritorioId);
+  const out: Record<string, unknown>[] = [];
+
+  if (tipoFiltro !== 'externa') {
+    const internas = await prisma.solicitacaoInterna.findMany({ where: { escritorioId }, orderBy: { createdAt: 'desc' } });
+    for (const s of internas) out.push({
+      id: s.id, tipo: 'interna', titulo: s.titulo, status: s.status, prioridade: s.prioridade,
+      empresaNome: s.empresaId ? mapa.empresa.get(s.empresaId) ?? null : null,
+      responsavelNome: s.responsavelId ? mapa.usuario.get(s.responsavelId) ?? null : null,
+      departamentoNome: s.departamentoDestinoId ? mapa.departamento.get(s.departamentoDestinoId) ?? null : null,
+      solicitanteNome: mapa.usuario.get(s.solicitanteId) ?? null,
+      avaliacaoNota: null, processoId: s.processoId, prazo: s.prazo, createdAt: s.createdAt,
+    });
+  }
+
+  if (verExternas && tipoFiltro !== 'interna') {
+    const externas = await prisma.solicitacaoPortal.findMany({ where: { escritorioId }, orderBy: { createdAt: 'desc' }, include: { empresa: { select: { razaoSocial: true } } } });
+    for (const s of externas) out.push({
+      id: s.id, tipo: 'externa', titulo: s.titulo, status: s.status, prioridade: null,
+      empresaNome: s.empresa.razaoSocial, responsavelNome: null, departamentoNome: null,
+      solicitanteNome: s.contatoNome, avaliacaoNota: s.avaliacaoNota, processoId: null, prazo: s.prazo, createdAt: s.createdAt,
+    });
+  }
+
+  out.sort((a, b) => new Date(b.createdAt as string).getTime() - new Date(a.createdAt as string).getTime());
+  return ok(res, out);
+});
+
 // ---------- Estatisticas (cards do topo) ----------
 router.get('/stats', verPerm, async (req, res) => {
   const escritorioId = req.auth!.escritorioId;

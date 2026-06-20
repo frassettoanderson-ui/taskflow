@@ -59,6 +59,7 @@ import FormulariosSolicitacao from './pages/portal/FormulariosSolicitacao';
 import Templates from './pages/comunicacao/Templates';
 import Chatbot from './pages/comunicacao/Chatbot';
 import SolicitacoesInternas from './pages/solicitacoes/SolicitacoesInternas';
+import GestaoSolicitacoes from './pages/solicitacoes/GestaoSolicitacoes';
 import Insights from './pages/insights/Insights';
 import Notificacoes from './pages/Notificacoes';
 import Jobs from './pages/Jobs';
@@ -159,6 +160,7 @@ export default function App() {
         <Route path="comunicacao/templates" element={<Templates />} />
         <Route path="comunicacao/chatbot" element={<Chatbot />} />
         <Route path="solicitacoes-internas" element={<SolicitacoesInternas />} />
+        <Route path="solicitacoes" element={<GestaoSolicitacoes />} />
         <Route path="insights" element={<Insights />} />
         <Route path="notificacoes" element={<Notificacoes />} />
         <Route path="jobs" element={<Jobs />} />
