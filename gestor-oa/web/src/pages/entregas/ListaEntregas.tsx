@@ -7,7 +7,7 @@ import {
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
-import type { Entrega, StatusEntrega, Departamento, UsuarioBasico } from '../../lib/tipos';
+import type { Entrega, StatusEntrega, Departamento, UsuarioBasico, GrupoEmpresa } from '../../lib/tipos';
 
 interface Pagina { items: Entrega[]; total: number; totalPages: number; page: number }
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -64,6 +64,10 @@ export default function ListaEntregas() {
   const [q, setQ] = useState('');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [departamentoId, setDepartamentoId] = useState('');
+  const [grupoId, setGrupoId] = useState('');
+  const [obrigacaoId, setObrigacaoId] = useState('');
+  const [passivelMulta, setPassivelMulta] = useState(false);
+  const [comAnexos, setComAnexos] = useState(false);
   const [flags, setFlags] = useState({ pendentes: true, justificadas: true, entregues: false, dispensadas: false });
   const [mostrarDatas, setMostrarDatas] = useState(false);
   const [mostrarImprimir, setMostrarImprimir] = useState(false);
@@ -83,11 +87,15 @@ export default function ListaEntregas() {
   const [loading, setLoading] = useState(true);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
+  const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
+  const [obrigacoes, setObrigacoes] = useState<{ id: string; nome: string }[]>([]);
   const [expandida, setExpandida] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
+    api.get<GrupoEmpresa[]>('/grupos-empresa').then(setGrupos).catch(() => undefined);
+    api.get<{ id: string; nome: string }[]>('/obrigacoes').then((o) => setObrigacoes(o.map((x) => ({ id: x.id, nome: x.nome })))).catch(() => undefined);
   }, []);
 
   function carregar() {
@@ -96,6 +104,10 @@ export default function ListaEntregas() {
     const qs = new URLSearchParams({ page: String(page), limit: '50', ordem, dir });
     if (q.trim()) qs.set('q', q.trim());
     if (departamentoId) qs.set('departamentoId', departamentoId);
+    if (grupoId) qs.set('grupoId', grupoId);
+    if (obrigacaoId) qs.set('obrigacaoId', obrigacaoId);
+    if (passivelMulta) qs.set('passivelMulta', 'true');
+    if (comAnexos) qs.set('comAnexos', 'true');
     if (statusList.length) qs.set('statusList', statusList.join(','));
     if (d.compDe) qs.set('compDe', d.compDe);
     if (d.compAte) qs.set('compAte', d.compAte);
@@ -209,7 +221,7 @@ export default function ListaEntregas() {
           </div>
         )}
 
-        {/* +Filtros: chip por departamento */}
+        {/* +Filtros: chip por departamento + grupo/obrigacao/multa/anexos */}
         {mostrarFiltros && (
           <div className="mt-2 border-t border-slate-100 pt-2">
             <div className="mb-1 text-[11px] font-semibold uppercase text-slate-400">Filtrar por departamento</div>
@@ -220,6 +232,28 @@ export default function ListaEntregas() {
                   Dpto: {dp.nome}
                 </Chip>
               ))}
+            </div>
+            <div className="mt-2 flex flex-wrap items-end gap-3">
+              <div>
+                <div className="mb-0.5 text-[11px] uppercase text-slate-400">Grupo de empresas</div>
+                <select className={`${INP} w-48`} value={grupoId} onChange={(e) => setGrupoId(e.target.value)}>
+                  <option value="">Todos</option>
+                  {grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+                </select>
+              </div>
+              <div>
+                <div className="mb-0.5 text-[11px] uppercase text-slate-400">Obrigacao especifica</div>
+                <select className={`${INP} w-56`} value={obrigacaoId} onChange={(e) => setObrigacaoId(e.target.value)}>
+                  <option value="">Todas</option>
+                  {obrigacoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
+                </select>
+              </div>
+              <label className="flex cursor-pointer items-center gap-1.5 pb-1.5 text-[12px] text-slate-600">
+                <input type="checkbox" checked={passivelMulta} onChange={(e) => setPassivelMulta(e.target.checked)} className="accent-marca-600" /> Passiveis de multa
+              </label>
+              <label className="flex cursor-pointer items-center gap-1.5 pb-1.5 text-[12px] text-slate-600">
+                <input type="checkbox" checked={comAnexos} onChange={(e) => setComAnexos(e.target.checked)} className="accent-marca-600" /> Com anexos/documentos
+              </label>
             </div>
           </div>
         )}

@@ -300,6 +300,9 @@ export interface FiltrosEntrega {
   status?: StatusEntrega;
   // tela [F2]
   q?: string;                       // busca por empresa (razao/fantasia)
+  grupoId?: string;                 // grupo de empresas
+  passivelMulta?: boolean;          // so obrigacoes passiveis de multa
+  comAnexos?: boolean;              // so entregas com anexos
   statusList?: StatusEntrega[];     // grupos das flags (Pendentes/Justificadas/Entregues/Dispensadas)
   compDe?: { ano: number; mes: number };
   compAte?: { ano: number; mes: number };
@@ -328,6 +331,9 @@ function baseWhere(
   if (f.empresaId) and.push({ empresaId: f.empresaId });
   if (f.obrigacaoId) and.push({ obrigacaoId: f.obrigacaoId });
   if (f.departamentoId) and.push({ obrigacao: { departamentoId: f.departamentoId } });
+  if (f.grupoId) and.push({ empresa: { grupoEmpresaId: f.grupoId } });
+  if (f.passivelMulta) and.push({ obrigacao: { passivelMulta: true } });
+  if (f.comAnexos) and.push({ anexos: { some: {} } });
   if (f.status) and.push({ status: f.status });
   if (f.statusList?.length) and.push({ status: { in: f.statusList } });
   if (f.responsavelId)

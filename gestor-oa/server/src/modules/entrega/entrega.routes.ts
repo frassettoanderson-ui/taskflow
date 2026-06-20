@@ -31,6 +31,9 @@ const listQuery = z.object({
   status: z.string().optional(),
   // tela [F2]
   q: z.string().optional(),
+  grupoId: z.string().optional(),
+  passivelMulta: z.string().optional(),
+  comAnexos: z.string().optional(),
   statusList: z.string().optional(),       // CSV de StatusEntrega
   compDe: z.string().optional(),           // "YYYY-MM"
   compAte: z.string().optional(),
@@ -66,6 +69,9 @@ router.get('/', validate({ query: listQuery }), async (req, res) => {
       tagId: q.tagId,
       status: q.status as StatusEntrega | undefined,
       q: q.q,
+      grupoId: q.grupoId,
+      passivelMulta: q.passivelMulta === 'true',
+      comAnexos: q.comAnexos === 'true',
       statusList: q.statusList ? (q.statusList.split(',').filter(Boolean) as StatusEntrega[]) : undefined,
       compDe: parseComp(q.compDe),
       compAte: parseComp(q.compAte),
