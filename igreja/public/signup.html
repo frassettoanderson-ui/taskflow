@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar conta — Church Finance</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="tela-login">
+  <form id="form-signup" class="card-login" style="width:380px">
+    <div class="logo-mark">a</div>
+    <h1 class="brand-word" style="font-size:26px;text-align:center;letter-spacing:.1em">Church Finance</h1>
+    <p class="sub">Cadastre a sua igreja</p>
+    <label>Nome da igreja<input type="text" id="igreja_nome" required autocomplete="organization" /></label>
+    <label>Seu nome<input type="text" id="nome" required autocomplete="name" /></label>
+    <label>E-mail<input type="email" id="email" required autocomplete="email" /></label>
+    <label>Senha (mín. 6)<input type="password" id="senha" required minlength="6" autocomplete="new-password" /></label>
+    <button type="submit">Criar conta</button>
+    <p id="erro" class="erro"></p>
+    <p class="sub" style="margin-top:6px">Já tem conta? <a href="login.html" style="color:var(--accent)">Entrar</a></p>
+  </form>
+  <script>
+    const form = document.getElementById('form-signup');
+    const erro = document.getElementById('erro');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      erro.textContent = '';
+      const r = await fetch('api/auth/signup', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          igreja_nome: document.getElementById('igreja_nome').value,
+          nome: document.getElementById('nome').value,
+          email: document.getElementById('email').value,
+          senha: document.getElementById('senha').value,
+        }),
+      });
+      const d = await r.json();
+      if (r.ok) location.href = '.';
+      else erro.textContent = d.erro || 'Falha ao criar a conta';
+    });
+  </script>
+</body>
+</html>

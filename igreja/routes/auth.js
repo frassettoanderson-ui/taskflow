@@ -36,6 +36,58 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// POST /api/auth/signup — auto-cadastro de uma nova igreja (tenant) + usuário dono
+function slugify(s) {
+  return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 50) || 'igreja';
+}
+router.post('/signup', async (req, res) => {
+  const { igreja_nome, nome, email, senha } = req.body;
+  if (!igreja_nome || !igreja_nome.trim()) return res.status(400).json({ erro: 'Informe o nome da igreja' });
+  if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe seu nome' });
+  if (!email || !email.includes('@')) return res.status(400).json({ erro: 'Informe um e-mail válido' });
+  if (!senha || senha.length < 6) return res.status(400).json({ erro: 'A senha deve ter ao menos 6 caracteres' });
+
+  const client = await db.pool.connect();
+  try {
+    const emailNorm = email.toLowerCase().trim();
+    const ja = await client.query('SELECT 1 FROM usuarios WHERE email=$1', [emailNorm]);
+    if (ja.rows.length) return res.status(409).json({ erro: 'Este e-mail já está em uso' });
+
+    // slug único
+    let base = slugify(igreja_nome), slug = base, n = 1;
+    while ((await client.query('SELECT 1 FROM igrejas WHERE slug=$1', [slug])).rows.length) slug = `${base}-${++n}`;
+
+    await client.query('BEGIN');
+    const { rows: ig } = await client.query(
+      'INSERT INTO igrejas (nome, teste, slug) VALUES ($1, FALSE, $2) RETURNING id', [igreja_nome.trim(), slug]);
+    const igreja_id = ig[0].id;
+
+    const hash = await bcrypt.hash(senha, 10);
+    const { rows: us } = await client.query(
+      `INSERT INTO usuarios (igreja_id, nome, email, senha, papel) VALUES ($1,$2,$3,$4,'admin') RETURNING id, nome, papel`,
+      [igreja_id, nome.trim(), emailNorm, hash]);
+
+    // dados-base pra igreja começar usável
+    await client.query(`INSERT INTO bancos (igreja_id, nome) VALUES ($1,'Caixa')`, [igreja_id]);
+    await client.query(`INSERT INTO centros_custo (igreja_id, nome) SELECT $1, c FROM (VALUES ('Geral'),('Manutenção'),('Aluguel')) AS t(c)`, [igreja_id]);
+    await client.query(`INSERT INTO formas_pagamento (igreja_id, nome) SELECT $1, f FROM (VALUES ('Pix'),('Dinheiro'),('Cartão')) AS t(f)`, [igreja_id]);
+    await client.query('COMMIT');
+
+    req.session.usuario = {
+      id: us[0].id, nome: us[0].nome, papel: us[0].papel,
+      igreja_id, igreja_nome: igreja_nome.trim(), teste: false, senha_provisoria: false,
+    };
+    res.status(201).json({ ok: true });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error(e);
+    res.status(500).json({ erro: 'Erro ao criar a conta' });
+  } finally {
+    client.release();
+  }
+});
+
 // POST /api/auth/logout
 router.post('/logout', (req, res) => {
   req.session.destroy(() => res.json({ ok: true }));
