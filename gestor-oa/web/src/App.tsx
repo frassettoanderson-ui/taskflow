@@ -144,8 +144,8 @@ export default function App() {
         <Route path="area-vip/avaliacoes" element={<EmConstrucao titulo="Avaliacao das Solicitacoes" descricao="Notas e comentarios que os clientes deram nas solicitacoes finalizadas." />} />
         <Route path="area-vip/usuarios-app" element={<EmConstrucao titulo="Usuarios do APP" descricao="Contatos das empresas com acesso ao portal/app (convites, ativacao, reset de senha)." />} />
         <Route path="apla/sobre" element={<EmConstrucao titulo="Conheca o APLA" descricao="Apresentacao do Metodo APLA (produtividade e lucratividade)." />} />
-        <Route path="apla/produtividade" element={<EmConstrucao titulo="Analise produtividade" descricao="Analise dedicada de produtividade por colaborador/departamento." />} />
-        <Route path="apla/lucratividade" element={<EmConstrucao titulo="Analise lucratividade" descricao="Analise dedicada de lucratividade por empresa." />} />
+        <Route path="apla/produtividade" element={<Apla abaInicial={1} />} />
+        <Route path="apla/lucratividade" element={<Apla abaInicial={2} />} />
         <Route path="relatorios/semanais" element={<EmConstrucao titulo="Estatisticas semanais" />} />
         <Route path="relatorios/mensais" element={<EmConstrucao titulo="Estatisticas mensais" />} />
         <Route path="relatorios/responsaveis" element={<EmConstrucao titulo="Responsaveis Dptos" descricao="Relacao de responsaveis por departamento em cada empresa." />} />

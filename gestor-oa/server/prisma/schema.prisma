@@ -1398,6 +1398,25 @@ model PainelIndicador {
   @@index([indicadorId])
 }
 
+// ------------------------------------------------------------
+// Metodo APLA: custos fixos (rateados na lucratividade)
+// ------------------------------------------------------------
+model CustoFixo {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  nome          String
+  // escopo: GERAL (toda a empresa) | GRUPO | TAG | EMPRESA
+  escopo        String   @default("GERAL")
+  grupoId       String?
+  tagId         String?
+  empresaId     String?
+  valor         Decimal  @db.Decimal(12, 2)
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([escritorioId])
+}
+
 // ============================================================
 // MODULO 13 - Notificacoes/Alertas internos + Jobs (scheduler)
 // ============================================================
