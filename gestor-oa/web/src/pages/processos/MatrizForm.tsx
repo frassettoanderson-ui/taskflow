@@ -95,7 +95,7 @@ export default function MatrizForm() {
     if (nForm.nome.trim().length < 1) return toast('erro', 'Informe o nome do passo.');
     const novo: MatrizPasso = {
       ordem: 0, tipo: 'PASSO_SIMPLES', titulo: nForm.nome.trim(), descricao: nForm.dica.trim() || null,
-      prazoDias: 0, basePrazo: 'INICIO', bloqueante: nForm.bloqueante, acaoAutomatica: nForm.acao,
+      prazoDias: 0, basePrazo: 'INICIO', bloqueante: nForm.bloqueante, visivelCliente: nForm.apareceApp, acaoAutomatica: nForm.acao,
       config: { exigeAnexo: nForm.exigeAnexo, apareceApp: nForm.apareceApp, propagacao: nForm.propagacao },
     };
     setItens((arr) => inserirNa(arr, novo, nForm.inserirApos));

@@ -629,6 +629,7 @@ export interface MatrizPasso {
   prazoDias: number;
   basePrazo: 'INICIO' | 'PASSO_ANTERIOR';
   bloqueante: boolean;
+  visivelCliente?: boolean;
   acaoAutomatica: AcaoAutomatica;
   acaoRef?: string | null;
   subMatrizId?: string | null;

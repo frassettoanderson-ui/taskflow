@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FileText, Plus, Trash2, Pencil, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
-import { api, ApiError } from '../../lib/api';
+import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { Modal, Spinner, useToast } from '../../components/ui';
 import type { ReguaCobranca, CobrancaLista, CobrancaDetalhe, AcdoxDashboard, Departamento } from '../../lib/tipos';
@@ -8,6 +8,14 @@ import type { ReguaCobranca, CobrancaLista, CobrancaDetalhe, AcdoxDashboard, Dep
 const ABAS = ['Cobrancas', 'Reguas de cobranca'] as const;
 const COR_STATUS: Record<string, string> = { PENDENTE: '#f0ad4e', VENCIDO: '#cf3c5d', RECEBIDO: '#5b9bd5', VALIDADO: '#5cb85c', RECUSADO: '#94a3b8' };
 const dataBR = (d: string) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+
+async function baixarArquivo(cobId: string, itemId: string) {
+  try {
+    const res = await fetch(`/api/v1/acdox/cobrancas/${cobId}/itens/${itemId}/arquivo`, { headers: { Authorization: `Bearer ${getAccessToken()}` } });
+    if (!res.ok) throw new Error();
+    window.open(URL.createObjectURL(await res.blob()), '_blank');
+  } catch { alert('Nao foi possivel abrir o documento.'); }
+}
 
 export default function Acdox() {
   const { sessao } = useAuth();
@@ -170,7 +178,9 @@ function CobrancaModal({ id, podeConfig, onFechar, onMudou }: { id: string; pode
                 <span className="text-sm text-slate-700">{it.nome}</span>
                 <span className="rounded px-2 py-0.5 text-xs font-medium text-white" style={{ background: COR_STATUS[it.status] ?? '#94a3b8' }}>{it.status}</span>
               </div>
-              {it.arquivo && <p className="text-xs text-emerald-600">Documento anexado</p>}
+              {it.arquivo && (
+                <button className="text-xs text-marca-600 hover:underline" onClick={() => baixarArquivo(id, it.id)}>Ver documento anexado</button>
+              )}
               {it.justificativa && <p className="text-xs text-red-500">Recusa: {it.justificativa}</p>}
               {podeConfig && (
                 <div className="flex flex-wrap items-center gap-2 pt-1">

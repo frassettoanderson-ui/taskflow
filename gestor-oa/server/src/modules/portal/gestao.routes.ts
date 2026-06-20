@@ -5,6 +5,7 @@ import { ok } from '../../lib/http.js';
 import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
+import { hashPassword } from '../../lib/password.js';
 
 const router = Router();
 router.use(authenticate);
@@ -141,6 +142,40 @@ router.get('/avaliacoes-solicitacoes', requirePermission('portal_configurar'), a
       nota: s.avaliacaoNota, comentario: s.avaliacaoComentario, data: s.updatedAt,
     })),
   });
+});
+
+// ===== Usuarios do APP (contatos com acesso ao portal) =====
+const appPerm = requirePermission('portal_configurar');
+
+router.get('/usuarios-app', appPerm, async (req, res) => {
+  const escritorioId = req.auth!.escritorioId;
+  const contatos = await prisma.empresaContato.findMany({
+    where: { escritorioId, email: { not: null } },
+    select: { id: true, nome: true, email: true, ativo: true, senhaHash: true, empresa: { select: { razaoSocial: true } } },
+    orderBy: { nome: 'asc' },
+  });
+  return ok(res, contatos.map((c) => ({
+    id: c.id, nome: c.nome, email: c.email, empresa: c.empresa.razaoSocial,
+    ativo: c.ativo, temAcesso: !!c.senhaHash,
+  })));
+});
+
+router.post('/usuarios-app/ativar-massa', appPerm, async (req, res) => {
+  const escritorioId = req.auth!.escritorioId;
+  const senhaHash = await hashPassword('123');
+  const r = await prisma.empresaContato.updateMany({
+    where: { escritorioId, email: { not: null }, senhaHash: null, ativo: true },
+    data: { senhaHash },
+  });
+  return ok(res, { ativados: r.count, senha: '123' });
+});
+
+router.post('/usuarios-app/:id/ativar', appPerm, async (req, res) => {
+  const c = await prisma.empresaContato.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId } });
+  if (!c) throw Errors.naoEncontrado('Contato');
+  if (!c.email) throw Errors.validacao('Contato sem e-mail.');
+  await prisma.empresaContato.update({ where: { id: c.id }, data: { senhaHash: await hashPassword('123'), ativo: true } });
+  return ok(res, { ativado: true, email: c.email, senha: '123' });
 });
 
 // ===== NPS (painel interno) =====

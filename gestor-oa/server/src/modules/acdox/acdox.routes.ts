@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'node:path';
+import fs from 'node:fs';
 import { z } from 'zod';
+import { prisma } from '../../prisma.js';
 import { ok } from '../../lib/http.js';
+import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
-import { ensureDir, STORAGE_ROOT } from '../../lib/storage.js';
+import { ensureDir, STORAGE_ROOT, isInsideStorage } from '../../lib/storage.js';
 import * as svc from './acdox.service.js';
 
 const router = Router();
@@ -53,6 +56,16 @@ router.get('/cobrancas', async (req, res) => {
   }));
 });
 router.get('/cobrancas/:id', async (req, res) => ok(res, await svc.obterCobranca(req.auth!.escritorioId, req.params.id)));
+
+// download do documento anexado a um item da cobranca
+router.get('/cobrancas/:id/itens/:itemId/arquivo', async (req, res) => {
+  const cob = await prisma.cobrancaDoc.findFirst({ where: { id: req.params.id, escritorioId: req.auth!.escritorioId } });
+  if (!cob) throw Errors.naoEncontrado('Cobranca');
+  const item = await prisma.cobrancaDocItem.findFirst({ where: { id: req.params.itemId, cobrancaId: cob.id } });
+  if (!item?.arquivo) throw Errors.naoEncontrado('Documento');
+  if (!isInsideStorage(item.arquivo) || !fs.existsSync(item.arquivo)) throw Errors.naoEncontrado('Arquivo');
+  return res.download(item.arquivo, path.basename(item.arquivo).replace(/^\d+_/, ''));
+});
 
 // validar/recusar/receber um item (com upload opcional do documento)
 const upload = multer({
