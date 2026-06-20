@@ -1812,6 +1812,8 @@ function marcarAniversarioNoMenu(qtd) {
   const me = await getJSON('auth/me');
   USUARIO = me.usuario;
   document.getElementById('usuario-nome').textContent = me.usuario.nome;
+  const ig = document.getElementById('igreja-nome');
+  if (ig && me.usuario.igreja_nome) ig.textContent = me.usuario.igreja_nome;
   if (me.usuario.teste) {
     const bt = document.getElementById('badge-teste');
     if (bt) { bt.hidden = false; bt.title = 'Você está na área de testes — estes dados não são reais.'; }
