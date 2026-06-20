@@ -6,7 +6,7 @@ import { useAuth, temPermissao } from '../lib/auth';
 import { Spinner, useToast, InfoHint } from '../components/ui';
 import type { UsuarioCompleto, JanelaAcesso, Departamento, Tag } from '../lib/tipos';
 import { TIPOS_USUARIO } from '../lib/tipos';
-import { PERMISSION_AREAS, flagsParaNiveis } from '@gestoroa/shared';
+import { PERMISSION_AREAS, PERMISSION_PRESETS, flagsParaNiveis } from '@gestoroa/shared';
 
 // Classes compactas (flat, fundo cinza) - estilo Acessorias
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
@@ -208,6 +208,18 @@ export default function UsuarioForm() {
         {showPerm && (
           <div className="rounded border border-slate-200 bg-white p-4">
             {!podePermissoes && <p className="mb-2 text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
+            {podePermissoes && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded bg-slate-50 px-3 py-2">
+                <span className="text-[12px] font-medium text-slate-600">Aplicar preset por cargo:</span>
+                {PERMISSION_PRESETS.map((p) => (
+                  <button key={p.id} type="button" title={p.descricao}
+                    onClick={() => { if (window.confirm(`Aplicar o preset "${p.label}"? Isso substitui as permissoes atuais.`)) setNiveis(p.niveis); }}
+                    className="rounded border border-marca-300 bg-white px-2.5 py-1 text-[12px] text-marca-700 hover:bg-marca-50">
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
               {PERMISSION_AREAS.filter((a) => a.id === 'administrativo' || (niveis.administrativo ?? 0) < 1).map((a) => (
                 <div key={a.id}>

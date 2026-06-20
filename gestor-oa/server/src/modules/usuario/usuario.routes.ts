@@ -163,4 +163,29 @@ router.post(
   },
 );
 
+// Transferir responsabilidade de um usuario para outro (Acessorias: nivel [2] de Usuarios)
+router.post(
+  '/transferir-responsabilidade',
+  requirePermission('admin_transferir_resp'),
+  validate({
+    body: z.object({
+      deUsuarioId: z.string(),
+      paraUsuarioId: z.string(),
+      departamentosEmpresa: z.boolean().default(true),
+      entregasPendentes: z.boolean().default(true),
+      processos: z.boolean().default(true),
+      departamentosGestor: z.boolean().default(false),
+    }),
+  }),
+  async (req, res) => {
+    const r = await svc.transferirResponsabilidade(req.auth!.escritorioId, req.body.deUsuarioId, req.body.paraUsuarioId, {
+      departamentosEmpresa: req.body.departamentosEmpresa,
+      entregasPendentes: req.body.entregasPendentes,
+      processos: req.body.processos,
+      departamentosGestor: req.body.departamentosGestor,
+    });
+    return ok(res, r);
+  },
+);
+
 export default router;

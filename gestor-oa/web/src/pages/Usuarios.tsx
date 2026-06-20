@@ -12,11 +12,13 @@ export default function Usuarios() {
   const navigate = useNavigate();
   const podeUsuarios = temPermissao(sessao, 'admin_usuarios');
   const podePermissoes = temPermissao(sessao, 'admin_permissoes');
+  const podeTransferir = temPermissao(sessao, 'admin_transferir_resp');
 
   const [usuarios, setUsuarios] = useState<UsuarioCompleto[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
   const [replicar, setReplicar] = useState(false);
+  const [transferir, setTransferir] = useState(false);
 
   function carregar() {
     setLoading(true);
@@ -53,6 +55,7 @@ export default function Usuarios() {
         <div className="flex gap-2">
           <button className="btn-ghost border border-slate-300" onClick={exportar}>Exportar</button>
           {podePermissoes && <button className="btn-ghost border border-slate-300" onClick={() => setReplicar(true)}>Replicar permissoes</button>}
+          {podeTransferir && <button className="btn-ghost border border-slate-300" onClick={() => setTransferir(true)}>Transferir responsabilidade</button>}
           {podeUsuarios && <button className="btn-primary" onClick={() => navigate('/usuarios/novo')}>+ Novo usuario</button>}
         </div>
       </div>
@@ -99,7 +102,71 @@ export default function Usuarios() {
       </div>
 
       {replicar && <ReplicarModal usuarios={usuarios} onFechar={() => setReplicar(false)} onFeito={() => { setReplicar(false); carregar(); }} />}
+      {transferir && <TransferirModal usuarios={usuarios} onFechar={() => setTransferir(false)} />}
     </div>
+  );
+}
+
+function TransferirModal({ usuarios, onFechar }: { usuarios: UsuarioCompleto[]; onFechar: () => void }) {
+  const toast = useToast();
+  const [deId, setDeId] = useState('');
+  const [paraId, setParaId] = useState('');
+  const [opts, setOpts] = useState({ departamentosEmpresa: true, entregasPendentes: true, processos: true, departamentosGestor: false });
+  const [salvando, setSalvando] = useState(false);
+
+  async function executar() {
+    if (!deId || !paraId) return toast('erro', 'Escolha o usuario de origem e o de destino.');
+    if (deId === paraId) return toast('erro', 'Origem e destino devem ser diferentes.');
+    if (!window.confirm('Confirmar a transferencia de responsabilidade entre os usuarios selecionados?')) return;
+    setSalvando(true);
+    try {
+      const r = await api.post<{ responsaveisDepartamento: number; entregas: number; processos: number; departamentos: number }>(
+        '/usuarios/transferir-responsabilidade', { deUsuarioId: deId, paraUsuarioId: paraId, ...opts },
+      );
+      toast('ok', `Transferido: ${r.responsaveisDepartamento} resp. de dpto, ${r.entregas} demandas, ${r.processos} processos, ${r.departamentos} dptos.`);
+      onFechar();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    finally { setSalvando(false); }
+  }
+
+  const Op = ({ k, label }: { k: keyof typeof opts; label: string }) => (
+    <label className="flex items-center gap-2 text-sm text-slate-600">
+      <input type="checkbox" checked={opts[k]} onChange={(e) => setOpts((o) => ({ ...o, [k]: e.target.checked }))} /> {label}
+    </label>
+  );
+
+  return (
+    <Modal aberto titulo="Transferir responsabilidade" onFechar={onFechar}>
+      <div className="space-y-3">
+        <p className="text-[13px] text-slate-500">Reatribui as responsabilidades de um colaborador (que saiu de ferias, foi desligado, etc.) para outro.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">De (origem)</label>
+            <select className="input" value={deId} onChange={(e) => setDeId(e.target.value)}>
+              <option value="">Selecione</option>
+              {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Para (destino)</label>
+            <select className="input" value={paraId} onChange={(e) => setParaId(e.target.value)}>
+              <option value="">Selecione</option>
+              {usuarios.filter((u) => u.id !== deId).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="space-y-1.5 rounded border border-slate-200 p-3">
+          <Op k="departamentosEmpresa" label="Responsavel por departamentos das empresas" />
+          <Op k="entregasPendentes" label="Demandas pendentes na Lista de Entregas" />
+          <Op k="processos" label="Processos em andamento / suspensos" />
+          <Op k="departamentosGestor" label="Gestor/responsavel dos departamentos (cadastro)" />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
+          <button className="btn-primary" onClick={executar} disabled={salvando}>{salvando ? 'Transferindo...' : 'Transferir'}</button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

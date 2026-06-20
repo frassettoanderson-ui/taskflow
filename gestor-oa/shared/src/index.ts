@@ -134,6 +134,7 @@ export const PERMISSION_FLAGS = [
   'solicitacoes_internas_gerenciar',
   'admin_usuarios',
   'admin_permissoes',
+  'admin_transferir_resp',
   'admin_auditoria',
   'admin_escritorio',
 ] as const;
@@ -171,7 +172,12 @@ export const PERMISSION_AREAS: PermissionArea[] = [
     { v: 3, label: '[3] = [2] + Retroativa e avulsa' },
     { v: 4, label: '[4] = [3] + Adicionar/Editar cadastros' } ] },
   { id: 'regimes_grupos', label: 'Regimes e Grupos de obrigacoes', niveis: ACESSO },
-  { id: 'empresas', label: 'Cadastro de Empresas', niveis: ACESSO },
+  { id: 'empresas', label: 'Cadastro de Empresas', niveis: [
+    { v: 0, label: '[0] = Acesso bloqueado' },
+    { v: 1, label: '[1] = Visualizar empresas' },
+    { v: 2, label: '[2] = [1] + Editar cadastros' },
+    { v: 3, label: '[3] = [2] + Criar / Importar' },
+    { v: 4, label: '[4] = [3] + Excluir empresas' } ] },
   { id: 'anexos_apagar', label: 'Pode apagar anexos (arquivos)?', niveis: [
     { v: 0, label: 'Nao = Sem permissao' }, { v: 1, label: 'Sim = Exclusoes permitidas' } ] },
   { id: 'processos', label: 'Gestao de processos', niveis: ACESSO },
@@ -216,8 +222,12 @@ export function nivelParaFlags(niveis: PermissionNiveis): Record<PermissionFlag,
   const n = (id: string) => niveis[id] ?? 0;
   // Administrativo = acesso total
   if (n('administrativo') >= 1) { for (const k of PERMISSION_FLAGS) f[k] = true; return f; }
-  // Empresas (Sim = acesso total)
-  if (n('empresas') >= 1) { f.empresas_ver = f.empresas_criar = f.empresas_editar = f.empresas_importar = f.empresas_excluir = true; }
+  // Empresas (escala 0..4: ver / +editar / +criar/importar / +excluir)
+  const nemp = n('empresas');
+  if (nemp >= 1) f.empresas_ver = true;
+  if (nemp >= 2) f.empresas_editar = true;
+  if (nemp >= 3) { f.empresas_criar = true; f.empresas_importar = true; }
+  if (nemp >= 4) f.empresas_excluir = true;
   // Obrigacoes (escala 0..4)
   if (n('obrigacoes') >= 1) f.obrigacoes_ver = true;
   if (n('obrigacoes') >= 2) f.obrigacoes_gerenciar = true;
@@ -240,8 +250,9 @@ export function nivelParaFlags(niveis: PermissionNiveis): Record<PermissionFlag,
   if (n('portal_config') >= 1) f.portal_configurar = true;
   if (n('comunicados') >= 1) f.portal_comunicados = true;
   if (n('portal_solic') >= 1) f.portal_solicitacoes = true;
-  // Usuarios (nivel 1 ja inclui permissoes)
+  // Usuarios (nivel 1 ja inclui permissoes; nivel 2 = transf. responsabilidade)
   if (n('usuarios') >= 1) { f.admin_usuarios = true; f.admin_permissoes = true; }
+  if (n('usuarios') >= 2) f.admin_transferir_resp = true;
   // Sistema / Departamentos -> config do escritorio
   if (n('sistema') >= 1) f.admin_escritorio = true;
   if (n('departamentos') >= 2) f.admin_escritorio = true;
@@ -260,11 +271,11 @@ export function flagsParaNiveis(flags: Partial<Record<PermissionFlag, boolean>>)
   return {
     administrativo: adminTotal ? 1 : 0,
     sistema: b('admin_escritorio') ? 1 : 0,
-    usuarios: b('admin_permissoes') ? 2 : b('admin_usuarios') ? 1 : 0,
+    usuarios: b('admin_transferir_resp') ? 2 : (b('admin_permissoes') || b('admin_usuarios')) ? 1 : 0,
     departamentos: b('admin_escritorio') ? 1 : 0,
     obrigacoes: b('obrigacoes_gerenciar') ? 2 : b('obrigacoes_ver') ? 1 : 0,
     regimes_grupos: b('obrigacoes_gerenciar') ? 1 : 0,
-    empresas: b('empresas_excluir') ? 3 : (b('empresas_criar') || b('empresas_editar')) ? 2 : b('empresas_ver') ? 1 : 0,
+    empresas: b('empresas_excluir') ? 4 : (b('empresas_criar') || b('empresas_importar')) ? 3 : b('empresas_editar') ? 2 : b('empresas_ver') ? 1 : 0,
     anexos_apagar: b('documentos_excluir') ? 1 : 0,
     processos: b('processos_gerenciar_matrizes') ? 3 : b('processos_operar') ? 2 : b('processos_ver') ? 1 : 0,
     entregas_dispensar: b('entregas_dispensar') ? 1 : 0,
@@ -280,6 +291,40 @@ export function flagsParaNiveis(flags: Partial<Record<PermissionFlag, boolean>>)
     auditoria: b('admin_auditoria') ? 1 : 0,
   };
 }
+
+// ---------- Presets de permissao por cargo ----------
+// Aplicar um preset substitui todos os niveis. Areas omitidas voltam ao nivel 0.
+export interface PermissionPreset { id: string; label: string; descricao: string; niveis: PermissionNiveis }
+export const PERMISSION_PRESETS: PermissionPreset[] = [
+  {
+    id: 'admin', label: 'Administrador',
+    descricao: 'Acesso total a todas as areas do sistema.',
+    niveis: { administrativo: 1 },
+  },
+  {
+    id: 'gerente', label: 'Gerente / Supervisor',
+    descricao: 'Gerencia obrigacoes, empresas, processos e equipe (sem ser administrativo total).',
+    niveis: {
+      sistema: 1, usuarios: 2, departamentos: 3, obrigacoes: 4, regimes_grupos: 1,
+      empresas: 3, anexos_apagar: 1, processos: 1, entregas_dispensar: 2, entregas: 3,
+      entregas_prazos: 1, apla: 1, portal_config: 1, comunicados: 2, portal_solic: 2,
+      documentos: 1, relatorios: 1, solic_internas: 2, auditoria: 1,
+    },
+  },
+  {
+    id: 'operacional', label: 'Colaborador / Operacional',
+    descricao: 'Opera a Lista de Entregas e processos; visualiza empresas e obrigacoes.',
+    niveis: {
+      obrigacoes: 1, empresas: 1, processos: 1, entregas_dispensar: 1, entregas: 2,
+      documentos: 1, comunicados: 1, portal_solic: 1, relatorios: 1, solic_internas: 1,
+    },
+  },
+  {
+    id: 'leitura', label: 'Somente leitura',
+    descricao: 'Apenas visualiza empresas, obrigacoes, documentos e relatorios.',
+    niveis: { obrigacoes: 1, empresas: 1, entregas: 1, documentos: 1, comunicados: 1, relatorios: 1 },
+  },
+];
 
 // ---------- Auth ----------
 export interface JanelaAcesso {

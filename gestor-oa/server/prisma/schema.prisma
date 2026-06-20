@@ -166,6 +166,7 @@ model Permissao {
 
   admin_usuarios            Boolean @default(false)
   admin_permissoes          Boolean @default(false)
+  admin_transferir_resp     Boolean @default(false)
   admin_auditoria           Boolean @default(false)
   admin_escritorio          Boolean @default(false)
 }

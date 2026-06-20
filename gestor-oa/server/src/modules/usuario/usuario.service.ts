@@ -215,6 +215,73 @@ export async function redefinirSenha(escritorioId: string, id: string, novaSenha
   await prisma.sessao.updateMany({ where: { usuarioId: id, revokedAt: null }, data: { revokedAt: new Date() } });
 }
 
+// Transferir responsabilidade de um usuario (origem) para outro (destino).
+// Reatribui: responsavel por departamento das empresas, gestor/responsavel de
+// departamentos, demandas pendentes da Lista de Entregas e processos em aberto.
+export async function transferirResponsabilidade(
+  escritorioId: string,
+  deUsuarioId: string,
+  paraUsuarioId: string,
+  opcoes: { departamentosEmpresa: boolean; entregasPendentes: boolean; processos: boolean; departamentosGestor: boolean },
+) {
+  if (deUsuarioId === paraUsuarioId) throw Errors.validacao('Origem e destino devem ser diferentes.');
+  const origem = await prisma.usuario.findFirst({ where: { id: deUsuarioId, escritorioId, deletedAt: null } });
+  const destino = await prisma.usuario.findFirst({ where: { id: paraUsuarioId, escritorioId, deletedAt: null } });
+  if (!origem) throw Errors.naoEncontrado('Usuario origem');
+  if (!destino) throw Errors.naoEncontrado('Usuario destino');
+
+  const resultado = { responsaveisDepartamento: 0, entregas: 0, processos: 0, departamentos: 0 };
+
+  if (opcoes.departamentosEmpresa) {
+    const r = await prisma.empresaResponsavelDepartamento.updateMany({
+      where: { escritorioId, usuarioId: deUsuarioId },
+      data: { usuarioId: paraUsuarioId },
+    });
+    resultado.responsaveisDepartamento = r.count;
+  }
+
+  if (opcoes.entregasPendentes) {
+    const pendentes: ('PENDENTE' | 'PENDENTE_ANTECIPADO' | 'EM_ATRASO_TECNICO' | 'EM_ATRASO_LEGAL')[] =
+      ['PENDENTE', 'PENDENTE_ANTECIPADO', 'EM_ATRASO_TECNICO', 'EM_ATRASO_LEGAL'];
+    const a = await prisma.entrega.updateMany({
+      where: { escritorioId, responsavelPrazoId: deUsuarioId, status: { in: pendentes } },
+      data: { responsavelPrazoId: paraUsuarioId },
+    });
+    const b = await prisma.entrega.updateMany({
+      where: { escritorioId, responsavelEntregaId: deUsuarioId, status: { in: pendentes } },
+      data: { responsavelEntregaId: paraUsuarioId },
+    });
+    resultado.entregas = a.count + b.count;
+  }
+
+  if (opcoes.processos) {
+    const r = await prisma.processo.updateMany({
+      where: { escritorioId, gestorId: deUsuarioId, status: { in: ['EM_ANDAMENTO', 'SUSPENSO'] } },
+      data: { gestorId: paraUsuarioId },
+    });
+    resultado.processos = r.count;
+  }
+
+  if (opcoes.departamentosGestor) {
+    const r = await prisma.departamento.updateMany({
+      where: { escritorioId, responsavelId: deUsuarioId },
+      data: { responsavelId: paraUsuarioId },
+    });
+    // gestoresIds e' Json (array): troca origem por destino mantendo unicidade
+    const deps = await prisma.departamento.findMany({ where: { escritorioId } });
+    for (const dep of deps) {
+      const ids = Array.isArray(dep.gestoresIds) ? (dep.gestoresIds as string[]) : [];
+      if (ids.includes(deUsuarioId)) {
+        const novos = Array.from(new Set(ids.map((x) => (x === deUsuarioId ? paraUsuarioId : x))));
+        await prisma.departamento.update({ where: { id: dep.id }, data: { gestoresIds: novos as object } });
+      }
+    }
+    resultado.departamentos = r.count;
+  }
+
+  return resultado;
+}
+
 // Replicar permissoes e/ou horarios de um usuario origem para varios destinos.
 export async function replicar(
   escritorioId: string,
