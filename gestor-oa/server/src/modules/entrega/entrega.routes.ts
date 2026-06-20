@@ -221,6 +221,11 @@ router.post(
   },
 );
 
+router.get('/:id/eventos', async (req, res) => {
+  const itens = await svc.listarEventos(req.auth!.escritorioId, req.params.id);
+  return ok(res, itens);
+});
+
 router.post('/:id/desfazer', requirePermission('entregas_baixar'), async (req, res) => {
   const entrega = await prisma.entrega.findFirst({
     where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
@@ -230,7 +235,7 @@ router.post('/:id/desfazer', requirePermission('entregas_baixar'), async (req, r
   if (entrega.origemBaixa === 'ROBO' && !req.auth!.permissoes['entregas_desfazer_robo']) {
     throw Errors.semPermissao('entregas_desfazer_robo');
   }
-  const r = await svc.desfazer(req.auth!.escritorioId, req.params.id);
+  const r = await svc.desfazer(req.auth!.escritorioId, req.params.id, req.auth!.id);
   return ok(res, r);
 });
 
@@ -239,7 +244,7 @@ router.post(
   requirePermission('entregas_dispensar'),
   validate({ body: z.object({ motivo: z.string().optional() }) }),
   async (req, res) => {
-    const r = await svc.dispensar(req.auth!.escritorioId, req.params.id, req.body.motivo ?? '');
+    const r = await svc.dispensar(req.auth!.escritorioId, req.params.id, req.body.motivo ?? '', req.auth!.id);
     return ok(res, r);
   },
 );
@@ -249,7 +254,7 @@ router.put(
   requirePermission('entregas_editar_prazos'),
   validate({ body: z.object({ prazoLegal: z.string().optional(), prazoTecnico: z.string().optional() }) }),
   async (req, res) => {
-    const r = await svc.editarPrazo(req.auth!.escritorioId, req.params.id, req.body);
+    const r = await svc.editarPrazo(req.auth!.escritorioId, req.params.id, req.body, req.auth!.id);
     return ok(res, r);
   },
 );

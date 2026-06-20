@@ -652,6 +652,7 @@ model Entrega {
 
   anexos              EntregaAnexo[]
   comentarios         EntregaComentario[]
+  eventos             EntregaEvento[]
 
   @@unique([empresaId, obrigacaoId, competenciaAno, competenciaMes])
   @@index([escritorioId, competenciaAno, competenciaMes])
@@ -682,6 +683,19 @@ model EntregaComentario {
   entregaId     String
   entrega       Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
   texto         String
+  autorId       String?
+  createdAt     DateTime @default(now())
+
+  @@index([entregaId])
+}
+
+// Historico de movimentacao da demanda (balaozinho [F2])
+model EntregaEvento {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  entregaId     String
+  entrega       Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+  texto         String   // ex: "Mudou status de Pendente para Entregue", "Comentou: ..."
   autorId       String?
   createdAt     DateTime @default(now())
 

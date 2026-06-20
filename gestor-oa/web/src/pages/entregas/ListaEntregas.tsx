@@ -2,12 +2,12 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   CheckCircle2, SlidersHorizontal, X, SearchX, CalendarDays, SquarePen,
-  Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save,
+  Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save, History,
 } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
-import type { Entrega, StatusEntrega, Departamento, UsuarioBasico, GrupoEmpresa } from '../../lib/tipos';
+import type { Entrega, StatusEntrega, Departamento, UsuarioBasico, GrupoEmpresa, EntregaEvento } from '../../lib/tipos';
 
 interface Pagina { items: Entrega[]; total: number; totalPages: number; page: number }
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -346,7 +346,7 @@ export default function ListaEntregas() {
                     <td className="px-3 py-2">
                       <div className="text-slate-600">{e.numeroProtocolo || <span className="text-slate-300">-</span>}</div>
                       <div className="mt-0.5 flex items-center gap-1 text-slate-400">
-                        {e.qtdComentarios ?? 0} <MessageSquare size={13} />
+                        {e.qtdEventos ?? 0} <MessageSquare size={13} />
                       </div>
                     </td>
                     {/* col 5 */}
@@ -364,7 +364,7 @@ export default function ListaEntregas() {
                   {aberta && (
                     <tr className="border-b border-slate-200 bg-slate-50">
                       <td colSpan={5} className="px-3 py-3">
-                        <LinhaBaixa entrega={e} onBaixado={() => { setExpandida(null); carregar(); }} onDispensar={() => dispensar(e)} />
+                        <LinhaBaixa entrega={e} nomeUsuario={nomeUsuario} onBaixado={() => { setExpandida(null); carregar(); }} onDispensar={() => dispensar(e)} />
                       </td>
                     </tr>
                   )}
@@ -419,8 +419,9 @@ function Dia({ label, value, onChange }: { label: string; value: string; onChang
 }
 
 // ---------- Linha expandida: baixa / dispensa ----------
-function LinhaBaixa({ entrega, onBaixado, onDispensar }: { entrega: Entrega; onBaixado: () => void; onDispensar: () => void }) {
+function LinhaBaixa({ entrega, nomeUsuario, onBaixado, onDispensar }: { entrega: Entrega; nomeUsuario: Map<string, string>; onBaixado: () => void; onDispensar: () => void }) {
   const toast = useToast();
+  const [eventos, setEventos] = useState<EntregaEvento[] | null>(null);
   const [protocolo, setProtocolo] = useState('');
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [enviarEmail, setEnviarEmail] = useState<'nao' | 'imediato' | 'agendado' | 'preagendado'>('nao');
@@ -429,6 +430,10 @@ function LinhaBaixa({ entrega, onBaixado, onDispensar }: { entrega: Entrega; onB
   const [comentario, setComentario] = useState('');
   const [justificativa, setJustificativa] = useState('');
   const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    api.get<EntregaEvento[]>(`/entregas/${entrega.id}/eventos`).then(setEventos).catch(() => setEventos([]));
+  }, [entrega.id]);
 
   async function salvar() {
     setSalvando(true);
@@ -493,6 +498,22 @@ function LinhaBaixa({ entrega, onBaixado, onDispensar }: { entrega: Entrega; onB
         <input className={`${INP} w-full`} placeholder="Adicionar comentario..." value={comentario} onChange={(e) => setComentario(e.target.value)} />
         <input className={`${INP} w-full`} placeholder="Justificativa de atraso/dispensa" value={justificativa} onChange={(e) => setJustificativa(e.target.value)} />
       </div>
+
+      {/* Historico de movimentacao (balaozinho) */}
+      {eventos && eventos.length > 0 && (
+        <div className="mt-1 rounded border border-slate-200 bg-white p-2">
+          <div className="mb-1 flex items-center gap-1 text-[11px] font-semibold uppercase text-slate-400"><History size={12} /> Historico de movimentacao</div>
+          <ul className="space-y-1">
+            {eventos.map((ev) => (
+              <li key={ev.id} className="flex flex-wrap items-baseline gap-x-2 text-[12px]">
+                <span className="text-slate-400">{new Date(ev.createdAt).toLocaleString('pt-BR')}</span>
+                <span className="text-slate-700">{ev.texto}</span>
+                {ev.autorId && <span className="text-marca-500">({nomeUsuario.get(ev.autorId) ?? '—'})</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

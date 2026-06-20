@@ -415,7 +415,7 @@ export async function listar(
       include: {
         empresa: { select: { id: true, numero: true, razaoSocial: true, nomeFantasia: true, identificadores: { select: { tipo: true, valor: true } } } },
         obrigacao: { select: { id: true, nome: true, exigeAnexoNaBaixa: true, departamento: { select: { nome: true, cor: true } } } },
-        _count: { select: { anexos: true, comentarios: true } },
+        _count: { select: { anexos: true, comentarios: true, eventos: true } },
       },
     }),
     prisma.entrega.count({ where }),
@@ -440,10 +440,23 @@ export async function listar(
       origemBaixa: e.origemBaixa,
       qtdAnexos: e._count.anexos,
       qtdComentarios: e._count.comentarios,
+      qtdEventos: e._count.eventos,
       numeroProtocolo: e.numeroProtocolo ?? null,
     })),
     total,
   };
+}
+
+// registra um evento no historico da demanda (balaozinho [F2])
+async function registrarEvento(escritorioId: string, entregaId: string, texto: string, autorId?: string) {
+  await prisma.entregaEvento.create({ data: { escritorioId, entregaId, texto, autorId: autorId ?? null } });
+}
+
+export async function listarEventos(escritorioId: string, entregaId: string) {
+  return prisma.entregaEvento.findMany({
+    where: { escritorioId, entregaId },
+    orderBy: { createdAt: 'desc' },
+  });
 }
 
 async function getEntrega(escritorioId: string, id: string) {
@@ -499,17 +512,19 @@ export async function baixar(
     await prisma.entregaComentario.create({
       data: { escritorioId, entregaId: e.id, autorId: userId, texto: dados.comentario.trim() },
     });
+    await registrarEvento(escritorioId, e.id, `Comentou: ${dados.comentario.trim()}`, userId);
   }
+  await registrarEvento(escritorioId, e.id, `Marcou como ${aposLegal ? 'Entregue c/ multa' : 'Entregue'}${dados.numeroProtocolo?.trim() ? ` (protocolo ${dados.numeroProtocolo.trim()})` : ''}`, userId);
 
   return entrega;
 }
 
 // ---------- Desfazer baixa ----------
-export async function desfazer(escritorioId: string, entregaId: string) {
+export async function desfazer(escritorioId: string, entregaId: string, userId?: string) {
   const e = await getEntrega(escritorioId, entregaId);
   const cfg = await lerConfig(escritorioId);
   const status = statusEfetivo('PENDENTE', e.prazoTecnico, e.prazoLegal, new Date(), cfg.diasAntecipado);
-  return prisma.entrega.update({
+  const r = await prisma.entrega.update({
     where: { id: e.id },
     data: {
       status: status as StatusEntrega,
@@ -518,15 +533,19 @@ export async function desfazer(escritorioId: string, entregaId: string) {
       origemBaixa: null,
     },
   });
+  await registrarEvento(escritorioId, e.id, 'Desfez a baixa (demanda reaberta)', userId);
+  return r;
 }
 
 // ---------- Dispensar ----------
-export async function dispensar(escritorioId: string, entregaId: string, motivo: string) {
+export async function dispensar(escritorioId: string, entregaId: string, motivo: string, userId?: string) {
   const e = await getEntrega(escritorioId, entregaId);
-  return prisma.entrega.update({
+  const r = await prisma.entrega.update({
     where: { id: e.id },
     data: { status: 'DISPENSADA', motivoDispensa: motivo || null },
   });
+  await registrarEvento(escritorioId, e.id, `Dispensada${motivo ? `: ${motivo}` : ''}`, userId);
+  return r;
 }
 
 // ---------- Editar prazo (inline) ----------
@@ -534,18 +553,23 @@ export async function editarPrazo(
   escritorioId: string,
   entregaId: string,
   dados: { prazoLegal?: string; prazoTecnico?: string },
+  userId?: string,
 ) {
   const e = await getEntrega(escritorioId, entregaId);
   const cfg = await lerConfig(escritorioId);
+  const fmt = (d: Date) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
   const prazoLegal = dados.prazoLegal ? new Date(dados.prazoLegal + 'T12:00:00') : e.prazoLegal;
   const prazoTecnico = dados.prazoTecnico ? new Date(dados.prazoTecnico + 'T12:00:00') : e.prazoTecnico;
   const status = e.status === 'ENTREGUE' || e.status === 'ENTREGUE_JUSTIFICADA' || e.status === 'DISPENSADA'
     ? e.status
     : (statusEfetivo('PENDENTE', prazoTecnico, prazoLegal, new Date(), cfg.diasAntecipado) as StatusEntrega);
-  return prisma.entrega.update({
+  const r = await prisma.entrega.update({
     where: { id: e.id },
     data: { prazoLegal, prazoTecnico, status },
   });
+  if (dados.prazoLegal && fmt(e.prazoLegal) !== fmt(prazoLegal)) await registrarEvento(escritorioId, e.id, `Atualizou o prazo legal de ${fmt(e.prazoLegal)} para ${fmt(prazoLegal)}`, userId);
+  if (dados.prazoTecnico && fmt(e.prazoTecnico) !== fmt(prazoTecnico)) await registrarEvento(escritorioId, e.id, `Atualizou o prazo tecnico de ${fmt(e.prazoTecnico)} para ${fmt(prazoTecnico)}`, userId);
+  return r;
 }
 
 // ---------- Acoes em massa ----------

@@ -287,7 +287,15 @@ export interface Entrega {
   origemBaixa: 'MANUAL' | 'ROBO' | null;
   qtdAnexos: number;
   qtdComentarios?: number;
+  qtdEventos?: number;
   numeroProtocolo?: string | null;
+}
+
+export interface EntregaEvento {
+  id: string;
+  texto: string;
+  autorId: string | null;
+  createdAt: string;
 }
 
 // ---------- Modulo 4 ----------
