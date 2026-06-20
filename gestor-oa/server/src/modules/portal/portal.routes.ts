@@ -233,6 +233,23 @@ router.post('/colaborador', validate({ body: z.object({ nome: z.string().min(2),
   return ok(res, { processoId: proc.id }, 201);
 });
 
+// ---------- Meus dados (perfil do contato) ----------
+router.put('/perfil', validate({ body: z.object({ nome: z.string().min(2).optional(), senhaAtual: z.string().optional(), novaSenha: z.string().min(8).optional() }) }), async (req, res) => {
+  const { escritorioId, email } = req.contato!;
+  const rows = await prisma.empresaContato.findMany({ where: { escritorioId, email } });
+  if (rows.length === 0) throw Errors.naoEncontrado('Contato');
+  const data: { nome?: string; senhaHash?: string } = {};
+  if (req.body.nome) data.nome = req.body.nome;
+  if (req.body.novaSenha) {
+    const atual = rows.find((r) => r.senhaHash)?.senhaHash;
+    if (atual && !(await verifyPassword(req.body.senhaAtual ?? '', atual))) throw Errors.validacao('Senha atual incorreta.');
+    data.senhaHash = await hashPassword(req.body.novaSenha);
+  }
+  if (Object.keys(data).length === 0) throw Errors.validacao('Nada para atualizar.');
+  await prisma.empresaContato.updateMany({ where: { escritorioId, email }, data });
+  return ok(res, { atualizado: true });
+});
+
 // ---------- ACDOX: documentos a enviar (recepcao pelo cliente) ----------
 router.get('/cobrancas', async (req, res) => {
   const lista = await acdoxSvc.listarCobrancasCliente(req.contato!.escritorioId, req.contato!.empresaAtual);

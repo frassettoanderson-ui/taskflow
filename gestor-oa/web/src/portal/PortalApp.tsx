@@ -121,6 +121,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
     { to: '/portal/comunicados', label: 'Comunicados' },
     { to: '/portal/solicitacoes', label: 'Solicitacoes' },
     { to: '/portal/colaborador', label: 'Cadastrar colaborador' },
+    { to: '/portal/meus-dados', label: 'Meus dados' },
     { to: '/portal/lgpd', label: 'Privacidade' },
   ];
 
@@ -162,6 +163,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
           <Route path="comunicados" element={<Comunicados />} />
           <Route path="solicitacoes" element={<Solicitacoes />} />
           <Route path="colaborador" element={<Colaborador />} />
+          <Route path="meus-dados" element={<MeusDados />} />
           <Route path="lgpd" element={<Lgpd onAceito={() => setLgpdOk(true)} />} />
           <Route path="*" element={<Navigate to="/portal" replace />} />
         </Routes>
@@ -406,6 +408,46 @@ function Lgpd({ onAceito }: { onAceito: () => void }) {
       <h1 className="text-2xl font-semibold text-slate-800">Politica de Privacidade</h1>
       <Card><p className="whitespace-pre-wrap text-sm text-slate-600">{d.texto}</p></Card>
       {d.aceito ? <p className="text-sm text-emerald-700">Voce aceitou a versao {d.versao}.</p> : <button className="btn-primary" onClick={aceitar}>Li e aceito</button>}
+    </div>
+  );
+}
+
+function MeusDados() {
+  const [me, setMe] = useState<{ nome: string; email: string } | null>(null);
+  const [nome, setNome] = useState('');
+  const [senhaAtual, setSenhaAtual] = useState('');
+  const [novaSenha, setNovaSenha] = useState('');
+  const [msg, setMsg] = useState('');
+  useEffect(() => { portalApi.get<{ nome: string; email: string }>('/me').then((m) => { setMe(m); setNome(m.nome); }); }, []);
+
+  async function salvar() {
+    setMsg('');
+    try {
+      const body: Record<string, string> = {};
+      if (nome.trim() && nome !== me?.nome) body.nome = nome.trim();
+      if (novaSenha) { body.senhaAtual = senhaAtual; body.novaSenha = novaSenha; }
+      if (Object.keys(body).length === 0) { setMsg('Nada para atualizar.'); return; }
+      await portalApi.put('/perfil', body);
+      setMsg('Dados atualizados.'); setSenhaAtual(''); setNovaSenha('');
+    } catch (e) { setMsg(e instanceof PortalError ? e.message : 'Erro ao salvar.'); }
+  }
+
+  if (!me) return <p className="text-slate-400">Carregando...</p>;
+  return (
+    <div className="space-y-4">
+      <h1 className="text-2xl font-semibold text-slate-800">Meus dados</h1>
+      <Card>
+        <div className="space-y-3">
+          <div><label className="label">E-mail (login)</label><input className="input bg-slate-50" value={me.email} disabled /></div>
+          <div><label className="label">Nome</label><input className="input" value={nome} onChange={(e) => setNome(e.target.value)} /></div>
+          <hr className="border-slate-100" />
+          <p className="text-sm font-medium text-slate-600">Alterar senha (opcional)</p>
+          <div><label className="label">Senha atual</label><input className="input" type="password" value={senhaAtual} onChange={(e) => setSenhaAtual(e.target.value)} /></div>
+          <div><label className="label">Nova senha (min 8)</label><input className="input" type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} minLength={8} /></div>
+          {msg && <p className="text-sm text-marca-600">{msg}</p>}
+          <button className="btn-primary" onClick={salvar}>Salvar</button>
+        </div>
+      </Card>
     </div>
   );
 }

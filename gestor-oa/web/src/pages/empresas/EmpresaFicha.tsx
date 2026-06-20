@@ -617,6 +617,17 @@ function AbaContatos({
               >
                 convidar p/ portal
               </button>
+              <button
+                className="text-emerald-600 hover:underline"
+                onClick={async () => {
+                  try {
+                    const r = await api.post<{ email: string; senha: string }>(`/empresas/${empresa.id}/contatos/${c.id}/ativar-acesso`, {});
+                    toast('ok', `Acesso ativado. Login: ${r.email} / senha: ${r.senha}`);
+                  } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+                }}
+              >
+                ativar acesso
+              </button>
               <button className="text-petroleo-600 hover:underline" onClick={() => setEditando(c.id)}>editar</button>
               <button className="text-red-500 hover:underline" onClick={() => remover(c.id)}>remover</button>
             </div>

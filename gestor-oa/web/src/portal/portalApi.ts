@@ -31,6 +31,7 @@ async function req<T>(path: string, opts: { method?: string; body?: unknown } = 
 export const portalApi = {
   get: <T>(p: string) => req<T>(p),
   post: <T>(p: string, body?: unknown) => req<T>(p, { method: 'POST', body }),
+  put: <T>(p: string, body?: unknown) => req<T>(p, { method: 'PUT', body }),
   // download com token
   downloadUrl: (p: string) => BASE + p,
   authHeaders: () => {

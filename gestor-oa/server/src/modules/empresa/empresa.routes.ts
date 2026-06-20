@@ -9,7 +9,7 @@ import { Errors } from '../../lib/errors.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { empresaDir, isInsideStorage } from '../../lib/storage.js';
-import { generateToken, sha256 } from '../../lib/password.js';
+import { generateToken, sha256, hashPassword } from '../../lib/password.js';
 import { sendMail } from '../../lib/mailer.js';
 import { env } from '../../env.js';
 import { addMinutes } from 'date-fns';
@@ -278,6 +278,18 @@ router.post('/:id/contatos/:contatoId/convidar', requirePermission('portal_confi
     html: `<p>Ola ${contato.nome},</p><p>Voce foi convidado a acessar a Area VIP. Defina sua senha:</p><p><a href="${link}">${link}</a></p>`,
   }).catch(() => undefined);
   return ok(res, { link });
+});
+
+// ---------- Ativar acesso direto (senha provisoria, sem e-mail) ----------
+router.post('/:id/contatos/:contatoId/ativar-acesso', requirePermission('portal_configurar'), async (req, res) => {
+  const contato = await prisma.empresaContato.findFirst({
+    where: { id: req.params.contatoId, empresaId: req.params.id, escritorioId: req.auth!.escritorioId },
+  });
+  if (!contato) throw Errors.naoEncontrado('Contato');
+  if (!contato.email) throw Errors.validacao('Contato sem e-mail (necessario para o login).');
+  const senha = (req.body?.senha as string)?.trim() || '123';
+  await prisma.empresaContato.update({ where: { id: contato.id }, data: { senhaHash: await hashPassword(senha), ativo: true } });
+  return ok(res, { ativado: true, email: contato.email, senha });
 });
 
 // ---------- Comentarios ----------
