@@ -293,7 +293,15 @@ model Empresa {
   apelidoEcontinuo   String?            // nome usado na pasta de backup do e-Continuo
   emailPrincipal     String?
   telefone           String?
-  endereco           String?
+  endereco           String?            // legado (endereco em texto livre)
+  cep                String?
+  logradouro         String?
+  numeroEndereco     String?
+  complemento        String?
+  bairro             String?
+  cidade             String?
+  uf                 String?
+  grupoEnvio         String?            // grupo de envio de e-mails (lote)
   regimeTributarioId String?
   regimeTributario   RegimeTributario? @relation(fields: [regimeTributarioId], references: [id])
   motivoCancelamentoId String?

@@ -17,6 +17,7 @@ export default function EmpresaForm() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
   const [salvando, setSalvando] = useState(false);
+  const [proximoId, setProximoId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     razaoSocial: '',
@@ -26,7 +27,14 @@ export default function EmpresaForm() {
     apelidoEcontinuo: '',
     emailPrincipal: '',
     telefone: '',
-    endereco: '',
+    cep: '',
+    logradouro: '',
+    numeroEndereco: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    uf: '',
+    grupoEnvio: '',
     anotacoes: '',
   });
   const [tagIds, setTagIds] = useState<string[]>([]);
@@ -37,6 +45,7 @@ export default function EmpresaForm() {
   useEffect(() => {
     api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
     api.get<GrupoEmpresa[]>('/grupos-empresa').then(setGrupos).catch(() => undefined);
+    api.get<{ numero: number }>('/empresas/proximo-numero').then((r) => setProximoId(r.numero)).catch(() => undefined);
   }, []);
 
   async function criarGrupo() {
@@ -65,6 +74,8 @@ export default function EmpresaForm() {
         honorario: form.honorario === '' ? undefined : Number(form.honorario),
         apelidoEcontinuo: form.apelidoEcontinuo || undefined,
         grupoEmpresaId: form.grupoEmpresaId || undefined,
+        grupoEnvio: form.grupoEnvio || undefined,
+        uf: form.uf || undefined,
         emailPrincipal: form.emailPrincipal || undefined,
         tagIds,
         identificadores,
@@ -80,7 +91,10 @@ export default function EmpresaForm() {
 
   return (
     <div className="max-w-3xl space-y-4">
-      <h1 className="text-2xl font-semibold text-slate-800">Nova empresa</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-slate-800">Nova empresa</h1>
+        {proximoId != null && <span className="rounded bg-marca-50 px-3 py-1 text-sm font-medium text-marca-600">ID: {proximoId}</span>}
+      </div>
       <form onSubmit={salvar} className="space-y-6">
         <section className="card space-y-4 p-6">
           <h2 className="font-semibold text-slate-700">Dados</h2>
@@ -102,10 +116,6 @@ export default function EmpresaForm() {
               <input className="input" value={form.telefone} onChange={(e) => set('telefone', e.target.value)} />
             </div>
             <div>
-              <label className="label">Endereco</label>
-              <input className="input" value={form.endereco} onChange={(e) => set('endereco', e.target.value)} />
-            </div>
-            <div>
               <label className="label">Honorario (R$)</label>
               <input className="input" type="number" step="0.01" min="0" placeholder="0,00" value={form.honorario} onChange={(e) => set('honorario', e.target.value)} />
             </div>
@@ -122,6 +132,23 @@ export default function EmpresaForm() {
                 </select>
                 <button type="button" className="btn-ghost border border-slate-300" onClick={criarGrupo}>+ Novo</button>
               </div>
+            </div>
+            <div>
+              <label className="label">Grupo de envio de e-mails</label>
+              <input className="input" value={form.grupoEnvio} onChange={(e) => set('grupoEnvio', e.target.value)} placeholder="Ex.: Lote matutino" />
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-3">
+            <h3 className="mb-2 text-sm font-semibold text-slate-600">Endereco</h3>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div><label className="label">CEP</label><input className="input" value={form.cep} onChange={(e) => set('cep', e.target.value)} /></div>
+              <div className="sm:col-span-2"><label className="label">Logradouro</label><input className="input" value={form.logradouro} onChange={(e) => set('logradouro', e.target.value)} /></div>
+              <div><label className="label">Numero</label><input className="input" value={form.numeroEndereco} onChange={(e) => set('numeroEndereco', e.target.value)} /></div>
+              <div><label className="label">Complemento</label><input className="input" value={form.complemento} onChange={(e) => set('complemento', e.target.value)} /></div>
+              <div><label className="label">Bairro</label><input className="input" value={form.bairro} onChange={(e) => set('bairro', e.target.value)} /></div>
+              <div><label className="label">Cidade</label><input className="input" value={form.cidade} onChange={(e) => set('cidade', e.target.value)} /></div>
+              <div><label className="label">UF</label><input className="input" maxLength={2} value={form.uf} onChange={(e) => set('uf', e.target.value.toUpperCase())} /></div>
             </div>
           </div>
           <div>

@@ -176,6 +176,14 @@ interface CriarInput {
   emailPrincipal?: string | null;
   telefone?: string | null;
   endereco?: string | null;
+  cep?: string | null;
+  logradouro?: string | null;
+  numeroEndereco?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+  grupoEnvio?: string | null;
   regimeTributarioId?: string | null;
   anotacoes?: string | null;
   ativo?: boolean;
@@ -183,6 +191,12 @@ interface CriarInput {
   dataSaida?: string | null;
   tagIds?: string[];
   identificadores?: { tipo: string; valor: string; apelido?: string | null }[];
+}
+
+// Proximo [ID] sequencial sugerido para o cadastro de uma nova empresa.
+export async function proximoNumero(escritorioId: string) {
+  const ultimo = await prisma.empresa.aggregate({ where: { escritorioId }, _max: { numero: true } });
+  return { numero: (ultimo._max.numero ?? 0) + 1 };
 }
 
 export async function criar(escritorioId: string, input: CriarInput) {
@@ -208,6 +222,14 @@ export async function criar(escritorioId: string, input: CriarInput) {
       emailPrincipal: input.emailPrincipal || null,
       telefone: input.telefone || null,
       endereco: input.endereco || null,
+      cep: input.cep || null,
+      logradouro: input.logradouro || null,
+      numeroEndereco: input.numeroEndereco || null,
+      complemento: input.complemento || null,
+      bairro: input.bairro || null,
+      cidade: input.cidade || null,
+      uf: input.uf || null,
+      grupoEnvio: input.grupoEnvio || null,
       regimeTributarioId: input.regimeTributarioId || null,
       anotacoes: input.anotacoes || null,
       ativo: input.ativo ?? true,
@@ -265,6 +287,14 @@ export async function editar(
         input.emailPrincipal === undefined ? empresa.emailPrincipal : input.emailPrincipal || null,
       telefone: input.telefone === undefined ? empresa.telefone : input.telefone || null,
       endereco: input.endereco === undefined ? empresa.endereco : input.endereco || null,
+      cep: input.cep === undefined ? empresa.cep : input.cep || null,
+      logradouro: input.logradouro === undefined ? empresa.logradouro : input.logradouro || null,
+      numeroEndereco: input.numeroEndereco === undefined ? empresa.numeroEndereco : input.numeroEndereco || null,
+      complemento: input.complemento === undefined ? empresa.complemento : input.complemento || null,
+      bairro: input.bairro === undefined ? empresa.bairro : input.bairro || null,
+      cidade: input.cidade === undefined ? empresa.cidade : input.cidade || null,
+      uf: input.uf === undefined ? empresa.uf : input.uf || null,
+      grupoEnvio: input.grupoEnvio === undefined ? empresa.grupoEnvio : input.grupoEnvio || null,
       regimeTributarioId:
         input.regimeTributarioId === undefined
           ? empresa.regimeTributarioId

@@ -153,7 +153,14 @@ function AbaDados({
     apelidoEcontinuo: empresa.apelidoEcontinuo ?? '',
     emailPrincipal: empresa.emailPrincipal ?? '',
     telefone: empresa.telefone ?? '',
-    endereco: empresa.endereco ?? '',
+    cep: empresa.cep ?? '',
+    logradouro: empresa.logradouro ?? '',
+    numeroEndereco: empresa.numeroEndereco ?? '',
+    complemento: empresa.complemento ?? '',
+    bairro: empresa.bairro ?? '',
+    cidade: empresa.cidade ?? '',
+    uf: empresa.uf ?? '',
+    grupoEnvio: empresa.grupoEnvio ?? '',
     anotacoes: empresa.anotacoes ?? '',
     ativo: empresa.ativo,
   });
@@ -247,8 +254,20 @@ function AbaDados({
             <input className="input" value={form.telefone} disabled={!podeEditar} onChange={(e) => set('telefone', e.target.value)} />
           </div>
           <div>
-            <label className="label">Endereco</label>
-            <input className="input" value={form.endereco} disabled={!podeEditar} onChange={(e) => set('endereco', e.target.value)} />
+            <label className="label">Grupo de envio de e-mails</label>
+            <input className="input" value={form.grupoEnvio} disabled={!podeEditar} onChange={(e) => set('grupoEnvio', e.target.value)} placeholder="Ex.: Lote matutino" />
+          </div>
+        </div>
+        <div className="border-t border-slate-100 pt-3">
+          <h3 className="mb-2 text-sm font-semibold text-slate-600">Endereco</h3>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div><label className="label">CEP</label><input className="input" value={form.cep} disabled={!podeEditar} onChange={(e) => set('cep', e.target.value)} /></div>
+            <div className="sm:col-span-2"><label className="label">Logradouro</label><input className="input" value={form.logradouro} disabled={!podeEditar} onChange={(e) => set('logradouro', e.target.value)} /></div>
+            <div><label className="label">Numero</label><input className="input" value={form.numeroEndereco} disabled={!podeEditar} onChange={(e) => set('numeroEndereco', e.target.value)} /></div>
+            <div><label className="label">Complemento</label><input className="input" value={form.complemento} disabled={!podeEditar} onChange={(e) => set('complemento', e.target.value)} /></div>
+            <div><label className="label">Bairro</label><input className="input" value={form.bairro} disabled={!podeEditar} onChange={(e) => set('bairro', e.target.value)} /></div>
+            <div><label className="label">Cidade</label><input className="input" value={form.cidade} disabled={!podeEditar} onChange={(e) => set('cidade', e.target.value)} /></div>
+            <div><label className="label">UF</label><input className="input" maxLength={2} value={form.uf} disabled={!podeEditar} onChange={(e) => set('uf', e.target.value.toUpperCase())} /></div>
           </div>
         </div>
         <div>

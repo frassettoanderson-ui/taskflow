@@ -49,6 +49,12 @@ router.get('/', validate({ query: listarEmpresasQuery }), async (req, res) => {
   return ok(res, paginated(items, total, pag));
 });
 
+// ---------- Proximo [ID] sugerido (cadastro de nova empresa) ----------
+router.get('/proximo-numero', async (req, res) => {
+  const r = await svc.proximoNumero(req.auth!.escritorioId);
+  return ok(res, r);
+});
+
 // ---------- Acoes em massa ----------
 router.post(
   '/acoes-massa',
