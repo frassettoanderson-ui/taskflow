@@ -51,6 +51,7 @@ router.use('/api/membros', requireLogin, require('./routes/membros'));
 router.use('/api/lancamentos', requireLogin, require('./routes/lancamentos'));
 router.use('/api/despesas-fixas', requireLogin, require('./routes/despesasFixas'));
 router.use('/api/dashboard', requireLogin, require('./routes/dashboard'));
+router.use('/api/admin', requireLogin, require('./routes/admin'));
 router.use('/api/exportar', requireLogin, require('./routes/exportar'));
 
 // ─── Front ────────────────────────────────────────

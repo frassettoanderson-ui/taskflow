@@ -70,6 +70,7 @@ let USUARIO = null; // usuário logado (preenchido no init)
 
 const TITULOS = {
   dashboard: 'Dashboard',
+  'admin-igrejas': 'Painel Geral — Igrejas',
   entrada: 'Lançar Dízimo / Oferta',
   despesas: 'Despesas',
   'contas-pagar': 'Contas a Pagar',
@@ -273,6 +274,27 @@ async function carregarDashboard() {
     options: { plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } },
   }));
 }
+
+// ─── Super-admin: Painel Geral (todas as igrejas) ───
+VIEWS['admin-igrejas'] = async () => {
+  app.innerHTML = `<div class="painel">
+    <h2>Igrejas no sistema</h2>
+    <p class="desc">Visão global de todos os tenants (apenas super-admin). Dados de cada igreja permanecem isolados.</p>
+    <div id="lista"></div>
+  </div>`;
+  let igrejas;
+  try { igrejas = await getJSON('admin/igrejas'); }
+  catch (e) { app.innerHTML = '<div class="painel"><p class="vazio">Acesso restrito.</p></div>'; return; }
+  document.getElementById('lista').innerHTML = tabela(igrejas, [
+    ['Igreja', (i) => esc(i.nome)],
+    ['Slug', (i) => esc(i.slug || '—')],
+    ['Tipo', (i) => i.teste ? '<span class="badge pendente">Teste</span>' : '<span class="badge pago">Real</span>'],
+    ['Usuários', (i) => i.usuarios],
+    ['Membros', (i) => i.membros],
+    ['Lançamentos', (i) => i.lancamentos],
+    ['Criada', (i) => dataBR(i.criado_em)],
+  ], 'Nenhuma igreja.');
+};
 
 // ─── Lançar Dízimo / Oferta (entrada) ───
 VIEWS.entrada = async () => {
@@ -1814,6 +1836,10 @@ function marcarAniversarioNoMenu(qtd) {
   document.getElementById('usuario-nome').textContent = me.usuario.nome;
   const ig = document.getElementById('igreja-nome');
   if (ig && me.usuario.igreja_nome) ig.textContent = me.usuario.igreja_nome;
+  if (me.usuario.super_admin) {
+    const ms = document.getElementById('menu-super');
+    if (ms) ms.style.display = '';
+  }
   if (me.usuario.teste) {
     const bt = document.getElementById('badge-teste');
     if (bt) { bt.hidden = false; bt.title = 'Você está na área de testes — estes dados não são reais.'; }

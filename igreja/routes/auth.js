@@ -39,6 +39,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       igreja_nome: user.igreja_nome,
       igreja_slug: user.igreja_slug,
       teste: user.igreja_teste === true,
+      super_admin: user.super_admin === true,
       senha_provisoria: user.senha_provisoria,
     };
     res.json({ ok: true, usuario: req.session.usuario });
