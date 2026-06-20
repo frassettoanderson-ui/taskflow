@@ -86,6 +86,28 @@ router.post('/solicitacoes/:id/status', solGerenciar, validate({ body: z.object(
   return ok(res, { ok: true });
 });
 
+// ===== Avaliacoes das solicitacoes (cliente avaliou ao finalizar) =====
+router.get('/avaliacoes-solicitacoes', requirePermission('portal_configurar'), async (req, res) => {
+  const escritorioId = req.auth!.escritorioId;
+  const sols = await prisma.solicitacaoPortal.findMany({
+    where: { escritorioId, avaliacaoNota: { not: null } },
+    orderBy: { updatedAt: 'desc' },
+    take: 500,
+  });
+  const empresaIds = [...new Set(sols.map((s) => s.empresaId))];
+  const empresas = await prisma.empresa.findMany({ where: { id: { in: empresaIds } }, select: { id: true, razaoSocial: true } });
+  const empMap = new Map(empresas.map((e) => [e.id, e.razaoSocial]));
+  const total = sols.length;
+  const media = total ? Math.round((sols.reduce((s, x) => s + (x.avaliacaoNota ?? 0), 0) / total) * 10) / 10 : 0;
+  return ok(res, {
+    total, media,
+    itens: sols.map((s) => ({
+      id: s.id, titulo: s.titulo, empresa: empMap.get(s.empresaId) ?? '?', contatoNome: s.contatoNome,
+      nota: s.avaliacaoNota, comentario: s.avaliacaoComentario, data: s.updatedAt,
+    })),
+  });
+});
+
 // ===== NPS (painel interno) =====
 router.get('/nps', requirePermission('portal_configurar'), async (req, res) => {
   const avaliacoes = await prisma.npsAvaliacao.findMany({ where: { escritorioId: req.auth!.escritorioId }, orderBy: { createdAt: 'desc' }, take: 500 });
