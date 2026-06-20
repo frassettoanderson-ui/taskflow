@@ -473,6 +473,85 @@ export async function definirResponsavel(
   });
 }
 
+// ---------- Tarefas agendadas ----------
+export async function listarTarefas(escritorioId: string, empresaId: string) {
+  await garantirEmpresa(escritorioId, empresaId);
+  return prisma.empresaTarefaAgendada.findMany({
+    where: { escritorioId, empresaId },
+    orderBy: [{ concluida: 'asc' }, { dataHora: 'asc' }],
+  });
+}
+
+export async function criarTarefa(
+  escritorioId: string,
+  empresaId: string,
+  input: { titulo: string; descricao?: string | null; dataHora: string },
+  autorId?: string,
+) {
+  await garantirEmpresa(escritorioId, empresaId);
+  return prisma.empresaTarefaAgendada.create({
+    data: {
+      escritorioId,
+      empresaId,
+      titulo: input.titulo,
+      descricao: input.descricao || null,
+      dataHora: new Date(input.dataHora),
+      autorId: autorId ?? null,
+    },
+  });
+}
+
+export async function alternarTarefa(escritorioId: string, empresaId: string, tarefaId: string, concluida: boolean) {
+  const t = await prisma.empresaTarefaAgendada.findFirst({ where: { id: tarefaId, empresaId, escritorioId } });
+  if (!t) throw Errors.naoEncontrado('Tarefa');
+  return prisma.empresaTarefaAgendada.update({
+    where: { id: tarefaId },
+    data: { concluida, concluidaEm: concluida ? new Date() : null },
+  });
+}
+
+export async function removerTarefa(escritorioId: string, empresaId: string, tarefaId: string) {
+  const t = await prisma.empresaTarefaAgendada.findFirst({ where: { id: tarefaId, empresaId, escritorioId } });
+  if (!t) throw Errors.naoEncontrado('Tarefa');
+  await prisma.empresaTarefaAgendada.delete({ where: { id: tarefaId } });
+}
+
+// ---------- Assistente de inativacao ----------
+export async function inativarAssistido(
+  escritorioId: string,
+  empresaId: string,
+  input: { motivoCancelamentoId?: string | null; dataSaida?: string | null; dispensarPendentes?: boolean; observacao?: string | null },
+) {
+  const empresa = await prisma.empresa.findFirst({ where: { id: empresaId, escritorioId, deletedAt: null } });
+  if (!empresa) throw Errors.naoEncontrado('Empresa');
+
+  let demandasDispensadas = 0;
+  if (input.dispensarPendentes) {
+    const r = await prisma.entrega.updateMany({
+      where: {
+        escritorioId,
+        empresaId,
+        status: { in: ['PENDENTE', 'PENDENTE_ANTECIPADO', 'EM_ATRASO_TECNICO', 'EM_ATRASO_LEGAL'] },
+      },
+      data: { status: 'DISPENSADA', motivoDispensa: 'Empresa inativada' },
+    });
+    demandasDispensadas = r.count;
+  }
+
+  await prisma.empresa.update({
+    where: { id: empresaId },
+    data: {
+      ativo: false,
+      motivoCancelamentoId: input.motivoCancelamentoId || null,
+      dataSaida: input.dataSaida ? new Date(input.dataSaida) : new Date(),
+      anotacoes: input.observacao
+        ? `${empresa.anotacoes ? empresa.anotacoes + '\n' : ''}[Inativacao] ${input.observacao}`
+        : empresa.anotacoes,
+    },
+  });
+  return { inativada: true, demandasDispensadas };
+}
+
 // ---------- Acoes em massa ----------
 export async function acaoEmMassa(
   escritorioId: string,

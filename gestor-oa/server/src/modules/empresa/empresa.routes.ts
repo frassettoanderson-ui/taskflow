@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import multer from 'multer';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -23,6 +24,8 @@ import {
   acaoMassaSchema,
   importarCsvSchema,
   listarEmpresasQuery,
+  tarefaSchema,
+  inativarAssistidoSchema,
 } from './empresa.schemas.js';
 
 const router = Router();
@@ -121,6 +124,48 @@ router.delete(
     }
     await svc.excluir(req.auth!.escritorioId, req.params.id);
     return ok(res, { excluida: true });
+  },
+);
+
+// ---------- Tarefas agendadas ----------
+router.get('/:id/tarefas', async (req, res) => {
+  const r = await svc.listarTarefas(req.auth!.escritorioId, req.params.id);
+  return ok(res, r);
+});
+
+router.post(
+  '/:id/tarefas',
+  requirePermission('empresas_editar'),
+  validate({ body: tarefaSchema }),
+  async (req, res) => {
+    const r = await svc.criarTarefa(req.auth!.escritorioId, req.params.id, req.body, req.auth!.id);
+    return ok(res, r, 201);
+  },
+);
+
+router.put(
+  '/:id/tarefas/:tarefaId',
+  requirePermission('empresas_editar'),
+  validate({ body: z.object({ concluida: z.boolean() }) }),
+  async (req, res) => {
+    const r = await svc.alternarTarefa(req.auth!.escritorioId, req.params.id, req.params.tarefaId, req.body.concluida);
+    return ok(res, r);
+  },
+);
+
+router.delete('/:id/tarefas/:tarefaId', requirePermission('empresas_editar'), async (req, res) => {
+  await svc.removerTarefa(req.auth!.escritorioId, req.params.id, req.params.tarefaId);
+  return ok(res, { removida: true });
+});
+
+// ---------- Assistente de inativacao ----------
+router.post(
+  '/:id/inativar-assistido',
+  requirePermission('empresas_editar'),
+  validate({ body: inativarAssistidoSchema }),
+  async (req, res) => {
+    const r = await svc.inativarAssistido(req.auth!.escritorioId, req.params.id, req.body);
+    return ok(res, r);
   },
 );
 

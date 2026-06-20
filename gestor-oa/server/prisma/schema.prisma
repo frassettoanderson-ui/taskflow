@@ -331,9 +331,27 @@ model Empresa {
   processos          Processo[]
   solicitacoes       SolicitacaoPortal[]
   comunicacoes       ComunicacaoLog[]
+  tarefasAgendadas   EmpresaTarefaAgendada[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
+}
+
+model EmpresaTarefaAgendada {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  titulo        String
+  descricao     String?
+  dataHora      DateTime
+  concluida     Boolean  @default(false)
+  concluidaEm   DateTime?
+  autorId       String?
+  createdAt     DateTime @default(now())
+
+  @@index([empresaId])
+  @@index([escritorioId, dataHora])
 }
 
 model EmpresaTag {

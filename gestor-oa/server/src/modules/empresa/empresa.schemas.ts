@@ -92,6 +92,19 @@ export const importarCsvSchema = z.object({
     .min(1, 'Nenhuma linha para importar.'),
 });
 
+export const tarefaSchema = z.object({
+  titulo: z.string().min(1, 'Informe o titulo da tarefa.'),
+  descricao: z.string().optional().nullable(),
+  dataHora: z.string().min(1, 'Informe a data/hora.'),
+});
+
+export const inativarAssistidoSchema = z.object({
+  motivoCancelamentoId: z.string().optional().nullable(),
+  dataSaida: z.string().optional().nullable().or(z.literal('')),
+  dispensarPendentes: z.boolean().optional(),
+  observacao: z.string().optional().nullable(),
+});
+
 export const listarEmpresasQuery = z.object({
   page: z.coerce.number().optional(),
   limit: z.coerce.number().optional(),

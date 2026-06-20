@@ -142,6 +142,15 @@ export interface EmpresaDetalhe {
   tags: { tag: Tag }[];
 }
 
+export interface TarefaAgendada {
+  id: string;
+  titulo: string;
+  descricao: string | null;
+  dataHora: string;
+  concluida: boolean;
+  concluidaEm: string | null;
+}
+
 export interface LogAuditoria {
   id: string;
   acao: string;

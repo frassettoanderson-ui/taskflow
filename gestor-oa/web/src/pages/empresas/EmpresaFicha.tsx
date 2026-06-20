@@ -11,6 +11,8 @@ import type {
   TipoIdentificador,
   LogAuditoria,
   GrupoEmpresa,
+  TarefaAgendada,
+  MotivoCancelamento,
 } from '../../lib/tipos';
 import { LABEL_TIPO_IDENT, formatarIdent, formatarBytes } from '../../lib/tipos';
 import AbaObrigacoes from './AbaObrigacoes';
@@ -170,13 +172,41 @@ function AbaDados({
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
   const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
   const [salvando, setSalvando] = useState(false);
+  const [tarefas, setTarefas] = useState<TarefaAgendada[]>([]);
+  const [motivos, setMotivos] = useState<MotivoCancelamento[]>([]);
+  const [novaTarefa, setNovaTarefa] = useState({ titulo: '', dataHora: '' });
+  const [assistente, setAssistente] = useState(false);
+
+  function carregarTarefas() {
+    api.get<TarefaAgendada[]>(`/empresas/${empresa.id}/tarefas`).then(setTarefas).catch(() => undefined);
+  }
 
   useEffect(() => {
     api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
     api.get<GrupoEmpresa[]>('/grupos-empresa').then(setGrupos).catch(() => undefined);
+    api.get<MotivoCancelamento[]>('/motivos-cancelamento').then(setMotivos).catch(() => undefined);
+    carregarTarefas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function addTarefa() {
+    if (!novaTarefa.titulo.trim() || !novaTarefa.dataHora) return toast('erro', 'Informe titulo e data/hora.');
+    try {
+      await api.post(`/empresas/${empresa.id}/tarefas`, { titulo: novaTarefa.titulo.trim(), dataHora: novaTarefa.dataHora });
+      setNovaTarefa({ titulo: '', dataHora: '' }); carregarTarefas();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  async function toggleTarefa(t: TarefaAgendada) {
+    try { await api.put(`/empresas/${empresa.id}/tarefas/${t.id}`, { concluida: !t.concluida }); carregarTarefas(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  async function delTarefa(t: TarefaAgendada) {
+    if (!confirm('Remover esta tarefa?')) return;
+    try { await api.del(`/empresas/${empresa.id}/tarefas/${t.id}`); carregarTarefas(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
 
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -215,6 +245,7 @@ function AbaDados({
   const respPorDep = new Map(empresa.responsaveis.map((r) => [r.departamentoId, r.usuarioId]));
 
   return (
+    <>
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <section className="card space-y-4 p-6 lg:col-span-2">
         <div className="flex items-center justify-between">
@@ -275,10 +306,17 @@ function AbaDados({
           <textarea className="input" rows={3} value={form.anotacoes} disabled={!podeEditar} onChange={(e) => set('anotacoes', e.target.value)} />
         </div>
         {podeEditar && (
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input type="checkbox" checked={form.ativo} onChange={(e) => set('ativo', e.target.checked)} />
-            Empresa ativa
-          </label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input type="checkbox" checked={form.ativo} onChange={(e) => set('ativo', e.target.checked)} />
+              Empresa ativa
+            </label>
+            {empresa.ativo && (
+              <button type="button" className="text-sm text-status-danger hover:underline" onClick={() => setAssistente(true)}>
+                Inativar empresa (assistente)
+              </button>
+            )}
+          </div>
         )}
         {tags.length > 0 && (
           <div>
@@ -328,7 +366,115 @@ function AbaDados({
           </div>
         ))}
       </section>
+
+      {/* Tarefas agendadas */}
+      <section className="card space-y-3 p-6 lg:col-span-3">
+        <h2 className="font-semibold text-slate-700">Tarefas agendadas</h2>
+        {podeEditar && (
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex-1 min-w-[200px]">
+              <label className="label">Tarefa</label>
+              <input className="input" value={novaTarefa.titulo} placeholder="Ex.: Ligar para o cliente sobre pendencia" onChange={(e) => setNovaTarefa((t) => ({ ...t, titulo: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Data/hora</label>
+              <input className="input" type="datetime-local" value={novaTarefa.dataHora} onChange={(e) => setNovaTarefa((t) => ({ ...t, dataHora: e.target.value }))} />
+            </div>
+            <button className="btn-primary" onClick={addTarefa}>+ Agendar</button>
+          </div>
+        )}
+        {tarefas.length === 0 ? (
+          <p className="text-sm text-slate-400">Nenhuma tarefa agendada.</p>
+        ) : (
+          <ul className="divide-y divide-slate-100">
+            {tarefas.map((t) => (
+              <li key={t.id} className="flex items-center gap-3 py-2">
+                <input type="checkbox" checked={t.concluida} disabled={!podeEditar} onChange={() => toggleTarefa(t)} />
+                <div className="flex-1">
+                  <div className={`text-sm ${t.concluida ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{t.titulo}</div>
+                  <div className="text-xs text-slate-400">{new Date(t.dataHora).toLocaleString('pt-BR')}</div>
+                </div>
+                {podeEditar && <button className="text-xs text-slate-400 hover:text-red-500" onClick={() => delTarefa(t)}>remover</button>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
+    {assistente && (
+      <AssistenteInativacao
+        empresa={empresa}
+        motivos={motivos}
+        onFechar={() => setAssistente(false)}
+        onFeito={() => { setAssistente(false); onSalvo(); }}
+      />
+    )}
+    </>
+  );
+}
+
+// ---------- Assistente de inativacao ----------
+function AssistenteInativacao({
+  empresa, motivos, onFechar, onFeito,
+}: { empresa: EmpresaDetalhe; motivos: MotivoCancelamento[]; onFechar: () => void; onFeito: () => void }) {
+  const toast = useToast();
+  const [motivoId, setMotivoId] = useState('');
+  const [dataSaida, setDataSaida] = useState(new Date().toISOString().slice(0, 10));
+  const [dispensarPendentes, setDispensarPendentes] = useState(true);
+  const [observacao, setObservacao] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  async function confirmar() {
+    if (!window.confirm(`Inativar "${empresa.razaoSocial}"? Esta acao pode ser revertida reativando a empresa.`)) return;
+    setSalvando(true);
+    try {
+      const r = await api.post<{ demandasDispensadas: number }>(`/empresas/${empresa.id}/inativar-assistido`, {
+        motivoCancelamentoId: motivoId || undefined,
+        dataSaida: dataSaida || undefined,
+        dispensarPendentes,
+        observacao: observacao || undefined,
+      });
+      toast('ok', `Empresa inativada.${r.demandasDispensadas ? ` ${r.demandasDispensadas} demanda(s) pendente(s) dispensada(s).` : ''}`);
+      onFeito();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    finally { setSalvando(false); }
+  }
+
+  return (
+    <Modal aberto titulo="Assistente de inativacao da empresa" onFechar={onFechar}>
+      <div className="space-y-3">
+        <p className="text-[13px] text-slate-500">Siga os passos para inativar a empresa de forma organizada.</p>
+        <div>
+          <label className="label">1. Motivo do cancelamento</label>
+          <select className="input" value={motivoId} onChange={(e) => setMotivoId(e.target.value)}>
+            <option value="">— Selecione —</option>
+            {motivos.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}
+          </select>
+          {motivos.length === 0 && <p className="mt-1 text-xs text-slate-400">Nenhum motivo cadastrado (Sistema &rsaquo; Motivos de cancelamento).</p>}
+        </div>
+        <div>
+          <label className="label">2. Data de saida</label>
+          <input className="input" type="date" value={dataSaida} onChange={(e) => setDataSaida(e.target.value)} />
+        </div>
+        <div>
+          <label className="label">3. Pendencias</label>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <input type="checkbox" checked={dispensarPendentes} onChange={(e) => setDispensarPendentes(e.target.checked)} />
+            Dispensar as demandas pendentes na Lista de Entregas
+          </label>
+        </div>
+        <div>
+          <label className="label">Observacao (opcional)</label>
+          <textarea className="input" rows={2} value={observacao} onChange={(e) => setObservacao(e.target.value)} />
+        </div>
+        <div className="flex justify-end gap-2">
+          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
+          <button className="btn-primary bg-status-danger hover:bg-red-600" onClick={confirmar} disabled={salvando}>
+            {salvando ? 'Inativando...' : 'Inativar empresa'}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
