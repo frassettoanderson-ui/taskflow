@@ -22,6 +22,7 @@ const TAGS: { tag: string; desc: string }[] = [
   { tag: 'CompDoc', desc: 'Competencia do documento' },
   { tag: 'LogoEmpresa', desc: 'Logo da Empresa' },
   { tag: 'ObrMininome', desc: 'Mininome da Obrigacao' },
+  { tag: 'Office', desc: "Escritorio (mesmo do 'From' dos e-mails)" },
 ];
 
 const CORPO_INDIVIDUAL = `Ola [NomeCli], [NomeResp] da [Office] aqui, tudo bem?

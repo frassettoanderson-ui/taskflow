@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Home,
@@ -59,7 +59,9 @@ const MENU: Item[] = [
           { label: 'Consulta documento', icon: FileText, to: '/robo/consulta' },
           { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
           { label: 'Painel', icon: Activity, to: '/robo/painel' },
-          { label: 'Baixar agente (instalador)', icon: Download, href: '/gestoroa-agente.exe' },
+          { label: 'Instalador Windows 10', icon: Download, href: '/gestoroa-agente.exe' },
+          { label: 'Instalador Windows 8', icon: Download, href: '/gestoroa-agente.exe' },
+          { label: 'Instalador Windows 7', icon: Download, href: '/gestoroa-agente.exe' },
         ],
       },
       {
@@ -122,6 +124,27 @@ export default function Layout() {
     await logout();
     navigate('/login');
   }
+
+  // Atalhos de teclado globais (estilo Acessorias)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const alvo = e.target as HTMLElement;
+      if (alvo && /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName)) return; // nao interferir em campos
+      let destino: string | null = null;
+      if (!e.ctrlKey && !e.altKey && !e.metaKey) {
+        if (e.key === 'F1') destino = '/configuracoes';
+        else if (e.key === 'F2') destino = '/entregas';
+        else if (e.key === 'F3') destino = '/empresas';
+        else if (e.key === 'F6') destino = '/obrigacoes';
+        else if (e.key === 'F10') destino = '/processos';
+      } else if (e.ctrlKey && !e.altKey && (e.key === 'u' || e.key === 'U')) destino = '/usuarios';
+      else if (e.ctrlKey && !e.altKey && (e.key === 'k' || e.key === 'K')) destino = '/robo/consulta';
+      else if (e.altKey && !e.ctrlKey && (e.key === 'c' || e.key === 'C')) destino = '/area-vip/comunicados';
+      if (destino) { e.preventDefault(); navigate(destino); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navigate]);
 
   return (
     <div className="flex h-full">
