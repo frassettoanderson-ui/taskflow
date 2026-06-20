@@ -25,9 +25,12 @@
     document.getElementById('f').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('msg');
+      const slug = new URLSearchParams(location.search).get('ig');
+      if (!slug) { msg.className = 'erro'; msg.textContent = 'Link inválido. Peça o link de cadastro à sua igreja.'; return; }
       const r = await fetch('api/publico/cadastro-membro', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          slug,
           nome: document.getElementById('nome').value,
           telefone: document.getElementById('telefone').value,
           data_nascimento: document.getElementById('data_nascimento').value || null,

@@ -5,12 +5,14 @@ const router = express.Router();
 // Cadastro publico de membro (sem login) — usado pelo formulario que a pessoa preenche.
 // Hoje a igreja e unica (id da primeira). Quando virar multi-igreja, recebe um token/slug.
 router.post('/cadastro-membro', async (req, res) => {
-  const { nome, telefone, endereco, data_nascimento, sexo } = req.body;
+  const { nome, telefone, endereco, data_nascimento, sexo, slug } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Nome é obrigatório' });
+  if (!slug) return res.status(400).json({ erro: 'Link de cadastro inválido (igreja não identificada).' });
 
   try {
-    const { rows: igr } = await db.query('SELECT id FROM igrejas ORDER BY id LIMIT 1');
-    if (!igr.length) return res.status(500).json({ erro: 'Igreja não configurada' });
+    // Multi-tenant: a igreja é identificada pelo slug do link, nunca "a primeira".
+    const { rows: igr } = await db.query('SELECT id FROM igrejas WHERE slug = $1', [slug]);
+    if (!igr.length) return res.status(404).json({ erro: 'Igreja não encontrada para este link.' });
     const igreja_id = igr[0].id;
 
     // Trava: não permite mesmo nome + mesmo telefone

@@ -1153,7 +1153,8 @@ VIEWS.cadastros = () => {
 
 // ─── Membresia: Cadastrar ───
 VIEWS['membro-cadastrar'] = async () => {
-  const linkPublico = location.origin + location.pathname.replace(/\/$/, '') + '/cadastro.html';
+  const slug = (USUARIO && USUARIO.igreja_slug) || '';
+  const linkPublico = location.origin + location.pathname.replace(/\/$/, '') + '/cadastro.html?ig=' + encodeURIComponent(slug);
   app.innerHTML = `
   <div class="painel">
     <h2>Cadastrar membro</h2>

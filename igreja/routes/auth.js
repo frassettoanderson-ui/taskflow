@@ -11,7 +11,7 @@ router.post('/login', async (req, res) => {
 
   try {
     const { rows } = await db.query(
-      `SELECT u.*, i.nome AS igreja_nome, i.teste AS igreja_teste
+      `SELECT u.*, i.nome AS igreja_nome, i.teste AS igreja_teste, i.slug AS igreja_slug
        FROM usuarios u JOIN igrejas i ON i.id = u.igreja_id
        WHERE u.email = $1 AND u.ativo = TRUE`,
       [email.toLowerCase().trim()]
@@ -26,6 +26,7 @@ router.post('/login', async (req, res) => {
       papel: user.papel,
       igreja_id: user.igreja_id,
       igreja_nome: user.igreja_nome,
+      igreja_slug: user.igreja_slug,
       teste: user.igreja_teste === true,
       senha_provisoria: user.senha_provisoria,
     };
@@ -76,7 +77,7 @@ router.post('/signup', async (req, res) => {
 
     req.session.usuario = {
       id: us[0].id, nome: us[0].nome, papel: us[0].papel,
-      igreja_id, igreja_nome: igreja_nome.trim(), teste: false, senha_provisoria: false,
+      igreja_id, igreja_nome: igreja_nome.trim(), igreja_slug: slug, teste: false, senha_provisoria: false,
     };
     res.status(201).json({ ok: true });
   } catch (e) {
