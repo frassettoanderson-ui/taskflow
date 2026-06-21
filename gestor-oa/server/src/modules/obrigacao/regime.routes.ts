@@ -43,6 +43,29 @@ router.get('/relatorio/empresas', async (req, res) => {
   return ok(res, linhas);
 });
 
+// Empresas de um regime (para a tela de cadastro)
+router.get('/:id/empresas', async (req, res) => {
+  const empresas = await prisma.empresa.findMany({
+    where: { escritorioId: req.auth!.escritorioId, deletedAt: null, regimeTributarioId: req.params.id },
+    orderBy: { razaoSocial: 'asc' },
+    select: { id: true, razaoSocial: true, nomeFantasia: true, endereco: true },
+  });
+  return ok(res, empresas.map((e) => ({ id: e.id, razaoSocial: e.razaoSocial, nomeFantasia: e.nomeFantasia, cidade: e.endereco ?? '' })));
+});
+
+// Um regime (para a tela de cadastro)
+router.get('/:id', async (req, res) => {
+  const r = await prisma.regimeTributario.findFirst({
+    where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
+    include: {
+      obrigacoes: { include: { obrigacao: { include: { departamento: true } } } },
+      _count: { select: { empresas: true } },
+    },
+  });
+  if (!r) throw Errors.naoEncontrado('Regime');
+  return ok(res, r);
+});
+
 router.post(
   '/',
   requirePermission('obrigacoes_gerenciar'),
