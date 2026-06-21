@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Landmark, Save, Plus, RotateCcw, Copy, Trash2, Search } from 'lucide-react';
+import { Landmark, Save, Plus, RotateCcw, Trash2, Search } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
@@ -106,9 +106,7 @@ export default function RegimeForm() {
       {/* Linha principal */}
       <div className="grid grid-cols-1 items-end gap-x-5 gap-y-3 md:grid-cols-[1fr_180px_auto]">
         <div>
-          <label className={`${LBL} flex items-center justify-between`}>Nome do regime
-            <button type="button" title="Copiar" onClick={() => { navigator.clipboard?.writeText(nome); toast('ok', 'Copiado.'); }} className="text-slate-400 hover:text-marca-600"><Copy size={13} /></button>
-          </label>
+          <label className={LBL}>Nome do regime</label>
           <input className={INP} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do regime" />
         </div>
         <div>
@@ -117,7 +115,6 @@ export default function RegimeForm() {
         </div>
         <div className="flex gap-2">
           {pode && <button onClick={salvar} disabled={salvando} className="flex items-center gap-2 rounded-md bg-status-ok px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"><Save size={16} /> {salvando ? '...' : 'Salvar'}</button>}
-          <button onClick={() => { navigate('/obrigacoes/regimes/novo'); setNome(''); setAtivo(true); setItens([]); setQtdEmpresas(0); setEmpresas(null); }} className="flex items-center gap-2 rounded-md bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo</button>
           <button onClick={() => navigate('/obrigacoes/regimes')} className="flex items-center gap-2 rounded-md bg-status-warn px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Voltar</button>
         </div>
       </div>
