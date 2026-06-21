@@ -312,7 +312,7 @@ function CardNumero({ titulo, valor, cor, children }: { titulo: string; valor: n
     <div className="card overflow-hidden">
       <div className="py-8 text-center">
         <div className="text-2xl font-medium" style={{ color: cor }}>{titulo}</div>
-        <div className="font-bold leading-none" style={{ color: cor, fontSize: '5rem' }}>{valor}</div>
+        <div className="font-light leading-none" style={{ color: cor, fontSize: '5rem' }}>{valor}</div>
       </div>
       <div className="divide-y divide-slate-100 border-t border-slate-100 text-base">{children}</div>
     </div>
