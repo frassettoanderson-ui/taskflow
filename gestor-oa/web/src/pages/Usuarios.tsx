@@ -14,14 +14,16 @@ export default function Usuarios() {
   const toast = useToast();
   const navigate = useNavigate();
   const podeUsuarios = temPermissao(sessao, 'admin_usuarios');
-  const podePermissoes = temPermissao(sessao, 'admin_permissoes');
   const podeTransferir = temPermissao(sessao, 'admin_transferir_resp');
 
   const [usuarios, setUsuarios] = useState<UsuarioCompleto[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
-  const [replicar, setReplicar] = useState(false);
   const [transferir, setTransferir] = useState(false);
+  const [sort, setSort] = useState<{ campo: 'nome' | 'email' | 'acesso'; dir: 'asc' | 'desc' }>({ campo: 'nome', dir: 'asc' });
+  function ordenarPor(campo: 'nome' | 'email' | 'acesso') {
+    setSort((s) => (s.campo === campo ? { campo, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { campo, dir: 'asc' }));
+  }
 
   // toolbar (toggles independentes: ao abrir um, o outro permanece)
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
@@ -70,6 +72,10 @@ export default function Usuarios() {
     if (ocultarAtivos ? u.ativo : !exibirInativos && !u.ativo) return false;
     if (tiposSel.length && !tiposSel.includes(u.tipo ?? '')) return false;
     return true;
+  }).sort((a, b) => {
+    const dir = sort.dir === 'asc' ? 1 : -1;
+    const campo = sort.campo === 'email' ? 'email' : 'nome'; // sem dados de ultimo acesso ainda -> ordena por nome
+    return (a[campo] ?? '').localeCompare(b[campo] ?? '', 'pt-BR') * dir;
   });
 
   const ICO = 'grid h-9 w-9 place-items-center rounded text-purple-500 hover:bg-purple-50';
@@ -155,10 +161,9 @@ export default function Usuarios() {
       </div>
 
       {/* acoes secundarias (recursos nossos) */}
-      {(podePermissoes || podeTransferir) && (
+      {podeTransferir && (
         <div className="mt-1 flex justify-end gap-3 text-[12px]">
-          {podePermissoes && <button className="text-marca-600 hover:underline" onClick={() => setReplicar(true)}>Replicar permissoes</button>}
-          {podeTransferir && <button className="text-marca-600 hover:underline" onClick={() => setTransferir(true)}>Transferir responsabilidade</button>}
+          <button className="text-marca-600 hover:underline" onClick={() => setTransferir(true)}>Transferir responsabilidade</button>
         </div>
       )}
 
@@ -167,20 +172,22 @@ export default function Usuarios() {
         <table className="w-full">
           <thead>
             <tr className="border-b border-slate-200 text-left text-[12px] font-semibold text-marca-600">
-              <th className="px-3 py-2">Nome [Tipo]</th>
-              <th className="px-3 py-2">E-mail</th>
-              <th className="px-3 py-2">Ultimo acesso [IP]</th>
+              <ThSort campo="nome" label="Nome [Tipo]" sort={sort} onSort={ordenarPor} />
+              <ThSort campo="email" label="E-mail" sort={sort} onSort={ordenarPor} />
+              <ThSort campo="acesso" label="Ultimo acesso [IP]" sort={sort} onSort={ordenarPor} />
             </tr>
           </thead>
           <tbody>
             {lista.map((u) => (
-              <tr key={u.id}
-                className={`border-b border-slate-100 ${podeUsuarios ? 'cursor-pointer hover:bg-slate-50' : ''}`}
-                onClick={() => podeUsuarios && navigate(`/usuarios/${u.id}`)}>
+              <tr key={u.id} className="border-b border-slate-100 odd:bg-white even:bg-slate-50 hover:bg-slate-100">
                 <td className="px-3 py-2">
                   <span className="flex items-center gap-2">
                     <UserIcon className={u.ativo ? 'text-status-ok' : 'text-status-danger'} size={15} />
-                    <span className="font-medium text-sky-500">{u.nome}</span>
+                    {podeUsuarios ? (
+                      <button onClick={() => navigate(`/usuarios/${u.id}`)} className="cursor-pointer font-medium text-sky-500 hover:underline">{u.nome}</button>
+                    ) : (
+                      <span className="font-medium text-sky-500">{u.nome}</span>
+                    )}
                     {u.tipo && <span className="text-slate-700">[{u.tipo}]</span>}
                   </span>
                 </td>
@@ -193,9 +200,26 @@ export default function Usuarios() {
         </table>
       </div>
 
-      {replicar && <ReplicarModal usuarios={usuarios} onFechar={() => setReplicar(false)} onFeito={() => { setReplicar(false); carregar(); }} />}
       {transferir && <TransferirModal usuarios={usuarios} onFechar={() => setTransferir(false)} />}
     </div>
+  );
+}
+
+// cabecalho clicavel que ordena a coluna (asc/desc) com indicador de direcao
+function ThSort({ campo, label, sort, onSort }: {
+  campo: 'nome' | 'email' | 'acesso';
+  label: string;
+  sort: { campo: 'nome' | 'email' | 'acesso'; dir: 'asc' | 'desc' };
+  onSort: (c: 'nome' | 'email' | 'acesso') => void;
+}) {
+  const ativo = sort.campo === campo;
+  return (
+    <th className="px-3 py-2">
+      <button onClick={() => onSort(campo)} className="flex items-center gap-1 font-semibold text-marca-600 hover:underline">
+        {label}
+        <span className="text-[10px] text-slate-400">{ativo ? (sort.dir === 'asc' ? '▲' : '▼') : '⇅'}</span>
+      </button>
+    </th>
   );
 }
 
@@ -280,59 +304,3 @@ function TransferirModal({ usuarios, onFechar }: { usuarios: UsuarioCompleto[]; 
   );
 }
 
-function ReplicarModal({ usuarios, onFechar, onFeito }: { usuarios: UsuarioCompleto[]; onFechar: () => void; onFeito: () => void }) {
-  const toast = useToast();
-  const [origemId, setOrigemId] = useState('');
-  const [destinos, setDestinos] = useState<Set<string>>(new Set());
-  const [permissoes, setPermissoes] = useState(true);
-  const [horarios, setHorarios] = useState(false);
-  const [filtros, setFiltros] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-
-  async function executar() {
-    if (!origemId || destinos.size === 0) return toast('erro', 'Escolha origem e destinos.');
-    setSalvando(true);
-    try {
-      const r = await api.post<{ afetados: number }>('/usuarios/replicar', {
-        origemId, destinos: [...destinos], permissoes, horarios, filtros,
-      });
-      toast('ok', `Replicado para ${r.afetados} usuario(s).`);
-      onFeito();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-
-  return (
-    <Modal aberto titulo="Replicar permissoes / horarios" onFechar={onFechar}>
-      <div className="space-y-3">
-        <div>
-          <label className="label">Copiar de (origem)</label>
-          <select className="input" value={origemId} onChange={(e) => setOrigemId(e.target.value)}>
-            <option value="">Selecione</option>
-            {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="label">Aplicar em (destinos)</label>
-          <div className="max-h-40 overflow-y-auto rounded border border-slate-200 p-2">
-            {usuarios.filter((u) => u.id !== origemId).map((u) => (
-              <label key={u.id} className="flex items-center gap-2 py-1 text-sm">
-                <input type="checkbox" checked={destinos.has(u.id)} onChange={() => setDestinos((s) => { const n = new Set(s); n.has(u.id) ? n.delete(u.id) : n.add(u.id); return n; })} />
-                {u.nome}
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-4 text-sm text-slate-600">
-          <label className="flex items-center gap-2"><input type="checkbox" checked={permissoes} onChange={(e) => setPermissoes(e.target.checked)} /> Permissoes</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={horarios} onChange={(e) => setHorarios(e.target.checked)} /> Horarios</label>
-          <label className="flex items-center gap-2"><input type="checkbox" checked={filtros} onChange={(e) => setFiltros(e.target.checked)} /> Filtros forcados</label>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-          <button className="btn-primary" onClick={executar} disabled={salvando}>Replicar</button>
-        </div>
-      </div>
-    </Modal>
-  );
-}
