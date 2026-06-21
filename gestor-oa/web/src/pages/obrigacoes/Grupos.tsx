@@ -1,120 +1,85 @@
 import { useEffect, useState } from 'react';
-import { api, ApiError } from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
+import { Landmark, Search, Plus } from 'lucide-react';
+import { api } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Modal, Spinner, useToast } from '../../components/ui';
-import { SeletorObrigacoes } from './SeletorObrigacoes';
-import type { Grupo, Obrigacao } from '../../lib/tipos';
+import { Spinner } from '../../components/ui';
+
+interface GrupoLista { id: string; nome: string; ativo: boolean; obrigacoes: { obrigacaoId: string }[] }
 
 export default function Grupos() {
   const { sessao } = useAuth();
-  const toast = useToast();
+  const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
-  const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
+  const [grupos, setGrupos] = useState<GrupoLista[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<Grupo | null>(null);
-  const [novo, setNovo] = useState(false);
+  const [busca, setBusca] = useState('');
+  const [status, setStatus] = useState<'ativos' | 'inativos' | 'todos'>('ativos');
 
-  function carregar() {
-    setLoading(true);
-    api.get<Grupo[]>('/grupos').then(setGrupos).finally(() => setLoading(false));
-  }
-  useEffect(() => {
-    carregar();
-    api.get<Obrigacao[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
-  }, []);
-
-  async function excluir(g: Grupo) {
-    if (!confirm(`Excluir o grupo "${g.nome}"?`)) return;
-    try { await api.del(`/grupos/${g.id}`); toast('ok', 'Grupo excluido.'); carregar(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
+  useEffect(() => { api.get<GrupoLista[]>('/grupos').then(setGrupos).catch(() => setGrupos([])).finally(() => setLoading(false)); }, []);
 
   if (loading) return <Spinner />;
 
+  const termo = busca.trim().toLowerCase();
+  const lista = grupos.filter((g) => {
+    const statusOk = status === 'todos' ? true : status === 'ativos' ? g.ativo : !g.ativo;
+    return statusOk && (!termo || g.nome.toLowerCase().includes(termo));
+  });
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">Grupos de Obrigacoes</h1>
-        {podeGerenciar && <button className="btn-primary" onClick={() => setNovo(true)}>+ Novo grupo</button>}
-      </div>
-      <p className="text-sm text-slate-500">
-        Aplicar um grupo a uma empresa apenas <strong>adiciona</strong> as obrigacoes (nao remove nada). Ideal para o fluxo colaborativo entre departamentos.
-      </p>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {grupos.map((g) => (
-          <div key={g.id} className="card p-5">
-            <h2 className="font-semibold text-slate-700">{g.nome}</h2>
-            <div className="mt-2 text-sm text-slate-500">{g.obrigacoes.length} obrigacoes</div>
-            <div className="mt-2 flex flex-wrap gap-1">
-              {g.obrigacoes.slice(0, 8).map((o) => (
-                <span key={o.obrigacaoId} className="rounded bg-fundo px-2 py-0.5 text-xs text-slate-600">{o.obrigacao.nome}</span>
-              ))}
-            </div>
-            {podeGerenciar && (
-              <div className="mt-3 flex gap-2 text-sm">
-                <button className="text-marca-600 hover:underline" onClick={() => setEditando(g)}>editar</button>
-                <button className="text-red-500 hover:underline" onClick={() => excluir(g)}>excluir</button>
-              </div>
-            )}
-          </div>
-        ))}
-        {grupos.length === 0 && <p className="text-slate-400">Nenhum grupo cadastrado.</p>}
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
+      {/* breadcrumb */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Landmark size={16} className="text-slate-400" />
+          <span>Obrigacoes</span><span className="text-slate-300">&rsaquo;</span>
+          <span className="text-slate-700">Relacao de grupos de obrigacoes</span>
+        </div>
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400">
+          <Search size={13} /><span className="text-[12px]">Central de ajuda</span>
+        </div>
       </div>
 
-      {(novo || editando) && (
-        <GrupoModal
-          grupo={editando}
-          obrigacoes={obrigacoes}
-          onFechar={() => { setNovo(false); setEditando(null); }}
-          onSalvo={() => { setNovo(false); setEditando(null); carregar(); }}
-        />
-      )}
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[240px] flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-marca-400" />
+          <input className="w-full rounded border border-marca-300 bg-white py-2 pl-9 pr-3 text-[13px] outline-none focus:border-marca-500" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Filtrar pelo nome [Enter para filtrar]" />
+        </div>
+        <select className="rounded border border-slate-300 bg-white px-2 py-2 text-[12px]" value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+          <option value="ativos">Ativos</option>
+          <option value="inativos">Inativos</option>
+          <option value="todos">Todos</option>
+        </select>
+        <button className="flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={16} /> Filtrar</button>
+        <div className="flex-1 text-center text-[13px] font-medium text-marca-600">{lista.length} registros</div>
+        {podeGerenciar && (
+          <button onClick={() => navigate('/obrigacoes/grupos/novo')} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo grupo</button>
+        )}
+      </div>
+
+      {/* Tabela */}
+      <div className="mt-3 overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-300 text-left text-[12px] font-bold text-slate-600">
+              <th className="px-4 py-2.5">Grupo de obrigacoes</th>
+              <th className="px-4 py-2.5 text-center">Obrigacoes</th>
+              <th className="px-4 py-2.5 text-right">Ativo?</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lista.map((g) => (
+              <tr key={g.id} className="cursor-pointer border-b border-slate-200 odd:bg-white even:bg-fundo hover:bg-caixa" onClick={() => navigate(`/obrigacoes/grupos/${g.id}`)}>
+                <td className="px-4 py-2.5"><span className="font-medium text-marca-600">{g.nome}{!g.ativo && <span className="text-slate-400"> [inativo]</span>}</span></td>
+                <td className="px-4 py-2.5 text-center text-slate-600">{g.obrigacoes.length}</td>
+                <td className="px-4 py-2.5 text-right text-slate-600">{g.ativo ? 'Sim' : 'Nao'}</td>
+              </tr>
+            ))}
+            {lista.length === 0 && <tr><td colSpan={3} className="px-4 py-10 text-center text-slate-400">Nenhum grupo.</td></tr>}
+          </tbody>
+        </table>
+      </div>
     </div>
-  );
-}
-
-function GrupoModal({
-  grupo, obrigacoes, onFechar, onSalvo,
-}: { grupo: Grupo | null; obrigacoes: Obrigacao[]; onFechar: () => void; onSalvo: () => void }) {
-  const toast = useToast();
-  const [nome, setNome] = useState(grupo?.nome ?? '');
-  const [sel, setSel] = useState<Set<string>>(new Set(grupo?.obrigacoes.map((o) => o.obrigacaoId) ?? []));
-  const [salvando, setSalvando] = useState(false);
-
-  function toggle(id: string) {
-    setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
-  }
-
-  async function salvar() {
-    setSalvando(true);
-    try {
-      const payload = { nome, obrigacaoIds: [...sel] };
-      if (grupo) await api.put(`/grupos/${grupo.id}`, payload);
-      else await api.post('/grupos', payload);
-      toast('ok', 'Grupo salvo.');
-      onSalvo();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-    finally { setSalvando(false); }
-  }
-
-  return (
-    <Modal aberto titulo={grupo ? 'Editar grupo' : 'Novo grupo'} onFechar={onFechar} largura="max-w-2xl">
-      <div className="space-y-4">
-        <div>
-          <label className="label">Nome *</label>
-          <input className="input" value={nome} onChange={(e) => setNome(e.target.value)} />
-        </div>
-        <div>
-          <label className="label">Obrigacoes do grupo ({sel.size})</label>
-          <SeletorObrigacoes obrigacoes={obrigacoes} selecionados={sel} onToggle={toggle} />
-        </div>
-        <div className="flex justify-end gap-2">
-          <button className="btn-ghost" onClick={onFechar}>Cancelar</button>
-          <button className="btn-primary" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
-        </div>
-      </div>
-    </Modal>
   );
 }

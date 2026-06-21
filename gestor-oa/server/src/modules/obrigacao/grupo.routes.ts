@@ -21,6 +21,16 @@ router.get('/', async (req, res) => {
   return ok(res, grupos);
 });
 
+// Um grupo (para a ficha de cadastro)
+router.get('/:id', async (req, res) => {
+  const g = await prisma.grupoObrigacoes.findFirst({
+    where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
+    include: { obrigacoes: { include: { obrigacao: { include: { departamento: true } } } } },
+  });
+  if (!g) throw Errors.naoEncontrado('Grupo');
+  return ok(res, g);
+});
+
 router.post(
   '/',
   requirePermission('obrigacoes_gerenciar'),
