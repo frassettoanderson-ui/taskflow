@@ -20,6 +20,8 @@ interface Pagina {
   total: number;
 }
 
+interface ChipF { kind: 'status' | 'grupo' | 'tag' | 'departamento'; valor: string; label: string }
+
 export default function EmpresasList() {
   const { sessao } = useAuth();
   const toast = useToast();
@@ -47,6 +49,10 @@ export default function EmpresasList() {
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [usuarios, setUsuarios] = useState<UsuarioBasico[]>([]);
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  // combo +Filtros (chips agrupados por Status / Grupo / Tag / Departamento)
+  const [comboTxt, setComboTxt] = useState('');
+  const [comboAberto, setComboAberto] = useState(false);
+  const [chips, setChips] = useState<ChipF[]>([]);
   const [ordenar, setOrdenar] = useState<'razao' | 'fantasia'>('razao');
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');
   // barra de acao ativa (so uma por vez; clicar de novo recolhe)
@@ -140,6 +146,23 @@ export default function EmpresasList() {
     else { setOrdenar(campo); setDir('asc'); }
   }
 
+  // Aplica um chip de filtro (so um por tipo; novo do mesmo tipo substitui)
+  function addChip(c: ChipF) {
+    setChips((cur) => [...cur.filter((x) => x.kind !== c.kind), c]);
+    if (c.kind === 'status') setStatus(c.valor as 'ativos' | 'inativos' | 'todos');
+    if (c.kind === 'grupo') setGrupoId(c.valor);
+    if (c.kind === 'tag') setTagId(c.valor);
+    if (c.kind === 'departamento') setDepartamentoId(c.valor);
+    setComboTxt(''); setComboAberto(false);
+  }
+  function removeChip(c: ChipF) {
+    setChips((cur) => cur.filter((x) => !(x.kind === c.kind && x.valor === c.valor)));
+    if (c.kind === 'status') setStatus('ativos');
+    if (c.kind === 'grupo') setGrupoId('');
+    if (c.kind === 'tag') setTagId('');
+    if (c.kind === 'departamento') setDepartamentoId('');
+  }
+
   async function excluirEmpresa(id: string, razao: string) {
     if (!confirm(`Apagar a empresa "${razao}"? Esta acao nao pode ser desfeita.`)) return;
     try {
@@ -150,6 +173,16 @@ export default function EmpresasList() {
   }
 
   const ICONE = 'flex h-9 w-9 items-center justify-center rounded hover:opacity-80';
+
+  // opcoes do combo +Filtros (filtradas pelo texto digitado)
+  const tq = comboTxt.trim().toLowerCase();
+  const optsStatus = ([
+    { valor: 'inativos', label: 'Ocultar Ativas' },
+    { valor: 'todos', label: 'Exibir Inativas' },
+  ] as const).filter((o) => o.label.toLowerCase().includes(tq));
+  const optsGrupos = grupos.filter((g) => g.nome.toLowerCase().includes(tq));
+  const optsTags = tags.filter((t) => t.nome.toLowerCase().includes(tq));
+  const optsDeptos = departamentos.filter((d) => d.nome.toLowerCase().includes(tq));
 
   return (
     <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
@@ -275,35 +308,42 @@ export default function EmpresasList() {
         </div>
       )}
 
-      {/* Painel +Filtros */}
+      {/* +Filtros: combo com chips agrupados (Status / Grupo / Tag / Departamento) */}
       {!barra && mostrarFiltros && (
-        <div className="mt-2 flex flex-wrap items-end gap-3 rounded border border-slate-200 bg-white p-3">
-          <div>
-            <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Status</label>
-            <select className="rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={status} onChange={(e) => setStatus(e.target.value as never)}>
-              <option value="ativos">Ativas</option><option value="inativos">Inativas</option><option value="todos">Todas</option>
-            </select>
+        <div className="relative mt-2">
+          <div className="flex flex-wrap items-center gap-1.5 rounded border border-slate-300 bg-white px-2 py-1.5">
+            {chips.map((c) => (
+              <span key={`${c.kind}-${c.valor}`} className="inline-flex items-center gap-1 rounded bg-fundo px-2 py-0.5 text-[12px] text-slate-600">
+                <button onClick={() => removeChip(c)} className="text-slate-400 hover:text-red-500">×</button>{c.label}
+              </span>
+            ))}
+            <input className="min-w-[120px] flex-1 text-[13px] outline-none" placeholder="Filtros..." value={comboTxt}
+              onChange={(e) => { setComboTxt(e.target.value); setComboAberto(true); }}
+              onFocus={() => setComboAberto(true)} onBlur={() => setTimeout(() => setComboAberto(false), 150)} />
           </div>
-          <div>
-            <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Tag</label>
-            <select className="rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={tagId} onChange={(e) => setTagId(e.target.value)}>
-              <option value="">Todas</option>{tags.map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Departamento</label>
-            <select className="rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)}>
-              <option value="">Todos</option>{departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="mb-0.5 flex items-center justify-between text-[12px] font-medium text-slate-600">Grupo de empresas
-              <button type="button" onClick={() => navigate('/empresas/grupos')} className="text-[11px] font-normal text-marca-600 hover:underline">gerenciar</button>
-            </label>
-            <select className="rounded border border-slate-300 bg-white px-2 py-1 text-[12px]" value={grupoId} onChange={(e) => setGrupoId(e.target.value)}>
-              <option value="">Todos</option>{grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
-            </select>
-          </div>
+          {comboAberto && (
+            <div className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded border border-slate-200 bg-white shadow-lg">
+              {optsStatus.length > 0 && <div className="px-3 py-1 text-[11px] font-semibold text-slate-400">Filtrar por Status</div>}
+              {optsStatus.map((o) => (
+                <button key={o.valor} onMouseDown={() => addChip({ kind: 'status', valor: o.valor, label: o.label })} className="block w-full px-3 py-1.5 text-left text-[13px] hover:bg-marca-50">{o.label}</button>
+              ))}
+              {optsGrupos.length > 0 && <div className="px-3 py-1 text-[11px] font-semibold text-slate-400">Filtrar por grupos de empresa</div>}
+              {optsGrupos.map((g) => (
+                <button key={g.id} onMouseDown={() => addChip({ kind: 'grupo', valor: g.id, label: `Grupo: ${g.nome}` })} className="block w-full px-3 py-1.5 text-left text-[13px] hover:bg-marca-50">Grupo: {g.nome}</button>
+              ))}
+              {optsTags.length > 0 && <div className="px-3 py-1 text-[11px] font-semibold text-slate-400">Filtrar por Tag's</div>}
+              {optsTags.map((t) => (
+                <button key={t.id} onMouseDown={() => addChip({ kind: 'tag', valor: t.id, label: `Tag: ${t.nome}` })} className="block w-full px-3 py-1.5 text-left text-[13px] hover:bg-marca-50">Tag: {t.nome}</button>
+              ))}
+              {optsDeptos.length > 0 && <div className="px-3 py-1 text-[11px] font-semibold text-slate-400">Filtrar por Departamento</div>}
+              {optsDeptos.map((d) => (
+                <button key={d.id} onMouseDown={() => addChip({ kind: 'departamento', valor: d.id, label: `Depto: ${d.nome}` })} className="block w-full px-3 py-1.5 text-left text-[13px] hover:bg-marca-50">Depto: {d.nome}</button>
+              ))}
+              {optsStatus.length + optsGrupos.length + optsTags.length + optsDeptos.length === 0 && (
+                <div className="px-3 py-2 text-[12px] text-slate-400">Nenhum filtro encontrado.</div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
