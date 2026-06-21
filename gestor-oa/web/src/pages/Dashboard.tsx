@@ -230,17 +230,17 @@ function VisaoEntidades({
         const linhas = cats(it.metricas);
         const segmentos: Segmento[] = linhas.map((c) => ({ valor: c.m.count, cor: c.cor, label: c.label }));
         const avatar = (
-          <div className="grid place-items-center rounded-full bg-slate-200 text-slate-400" style={{ width: 118, height: 118 }}>{icone}</div>
+          <div className="grid place-items-center rounded-full bg-slate-200 text-slate-400" style={{ width: 138, height: 138 }}>{icone}</div>
         );
         return (
           <div key={it.id} className="card overflow-hidden">
-            <div className="border-b border-slate-100 py-3 text-center text-lg font-semibold text-status-ok">
+            <div className="border-b border-slate-100 py-3 text-center text-xl font-semibold text-status-ok">
               {it.nome}
             </div>
             <div className="grid place-items-center py-5">
-              <Donut segmentos={segmentos} centro={avatar} tamanho={150} espessura={12} />
+              <Donut segmentos={segmentos} centro={avatar} tamanho={168} espessura={13} />
             </div>
-            <div className="divide-y divide-slate-100 border-t border-slate-100 text-sm">
+            <div className="divide-y divide-slate-100 border-t border-slate-100 text-base">
               {/* so linhas com valor > 0 (igual ao original) */}
               {linhas.filter((c) => c.m.count > 0).map((c) => (
                 <LinhaMetrica key={c.label} cor={c.cor} label={c.label} m={c.m} />
@@ -255,9 +255,9 @@ function VisaoEntidades({
 
 function LinhaMetrica({ cor, label, m, sub }: { cor: string; label: string; m: Metrica; sub?: boolean }) {
   return (
-    <div className={`flex items-center justify-between py-2 pr-4 ${sub ? 'pl-8' : 'px-4'}`}>
+    <div className={`flex items-center justify-between py-2.5 pr-4 ${sub ? 'pl-8' : 'px-4'}`}>
       <span style={{ color: cor }}>{sub ? '↳ ' : ''}{label}:</span>
-      <span className="rounded-full px-3 py-0.5 text-sm font-semibold text-white" style={{ background: cor }}>
+      <span className="rounded-full px-3.5 py-0.5 text-lg font-semibold text-white" style={{ background: cor }}>
         {m.count}/{m.pct}%
       </span>
     </div>
@@ -310,20 +310,20 @@ function VisaoNumerica({ num }: { num: Painel['numericos'] }) {
 function CardNumero({ titulo, valor, cor, children }: { titulo: string; valor: number; cor: string; children: React.ReactNode }) {
   return (
     <div className="card overflow-hidden">
-      <div className="py-6 text-center">
-        <div className="text-lg font-medium" style={{ color: cor }}>{titulo}</div>
-        <div className="text-5xl font-bold" style={{ color: cor }}>{valor}</div>
+      <div className="py-8 text-center">
+        <div className="text-2xl font-medium" style={{ color: cor }}>{titulo}</div>
+        <div className="font-bold leading-none" style={{ color: cor, fontSize: '5rem' }}>{valor}</div>
       </div>
-      <div className="divide-y divide-slate-100 border-t border-slate-100 text-sm">{children}</div>
+      <div className="divide-y divide-slate-100 border-t border-slate-100 text-base">{children}</div>
     </div>
   );
 }
 
 function LinhaSimples({ label, valor }: { label: string; valor: number }) {
   return (
-    <div className="flex items-center justify-between px-4 py-2">
+    <div className="flex items-center justify-between px-4 py-2.5">
       <span className="text-marca-600">{label}:</span>
-      <span className="font-semibold text-slate-600">{valor}</span>
+      <span className="text-lg font-semibold text-slate-600">{valor}</span>
     </div>
   );
 }
