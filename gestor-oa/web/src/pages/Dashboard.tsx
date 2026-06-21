@@ -8,7 +8,7 @@ import {
   Pause,
   Play,
   User,
-  Network,
+  Building2,
   Pencil,
   Gauge,
 } from 'lucide-react';
@@ -27,10 +27,13 @@ interface MetricasEntrega {
   pendenteAntecipado: Metrica;
   pendenteNoPrazo: Metrica;
   entregueNoPrazo: Metrica;
+  entregueComAtraso: Metrica;
   entregueComMulta: Metrica;
 }
 interface Painel {
   periodo: string;
+  office?: string;
+  usuario?: string;
   colaboradores: { id: string; nome: string; metricas: MetricasEntrega }[];
   departamentos: { id: string; nome: string; cor: string; metricas: MetricasEntrega }[];
   numericos: {
@@ -49,6 +52,7 @@ const COR = {
   infoClaro: '#9cc3e4',
   danger: '#cf3c5d',
   warn: '#f0ad4e',
+  roxo: '#9b59b6',
 };
 
 const VISOES = [
@@ -176,20 +180,17 @@ function PainelFixo() {
         </label>
       </div>
 
-      {/* Pontos do carrossel */}
-      <div className="flex justify-center gap-2">
-        {VISOES.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => setVisao(i)}
-            className={`h-2 w-2 rounded-full transition ${i === visao ? 'bg-marca-500' : 'bg-slate-300'}`}
-          />
-        ))}
-      </div>
-
-      {visao === 0 && <VisaoEntidades itens={painel.colaboradores.map((c) => ({ ...c, cor: undefined }))} icone={<User size={56} />} />}
-      {visao === 1 && <VisaoEntidades itens={painel.departamentos} icone={<Network size={52} />} />}
+      {visao === 0 && <VisaoEntidades itens={painel.colaboradores.map((c) => ({ ...c, cor: undefined }))} icone={<User size={60} />} />}
+      {visao === 1 && <VisaoEntidades itens={painel.departamentos} icone={<Building2 size={58} />} />}
       {visao === 2 && <VisaoNumerica num={painel.numericos} />}
+
+      {/* Rodape estilo Acessorias */}
+      {(painel.usuario || painel.office) && (
+        <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-3 text-sm text-marca-700">
+          <span><span className="font-semibold">Usuario:</span> {painel.usuario ?? '-'}</span>
+          <span><span className="font-semibold">Office:</span> {painel.office ?? '-'}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -210,32 +211,40 @@ function VisaoEntidades({
   itens: { id: string; nome: string; cor?: string; metricas: MetricasEntrega }[];
   icone: React.ReactNode;
 }) {
-  if (itens.length === 0) {
-    return <p className="text-center text-slate-400">Nenhum dado para exibir.</p>;
+  // ordem fiel ao Acessorias
+  const cats = (m: MetricasEntrega) => [
+    { cor: COR.ok, label: 'Pendentes antecipado', m: m.pendenteAntecipado },
+    { cor: COR.infoClaro, label: 'Pendentes no prazo', m: m.pendenteNoPrazo },
+    { cor: COR.info, label: 'Entregues no prazo', m: m.entregueNoPrazo },
+    { cor: COR.roxo, label: 'Entregues com atraso', m: m.entregueComAtraso },
+    { cor: COR.danger, label: 'Entregues com multa', m: m.entregueComMulta },
+  ];
+  // so entidades com algum dado
+  const comDados = itens.filter((it) => cats(it.metricas).some((c) => c.m.count > 0));
+  if (comDados.length === 0) {
+    return <p className="text-center text-slate-400">Nenhum dado para exibir na semana atual.</p>;
   }
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {itens.map((it) => {
-        const m = it.metricas;
-        const segmentos: Segmento[] = [
-          { valor: m.pendenteAntecipado.count, cor: COR.ok, label: 'Pendentes antecipado' },
-          { valor: m.entregueNoPrazo.count, cor: COR.info, label: 'Entregues no prazo' },
-          { valor: m.pendenteNoPrazo.count, cor: COR.infoClaro, label: 'Pendentes no prazo' },
-          { valor: m.entregueComMulta.count, cor: COR.danger, label: 'Entregues com multa' },
-        ];
+      {comDados.map((it) => {
+        const linhas = cats(it.metricas);
+        const segmentos: Segmento[] = linhas.map((c) => ({ valor: c.m.count, cor: c.cor, label: c.label }));
+        const avatar = (
+          <div className="grid place-items-center rounded-full bg-slate-200 text-slate-400" style={{ width: 118, height: 118 }}>{icone}</div>
+        );
         return (
           <div key={it.id} className="card overflow-hidden">
             <div className="border-b border-slate-100 py-3 text-center text-lg font-semibold text-status-ok">
               {it.nome}
             </div>
             <div className="grid place-items-center py-5">
-              <Donut segmentos={segmentos} centro={icone} />
+              <Donut segmentos={segmentos} centro={avatar} tamanho={150} espessura={12} />
             </div>
             <div className="divide-y divide-slate-100 border-t border-slate-100 text-sm">
-              <LinhaMetrica cor={COR.ok} label="Pendentes antecipado" m={m.pendenteAntecipado} />
-              <LinhaMetrica cor={COR.info} label="Entregues no prazo" m={m.entregueNoPrazo} />
-              <LinhaMetrica cor={COR.infoClaro} label="Pendentes no prazo" m={m.pendenteNoPrazo} />
-              <LinhaMetrica cor={COR.danger} label="Entregues com multa" m={m.entregueComMulta} />
+              {/* so linhas com valor > 0 (igual ao original) */}
+              {linhas.filter((c) => c.m.count > 0).map((c) => (
+                <LinhaMetrica key={c.label} cor={c.cor} label={c.label} m={c.m} />
+              ))}
             </div>
           </div>
         );
@@ -244,10 +253,10 @@ function VisaoEntidades({
   );
 }
 
-function LinhaMetrica({ cor, label, m }: { cor: string; label: string; m: Metrica }) {
+function LinhaMetrica({ cor, label, m, sub }: { cor: string; label: string; m: Metrica; sub?: boolean }) {
   return (
-    <div className="flex items-center justify-between px-4 py-2">
-      <span style={{ color: cor }}>{label}:</span>
+    <div className={`flex items-center justify-between py-2 pr-4 ${sub ? 'pl-8' : 'px-4'}`}>
+      <span style={{ color: cor }}>{sub ? '↳ ' : ''}{label}:</span>
       <span className="rounded-full px-3 py-0.5 text-sm font-semibold text-white" style={{ background: cor }}>
         {m.count}/{m.pct}%
       </span>
@@ -263,6 +272,7 @@ function VisaoNumerica({ num }: { num: Painel['numericos'] }) {
         <LinhaMetrica cor={COR.info} label="Antecipadas" m={num.entregas.antecipadas} />
         <LinhaMetrica cor={COR.info} label="Prazo tecnico" m={num.entregas.prazoTecnico} />
         <LinhaMetrica cor={COR.danger} label="Atrasadas" m={num.entregas.atrasadas} />
+        <LinhaMetrica cor={COR.danger} label="Com multa" m={num.entregas.comMulta} sub />
         <LinhaMetrica cor={COR.warn} label="Atraso justificado" m={num.entregas.atrasoJustificado} />
       </CardNumero>
 
@@ -270,6 +280,8 @@ function VisaoNumerica({ num }: { num: Painel['numericos'] }) {
         <LinhaMetrica cor={COR.info} label="Prazo antecipado" m={num.aRealizar.prazoAntecipado} />
         <LinhaMetrica cor={COR.warn} label="Prazo tecnico" m={num.aRealizar.prazoTecnico} />
         <LinhaMetrica cor={COR.danger} label="Atraso legal" m={num.aRealizar.atrasoLegal} />
+        <LinhaMetrica cor={COR.danger} label="Com multa" m={num.aRealizar.comMulta} sub />
+        <LinhaMetrica cor={COR.warn} label="Atraso justificado" m={num.aRealizar.atrasoJustificado} />
       </CardNumero>
 
       <CardNumero titulo="Docs" valor={num.docs.total} cor={COR.info}>
@@ -281,12 +293,15 @@ function VisaoNumerica({ num }: { num: Painel['numericos'] }) {
         <LinhaMetrica cor={COR.info} label="Iniciados" m={num.processos.iniciados} />
         <LinhaMetrica cor={COR.info} label="Concluidos" m={num.processos.concluidos} />
         <LinhaMetrica cor={COR.info} label="Passos OK" m={num.processos.passosOk} />
+        <LinhaMetrica cor={COR.info} label="Follow-up enviados" m={num.processos.followups} />
       </CardNumero>
 
       <CardNumero titulo="Solicitacoes" valor={num.solicitacoes.total} cor={COR.info}>
         <LinhaSimples label="Abertas" valor={num.solicitacoes.abertas} />
         <LinhaSimples label="Finalizadas" valor={num.solicitacoes.finalizadas} />
+        <LinhaSimples label="Aguardando Retorno" valor={num.solicitacoes.aguardando} />
         <LinhaSimples label="Resolvendo" valor={num.solicitacoes.resolvendo} />
+        <LinhaSimples label="Media de Avaliacoes" valor={num.solicitacoes.mediaAvaliacoes} />
       </CardNumero>
     </div>
   );

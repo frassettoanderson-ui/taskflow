@@ -67,24 +67,26 @@ interface Acc {
   pendenteAntecipado: number;
   pendenteNoPrazo: number;
   entregueNoPrazo: number;
-  entregueComMulta: number;
+  entregueComAtraso: number; // entregue em atraso, obrigacao NAO passivel de multa (roxo)
+  entregueComMulta: number;  // entregue em atraso, obrigacao passivel de multa (vermelho)
 }
-const novoAcc = (): Acc => ({ pendenteAntecipado: 0, pendenteNoPrazo: 0, entregueNoPrazo: 0, entregueComMulta: 0 });
+const novoAcc = (): Acc => ({ pendenteAntecipado: 0, pendenteNoPrazo: 0, entregueNoPrazo: 0, entregueComAtraso: 0, entregueComMulta: 0 });
 
-function classificar(acc: Acc, status: StatusEntrega) {
+function classificar(acc: Acc, status: StatusEntrega, passivelMulta: boolean) {
   if (status === 'PENDENTE_ANTECIPADO') acc.pendenteAntecipado++;
   else if (status === 'ENTREGUE') acc.entregueNoPrazo++;
-  else if (status === 'ENTREGUE_JUSTIFICADA') acc.entregueComMulta++;
+  else if (status === 'ENTREGUE_JUSTIFICADA') { if (passivelMulta) acc.entregueComMulta++; else acc.entregueComAtraso++; }
   else acc.pendenteNoPrazo++; // PENDENTE + EM_ATRASO_*
 }
 
 function comPct(acc: Acc) {
-  const total = acc.pendenteAntecipado + acc.pendenteNoPrazo + acc.entregueNoPrazo + acc.entregueComMulta;
+  const total = acc.pendenteAntecipado + acc.pendenteNoPrazo + acc.entregueNoPrazo + acc.entregueComAtraso + acc.entregueComMulta;
   const m = (c: number) => ({ count: c, pct: total ? Math.round((c / total) * 100) : 0 });
   return {
     pendenteAntecipado: m(acc.pendenteAntecipado),
     pendenteNoPrazo: m(acc.pendenteNoPrazo),
     entregueNoPrazo: m(acc.entregueNoPrazo),
+    entregueComAtraso: m(acc.entregueComAtraso),
     entregueComMulta: m(acc.entregueComMulta),
   };
 }
@@ -92,23 +94,33 @@ function comPct(acc: Acc) {
 router.get('/painel', async (req, res) => {
   const escritorioId = req.auth!.escritorioId;
   const hoje = new Date();
-  const ano = hoje.getFullYear();
-  const mes = hoje.getMonth() + 1;
 
-  const cfgRaw = (await prisma.escritorio.findUniqueOrThrow({ where: { id: escritorioId } })).config as Record<string, unknown>;
+  // janela = semana atual (domingo 00:00 -> sabado 23:59)
+  const inicioSemana = new Date(hoje); inicioSemana.setDate(hoje.getDate() - hoje.getDay()); inicioSemana.setHours(0, 0, 0, 0);
+  const fimSemana = new Date(inicioSemana); fimSemana.setDate(inicioSemana.getDate() + 6); fimSemana.setHours(23, 59, 59, 999);
+
+  const escritorioRow = await prisma.escritorio.findUniqueOrThrow({ where: { id: escritorioId } });
+  const cfgRaw = escritorioRow.config as Record<string, unknown>;
   const diasAntecipado = typeof cfgRaw.diasAntecipado === 'number' ? cfgRaw.diasAntecipado : 7;
 
-  const [usuarios, departamentos, totalEmpresas, entregas] = await Promise.all([
+  const [usuarios, departamentos, totalEmpresas, entregas, docsTotal, docsLidos, procIniciados, procConcluidos, passosOk, solInternas, solPortal] = await Promise.all([
     prisma.usuario.findMany({ where: { escritorioId, deletedAt: null, ativo: true }, select: { id: true, nome: true }, orderBy: { nome: 'asc' } }),
     prisma.departamento.findMany({ where: { escritorioId, ativo: true }, select: { id: true, nome: true, cor: true }, orderBy: { nome: 'asc' } }),
     prisma.empresa.count({ where: { escritorioId, deletedAt: null } }),
     prisma.entrega.findMany({
-      where: { escritorioId, competenciaAno: ano, competenciaMes: mes },
+      where: { escritorioId, prazoLegal: { gte: inicioSemana, lte: fimSemana } },
       select: {
         status: true, prazoTecnico: true, prazoLegal: true, dataEntrega: true,
-        responsavelPrazoId: true, obrigacao: { select: { departamentoId: true } },
+        responsavelPrazoId: true, obrigacao: { select: { departamentoId: true, passivelMulta: true } },
       },
     }),
+    prisma.documentoGED.count({ where: { escritorioId, createdAt: { gte: inicioSemana, lte: fimSemana } } }),
+    prisma.protocolo.count({ where: { escritorioId, enviadoEm: { gte: inicioSemana, lte: fimSemana }, visualizacoes: { some: {} } } }).catch(() => 0),
+    prisma.processo.count({ where: { escritorioId, dataInicio: { gte: inicioSemana, lte: fimSemana } } }),
+    prisma.processo.count({ where: { escritorioId, dataConclusao: { gte: inicioSemana, lte: fimSemana } } }),
+    prisma.processoPasso.count({ where: { processo: { escritorioId }, concluidoEm: { gte: inicioSemana, lte: fimSemana } } }),
+    prisma.solicitacaoInterna.groupBy({ by: ['status'], where: { escritorioId }, _count: true }).catch(() => [] as { status: string; _count: number }[]),
+    prisma.solicitacaoPortal.findMany({ where: { escritorioId }, select: { status: true, avaliacaoNota: true } }).catch(() => [] as { status: string; avaliacaoNota: number | null }[]),
   ]);
 
   const porColab = new Map<string, Acc>();
@@ -122,14 +134,15 @@ router.get('/painel', async (req, res) => {
   };
 
   for (const e of entregas) {
+    const passivelMulta = !!e.obrigacao.passivelMulta;
     const status = statusEfetivo(e.status as StatusEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado);
-    if (e.responsavelPrazoId && porColab.has(e.responsavelPrazoId)) classificar(porColab.get(e.responsavelPrazoId)!, status);
-    if (e.obrigacao.departamentoId && porDep.has(e.obrigacao.departamentoId)) classificar(porDep.get(e.obrigacao.departamentoId)!, status);
+    if (e.responsavelPrazoId && porColab.has(e.responsavelPrazoId)) classificar(porColab.get(e.responsavelPrazoId)!, status, passivelMulta);
+    if (e.obrigacao.departamentoId && porDep.has(e.obrigacao.departamentoId)) classificar(porDep.get(e.obrigacao.departamentoId)!, status, passivelMulta);
 
     const baixada = status === 'ENTREGUE' || status === 'ENTREGUE_JUSTIFICADA';
     if (baixada) {
       num.entregasBaixadas++;
-      if (status === 'ENTREGUE_JUSTIFICADA') { num.comMulta++; num.atrasadas++; num.atrasoJustificado++; }
+      if (status === 'ENTREGUE_JUSTIFICADA') { num.atrasadas++; num.atrasoJustificado++; if (passivelMulta) num.comMulta++; }
       else if (e.dataEntrega && e.dataEntrega < e.prazoTecnico) num.antecipadas++;
       else num.prazoTecnico++;
     } else {
@@ -142,8 +155,20 @@ router.get('/painel', async (req, res) => {
 
   const pctNum = (c: number, total: number) => ({ count: c, pct: total ? Math.round((c / total) * 100) : 0 });
 
+  // ----- docs / processos / solicitacoes (numericos) -----
+  const docsNaoLidos = Math.max(0, docsTotal - docsLidos);
+  const procTotal = procIniciados + procConcluidos;
+  const solMap = new Map((solInternas as { status: string; _count: number }[]).map((s) => [s.status, s._count]));
+  const solAbertas = (solMap.get('ABERTA') ?? 0) + (solPortal as { status: string }[]).filter((s) => s.status === 'ABERTA').length;
+  const solResolvendo = (solMap.get('EM_ANDAMENTO') ?? 0) + (solMap.get('AGUARDANDO') ?? 0);
+  const solFinalizadas = (solMap.get('RESOLVIDA') ?? 0) + (solPortal as { status: string }[]).filter((s) => s.status === 'FINALIZADA').length;
+  const notas = (solPortal as { avaliacaoNota: number | null }[]).map((s) => s.avaliacaoNota).filter((n): n is number => n != null);
+  const mediaAvaliacoes = notas.length ? Math.round((notas.reduce((a, b) => a + b, 0) / notas.length) * 10) / 10 : 0;
+
   return ok(res, {
-    periodo: `${String(mes).padStart(2, '0')}/${ano}`,
+    periodo: 'Semana atual',
+    office: escritorioRow.nome,
+    usuario: req.auth!.nome,
     colaboradores: usuarios.map((u) => ({ id: u.id, nome: u.nome, metricas: comPct(porColab.get(u.id)!) })),
     departamentos: departamentos.map((d) => ({ id: d.id, nome: d.nome, cor: d.cor, metricas: comPct(porDep.get(d.id)!) })),
     numericos: {
@@ -152,7 +177,7 @@ router.get('/painel', async (req, res) => {
         antecipadas: pctNum(num.antecipadas, num.entregasBaixadas),
         prazoTecnico: pctNum(num.prazoTecnico, num.entregasBaixadas),
         atrasadas: pctNum(num.atrasadas, num.entregasBaixadas),
-        comMulta: pctNum(num.comMulta, num.entregasBaixadas),
+        comMulta: pctNum(num.comMulta, num.atrasadas),
         atrasoJustificado: pctNum(num.atrasoJustificado, num.entregasBaixadas),
       },
       aRealizar: {
@@ -160,12 +185,12 @@ router.get('/painel', async (req, res) => {
         prazoAntecipado: pctNum(num.arPrazoAntecipado, num.aRealizar),
         prazoTecnico: pctNum(num.arPrazoTecnico, num.aRealizar),
         atrasoLegal: pctNum(num.arAtrasoLegal, num.aRealizar),
-        comMulta: pctNum(0, num.aRealizar),
+        comMulta: pctNum(0, num.arAtrasoLegal),
         atrasoJustificado: pctNum(0, num.aRealizar),
       },
-      docs: { total: 0, lidos: pctNum(0, 0), naoLidos: pctNum(0, 0) },
-      processos: { total: 0, iniciados: pctNum(0, 0), concluidos: pctNum(0, 0), passosOk: pctNum(0, 0), followups: pctNum(0, 0) },
-      solicitacoes: { total: 0, abertas: 0, finalizadas: 0, aguardando: 0, resolvendo: 0, mediaAvaliacoes: 0 },
+      docs: { total: docsTotal, lidos: pctNum(docsLidos, docsTotal), naoLidos: pctNum(docsNaoLidos, docsTotal) },
+      processos: { total: procTotal, iniciados: pctNum(procIniciados, procTotal), concluidos: pctNum(procConcluidos, procTotal), passosOk: pctNum(passosOk, passosOk), followups: pctNum(0, 0) },
+      solicitacoes: { total: solAbertas + solResolvendo + solFinalizadas, abertas: solAbertas, finalizadas: solFinalizadas, aguardando: solMap.get('AGUARDANDO') ?? 0, resolvendo: solResolvendo, mediaAvaliacoes },
       empresas: totalEmpresas,
     },
   });
