@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Save, RotateCcw, Mail, Copy, Network } from 'lucide-react';
+import { Save, RotateCcw, Mail, Copy, Network, Plus } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { Spinner, useToast, InfoHint } from '../components/ui';
 import type { Departamento } from '../lib/tipos';
+
+interface FormularioItem { id: string; nome: string; ativo: boolean }
+interface LogEntry { id: string; acao: string; antes: unknown; depois: unknown; createdAt: string; usuario?: { nome: string } | null }
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600';
@@ -47,6 +50,44 @@ export default function DepartamentoForm() {
 
   const [deps, setDeps] = useState<Departamento[]>([]);
   const [usuarios, setUsuarios] = useState<{ id: string; nome: string }[]>([]);
+
+  // combo de gestores (chips + busca)
+  const [gestorTxt, setGestorTxt] = useState('');
+  const [gestorAberto, setGestorAberto] = useState(false);
+
+  // secoes expansiveis do rodape
+  const [showGrupos, setShowGrupos] = useState(false);
+  const [showLog, setShowLog] = useState(false);
+  const [formularios, setFormularios] = useState<FormularioItem[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+
+  function carregarFormularios() {
+    api.get<FormularioItem[]>('/gestao-portal/formularios').then(setFormularios).catch(() => setFormularios([]));
+  }
+  function carregarLog() {
+    if (novo) return;
+    api.get<LogEntry[]>(`/departamentos/${id}/log`).then(setLogs).catch(() => setLogs([]));
+  }
+
+  const CAMPO_LABEL: Record<string, string> = {
+    nome: 'Nome', envioAgendado: 'Envio agendado', responderPara: "Endereco de 'Responder para'",
+    disponivelSolicitacoes: 'Disponivel em Solicitacoes', parentId: 'Departamento pai', gestoresIds: 'Usuarios gestores do departamento', cor: 'Cor',
+  };
+  function nomeGestores(v: unknown) { const arr = Array.isArray(v) ? (v as string[]) : []; return arr.map((g) => usuarios.find((u) => u.id === g)?.nome ?? g).join(', '); }
+  function valLog(campo: string, v: unknown) {
+    if (campo === 'gestoresIds') return nomeGestores(v);
+    if (campo === 'parentId') return v ? (deps.find((d) => d.id === v)?.nome ?? String(v)) : '';
+    if (campo === 'disponivelSolicitacoes') return v ? 'Sim' : 'Nao';
+    return v == null ? '' : String(v);
+  }
+  function descreverLog(l: LogEntry): string {
+    if (l.acao === 'CREATE') return 'Departamento criado';
+    const antes = (l.antes ?? {}) as Record<string, unknown>;
+    const depois = (l.depois ?? {}) as Record<string, unknown>;
+    const mud = Object.keys(CAMPO_LABEL).filter((k) => JSON.stringify(antes[k]) !== JSON.stringify(depois[k]));
+    if (!mud.length) return 'Departamento atualizado';
+    return mud.map((k) => `${CAMPO_LABEL[k]} "${valLog(k, antes[k])}" para "${valLog(k, depois[k])}"`).join('; ');
+  }
 
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDeps).catch(() => undefined);
@@ -110,8 +151,7 @@ export default function DepartamentoForm() {
         <div>
           <label className={LBL}>
             Nome do departamento
-            <input type="color" value={cor} onChange={(e) => setCor(e.target.value)} title="Cor" className="ml-auto h-4 w-5 cursor-pointer rounded border border-slate-300 p-0" />
-            <button type="button" title="Copiar nome" onClick={() => navigator.clipboard?.writeText(nome)} className="text-slate-400 hover:text-marca-500"><Copy size={13} /></button>
+            <button type="button" title="Replicar marcacoes/responsaveis nas empresas" onClick={() => toast('ok', 'Em construcao: Replicar marcacoes/responsaveis nas empresas.')} className="ml-auto text-slate-400 hover:text-marca-500"><Copy size={14} /></button>
           </label>
           <input className={INP} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do departamento" />
         </div>
@@ -126,27 +166,34 @@ export default function DepartamentoForm() {
 
         <div>
           <label className={LBL}>Usuarios gestores do departamento <InfoHint texto={INFO_GESTORES} /></label>
-          <div className="rounded border border-slate-300 bg-white p-1.5">
-            <div className="mb-1 flex flex-wrap gap-1">
-              {gestoresIds.length === 0 && <span className="px-1 text-[11px] text-slate-400">Nenhum gestor selecionado</span>}
+          <div className="relative">
+            <div className="flex flex-wrap items-center gap-1 rounded border border-slate-300 bg-white px-1.5 py-1">
               {gestoresIds.map((gid) => {
                 const u = usuarios.find((x) => x.id === gid);
                 return (
                   <span key={gid} className="inline-flex items-center gap-1 rounded bg-marca-50 px-1.5 py-0.5 text-[11px] text-marca-700">
-                    {u?.nome ?? gid}
                     <button type="button" onClick={() => setGestoresIds((g) => g.filter((x) => x !== gid))} className="text-slate-400 hover:text-red-500">×</button>
+                    {u?.nome ?? gid}
                   </span>
                 );
               })}
+              <input
+                className="min-w-[110px] flex-1 text-[12px] outline-none"
+                placeholder={gestoresIds.length ? '' : 'Nenhum gestor selecionado'}
+                value={gestorTxt}
+                onChange={(e) => { setGestorTxt(e.target.value); setGestorAberto(true); }}
+                onFocus={() => setGestorAberto(true)}
+                onBlur={() => setTimeout(() => setGestorAberto(false), 150)}
+              />
             </div>
-            <select
-              className="w-full border-t border-slate-100 bg-transparent px-1 pt-1 text-[12px] text-slate-600 outline-none"
-              value=""
-              onChange={(e) => { if (e.target.value) setGestoresIds((g) => [...g, e.target.value]); }}
-            >
-              <option value="">+ Adicionar gestor...</option>
-              {usuarios.filter((u) => !gestoresIds.includes(u.id)).map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-            </select>
+            {gestorAberto && (
+              <div className="absolute left-0 right-0 z-20 mt-1 max-h-48 overflow-auto rounded border border-slate-200 bg-white shadow-lg">
+                {usuarios.filter((u) => !gestoresIds.includes(u.id) && u.nome.toLowerCase().includes(gestorTxt.trim().toLowerCase())).map((u) => (
+                  <button key={u.id} type="button" onMouseDown={() => { setGestoresIds((g) => [...g, u.id]); setGestorTxt(''); }} className="block w-full px-3 py-1.5 text-left text-[12px] hover:bg-marca-50">{u.nome}</button>
+                ))}
+                {usuarios.filter((u) => !gestoresIds.includes(u.id)).length === 0 && <div className="px-3 py-1.5 text-[12px] text-slate-400">Sem mais usuarios</div>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -164,10 +211,10 @@ export default function DepartamentoForm() {
         </div>
 
         {/* Botoes secundarios + acoes */}
-        <button onClick={() => toast('ok', 'Em construcao: edicao do e-mail individual.')} className="flex items-center justify-center gap-2 rounded bg-slate-200 py-1.5 text-[12px] text-slate-600 hover:bg-slate-300">
+        <button onClick={() => toast('ok', 'Em construcao: edicao do e-mail individual.')} className="flex items-center justify-center gap-2 rounded bg-slate-400 py-1.5 text-[12px] font-medium text-white hover:bg-slate-500">
           <Mail size={14} /> Editar e-mail Individual
         </button>
-        <button onClick={() => toast('ok', 'Em construcao: edicao do e-mail de agendamento.')} className="flex items-center justify-center gap-2 rounded bg-slate-200 py-1.5 text-[12px] text-slate-600 hover:bg-slate-300">
+        <button onClick={() => toast('ok', 'Em construcao: edicao do e-mail de agendamento.')} className="flex items-center justify-center gap-2 rounded bg-slate-400 py-1.5 text-[12px] font-medium text-white hover:bg-slate-500">
           <Mail size={14} /> Editar e-mail de Agendamento
         </button>
         <div className="flex justify-end gap-2">
@@ -177,19 +224,67 @@ export default function DepartamentoForm() {
       </div>
 
       {/* Rodape: informacoes/links */}
-      <div className="mt-5 space-y-2 text-[12px] text-slate-600">
+      <div className="mt-5 space-y-4 text-[12px] text-slate-700">
         <p>
           Temos <b>{obrigacoesCount}</b> obrigacoes pertencentes a esse departamento.{' '}
-          <button onClick={() => navigate('/obrigacoes')} className="text-marca-600 hover:underline">«Clique aqui para visualiza-las»</button>
+          <button onClick={() => navigate(`/obrigacoes?dep=${id ?? ''}`)} className="text-marca-600 hover:underline">«Clique aqui para visualiza-las»</button>
         </p>
-        <p>
-          Grupos de campos personalizados, para coleta de informacoes, atraves de solicitacoes na Area VIP{' '}
-          <button onClick={() => toast('ok', 'Em construcao.')} className="text-marca-600 hover:underline">(Clique para listar)</button>
-        </p>
-        <p>
-          Log das alteracoes - ultimas 15 em ordem decrescente{' '}
-          <button onClick={() => toast('ok', 'Em construcao.')} className="text-marca-600 hover:underline">(Clique para listar)</button>
-        </p>
+
+        {/* Grupos de campos personalizados (formularios) */}
+        <div>
+          <p className="font-medium">
+            Grupos de campos personalizados, para coleta de informacoes, atraves de solicitacoes na Area VIP{' '}
+            <button onClick={() => { setShowGrupos((v) => !v); if (!showGrupos) carregarFormularios(); }} className={showGrupos ? 'text-status-danger hover:underline' : 'text-marca-600 hover:underline'}>
+              ({showGrupos ? 'Clique para ocultar' : 'Clique para listar'})
+            </button>
+          </p>
+          {showGrupos && (
+            <div className="mt-1 overflow-hidden rounded border border-slate-200">
+              <table className="w-full text-[12px]">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-fundo text-left font-semibold text-slate-600">
+                    <th className="px-3 py-2">Nome</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2 text-right">
+                      <button onClick={() => navigate('/area-vip/formularios')} className="inline-flex items-center gap-1 rounded bg-marca-500 px-3 py-1 font-medium text-white hover:bg-marca-600"><Plus size={13} /> Add</button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {formularios.map((f) => (
+                    <tr key={f.id} className="border-b border-slate-100 odd:bg-white even:bg-fundo">
+                      <td className="px-3 py-2"><button onClick={() => navigate('/area-vip/formularios')} className="text-marca-600 hover:underline">{f.nome}</button></td>
+                      <td className="px-3 py-2 text-slate-600">{f.ativo ? 'Ativo' : 'Inativo'}</td>
+                      <td className="px-3 py-2" />
+                    </tr>
+                  ))}
+                  {formularios.length === 0 && <tr><td colSpan={3} className="px-3 py-4 text-center text-slate-400">Nenhum grupo de campos cadastrado.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Log das alteracoes */}
+        <div>
+          <p className="font-medium">
+            Log das alteracoes - ultimas 15 em ordem decrescente{' '}
+            <button onClick={() => { setShowLog((v) => !v); if (!showLog) carregarLog(); }} className={showLog ? 'text-status-danger hover:underline' : 'text-marca-600 hover:underline'}>
+              ({showLog ? 'Clique para ocultar' : 'Clique para listar'})
+            </button>
+          </p>
+          {showLog && (
+            <div className="mt-1 overflow-hidden rounded border border-slate-200">
+              {logs.length === 0 && <p className="px-3 py-3 text-slate-400">Nenhuma alteracao registrada.</p>}
+              {logs.map((l, i) => (
+                <div key={l.id} className={`px-3 py-1.5 ${i % 2 ? 'bg-fundo' : 'bg-white'}`}>
+                  <div className="text-[11px] font-semibold text-status-danger">{l.usuario?.nome ?? 'Sistema'} em {new Date(l.createdAt).toLocaleString('pt-BR')}:</div>
+                  <div className="pl-3 text-slate-600">{descreverLog(l)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

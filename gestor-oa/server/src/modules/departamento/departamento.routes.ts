@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../../prisma.js';
 import { ok } from '../../lib/http.js';
@@ -8,6 +9,14 @@ import { authenticate, requirePermission } from '../../middleware/auth.js';
 
 const router = Router();
 router.use(authenticate);
+
+// Registra alteracoes do departamento no log de auditoria (entidade='Departamento').
+const J = (v: unknown): Prisma.InputJsonValue => (v ?? {}) as Prisma.InputJsonValue;
+async function auditarDep(escritorioId: string, usuarioId: string | undefined, acao: string, entidadeId: string, antes: unknown, depois: unknown) {
+  await prisma.logAuditoria
+    .create({ data: { escritorioId, usuarioId: usuarioId ?? null, acao, entidade: 'Departamento', entidadeId, antes: J(antes), depois: J(depois) } })
+    .catch(() => undefined);
+}
 
 function publico(d: {
   id: string; nome: string; cor: string; responsavelId: string | null; gestoresIds: unknown; ativo: boolean;
@@ -87,6 +96,7 @@ router.post(
       },
       include: { _count: { select: { obrigacoes: true } } },
     });
+    await auditarDep(req.auth!.escritorioId, req.auth!.id, 'CREATE', dep.id, null, { nome: dep.nome });
     return ok(res, publico(dep), 201);
   },
 );
@@ -121,9 +131,23 @@ router.put(
       },
       include: { _count: { select: { obrigacoes: true } } },
     });
+    const campos = ['nome', 'envioAgendado', 'responderPara', 'disponivelSolicitacoes', 'parentId', 'gestoresIds', 'cor'] as const;
+    const pick = (o: Record<string, unknown>) => Object.fromEntries(campos.map((c) => [c, o[c]]));
+    await auditarDep(req.auth!.escritorioId, req.auth!.id, 'UPDATE', dep.id, pick(dep as unknown as Record<string, unknown>), pick(atualizado as unknown as Record<string, unknown>));
     return ok(res, publico(atualizado));
   },
 );
+
+// Log das alteracoes desse departamento (ultimas 15) - para o rodape da ficha
+router.get('/:id/log', async (req, res) => {
+  const logs = await prisma.logAuditoria.findMany({
+    where: { escritorioId: req.auth!.escritorioId, entidade: 'Departamento', entidadeId: req.params.id },
+    orderBy: { createdAt: 'desc' },
+    take: 15,
+    include: { usuario: { select: { nome: true } } },
+  });
+  return ok(res, logs);
+});
 
 router.delete(
   '/:id',

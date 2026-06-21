@@ -42,7 +42,8 @@ export default function Catalogo() {
   const [busca, setBusca] = useState('');
   const [ocultarAtivas, setOcultarAtivas] = useState(false);
   const [exibirInativas, setExibirInativas] = useState(false);
-  const [deps, setDeps] = useState<string[]>([]);
+  // pre-aplica filtro de departamento quando vem da ficha do depto (/obrigacoes?dep=<id>)
+  const [deps, setDeps] = useState<string[]>(() => { const d = new URLSearchParams(window.location.search).get('dep'); return d ? [d] : []; });
   const [filtrosAberto, setFiltrosAberto] = useState(false);
   const [imprimirAberto, setImprimirAberto] = useState(false);
   const imprimirRef = useRef<HTMLDivElement>(null);
