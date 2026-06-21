@@ -180,17 +180,44 @@ router.post('/usuarios-app/:id/ativar', appPerm, async (req, res) => {
 
 // ===== NPS (painel interno) =====
 router.get('/nps', requirePermission('portal_configurar'), async (req, res) => {
-  const avaliacoes = await prisma.npsAvaliacao.findMany({ where: { escritorioId: req.auth!.escritorioId }, orderBy: { createdAt: 'desc' }, take: 500 });
-  const total = avaliacoes.length;
-  const promotores = avaliacoes.filter((a) => a.nota >= 9).length;
-  const neutros = avaliacoes.filter((a) => a.nota >= 7 && a.nota <= 8).length;
-  const detratores = avaliacoes.filter((a) => a.nota <= 6).length;
-  const score = total ? Math.round(((promotores - detratores) / total) * 100) : 0;
-  return ok(res, {
-    score, total, promotores, neutros, detratores,
-    media: total ? Math.round((avaliacoes.reduce((s, a) => s + a.nota, 0) / total) * 10) / 10 : 0,
-    avaliacoes: avaliacoes.map((a) => ({ id: a.id, nota: a.nota, comentario: a.comentario, contatoNome: a.contatoNome, contatoEmail: a.contatoEmail, createdAt: a.createdAt })),
-  });
+  const escritorioId = req.auth!.escritorioId;
+  const avaliacoes = await prisma.npsAvaliacao.findMany({ where: { escritorioId }, orderBy: { createdAt: 'desc' }, take: 5000 });
+  const empIds = [...new Set(avaliacoes.map((a) => a.empresaId).filter(Boolean))] as string[];
+  const emps = await prisma.empresa.findMany({ where: { id: { in: empIds }, escritorioId }, select: { id: true, razaoSocial: true } });
+  const nomeEmp = new Map(emps.map((e) => [e.id, e.razaoSocial]));
+
+  type Contato = { nome: string; avaliacoes: number; soma: number; ultima: Date };
+  type Grupo = { id: string; nome: string; detr: number; neut: number; prom: number; total: number; soma: number; contatos: Map<string, Contato> };
+  const grupos = new Map<string, Grupo>();
+  for (const a of avaliacoes) {
+    const empId = a.empresaId ?? 'sem';
+    const g = grupos.get(empId) ?? { id: empId, nome: nomeEmp.get(empId) ?? 'Sem empresa', detr: 0, neut: 0, prom: 0, total: 0, soma: 0, contatos: new Map() };
+    if (a.nota >= 9) g.prom++; else if (a.nota >= 7) g.neut++; else g.detr++;
+    g.total++; g.soma += a.nota;
+    const key = a.contatoEmail || a.contatoNome || 'anon';
+    const ct = g.contatos.get(key) ?? { nome: a.contatoNome || a.contatoEmail || 'Contato', avaliacoes: 0, soma: 0, ultima: a.createdAt };
+    ct.avaliacoes++; ct.soma += a.nota; if (a.createdAt > ct.ultima) ct.ultima = a.createdAt;
+    g.contatos.set(key, ct);
+    grupos.set(empId, g);
+  }
+
+  const empresas = [...grupos.values()].map((g) => ({
+    id: g.id, nome: g.nome,
+    detratores: g.detr, neutros: g.neut, promotores: g.prom, avaliacoes: g.total,
+    media: g.total ? Math.round((g.soma / g.total) * 10) / 10 : 0,
+    contatos: [...g.contatos.values()].map((c) => ({ nome: c.nome, avaliacoes: c.avaliacoes, media: c.avaliacoes ? Math.round((c.soma / c.avaliacoes) * 10) / 10 : 0, ultima: c.ultima }))
+      .sort((a, b) => b.ultima.getTime() - a.ultima.getTime()),
+  })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  // Cards: cada EMPRESA classificada pela sua media (>=9 promotora, 7-8 neutra, <7 detratora)
+  const tot = empresas.length;
+  const prom = empresas.filter((e) => e.media >= 9).length;
+  const neut = empresas.filter((e) => e.media >= 7 && e.media < 9).length;
+  const detr = empresas.filter((e) => e.media > 0 && e.media < 7).length;
+  const pct = (n: number) => tot ? Math.round((n / tot) * 10000) / 100 : 0;
+  const cards = { detratoras: pct(detr), neutras: pct(neut), promotoras: pct(prom), nps: tot ? Math.round(((prom - detr) / tot) * 100) : 0 };
+
+  return ok(res, { cards, empresas });
 });
 
 export default router;
