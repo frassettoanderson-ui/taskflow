@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Landmark, Save, Plus, RotateCcw, Trash2, Search } from 'lucide-react';
+import { Landmark, Save, Plus, RotateCcw, Trash2, Search, Copy } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
@@ -54,6 +54,16 @@ export default function GrupoForm() {
     setNovoSel('');
   }
   function remover(obrigacaoId: string) { setItens((arr) => arr.filter((i) => i.obrigacaoId !== obrigacaoId)); }
+
+  // Duplica o grupo atual em um novo registro "(copia)"
+  async function duplicar() {
+    if (novo) return;
+    try {
+      const g = await api.post<{ id: string }>('/grupos', { nome: `${nome} (copia)`, ativo, obrigacoes: itens.map((i) => ({ obrigacaoId: i.obrigacaoId, tempoPrevisto: i.tempoPrevisto || 0 })) });
+      toast('ok', 'Grupo duplicado.');
+      navigate(`/obrigacoes/grupos/${g.id}`);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao duplicar.'); }
+  }
   function setTempo(obrigacaoId: string, tempo: number) { setItens((arr) => arr.map((i) => (i.obrigacaoId === obrigacaoId ? { ...i, tempoPrevisto: tempo } : i))); }
 
   async function salvar() {
@@ -88,7 +98,10 @@ export default function GrupoForm() {
       {/* Linha principal */}
       <div className="grid grid-cols-1 items-end gap-x-5 gap-y-3 md:grid-cols-[1fr_180px_auto]">
         <div>
-          <label className={LBL}>Nome do grupo</label>
+          <div className="flex items-end justify-between">
+            <label className={LBL}>Nome do grupo</label>
+            {!novo && pode && <button onClick={duplicar} title="Duplicar este grupo" className="mb-1 text-marca-500 hover:text-marca-600"><Copy size={16} /></button>}
+          </div>
           <input className={INP} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do grupo" />
         </div>
         <div>
@@ -97,6 +110,7 @@ export default function GrupoForm() {
         </div>
         <div className="flex gap-2">
           {pode && <button onClick={salvar} disabled={salvando} className="flex items-center gap-2 rounded-md bg-status-ok px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50"><Save size={16} /> {salvando ? '...' : 'Salvar'}</button>}
+          {pode && <button onClick={() => navigate('/obrigacoes/grupos/novo')} className="flex items-center gap-2 rounded-md bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo</button>}
           <button onClick={() => navigate('/obrigacoes/grupos')} className="flex items-center gap-2 rounded-md bg-status-warn px-4 py-1.5 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Voltar</button>
         </div>
       </div>
