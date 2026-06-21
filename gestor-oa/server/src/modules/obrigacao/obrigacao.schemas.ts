@@ -50,6 +50,10 @@ export const regimeSchema = z.object({
 export const grupoSchema = z.object({
   nome: z.string().min(2, 'Nome do grupo e obrigatorio.'),
   ativo: z.boolean().optional(),
+  // Aceita o formato novo (com tempo previsto por obrigacao) ou so a lista de ids (legado)
+  obrigacoes: z
+    .array(z.object({ obrigacaoId: z.string(), tempoPrevisto: z.number().int().min(0).default(0) }))
+    .optional(),
   obrigacaoIds: z.array(z.string()).optional(),
 });
 

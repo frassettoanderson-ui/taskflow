@@ -6,6 +6,13 @@ import { validate } from '../../middleware/validate.js';
 import { authenticate, requirePermission } from '../../middleware/auth.js';
 import { grupoSchema } from './obrigacao.schemas.js';
 
+// Aceita o payload novo (obrigacoes: [{obrigacaoId, tempoPrevisto}]) ou o legado (obrigacaoIds: string[])
+function normalizarItens(body: { obrigacoes?: { obrigacaoId: string; tempoPrevisto?: number }[]; obrigacaoIds?: string[] }) {
+  if (body.obrigacoes?.length) return body.obrigacoes.map((o) => ({ obrigacaoId: o.obrigacaoId, tempoPrevisto: o.tempoPrevisto ?? 0 }));
+  if (body.obrigacaoIds?.length) return body.obrigacaoIds.map((obrigacaoId) => ({ obrigacaoId, tempoPrevisto: 0 }));
+  return [];
+}
+
 const router = Router();
 router.use(authenticate);
 router.use(requirePermission('obrigacoes_ver'));
@@ -40,14 +47,13 @@ router.post(
       where: { escritorioId: req.auth!.escritorioId, nome: req.body.nome },
     });
     if (dup) throw Errors.conflito('Ja existe um grupo com esse nome.');
+    const itens = normalizarItens(req.body);
     const grupo = await prisma.grupoObrigacoes.create({
       data: {
         escritorioId: req.auth!.escritorioId,
         nome: req.body.nome,
         ativo: req.body.ativo ?? true,
-        obrigacoes: req.body.obrigacaoIds?.length
-          ? { create: req.body.obrigacaoIds.map((obrigacaoId: string) => ({ obrigacaoId })) }
-          : undefined,
+        obrigacoes: itens.length ? { create: itens } : undefined,
       },
     });
     return ok(res, grupo, 201);
@@ -68,11 +74,12 @@ router.put(
         where: { id: grupo.id },
         data: { nome: req.body.nome ?? grupo.nome, ativo: req.body.ativo ?? grupo.ativo },
       });
-      if (req.body.obrigacaoIds) {
+      if (req.body.obrigacoes || req.body.obrigacaoIds) {
+        const itens = normalizarItens(req.body);
         await tx.grupoObrigacao.deleteMany({ where: { grupoId: grupo.id } });
-        if (req.body.obrigacaoIds.length) {
+        if (itens.length) {
           await tx.grupoObrigacao.createMany({
-            data: req.body.obrigacaoIds.map((obrigacaoId: string) => ({ grupoId: grupo.id, obrigacaoId })),
+            data: itens.map((i) => ({ grupoId: grupo.id, ...i })),
           });
         }
       }

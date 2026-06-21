@@ -9,8 +9,8 @@ import type { Obrigacao } from '../../lib/tipos';
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-1 block text-[13px] font-bold text-slate-700';
 
-interface Item { obrigacaoId: string; nome: string; departamento: string }
-interface GrupoResp { id: string; nome: string; ativo: boolean; obrigacoes: { obrigacaoId: string; obrigacao: { nome: string; departamento?: { nome?: string } | null } }[] }
+interface Item { obrigacaoId: string; nome: string; departamento: string; tempoPrevisto: number }
+interface GrupoResp { id: string; nome: string; ativo: boolean; obrigacoes: { obrigacaoId: string; tempoPrevisto?: number; obrigacao: { nome: string; departamento?: { nome?: string } | null } }[] }
 
 export default function GrupoForm() {
   const { id } = useParams();
@@ -35,7 +35,7 @@ export default function GrupoForm() {
     if (novo) return;
     api.get<GrupoResp>(`/grupos/${id}`).then((g) => {
       setNome(g.nome); setAtivo(g.ativo);
-      setItens(g.obrigacoes.map((l) => ({ obrigacaoId: l.obrigacaoId, nome: l.obrigacao.nome, departamento: l.obrigacao.departamento?.nome ?? 'Sem departamento' })));
+      setItens(g.obrigacoes.map((l) => ({ obrigacaoId: l.obrigacaoId, nome: l.obrigacao.nome, departamento: l.obrigacao.departamento?.nome ?? 'Sem departamento', tempoPrevisto: l.tempoPrevisto ?? 0 })));
     }).catch(() => toast('erro', 'Grupo nao encontrado.')).finally(() => setCarregando(false));
   }, [id, novo]);
 
@@ -50,16 +50,17 @@ export default function GrupoForm() {
     if (!novoSel) return;
     const o = catalogo.find((x) => x.id === novoSel);
     if (!o) return;
-    setItens((arr) => [...arr, { obrigacaoId: o.id, nome: o.nome, departamento: o.departamento?.nome ?? 'Sem departamento' }]);
+    setItens((arr) => [...arr, { obrigacaoId: o.id, nome: o.nome, departamento: o.departamento?.nome ?? 'Sem departamento', tempoPrevisto: 0 }]);
     setNovoSel('');
   }
   function remover(obrigacaoId: string) { setItens((arr) => arr.filter((i) => i.obrigacaoId !== obrigacaoId)); }
+  function setTempo(obrigacaoId: string, tempo: number) { setItens((arr) => arr.map((i) => (i.obrigacaoId === obrigacaoId ? { ...i, tempoPrevisto: tempo } : i))); }
 
   async function salvar() {
     if (nome.trim().length < 2) return toast('erro', 'Informe o nome do grupo.');
     setSalvando(true);
     try {
-      const payload = { nome, ativo, obrigacaoIds: itens.map((i) => i.obrigacaoId) };
+      const payload = { nome, ativo, obrigacoes: itens.map((i) => ({ obrigacaoId: i.obrigacaoId, tempoPrevisto: i.tempoPrevisto || 0 })) };
       if (novo) await api.post('/grupos', payload);
       else await api.put(`/grupos/${id}`, payload);
       toast('ok', 'Grupo salvo.');
@@ -115,15 +116,21 @@ export default function GrupoForm() {
         <div className="mt-2">
           {Object.keys(grupos).length === 0 && <p className="text-[12px] text-slate-400">Nenhuma obrigacao adicionada.</p>}
           {Object.entries(grupos).map(([dep, lista]) => (
-            <div key={dep} className="mb-1">
-              <button onClick={() => setGrupoFechado((g) => ({ ...g, [dep]: !g[dep] }))} className="text-left text-[13px] font-bold text-roxo-600">
-                {dep} <span className="font-normal text-roxo-400">(clique para exibir/ocultar)</span>
-              </button>
+            <div key={dep} className="mb-2">
+              {/* Cabecalho do departamento (abre/fecha em dropdown) + titulo da coluna */}
+              <div className="grid grid-cols-[1fr_1fr_180px] items-center gap-3 py-1">
+                <button onClick={() => setGrupoFechado((g) => ({ ...g, [dep]: !g[dep] }))} className="text-left text-[13px] font-bold text-roxo-600">
+                  {dep} <span className="font-normal text-roxo-400">(clique para exibir/ocultar)</span>
+                </button>
+                <span className="text-center text-[13px] text-slate-600">Tempo previsto (min)</span>
+                <span />
+              </div>
               {!grupoFechado[dep] && (
-                <div className="mt-1">
+                <div>
                   {lista.map((it, idx) => (
-                    <div key={it.obrigacaoId} className={`grid grid-cols-[1fr_170px] items-center gap-3 px-2 py-1 ${idx % 2 ? 'bg-fundo' : 'bg-white'}`}>
+                    <div key={it.obrigacaoId} className={`grid grid-cols-[1fr_1fr_180px] items-center gap-3 px-2 py-1.5 ${idx % 2 ? 'bg-fundo' : 'bg-white'}`}>
                       <button onClick={() => navigate(`/obrigacoes/${it.obrigacaoId}`)} className="text-left text-marca-600 hover:underline">{it.nome}</button>
+                      <input type="number" min={0} value={it.tempoPrevisto} onChange={(e) => setTempo(it.obrigacaoId, Math.max(0, parseInt(e.target.value, 10) || 0))} className="w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-center text-[13px] text-slate-700 outline-none focus:border-marca-400" />
                       <button onClick={() => remover(it.obrigacaoId)} className="flex items-center justify-center gap-2 rounded bg-status-danger py-1.5 text-sm font-medium text-white hover:bg-red-600"><Trash2 size={15} /> Remover</button>
                     </div>
                   ))}

@@ -588,6 +588,7 @@ model GrupoObrigacao {
   grupo         GrupoObrigacoes @relation(fields: [grupoId], references: [id], onDelete: Cascade)
   obrigacaoId   String
   obrigacao     Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+  tempoPrevisto Int      @default(0)
 
   @@unique([grupoId, obrigacaoId])
   @@index([obrigacaoId])
