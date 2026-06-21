@@ -287,7 +287,7 @@ router.get('/processos/:id', async (req, res) => {
 
 // ---------- NPS / Avalie-nos ----------
 router.post('/nps', validate({ body: z.object({ nota: z.number().int().min(0).max(10), comentario: z.string().optional() }) }), async (req, res) => {
-  if (req.body.nota <= 8 && !req.body.comentario?.trim()) throw Errors.validacao('Para notas ate 8, conte-nos o motivo.');
+  if (req.body.nota < 5 && !req.body.comentario?.trim()) throw Errors.validacao('Para notas abaixo de 5, conte-nos o motivo.');
   await prisma.npsAvaliacao.create({
     data: {
       escritorioId: req.contato!.escritorioId, empresaId: req.contato!.empresaAtual,

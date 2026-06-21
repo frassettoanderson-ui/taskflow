@@ -512,7 +512,7 @@ function AvalieNos() {
   async function enviar() {
     setErro('');
     if (nota === null) { setErro('Escolha uma nota de 0 a 10.'); return; }
-    if (nota <= 8 && !comentario.trim()) { setErro('Para notas ate 8, conte-nos o motivo.'); return; }
+    if (nota < 5 && !comentario.trim()) { setErro('Para notas abaixo de 5, conte-nos o motivo.'); return; }
     try { await portalApi.post('/nps', { nota, comentario: comentario.trim() || undefined }); setEnviado(true); }
     catch (e) { setErro(e instanceof PortalError ? e.message : 'Erro ao enviar.'); }
   }
@@ -538,7 +538,7 @@ function AvalieNos() {
         </div>
         <div className="mt-2 flex justify-between text-xs text-slate-400"><span>Pouco provavel</span><span>Muito provavel</span></div>
         <div className="mt-3">
-          <label className="label">Comentario {nota !== null && nota <= 8 ? '(obrigatorio)' : '(opcional)'}</label>
+          <label className="label">Comentario {nota !== null && nota < 5 ? '(obrigatorio)' : '(opcional)'}</label>
           <textarea className="input" rows={3} value={comentario} onChange={(e) => setComentario(e.target.value)} placeholder="Conte-nos o motivo da sua nota" />
         </div>
         {erro && <p className="mt-2 text-sm text-red-500">{erro}</p>}
