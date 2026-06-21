@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Home,
   User,
@@ -132,6 +132,7 @@ export default function Layout() {
   const { sessao, logout } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const [recolhido, setRecolhido] = useState(() => localStorage.getItem('goa_menu_recolhido') === '1');
 
   function toggleRecolhido() {
@@ -225,7 +226,10 @@ export default function Layout() {
         </header>
 
         <main className="flex-1 overflow-y-auto bg-fundo p-6">
-          <Outlet />
+          {/* key na rota: re-dispara a animacao de surgimento a cada troca de tela */}
+          <div key={location.pathname} className="page-anim h-full">
+            <Outlet />
+          </div>
         </main>
       </div>
 

@@ -25,7 +25,7 @@ export function InfoHint({ texto }: { texto: string }) {
       >i</button>
       {aberto && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={(e) => { e.stopPropagation(); setAberto(false); }}>
-          <div className="w-full max-w-lg rounded-lg bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-card-anim w-full max-w-lg rounded-lg bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border-2 border-marca-300 text-2xl font-light text-marca-400">i</div>
             <p className="whitespace-pre-line text-left text-[14px] leading-relaxed text-slate-600">{texto}</p>
             <button onClick={(e) => { e.stopPropagation(); setAberto(false); }} className="mt-5 rounded bg-marca-500 px-8 py-1.5 text-sm font-medium text-white hover:bg-marca-600">OK</button>
@@ -81,7 +81,7 @@ export function Modal({
       onClick={onFechar}
     >
       <div
-        className={`card w-full ${largura} p-6`}
+        className={`modal-card-anim card w-full ${largura} p-6`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -120,7 +120,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`rounded-md px-4 py-2 text-sm text-white shadow-lg ${
+            className={`toast-anim rounded-md px-4 py-2 text-sm text-white shadow-lg ${
               t.tipo === 'ok' ? 'bg-emerald-600' : 'bg-red-600'
             }`}
           >
