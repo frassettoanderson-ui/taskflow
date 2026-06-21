@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2, SlidersHorizontal, X, SearchX, CalendarDays, SquarePen,
   Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save, History,
@@ -18,6 +18,17 @@ const GRUPO_STATUS: Record<string, StatusEntrega[]> = {
   justificadas: ['ENTREGUE_JUSTIFICADA'],
   entregues: ['ENTREGUE'],
   dispensadas: ['DISPENSADA'],
+};
+
+// rotulos dos chips de classificacao (cliques do Dashboard)
+const CHIP_LABEL: Record<string, string> = {
+  entAntecipada: 'Entregas antecipadas',
+  entNoPrazoTec: 'Entregas no prazo tecnico',
+  entAtrasada: 'Entregas atrasadas',
+  pendAntesTec: 'Somente pendentes antes do prazo tecnico',
+  pendDentroTec: 'Somente pendentes dentro do prazo tecnico',
+  soEntreguesPeloResp: 'Somente as entregues pelo responsavel',
+  naoPassivelMulta: 'Somente Nao Passiveis Multas',
 };
 
 // rotulo curto + cor do "Status Entrega"
@@ -65,10 +76,13 @@ export default function ListaEntregas() {
   const [q, setQ] = useState('');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [departamentoId, setDepartamentoId] = useState('');
+  const [responsavelId, setResponsavelId] = useState('');
   const [grupoId, setGrupoId] = useState('');
   const [obrigacaoId, setObrigacaoId] = useState('');
   const [passivelMulta, setPassivelMulta] = useState(false);
   const [comAnexos, setComAnexos] = useState(false);
+  // chips de classificacao vindos do Dashboard (filtros forcados removiveis)
+  const [chips, setChips] = useState<Record<string, boolean>>({});
   const [flags, setFlags] = useState({ pendentes: true, justificadas: true, entregues: false, dispensadas: false });
   const [mostrarDatas, setMostrarDatas] = useState(false);
   const [mostrarImprimir, setMostrarImprimir] = useState(false);
@@ -101,6 +115,8 @@ export default function ListaEntregas() {
   const [massaMotivo, setMassaMotivo] = useState('');
   const [massaExec, setMassaExec] = useState(false);
 
+  const [searchParams] = useSearchParams();
+
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
@@ -108,16 +124,48 @@ export default function ListaEntregas() {
     api.get<{ id: string; nome: string }[]>('/obrigacoes').then((o) => setObrigacoes(o.map((x) => ({ id: x.id, nome: x.nome })))).catch(() => undefined);
   }, []);
 
+  // ---- aplica filtros vindos do Dashboard (?flags=...&resp=...&entAtrasada=1...) ----
+  useEffect(() => {
+    const p = searchParams;
+    if ([...p.keys()].length === 0) return;
+    if (p.get('flags')) {
+      const s = new Set(p.get('flags')!.split(','));
+      setFlags({ pendentes: s.has('pendentes'), justificadas: s.has('justificadas'), entregues: s.has('entregues'), dispensadas: s.has('dispensadas') });
+    }
+    if (p.get('resp')) setResponsavelId(p.get('resp')!);
+    if (p.get('dep')) setDepartamentoId(p.get('dep')!);
+    if (p.get('pmulta') === '1') setPassivelMulta(true);
+    const legalDe = p.get('legalDe'); const legalAte = p.get('legalAte');
+    setD((cur) => ({
+      ...cur,
+      compDe: legalDe || legalAte ? '' : cur.compDe,
+      compAte: legalDe || legalAte ? '' : cur.compAte,
+      prazoLegalDe: legalDe ?? cur.prazoLegalDe,
+      prazoLegalAte: legalAte ?? cur.prazoLegalAte,
+    }));
+    const ch: Record<string, boolean> = {};
+    for (const k of ['entAntecipada', 'entNoPrazoTec', 'entAtrasada', 'pendAntesTec', 'pendDentroTec', 'soEntreguesPeloResp', 'naoPassivelMulta']) {
+      if (p.get(k) === '1') ch[k] = true;
+    }
+    setChips(ch);
+    if (legalDe || legalAte) setMostrarDatas(true);
+    setTick((t) => t + 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   function carregar() {
     setLoading(true);
     const statusList = Object.entries(flags).filter(([, v]) => v).flatMap(([k]) => GRUPO_STATUS[k]);
     const qs = new URLSearchParams({ page: String(page), limit: '50', ordem, dir });
     if (q.trim()) qs.set('q', q.trim());
     if (departamentoId) qs.set('departamentoId', departamentoId);
+    if (responsavelId) qs.set('responsavelId', responsavelId);
     if (grupoId) qs.set('grupoId', grupoId);
     if (obrigacaoId) qs.set('obrigacaoId', obrigacaoId);
     if (passivelMulta) qs.set('passivelMulta', 'true');
     if (comAnexos) qs.set('comAnexos', 'true');
+    // chips de classificacao (vindos do Dashboard)
+    for (const k of Object.keys(chips)) if (chips[k]) qs.set(k === 'naoPassivelMulta' ? 'naoPassivelMulta' : k, 'true');
     if (statusList.length) qs.set('statusList', statusList.join(','));
     if (d.compDe) qs.set('compDe', d.compDe);
     if (d.compAte) qs.set('compAte', d.compAte);
@@ -317,6 +365,18 @@ export default function ListaEntregas() {
         )}
       </div>
 
+      {/* chips de filtros forcados (vindos do Dashboard) */}
+      {(responsavelId || Object.values(chips).some(Boolean)) && (
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {responsavelId && (
+            <ChipFiltro label={`Resp: ${nomeUsuario.get(responsavelId) ?? '...'}`} onRemove={() => { setResponsavelId(''); filtrar(); }} />
+          )}
+          {Object.entries(chips).filter(([, v]) => v).map(([k]) => (
+            <ChipFiltro key={k} label={CHIP_LABEL[k] ?? k} onRemove={() => { setChips((c) => ({ ...c, [k]: false })); filtrar(); }} />
+          ))}
+        </div>
+      )}
+
       {/* barra de acoes em massa */}
       {podeMassa && sel.size > 0 && (
         <div className="mt-2 flex flex-wrap items-center gap-2 rounded border border-marca-200 bg-marca-50 p-2 text-[12px]">
@@ -478,6 +538,15 @@ export default function ListaEntregas() {
         <Link to="/entregas/calendario" className="text-marca-600 hover:underline">Ver calendario</Link>
       </div>
     </div>
+  );
+}
+
+function ChipFiltro({ label, onRemove }: { label: string; onRemove: () => void }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-600">
+      <button onClick={onRemove} className="text-slate-400 hover:text-red-500">×</button>
+      {label}
+    </span>
   );
 }
 

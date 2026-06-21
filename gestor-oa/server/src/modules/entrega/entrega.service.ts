@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { addDays } from 'date-fns';
 import { prisma } from '../../prisma.js';
 import { Errors } from '../../lib/errors.js';
@@ -302,8 +302,16 @@ export interface FiltrosEntrega {
   q?: string;                       // busca por empresa (razao/fantasia)
   grupoId?: string;                 // grupo de empresas
   passivelMulta?: boolean;          // so obrigacoes passiveis de multa
+  naoPassivelMulta?: boolean;       // so obrigacoes NAO passiveis de multa
   comAnexos?: boolean;              // so entregas com anexos
   statusList?: StatusEntrega[];     // grupos das flags (Pendentes/Justificadas/Entregues/Dispensadas)
+  // chips de classificacao (cliques do Dashboard)
+  entAntecipada?: boolean;          // entregue antes do prazo tecnico (compara colunas -> raw)
+  entNoPrazoTec?: boolean;          // entregue entre tecnico e legal (raw)
+  entAtrasada?: boolean;            // entregue em atraso (status ENTREGUE_JUSTIFICADA)
+  pendAntesTec?: boolean;           // pendente, prazo tecnico ainda nao chegou (prazoTecnico > hoje)
+  pendDentroTec?: boolean;          // pendente, no prazo tecnico (tecnico <= hoje <= legal)
+  soEntreguesPeloResp?: boolean;    // com responsavelId: filtra por quem ENTREGOU (responsavelEntregaId)
   compDe?: { ano: number; mes: number };
   compAte?: { ano: number; mes: number };
   prazoTecDe?: string;
@@ -333,14 +341,23 @@ function baseWhere(
   if (f.departamentoId) and.push({ obrigacao: { departamentoId: f.departamentoId } });
   if (f.grupoId) and.push({ empresa: { grupoEmpresaId: f.grupoId } });
   if (f.passivelMulta) and.push({ obrigacao: { passivelMulta: true } });
+  if (f.naoPassivelMulta) and.push({ obrigacao: { passivelMulta: false } });
   if (f.comAnexos) and.push({ anexos: { some: {} } });
   if (f.status) and.push({ status: f.status });
   if (f.statusList?.length) and.push({ status: { in: f.statusList } });
-  if (f.responsavelId)
-    and.push({
-      OR: [{ responsavelPrazoId: f.responsavelId }, { responsavelEntregaId: f.responsavelId }],
-    });
+  if (f.responsavelId) {
+    // "entregues pelo responsavel" filtra por quem ENTREGOU; senao por prazo OU entrega
+    if (f.soEntreguesPeloResp) and.push({ responsavelEntregaId: f.responsavelId });
+    else and.push({ OR: [{ responsavelPrazoId: f.responsavelId }, { responsavelEntregaId: f.responsavelId }] });
+  }
   if (f.tagId) and.push({ empresa: { tags: { some: { tagId: f.tagId } } } });
+
+  // chips de classificacao (cliques do Dashboard)
+  const agora = new Date();
+  const PENDENTES: StatusEntrega[] = ['PENDENTE', 'PENDENTE_ANTECIPADO', 'EM_ATRASO_TECNICO', 'EM_ATRASO_LEGAL'];
+  if (f.entAtrasada) and.push({ status: 'ENTREGUE_JUSTIFICADA' });
+  if (f.pendAntesTec) and.push({ status: { in: PENDENTES }, prazoTecnico: { gt: agora } });
+  if (f.pendDentroTec) and.push({ status: { in: PENDENTES }, prazoTecnico: { lte: agora }, prazoLegal: { gte: agora } });
 
   // busca por empresa (texto)
   if (f.q?.trim()) {
@@ -405,6 +422,17 @@ export async function listar(
   const cfg = await lerConfig(escritorioId);
   const where = baseWhere(escritorioId, filtros, ff);
   const hoje = new Date();
+
+  // comparacao entre colunas (dataEntrega vs prazos) -> SQL direto p/ obter os ids
+  if (filtros.entAntecipada || filtros.entNoPrazoTec) {
+    const cond = filtros.entAntecipada
+      ? Prisma.sql`"dataEntrega" < "prazoTecnico"`
+      : Prisma.sql`"dataEntrega" >= "prazoTecnico" AND "dataEntrega" <= "prazoLegal"`;
+    const rows = await prisma.$queryRaw<{ id: string }[]>(
+      Prisma.sql`SELECT id FROM "Entrega" WHERE "escritorioId" = ${escritorioId} AND "status" IN ('ENTREGUE','ENTREGUE_JUSTIFICADA') AND "dataEntrega" IS NOT NULL AND ${cond}`,
+    );
+    (where.AND as Prisma.EntregaWhereInput[]).push({ id: { in: rows.map((r) => r.id) } });
+  }
 
   const [items, total] = await Promise.all([
     prisma.entrega.findMany({
