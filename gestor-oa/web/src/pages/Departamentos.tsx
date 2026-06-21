@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, PlusCircle, Trash2, Network, Tags } from 'lucide-react';
+import { PlusCircle, Trash2, Network, Tags } from 'lucide-react';
 import { api, ApiError } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
 import { Spinner, useToast } from '../components/ui';
@@ -50,11 +50,11 @@ export default function Departamentos() {
         </div>
       </div>
 
-      {/* Tabela */}
-      <div className="overflow-hidden rounded border border-slate-200 bg-white">
+      {/* Tabela (flat, zebra branco/cinza - estilo Acessorias, sem container) */}
+      <div className="overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-[12px] font-semibold text-slate-600">
+            <tr className="border-b border-slate-300 text-left text-[12px] font-semibold text-slate-600">
               <th className="px-4 py-2.5">Departamento</th>
               <th className="px-4 py-2.5">Obrigacoes</th>
               <th className="px-4 py-2.5">Envio agendado</th>
@@ -67,12 +67,11 @@ export default function Departamentos() {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {deps.map((d) => (
-              <tr key={d.id} className="group hover:bg-slate-50">
+              <tr key={d.id} className="border-b border-slate-200 odd:bg-white even:bg-fundo hover:bg-caixa">
                 <td className="px-4 py-2.5">
-                  <button onClick={() => navigate(`/cadastros/${d.id}`)} className="flex items-center gap-2 text-marca-600 hover:underline">
-                    <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: d.cor }} />
+                  <button onClick={() => navigate(`/cadastros/${d.id}`)} className="text-marca-600 hover:underline">
                     {d.nome}{!d.ativo && <span className="text-slate-400"> [inativo]</span>}
                   </button>
                 </td>
@@ -87,9 +86,9 @@ export default function Departamentos() {
                     {podeDep && (
                       <>
                         <button title="Novo sub-departamento" onClick={() => navigate(`/cadastros/novo?pai=${d.id}`)} className="text-status-ok hover:opacity-70">
-                          <Plus size={16} />
+                          <PlusCircle size={16} />
                         </button>
-                        <button title="Excluir" onClick={() => excluir(d)} className="text-red-400 hover:text-red-600">
+                        <button title="Excluir" onClick={() => excluir(d)} className="text-status-danger hover:opacity-70">
                           <Trash2 size={15} />
                         </button>
                       </>
