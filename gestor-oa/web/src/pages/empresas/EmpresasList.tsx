@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Heart, Search, SlidersHorizontal, Mail, Download, XCircle, Network, Tags as TagsIcon, Printer, Calendar, Plus, MessageCircle, CheckCircle2, Users, ArrowUpDown, RotateCcw } from 'lucide-react';
+import { Heart, Search, SlidersHorizontal, Mail, Download, XCircle, Network, Tags as TagsIcon, Printer, Calendar, Plus, MessageCircle, CheckCircle2, Users, ArrowUpDown, RotateCcw, Pencil, Trash2 } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Badge, Spinner, useToast } from '../../components/ui';
@@ -27,6 +27,7 @@ export default function EmpresasList() {
   const podeEditar = temPermissao(sessao, 'empresas_editar');
   const podeCriar = temPermissao(sessao, 'empresas_criar');
   const podeImportar = temPermissao(sessao, 'empresas_importar');
+  const podeExcluir = temPermissao(sessao, 'empresas_excluir');
   const [searchParams] = useSearchParams();
   const motivoUrl = searchParams.get('motivo') ?? '';
   const grupoUrl = searchParams.get('grupo') ?? '';
@@ -38,6 +39,7 @@ export default function EmpresasList() {
   const [grupoId, setGrupoId] = useState(grupoUrl);
   const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
   const [page, setPage] = useState(1);
+  const [refresh, setRefresh] = useState(0);
 
   const [pagina, setPagina] = useState<Pagina | null>(null);
   const [loading, setLoading] = useState(true);
@@ -87,7 +89,7 @@ export default function EmpresasList() {
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [busca, status, tagId, departamentoId, grupoId, motivoUrl, page, toast]);
+  }, [busca, status, tagId, departamentoId, grupoId, motivoUrl, page, refresh, toast]);
 
   // Reseta pagina ao mudar filtros
   useEffect(() => setPage(1), [busca, status, tagId, departamentoId, grupoId, motivoUrl]);
@@ -136,6 +138,15 @@ export default function EmpresasList() {
   function ordenarPor(campo: 'razao' | 'fantasia') {
     if (ordenar === campo) setDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setOrdenar(campo); setDir('asc'); }
+  }
+
+  async function excluirEmpresa(id: string, razao: string) {
+    if (!confirm(`Apagar a empresa "${razao}"? Esta acao nao pode ser desfeita.`)) return;
+    try {
+      await api.del(`/empresas/${id}`);
+      toast('ok', 'Empresa apagada.');
+      setRefresh((r) => r + 1);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao apagar.'); }
   }
 
   const ICONE = 'flex h-9 w-9 items-center justify-center rounded hover:opacity-80';
@@ -308,9 +319,24 @@ export default function EmpresasList() {
                   <button onClick={() => ordenarPor('fantasia')} className="mt-0.5 block font-normal text-slate-500 hover:underline">Nome Fantasia</button>
                 </th>
                 <th className="px-4 py-2">CNPJ<div className="font-normal text-slate-500">Telefone</div></th>
-                <th className="px-4 py-2">Cidade<div className="font-normal text-slate-500">Grupo de empresas</div></th>
-                <th className="px-4 py-2">Regime<div className="font-normal text-slate-500">Tags</div></th>
-                <th className="px-4 py-2 text-right">
+                <th className="px-4 py-2">
+                  Cidade
+                  <div className="flex items-center gap-1 font-normal text-slate-500">
+                    Grupo de empresas
+                    <button title="Cadastro de grupos" onClick={() => navigate('/empresas/grupos')} className="text-marca-500 hover:text-marca-700"><Pencil size={12} /></button>
+                  </div>
+                </th>
+                <th className="px-4 py-2">
+                  <div className="flex items-center gap-1">
+                    Regime
+                    <button title="Cadastro de regimes" onClick={() => navigate('/obrigacoes/regimes')} className="text-marca-500 hover:text-marca-700"><Pencil size={12} /></button>
+                  </div>
+                  <div className="flex items-center gap-1 font-normal text-slate-500">
+                    Tags
+                    <button title="Cadastro de tags" onClick={() => navigate('/cadastros/tags')} className="text-marca-500 hover:text-marca-700"><Pencil size={12} /></button>
+                  </div>
+                </th>
+                <th className="px-4 py-2 text-right align-top">
                   <div>[{pagina?.total ?? 0} reg.]</div>
                 </th>
               </tr>
@@ -322,8 +348,11 @@ export default function EmpresasList() {
                     <div className="font-medium text-marca-600">{e.razaoSocial} <span className="font-normal text-slate-400">[{e.numero ?? '-'}]</span>{!e.ativo && <span className="text-slate-400"> [inativa]</span>}</div>
                     <div className="text-slate-500">{e.nomeFantasia ?? '—'}</div>
                   </td>
-                  <td className="px-4 py-2">
-                    <div className="text-slate-600">{e.cnpj ? formatarIdent('CNPJ', e.cnpj) : '—'}</div>
+                  <td className="px-4 py-2" onClick={(ev) => ev.stopPropagation()}>
+                    <div className="flex items-center gap-1.5 text-slate-600">
+                      {podeExcluir && <button title={`Apagar empresa [${e.numero ?? '-'}]`} onClick={() => excluirEmpresa(e.id, e.razaoSocial)} className="text-status-danger hover:text-red-700"><Trash2 size={14} /></button>}
+                      {e.cnpj ? formatarIdent('CNPJ', e.cnpj) : '—'}
+                    </div>
                     <div className="text-slate-400">{e.telefone ?? '—'}</div>
                   </td>
                   <td className="px-4 py-2">
@@ -337,11 +366,11 @@ export default function EmpresasList() {
                     <div className="mt-0.5 flex flex-wrap gap-1">{e.tags.map((t) => <Badge key={t.id} cor={t.cor}>{t.nome}</Badge>)}</div>
                   </td>
                   <td className="px-4 py-2" onClick={(ev) => ev.stopPropagation()}>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <button title="Comentarios e anotacoes gerais" onClick={() => navigate(`/empresas/${e.id}`)} className="text-status-ok hover:opacity-70"><MessageCircle size={16} /></button>
-                      <button title="Tarefas agendadas" onClick={() => toast('ok', 'Em construcao')} className="text-roxo-500 hover:opacity-70"><CheckCircle2 size={16} /></button>
-                      <button title="Contatos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-roxo-500 hover:opacity-70"><Users size={16} /></button>
-                      <button title="Responsaveis pelos departamentos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-marca-600 hover:opacity-70"><Network size={16} /></button>
+                    <div className="grid w-fit grid-cols-2 gap-x-2 gap-y-1">
+                      <button title="Comentarios e anotacoes gerais" onClick={() => navigate(`/empresas/${e.id}`)} className="text-status-ok hover:opacity-70"><MessageCircle size={15} /></button>
+                      <button title="Tarefas agendadas" onClick={() => toast('ok', 'Em construcao')} className="text-roxo-500 hover:opacity-70"><CheckCircle2 size={15} /></button>
+                      <button title="Contatos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-roxo-500 hover:opacity-70"><Users size={15} /></button>
+                      <button title="Responsaveis pelos departamentos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-marca-600 hover:opacity-70"><Network size={15} /></button>
                     </div>
                   </td>
                 </tr>
