@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, RotateCcw, FileText, History, Settings } from 'lucide-react';
+import { Save, RotateCcw, FileText, History, Settings, Search } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { Spinner, useToast } from '../../components/ui';
 import type { AssinaturaDocumento, Obrigacao } from '../../lib/tipos';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
-const LBL = 'mb-0.5 flex items-center gap-1 text-[12px] font-medium text-slate-600';
+const LBL = 'mb-1 flex items-center gap-1 text-[13px] font-bold text-slate-700';
 
 const ENVIA = ['Nao', 'Sim - Imediato', 'Sim - Agendado', 'Sim - Pre-agendado', 'Sim - Aos gestores do dpto'];
 const REENVIAR = ['Ignorar', 'Reprocessa e mantem arquivos anteriores', 'Reprocessa e desativa arquivos anteriores'];
@@ -71,6 +71,8 @@ export default function AssinaturaForm() {
   const [msgAlerta, setMsgAlerta] = useState('');
   const [consideraVcto, setConsideraVcto] = useState(true);
   const [correspondentes, setCorrespondentes] = useState<string[]>([]);
+  const [corrTxt, setCorrTxt] = useState('');
+  const [corrAberto, setCorrAberto] = useState(false);
   // recursos nossos (reconhecimento do robo)
   const [palavras, setPalavras] = useState('');
   const [regexCompetencia, setRegexCompetencia] = useState('');
@@ -141,11 +143,16 @@ export default function AssinaturaForm() {
 
   return (
     <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
-      <div className="mb-3 flex items-center gap-2 text-slate-500">
-        <Settings size={16} className="text-slate-400" />
-        <span>Sistema</span><span className="text-slate-300">›</span>
-        <span>e-Continuo</span><span className="text-slate-300">›</span>
-        <span className="text-slate-700">Editar obrigacoes correspondentes</span>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Settings size={16} className="text-slate-400" />
+          <span>Sistema</span><span className="text-slate-300">›</span>
+          <span>e-Continuo</span><span className="text-slate-300">›</span>
+          <span className="text-slate-700">Base de conhecimento do e-Continuo, o robo do Sistema</span>
+        </div>
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400">
+          <Search size={13} /><span className="text-[12px]">Central de ajuda</span>
+        </div>
       </div>
 
       {/* Linha 1 */}
@@ -208,19 +215,30 @@ export default function AssinaturaForm() {
       <div className="mt-3 grid grid-cols-1 items-end gap-x-6 gap-y-3 md:grid-cols-3">
         <div className="md:col-span-2">
           <label className={LBL}>Obrigacoes correspondentes: <Info onClick={() => setInfoTexto(INFO_CORRESPONDENTES)} /></label>
-          <div className="rounded border border-slate-300 bg-white p-1.5">
-            <div className="mb-1 flex flex-wrap gap-1">
-              {correspondentes.length === 0 && <span className="px-1 text-[11px] text-slate-400">Nenhuma selecionada</span>}
+          <div className="relative">
+            <div className="flex flex-wrap items-center gap-1 rounded border border-slate-300 bg-white px-1.5 py-1">
               {correspondentes.map((o) => (
                 <span key={o} className="inline-flex items-center gap-1 rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[12px] text-slate-600">
-                  <button onClick={() => setCorrespondentes((c) => c.filter((x) => x !== o))} className="text-slate-400 hover:text-red-500">×</button>{o}
+                  <button type="button" onClick={() => setCorrespondentes((c) => c.filter((x) => x !== o))} className="text-slate-400 hover:text-red-500">×</button>{o}
                 </span>
               ))}
+              <input
+                className="min-w-[140px] flex-1 text-[12px] outline-none"
+                placeholder={correspondentes.length ? '' : 'Nenhuma selecionada'}
+                value={corrTxt}
+                onChange={(e) => { setCorrTxt(e.target.value); setCorrAberto(true); }}
+                onFocus={() => setCorrAberto(true)}
+                onBlur={() => setTimeout(() => setCorrAberto(false), 150)}
+              />
             </div>
-            <select className="w-full border-t border-slate-100 bg-transparent px-1 pt-1 text-[12px] text-slate-600 outline-none" value="" onChange={(e) => { if (e.target.value) setCorrespondentes((c) => [...c, e.target.value]); }}>
-              <option value="">+ Adicionar obrigacao...</option>
-              {disponiveis.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            {corrAberto && (
+              <div className="absolute left-0 right-0 z-20 mt-1 max-h-56 overflow-auto rounded border border-slate-200 bg-white shadow-lg">
+                {disponiveis.filter((n) => n.toLowerCase().includes(corrTxt.trim().toLowerCase())).map((n) => (
+                  <button key={n} type="button" onMouseDown={() => { setCorrespondentes((c) => [...c, n]); setCorrTxt(''); }} className="block w-full px-3 py-1.5 text-left text-[12px] hover:bg-marca-50">{n}</button>
+                ))}
+                {disponiveis.length === 0 && <div className="px-3 py-1.5 text-[12px] text-slate-400">Sem mais obrigacoes</div>}
+              </div>
+            )}
           </div>
         </div>
         <div>
