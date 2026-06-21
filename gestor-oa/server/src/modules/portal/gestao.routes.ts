@@ -128,20 +128,45 @@ router.get('/avaliacoes-solicitacoes', requirePermission('portal_configurar'), a
   const sols = await prisma.solicitacaoPortal.findMany({
     where: { escritorioId, avaliacaoNota: { not: null } },
     orderBy: { updatedAt: 'desc' },
-    take: 500,
+    take: 5000,
   });
   const empresaIds = [...new Set(sols.map((s) => s.empresaId))];
-  const empresas = await prisma.empresa.findMany({ where: { id: { in: empresaIds } }, select: { id: true, razaoSocial: true } });
-  const empMap = new Map(empresas.map((e) => [e.id, e.razaoSocial]));
-  const total = sols.length;
-  const media = total ? Math.round((sols.reduce((s, x) => s + (x.avaliacaoNota ?? 0), 0) / total) * 10) / 10 : 0;
-  return ok(res, {
-    total, media,
-    itens: sols.map((s) => ({
-      id: s.id, titulo: s.titulo, empresa: empMap.get(s.empresaId) ?? '?', contatoNome: s.contatoNome,
-      nota: s.avaliacaoNota, comentario: s.avaliacaoComentario, data: s.updatedAt,
-    })),
-  });
+  const empresas = await prisma.empresa.findMany({ where: { id: { in: empresaIds }, escritorioId }, select: { id: true, razaoSocial: true } });
+  const nomeEmp = new Map(empresas.map((e) => [e.id, e.razaoSocial]));
+
+  // escala 1-5: promotor >=4, neutro =3, detrator <=2
+  type Contato = { nome: string; avaliacoes: number; soma: number; ultima: Date };
+  type Grupo = { id: string; nome: string; detr: number; neut: number; prom: number; total: number; soma: number; contatos: Map<string, Contato> };
+  const grupos = new Map<string, Grupo>();
+  for (const s of sols) {
+    const nota = s.avaliacaoNota ?? 0;
+    const empId = s.empresaId;
+    const g = grupos.get(empId) ?? { id: empId, nome: nomeEmp.get(empId) ?? 'Sem empresa', detr: 0, neut: 0, prom: 0, total: 0, soma: 0, contatos: new Map() };
+    if (nota >= 4) g.prom++; else if (nota === 3) g.neut++; else g.detr++;
+    g.total++; g.soma += nota;
+    const key = s.contatoNome || s.id;
+    const ct = g.contatos.get(key) ?? { nome: s.contatoNome || 'Contato', avaliacoes: 0, soma: 0, ultima: s.updatedAt };
+    ct.avaliacoes++; ct.soma += nota; if (s.updatedAt > ct.ultima) ct.ultima = s.updatedAt;
+    g.contatos.set(key, ct);
+    grupos.set(empId, g);
+  }
+
+  const empresasOut = [...grupos.values()].map((g) => ({
+    id: g.id, nome: g.nome,
+    detratores: g.detr, neutros: g.neut, promotores: g.prom, avaliacoes: g.total,
+    media: g.total ? Math.round((g.soma / g.total) * 10) / 10 : 0,
+    contatos: [...g.contatos.values()].map((c) => ({ nome: c.nome, avaliacoes: c.avaliacoes, media: c.avaliacoes ? Math.round((c.soma / c.avaliacoes) * 10) / 10 : 0, ultima: c.ultima }))
+      .sort((a, b) => b.ultima.getTime() - a.ultima.getTime()),
+  })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  const tot = empresasOut.length;
+  const prom = empresasOut.filter((e) => e.media >= 4).length;
+  const neut = empresasOut.filter((e) => e.media >= 3 && e.media < 4).length;
+  const detr = empresasOut.filter((e) => e.media > 0 && e.media < 3).length;
+  const pct = (n: number) => tot ? Math.round((n / tot) * 10000) / 100 : 0;
+  const cards = { detratoras: pct(detr), neutras: pct(neut), promotoras: pct(prom), nps: tot ? Math.round(((prom - detr) / tot) * 100) : 0 };
+
+  return ok(res, { cards, empresas: empresasOut });
 });
 
 // ===== Usuarios do APP (contatos com acesso ao portal) =====
