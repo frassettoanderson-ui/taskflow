@@ -48,8 +48,8 @@ interface Painel {
 
 const COR = {
   ok: '#5cb85c',
-  info: '#5b9bd5',
-  infoClaro: '#9cc3e4',
+  info: '#3b86c6',
+  infoClaro: '#5dade2',
   danger: '#cf3c5d',
   warn: '#f0ad4e',
   roxo: '#9b59b6',
@@ -211,8 +211,8 @@ function PainelFixo() {
         </label>
       </div>
 
-      {visao === 0 && <VisaoEntidades kind="colaborador" itens={painel.colaboradores.map((c) => ({ ...c, cor: undefined }))} icone={<User size={60} />} />}
-      {visao === 1 && <VisaoEntidades kind="departamento" itens={painel.departamentos} icone={<Building2 size={58} />} />}
+      {visao === 0 && <VisaoEntidades kind="colaborador" itens={painel.colaboradores.map((c) => ({ ...c, cor: undefined }))} icone={<User size={96} strokeWidth={1.5} />} />}
+      {visao === 1 && <VisaoEntidades kind="departamento" itens={painel.departamentos} icone={<Building2 size={92} strokeWidth={1.5} />} />}
       {visao === 2 && <VisaoNumerica num={painel.numericos} />}
 
       {/* Rodape estilo Acessorias */}
@@ -263,20 +263,20 @@ function VisaoEntidades({
         const linhas = cats(it.metricas);
         const segmentos: Segmento[] = linhas.map((c) => ({ valor: c.m.count, cor: c.cor, label: c.label }));
         const avatar = (
-          <div className="grid place-items-center rounded-full bg-slate-200 text-slate-400" style={{ width: 138, height: 138 }}>{icone}</div>
+          <div className="grid place-items-center rounded-full bg-slate-200 text-slate-500" style={{ width: 124, height: 124 }}>{icone}</div>
         );
         return (
           <div key={it.id} className="card overflow-hidden">
-            <div className="border-b border-slate-100 py-3 text-center text-xl font-semibold text-status-ok">
+            <div className="border-b border-slate-200 py-3 text-center text-xl font-semibold text-status-ok">
               {it.nome}
             </div>
             <div className="grid place-items-center py-5">
-              <Donut segmentos={segmentos} centro={avatar} tamanho={168} espessura={13} />
+              <Donut segmentos={segmentos} centro={avatar} tamanho={170} espessura={20} />
             </div>
-            <div className="divide-y divide-slate-100 border-t border-slate-100 text-base">
+            <div className="divide-y divide-slate-200 border-t border-slate-200 text-sm">
               {/* so linhas com valor > 0 (igual ao original) */}
               {linhas.filter((c) => c.m.count > 0).map((c) => (
-                <LinhaMetrica key={c.label} cor={c.cor} label={c.label} m={c.m} to={linkCategoria(kind, it.id, c.cat)} />
+                <LinhaMetrica key={c.label} cor={c.cor} label={c.label} m={c.m} compact to={linkCategoria(kind, it.id, c.cat)} />
               ))}
             </div>
           </div>
@@ -286,13 +286,13 @@ function VisaoEntidades({
   );
 }
 
-function LinhaMetrica({ cor, label, m, sub, to }: { cor: string; label: string; m: Metrica; sub?: boolean; to?: string }) {
+function LinhaMetrica({ cor, label, m, sub, to, compact }: { cor: string; label: string; m: Metrica; sub?: boolean; to?: string; compact?: boolean }) {
   const nav = useNavigate();
   return (
     <div onClick={to ? () => nav(to) : undefined}
-      className={`flex items-center justify-between py-2.5 pr-4 ${sub ? 'pl-8' : 'px-4'} ${to ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
-      <span style={{ color: cor }}>{sub ? '↳ ' : ''}{label}:</span>
-      <span className="rounded-full px-3.5 py-0.5 text-lg font-semibold text-white" style={{ background: cor }}>
+      className={`flex items-center justify-between ${compact ? 'py-2' : 'py-2.5'} pr-4 ${sub ? 'pl-8' : 'px-4'} ${to ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
+      <span className={compact ? 'text-sm font-semibold' : ''} style={{ color: cor }}>{sub ? '↳ ' : ''}{label}:</span>
+      <span className={`rounded-full text-white ${compact ? 'px-3 py-0.5 text-sm font-semibold' : 'px-3.5 py-0.5 text-lg font-semibold'}`} style={{ background: cor }}>
         {m.count}/{m.pct}%
       </span>
     </div>
