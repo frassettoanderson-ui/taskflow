@@ -268,8 +268,7 @@ async function main() {
     }
   }
 
-  // ---------- Modulo 2: Feriados nacionais (ano corrente + proximo) ----------
-  const anoBase = new Date().getFullYear();
+  // ---------- Modulo 2: Feriados nacionais (recorrentes: ano=0, valem todo ano) ----------
   const feriadosFixos = [
     ['01-01', 'Confraternizacao Universal'],
     ['04-21', 'Tiradentes'],
@@ -281,12 +280,11 @@ async function main() {
     ['11-20', 'Consciencia Negra'],
     ['12-25', 'Natal'],
   ];
-  for (const ano of [anoBase, anoBase + 1]) {
-    for (const [md, nome] of feriadosFixos) {
-      await prisma.feriado.create({
-        data: { escritorioId: escritorio.id, data: new Date(`${ano}-${md}T00:00:00`), nome, abrangencia: 'NACIONAL' },
-      }).catch(() => undefined);
-    }
+  for (const [md, nome] of feriadosFixos) {
+    const [mes, dia] = md.split('-').map(Number);
+    await prisma.feriado.create({
+      data: { escritorioId: escritorio.id, dia, mes, ano: 0, data: null, nome, abrangencia: 'NACIONAL' },
+    }).catch(() => undefined);
   }
 
   // ---------- Modulo 2: Catalogo de obrigacoes (25+) ----------

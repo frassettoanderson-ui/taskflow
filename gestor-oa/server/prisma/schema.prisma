@@ -487,11 +487,15 @@ model Feriado {
   id            String   @id @default(cuid())
   escritorioId  String
   escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  data          DateTime @db.Date
+  data          DateTime? @db.Date // mantido p/ compat; null quando recorrente (ano=0)
+  dia           Int      @default(0)
+  mes           Int      @default(0)
+  ano           Int      @default(0) // 0 = recorrente (vale todo ano)
   nome          String
   abrangencia   String   @default("NACIONAL") // NACIONAL | ESTADUAL | MUNICIPAL
   uf            String?
   municipio     String?
+  cidades       String?  // lista livre de cidades (em branco = todas)
   createdAt     DateTime @default(now())
 
   @@unique([escritorioId, data, nome])

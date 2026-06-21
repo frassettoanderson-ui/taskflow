@@ -58,9 +58,9 @@ export const grupoSchema = z.object({
 });
 
 export const feriadoSchema = z.object({
-  data: z.string(), // yyyy-MM-dd
-  nome: z.string().min(2, 'Nome do feriado e obrigatorio.'),
-  abrangencia: z.enum(['NACIONAL', 'ESTADUAL', 'MUNICIPAL']).default('NACIONAL'),
-  uf: z.string().optional().nullable(),
-  municipio: z.string().optional().nullable(),
+  dia: z.number().int().min(1).max(31),
+  mes: z.number().int().min(1).max(12),
+  ano: z.number().int().min(0).default(0), // 0 = recorrente (todo ano)
+  nome: z.string().min(2, 'Descricao do feriado e obrigatoria.'),
+  cidades: z.string().optional().nullable(),
 });

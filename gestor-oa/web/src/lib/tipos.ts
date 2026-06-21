@@ -275,11 +275,15 @@ export interface Grupo {
 
 export interface Feriado {
   id: string;
-  data: string;
+  data: string | null;
+  dia: number;
+  mes: number;
+  ano: number; // 0 = recorrente (todo ano)
   nome: string;
   abrangencia: string;
   uf: string | null;
   municipio: string | null;
+  cidades: string | null;
 }
 
 export interface VinculoObrigacao {

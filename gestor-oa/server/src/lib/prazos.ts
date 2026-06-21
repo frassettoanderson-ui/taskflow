@@ -144,6 +144,40 @@ export function calcularPrazos(
 }
 
 // Helper: monta o Set de feriados a partir de uma lista de datas.
-export function montarFeriados(datas: Date[]): FeriadosSet {
-  return new Set(datas.map((d) => chave(d)));
+export function montarFeriados(datas: (Date | null)[]): FeriadosSet {
+  return new Set(datas.filter((d): d is Date => !!d).map((d) => chave(d)));
+}
+
+// Definicao de feriado vinda do banco (Dia/Mes/Ano; ano=0 => recorrente todo ano).
+export interface FeriadoDef {
+  dia: number;
+  mes: number;
+  ano: number; // 0 = recorrente
+  data?: Date | null;
+}
+
+function chaveYmd(ano: number, mes1: number, dia: number): string {
+  return chave(new Date(ano, mes1 - 1, dia));
+}
+
+// Expande feriados datados e recorrentes para um conjunto 'yyyy-MM-dd', cobrindo
+// todos os anos informados (recorrentes geram uma entrada por ano do intervalo).
+export function expandirFeriados(defs: FeriadoDef[], anos: number[]): FeriadosSet {
+  const set = new Set<string>();
+  if (anos.length === 0) return set;
+  const min = Math.min(...anos);
+  const max = Math.max(...anos);
+  for (const f of defs) {
+    if (!f.dia || !f.mes) {
+      // sem dia/mes: cai no campo data (compat)
+      if (f.data) set.add(chave(f.data));
+      continue;
+    }
+    if (f.ano && f.ano > 0) {
+      set.add(chaveYmd(f.ano, f.mes, f.dia));
+    } else {
+      for (let y = min; y <= max; y++) set.add(chaveYmd(y, f.mes, f.dia));
+    }
+  }
+  return set;
 }

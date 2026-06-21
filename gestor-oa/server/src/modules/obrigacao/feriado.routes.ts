@@ -9,14 +9,17 @@ import { feriadoSchema } from './obrigacao.schemas.js';
 const router = Router();
 router.use(authenticate);
 
-// Listar feriados (opcional: ?ano=2026)
+// data concreta a partir de dia/mes/ano (ano=0 => recorrente => null)
+function dataDe(dia: number, mes: number, ano: number): Date | null {
+  return ano && ano > 0 ? new Date(ano, mes - 1, dia) : null;
+}
+
+// Listar feriados
 router.get('/', async (req, res) => {
-  const ano = req.query.ano ? Number(req.query.ano) : undefined;
-  const where: { escritorioId: string; data?: { gte: Date; lte: Date } } = {
-    escritorioId: req.auth!.escritorioId,
-  };
-  if (ano) where.data = { gte: new Date(ano, 0, 1), lte: new Date(ano, 11, 31) };
-  const feriados = await prisma.feriado.findMany({ where, orderBy: { data: 'asc' } });
+  const feriados = await prisma.feriado.findMany({
+    where: { escritorioId: req.auth!.escritorioId },
+    orderBy: [{ ano: 'asc' }, { mes: 'asc' }, { dia: 'asc' }],
+  });
   return ok(res, feriados);
 });
 
@@ -34,14 +37,15 @@ router.post(
   requirePermission('obrigacoes_gerenciar'),
   validate({ body: feriadoSchema }),
   async (req, res) => {
+    const { dia, mes, ano = 0, nome, cidades } = req.body;
     const feriado = await prisma.feriado.create({
       data: {
         escritorioId: req.auth!.escritorioId,
-        data: new Date(req.body.data + 'T00:00:00'),
-        nome: req.body.nome,
-        abrangencia: req.body.abrangencia,
-        uf: req.body.uf || null,
-        municipio: req.body.municipio || null,
+        dia, mes, ano,
+        data: dataDe(dia, mes, ano),
+        nome,
+        cidades: cidades || null,
+        abrangencia: cidades?.trim() ? 'MUNICIPAL' : 'NACIONAL',
       },
     });
     return ok(res, feriado, 201);
@@ -57,14 +61,18 @@ router.put(
       where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
     });
     if (!f) throw Errors.naoEncontrado('Feriado');
+    const dia = req.body.dia ?? f.dia;
+    const mes = req.body.mes ?? f.mes;
+    const ano = req.body.ano ?? f.ano;
+    const cidades = req.body.cidades !== undefined ? (req.body.cidades || null) : f.cidades;
     const feriado = await prisma.feriado.update({
       where: { id: f.id },
       data: {
-        data: req.body.data ? new Date(req.body.data + 'T00:00:00') : f.data,
+        dia, mes, ano,
+        data: dataDe(dia, mes, ano),
         nome: req.body.nome ?? f.nome,
-        abrangencia: req.body.abrangencia ?? f.abrangencia,
-        uf: req.body.uf !== undefined ? (req.body.uf || null) : f.uf,
-        municipio: req.body.municipio !== undefined ? (req.body.municipio || null) : f.municipio,
+        cidades,
+        abrangencia: cidades?.trim() ? 'MUNICIPAL' : 'NACIONAL',
       },
     });
     return ok(res, feriado);

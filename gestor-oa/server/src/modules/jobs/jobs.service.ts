@@ -2,7 +2,7 @@ import { prisma } from '../../prisma.js';
 import { gerarCompetencia } from '../entrega/entrega.service.js';
 import { instanciar } from '../processo/processo.service.js';
 import { statusEfetivo, type StatusEntrega } from '../entrega/entrega.status.js';
-import { montarFeriados, nthDiaUtil, ehDiaUtil } from '../../lib/prazos.js';
+import { expandirFeriados, nthDiaUtil, ehDiaUtil } from '../../lib/prazos.js';
 import { criarNotificacao } from '../../lib/notificar.js';
 
 export const JOBS = ['geracao_mensal', 'recorrencia_processos', 'alertas_prazos', 'lembrete_protocolos'] as const;
@@ -45,8 +45,9 @@ async function recorrenciaProcessos(): Promise<ResultadoJob> {
   // feriados por escritorio (cache simples)
   const feriadosCache = new Map<string, Awaited<ReturnType<typeof carregarFeriados>>>();
   async function carregarFeriados(escritorioId: string) {
-    const fs = await prisma.feriado.findMany({ where: { escritorioId }, select: { data: true } });
-    return montarFeriados(fs.map((f) => f.data));
+    const fs = await prisma.feriado.findMany({ where: { escritorioId }, select: { dia: true, mes: true, ano: true, data: true } });
+    const y = hoje.getFullYear();
+    return expandirFeriados(fs, [y - 1, y, y + 1]);
   }
 
   for (const rec of recorrencias) {

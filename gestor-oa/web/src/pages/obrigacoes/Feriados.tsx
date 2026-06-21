@@ -9,14 +9,13 @@ import type { Feriado } from '../../lib/tipos';
 const MESES = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const POR_PAGINA = 15;
 
-function dataLonga(s: string) {
-  const d = new Date(s);
-  return `${d.getUTCDate()} de ${MESES[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
+function dataLonga(f: Feriado) {
+  const mes = MESES[(f.mes || 1) - 1] ?? '';
+  // ano = 0 => recorrente (todo ano): exibe sem ano, como no original ("8 de Dezembro")
+  return f.ano && f.ano > 0 ? `${f.dia} de ${mes} de ${f.ano}` : `${f.dia} de ${mes}`;
 }
 function abrangenciaLabel(f: Feriado) {
-  if (f.abrangencia === 'NACIONAL') return 'Nacional/Geral';
-  if (f.abrangencia === 'ESTADUAL') return f.uf || 'Estadual';
-  return f.municipio || 'Municipal';
+  return f.cidades?.trim() ? f.cidades : 'Nacional/Geral';
 }
 
 export default function Feriados() {
@@ -77,7 +76,7 @@ export default function Feriados() {
           <tbody>
             {visiveis.map((f) => (
               <tr key={f.id} className="cursor-pointer border-b border-slate-200 odd:bg-white even:bg-fundo hover:bg-caixa" onClick={() => navigate(`/obrigacoes/feriados/${f.id}`)}>
-                <td className="px-4 py-2.5"><span className="font-medium text-marca-600">{dataLonga(f.data)}</span></td>
+                <td className="px-4 py-2.5"><span className="font-medium text-marca-600">{dataLonga(f)}</span></td>
                 <td className="px-4 py-2.5 text-slate-700">{f.nome}</td>
                 <td className="px-4 py-2.5 text-slate-600">{abrangenciaLabel(f)}</td>
               </tr>

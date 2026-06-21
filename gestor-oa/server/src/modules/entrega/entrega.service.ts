@@ -4,7 +4,7 @@ import { prisma } from '../../prisma.js';
 import { Errors } from '../../lib/errors.js';
 import {
   calcularPrazos,
-  montarFeriados,
+  expandirFeriados,
   type FeriadosSet,
 } from '../../lib/prazos.js';
 import { statusEfetivo, type StatusEntrega } from './entrega.status.js';
@@ -27,13 +27,13 @@ async function lerConfig(escritorioId: string): Promise<ConfigEscritorio> {
 }
 
 async function lerFeriados(escritorioId: string, anos: number[]): Promise<FeriadosSet> {
-  const min = new Date(Math.min(...anos), 0, 1);
-  const max = new Date(Math.max(...anos), 11, 31);
+  // Carrega todos os feriados do escritorio (datados + recorrentes) e expande
+  // para os anos solicitados (recorrentes valem em qualquer ano).
   const feriados = await prisma.feriado.findMany({
-    where: { escritorioId, data: { gte: min, lte: max } },
-    select: { data: true },
+    where: { escritorioId },
+    select: { dia: true, mes: true, ano: true, data: true },
   });
-  return montarFeriados(feriados.map((f) => f.data));
+  return expandirFeriados(feriados, anos);
 }
 
 // Periodicidade aplica nesta competencia?
