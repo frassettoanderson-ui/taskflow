@@ -20,6 +20,15 @@ router.get('/', async (req, res) => {
   return ok(res, feriados);
 });
 
+// Um feriado (para a ficha de cadastro)
+router.get('/:id', async (req, res) => {
+  const f = await prisma.feriado.findFirst({
+    where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
+  });
+  if (!f) throw Errors.naoEncontrado('Feriado');
+  return ok(res, f);
+});
+
 router.post(
   '/',
   requirePermission('obrigacoes_gerenciar'),
@@ -36,6 +45,29 @@ router.post(
       },
     });
     return ok(res, feriado, 201);
+  },
+);
+
+router.put(
+  '/:id',
+  requirePermission('obrigacoes_gerenciar'),
+  validate({ body: feriadoSchema.partial() }),
+  async (req, res) => {
+    const f = await prisma.feriado.findFirst({
+      where: { id: req.params.id, escritorioId: req.auth!.escritorioId },
+    });
+    if (!f) throw Errors.naoEncontrado('Feriado');
+    const feriado = await prisma.feriado.update({
+      where: { id: f.id },
+      data: {
+        data: req.body.data ? new Date(req.body.data + 'T00:00:00') : f.data,
+        nome: req.body.nome ?? f.nome,
+        abrangencia: req.body.abrangencia ?? f.abrangencia,
+        uf: req.body.uf !== undefined ? (req.body.uf || null) : f.uf,
+        municipio: req.body.municipio !== undefined ? (req.body.municipio || null) : f.municipio,
+      },
+    });
+    return ok(res, feriado);
   },
 );
 

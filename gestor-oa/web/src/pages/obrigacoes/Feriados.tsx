@@ -1,94 +1,100 @@
 import { useEffect, useState } from 'react';
-import { api, ApiError } from '../../lib/api';
+import { useNavigate } from 'react-router-dom';
+import { Settings, Search, Plus } from 'lucide-react';
+import { api } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Spinner, useToast } from '../../components/ui';
+import { Spinner } from '../../components/ui';
 import type { Feriado } from '../../lib/tipos';
+
+const MESES = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const POR_PAGINA = 15;
+
+function dataLonga(s: string) {
+  const d = new Date(s);
+  return `${d.getUTCDate()} de ${MESES[d.getUTCMonth()]} de ${d.getUTCFullYear()}`;
+}
+function abrangenciaLabel(f: Feriado) {
+  if (f.abrangencia === 'NACIONAL') return 'Nacional/Geral';
+  if (f.abrangencia === 'ESTADUAL') return f.uf || 'Estadual';
+  return f.municipio || 'Municipal';
+}
 
 export default function Feriados() {
   const { sessao } = useAuth();
-  const toast = useToast();
+  const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
-  const [ano, setAno] = useState(new Date().getFullYear());
   const [feriados, setFeriados] = useState<Feriado[]>([]);
   const [loading, setLoading] = useState(true);
-  const [novo, setNovo] = useState({ data: '', nome: '', abrangencia: 'NACIONAL' });
+  const [busca, setBusca] = useState('');
+  const [pagina, setPagina] = useState(1);
 
-  function carregar() {
-    setLoading(true);
-    api.get<Feriado[]>(`/feriados?ano=${ano}`).then(setFeriados).finally(() => setLoading(false));
-  }
-  useEffect(carregar, [ano]);
+  useEffect(() => { api.get<Feriado[]>('/feriados').then(setFeriados).catch(() => setFeriados([])).finally(() => setLoading(false)); }, []);
 
-  async function adicionar() {
-    if (!novo.data || !novo.nome) return;
-    try {
-      await api.post('/feriados', novo);
-      setNovo({ data: '', nome: '', abrangencia: 'NACIONAL' });
-      toast('ok', 'Feriado adicionado.');
-      carregar();
-    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
-  async function remover(id: string) {
-    try { await api.del(`/feriados/${id}`); carregar(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
+  if (loading) return <Spinner />;
+
+  const termo = busca.trim().toLowerCase();
+  const lista = feriados.filter((f) => !termo || f.nome.toLowerCase().includes(termo));
+  const totalPaginas = Math.max(1, Math.ceil(lista.length / POR_PAGINA));
+  const pag = Math.min(pagina, totalPaginas);
+  const visiveis = lista.slice((pag - 1) * POR_PAGINA, pag * POR_PAGINA);
 
   return (
-    <div className="max-w-3xl space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">Feriados</h1>
-        <select className="input w-32" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
-          {[ano - 1, ano, ano + 1, new Date().getFullYear(), new Date().getFullYear() + 1].filter((v, i, a) => a.indexOf(v) === i).sort().map((a) => (
-            <option key={a} value={a}>{a}</option>
-          ))}
-        </select>
-      </div>
-      <p className="text-sm text-slate-500">Usados no calculo de dias uteis dos prazos. Nacionais ja vem seedados; adicione municipais/estaduais.</p>
-
-      {podeGerenciar && (
-        <div className="card flex flex-wrap items-end gap-2 p-4">
-          <div>
-            <label className="label">Data</label>
-            <input type="date" className="input" value={novo.data} onChange={(e) => setNovo((n) => ({ ...n, data: e.target.value }))} />
-          </div>
-          <div className="flex-1 min-w-[180px]">
-            <label className="label">Nome</label>
-            <input className="input" value={novo.nome} onChange={(e) => setNovo((n) => ({ ...n, nome: e.target.value }))} />
-          </div>
-          <div>
-            <label className="label">Abrangencia</label>
-            <select className="input" value={novo.abrangencia} onChange={(e) => setNovo((n) => ({ ...n, abrangencia: e.target.value }))}>
-              <option value="NACIONAL">Nacional</option>
-              <option value="ESTADUAL">Estadual</option>
-              <option value="MUNICIPAL">Municipal</option>
-            </select>
-          </div>
-          <button className="btn-primary" onClick={adicionar}>Adicionar</button>
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
+      {/* breadcrumb */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Settings size={16} className="text-slate-400" />
+          <span>Sistema</span><span className="text-slate-300">&rsaquo;</span>
+          <span className="text-slate-700">Feriados para calculo dos dias uteis</span>
         </div>
-      )}
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400">
+          <Search size={13} /><span className="text-[12px]">Central de ajuda</span>
+        </div>
+      </div>
 
-      <div className="card overflow-hidden">
-        {loading ? <Spinner /> : (
-          <table className="w-full text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <tr><th className="px-3 py-2">Data</th><th className="px-3 py-2">Feriado</th><th className="px-3 py-2">Abrangencia</th><th></th></tr>
-            </thead>
-            <tbody>
-              {feriados.map((f) => (
-                <tr key={f.id} className="border-b border-slate-100">
-                  <td className="px-3 py-2">{new Date(f.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</td>
-                  <td className="px-3 py-2 text-slate-700">{f.nome}</td>
-                  <td className="px-3 py-2 text-slate-500">{f.abrangencia}{f.uf ? ` - ${f.uf}` : ''}</td>
-                  <td className="px-3 py-2 text-right">
-                    {podeGerenciar && <button className="text-red-500 hover:underline" onClick={() => remover(f.id)}>remover</button>}
-                  </td>
-                </tr>
-              ))}
-              {feriados.length === 0 && <tr><td colSpan={4} className="px-3 py-8 text-center text-slate-400">Nenhum feriado em {ano}.</td></tr>}
-            </tbody>
-          </table>
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[260px] flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-marca-400" />
+          <input className="w-full rounded border border-marca-300 bg-white py-2 pl-9 pr-3 text-[13px] outline-none focus:border-marca-500" value={busca} onChange={(e) => { setBusca(e.target.value); setPagina(1); }} placeholder="Filtrar pelo nome [Enter para filtrar]" />
+        </div>
+        <div className="flex-1 text-center text-[13px] font-medium text-marca-600">Listando {lista.length} registros - pagina {pag} de {totalPaginas}:</div>
+        {podeGerenciar && (
+          <button onClick={() => navigate('/obrigacoes/feriados/novo')} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo feriado</button>
         )}
       </div>
+
+      {/* Tabela */}
+      <div className="mt-3 overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-slate-300 text-left text-[12px] font-bold text-slate-600">
+              <th className="px-4 py-2.5">Data do feriado</th>
+              <th className="px-4 py-2.5">Descricao</th>
+              <th className="px-4 py-2.5">Abrangencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visiveis.map((f) => (
+              <tr key={f.id} className="cursor-pointer border-b border-slate-200 odd:bg-white even:bg-fundo hover:bg-caixa" onClick={() => navigate(`/obrigacoes/feriados/${f.id}`)}>
+                <td className="px-4 py-2.5"><span className="font-medium text-marca-600">{dataLonga(f.data)}</span></td>
+                <td className="px-4 py-2.5 text-slate-700">{f.nome}</td>
+                <td className="px-4 py-2.5 text-slate-600">{abrangenciaLabel(f)}</td>
+              </tr>
+            ))}
+            {visiveis.length === 0 && <tr><td colSpan={3} className="px-4 py-10 text-center text-slate-400">Nenhum feriado.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Paginacao */}
+      {totalPaginas > 1 && (
+        <div className="mt-3 flex items-center justify-center gap-2 text-[13px]">
+          <button disabled={pag <= 1} onClick={() => setPagina(pag - 1)} className="rounded border border-slate-300 bg-white px-3 py-1 text-marca-600 disabled:opacity-40">Anterior</button>
+          <span className="text-slate-500">{pag} / {totalPaginas}</span>
+          <button disabled={pag >= totalPaginas} onClick={() => setPagina(pag + 1)} className="rounded border border-slate-300 bg-white px-3 py-1 text-marca-600 disabled:opacity-40">Proxima</button>
+        </div>
+      )}
     </div>
   );
 }
