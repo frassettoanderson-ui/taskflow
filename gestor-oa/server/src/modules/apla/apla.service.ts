@@ -30,26 +30,44 @@ export async function computarApla(escritorioId: string, ano: number, mes: numbe
   const custoHoraFallback = cfg.custoHora;
   const diasAntecipado = (() => { const c = escritorio.config as Record<string, unknown>; return typeof c.diasAntecipado === 'number' ? c.diasAntecipado : 7; })();
 
-  const [vinculos, departamentos, usuarios, entregas, empresasAll, custosFixos] = await Promise.all([
+  // Produtividade conta no mes do PRAZO TECNICO (nao na competencia nem na dataEntrega):
+  // a competencia (mes de apuracao) costuma cair num mes e o prazo tecnico no seguinte.
+  // prazoTecnico e @db.Date: limites em UTC para casar com a data armazenada (Date.UTC(ano, mes, 0) = ultimo dia do mes).
+  const inicioMes = new Date(Date.UTC(ano, mes - 1, 1));
+  const fimMes = new Date(Date.UTC(ano, mes, 0));
+
+  const [vinculos, departamentos, usuarios, entregas, empresasAll, custosFixos, regimeOverrides] = await Promise.all([
     prisma.empresaObrigacao.findMany({
       where: { escritorioId, ativo: true, obrigacao: { deletedAt: null } },
       select: {
-        honorario: true, tempoPrevistoOverride: true,
-        empresaId: true, empresa: { select: { razaoSocial: true, deletedAt: true } },
+        honorario: true, tempoPrevistoOverride: true, obrigacaoId: true,
+        empresaId: true, empresa: { select: { razaoSocial: true, deletedAt: true, regimeTributarioId: true } },
         obrigacao: { select: { tempoPrevistoMin: true, departamentoId: true } },
       },
     }),
     prisma.departamento.findMany({ where: { escritorioId, ativo: true }, select: { id: true, nome: true, cor: true } }),
     prisma.usuario.findMany({ where: { escritorioId, deletedAt: null, ativo: true }, select: { id: true, nome: true, custoHora: true, minutosUteisMes: true, salario: true, encargos: true, beneficios: true } }),
     prisma.entrega.findMany({
-      where: { escritorioId, competenciaAno: ano, competenciaMes: mes },
-      select: { status: true, prazoTecnico: true, prazoLegal: true, dataEntrega: true, responsavelPrazoId: true, responsavelEntregaId: true, obrigacao: { select: { tempoPrevistoMin: true } } },
+      where: { escritorioId, prazoTecnico: { gte: inicioMes, lte: fimMes } },
+      select: {
+        status: true, prazoTecnico: true, prazoLegal: true, dataEntrega: true, responsavelPrazoId: true, responsavelEntregaId: true, obrigacaoId: true,
+        obrigacao: { select: { tempoPrevistoMin: true } },
+        empresaObrigacao: { select: { tempoPrevistoOverride: true, empresa: { select: { regimeTributarioId: true } } } },
+      },
     }),
     prisma.empresa.findMany({ where: { escritorioId, deletedAt: null, ativo: true }, select: { id: true, grupoEmpresaId: true, tags: { select: { tagId: true } } } }),
     prisma.custoFixo.findMany({ where: { escritorioId, ativo: true } }),
+    prisma.regimeObrigacao.findMany({ where: { regime: { escritorioId } }, select: { regimeId: true, obrigacaoId: true, tempoPrevistoOverride: true } }),
   ]);
 
   const hoje = new Date();
+
+  // Tempo efetivo de uma (empresa, obrigacao): override da empresa -> override do regime -> catalogo da obrigacao.
+  // (No Acessorias o tempo "mora" no regime; aqui o regime override e respeitado sem precisar snapshot na empresa.)
+  const regOv = new Map<string, number>();
+  for (const r of regimeOverrides) if (r.tempoPrevistoOverride != null) regOv.set(`${r.regimeId}|${r.obrigacaoId}`, r.tempoPrevistoOverride);
+  const tempoEfetivo = (override: number | null | undefined, regimeId: string | null | undefined, obrigacaoId: string, catalogo: number | null | undefined) =>
+    override ?? (regimeId ? regOv.get(`${regimeId}|${obrigacaoId}`) : undefined) ?? catalogo ?? 0;
 
   // ----- RH: custo da equipe -----
   const colab = usuarios.map((u) => {
@@ -65,7 +83,7 @@ export async function computarApla(escritorioId: string, ano: number, mes: numbe
 
   // ----- capacidade: alocado/entregue por colaborador (entregas do mes) -----
   for (const ent of entregas) {
-    const tempo = ent.obrigacao.tempoPrevistoMin ?? 0;
+    const tempo = tempoEfetivo(ent.empresaObrigacao?.tempoPrevistoOverride, ent.empresaObrigacao?.empresa.regimeTributarioId, ent.obrigacaoId, ent.obrigacao.tempoPrevistoMin);
     const st = statusEfetivo(ent.status as StatusEntrega, ent.prazoTecnico, ent.prazoLegal, hoje, diasAntecipado);
     const baixada = st === 'ENTREGUE' || st === 'ENTREGUE_JUSTIFICADA';
     const uid = ent.responsavelPrazoId ?? ent.responsavelEntregaId;
@@ -91,7 +109,7 @@ export async function computarApla(escritorioId: string, ano: number, mes: numbe
   for (const v of vinculos) {
     if (v.empresa.deletedAt) continue;
     const honor = Number(v.honorario ?? 0);
-    const tempo = v.tempoPrevistoOverride ?? v.obrigacao.tempoPrevistoMin ?? 0;
+    const tempo = tempoEfetivo(v.tempoPrevistoOverride, v.empresa.regimeTributarioId, v.obrigacaoId, v.obrigacao.tempoPrevistoMin);
     const e = empMap.get(v.empresaId) ?? { empresa: v.empresa.razaoSocial, honorario: 0, tempoMin: 0, obrigacoes: 0 };
     e.honorario += honor; e.tempoMin += tempo; e.obrigacoes++;
     empMap.set(v.empresaId, e);
