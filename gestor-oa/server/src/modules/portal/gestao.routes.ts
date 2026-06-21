@@ -176,13 +176,23 @@ router.get('/usuarios-app', appPerm, async (req, res) => {
   const escritorioId = req.auth!.escritorioId;
   const contatos = await prisma.empresaContato.findMany({
     where: { escritorioId, email: { not: null } },
-    select: { id: true, nome: true, email: true, ativo: true, senhaHash: true, empresa: { select: { razaoSocial: true } } },
+    select: { id: true, nome: true, email: true, ativo: true, senhaHash: true, createdAt: true, empresaId: true, empresa: { select: { razaoSocial: true } } },
     orderBy: { nome: 'asc' },
   });
-  return ok(res, contatos.map((c) => ({
-    id: c.id, nome: c.nome, email: c.email, empresa: c.empresa.razaoSocial,
-    ativo: c.ativo, temAcesso: !!c.senhaHash,
-  })));
+  // agrupa por e-mail: o mesmo usuario pode ser contato de varias empresas
+  type EmpAcesso = { id: string; razaoSocial: string; ativo: boolean; temAcesso: boolean; contatoId: string };
+  const grupos = new Map<string, { nome: string; email: string; createdAt: Date; empresas: EmpAcesso[] }>();
+  for (const c of contatos) {
+    const key = (c.email ?? '').toLowerCase();
+    const g = grupos.get(key) ?? { nome: c.nome, email: c.email ?? '', createdAt: c.createdAt, empresas: [] };
+    if (c.createdAt < g.createdAt) g.createdAt = c.createdAt;
+    g.empresas.push({ id: c.empresaId, razaoSocial: c.empresa.razaoSocial, ativo: c.ativo, temAcesso: !!c.senhaHash, contatoId: c.id });
+    grupos.set(key, g);
+  }
+  return ok(res, [...grupos.values()].map((g) => ({
+    nome: g.nome, email: g.email, createdAt: g.createdAt, ultimoAcesso: null,
+    empresas: g.empresas, temAcesso: g.empresas.some((e) => e.temAcesso),
+  })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')));
 });
 
 router.post('/usuarios-app/ativar-massa', appPerm, async (req, res) => {
