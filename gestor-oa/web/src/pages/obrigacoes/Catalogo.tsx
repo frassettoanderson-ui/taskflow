@@ -193,25 +193,29 @@ export default function Catalogo() {
                     onClick={() => navigate(`/obrigacoes/${o.id}`)}
                   >
                     <td className="px-3 py-2">
-                      <div className="flex items-center gap-1.5 font-medium text-marca-700">
+                      <div className="font-medium text-marca-700">
+                        {o.nome} {!o.ativo && <span className="text-red-500">[Inativa]</span>}
+                      </div>
+                      <div className="mt-0.5 grid grid-cols-[200px_auto] text-xs">
+                        <span className="text-slate-500">{o.departamento?.nome ? `Depto ${o.departamento.nome}` : '—'}</span>
+                        <span className="text-slate-400">{o._count?.empresaObrigacoes ?? 0} empresas</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex items-start gap-2">
                         {ecId && (
-                          <button onClick={(e) => { e.stopPropagation(); navigate(`/robo/assinaturas/${ecId}`); }} title="e-Continuo mapeado" className="text-marca-500 hover:text-marca-700">
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/robo/assinaturas/${ecId}`); }} title="e-Continuo mapeado" className="shrink-0 text-marca-500 hover:text-marca-700">
                             <Bot size={15} />
                           </button>
                         )}
-                        <span>{o.nome} {!o.ativo && <span className="text-red-500">[Inativa]</span>}</span>
+                        {datas.length === 0 ? (
+                          <span className="text-xs text-slate-400">Eventual</span>
+                        ) : (
+                          <div className="flex max-w-md flex-wrap gap-x-2 gap-y-0.5 font-mono text-[11px] text-slate-500">
+                            {datas.map((d, i) => <span key={i}>{d}</span>)}
+                          </div>
+                        )}
                       </div>
-                      <div className="text-xs text-slate-500">{o.departamento?.nome ?? '—'}</div>
-                      <div className="text-xs text-slate-400">{o._count?.empresaObrigacoes ?? 0} empresas</div>
-                    </td>
-                    <td className="px-3 py-2">
-                      {datas.length === 0 ? (
-                        <span className="text-xs text-slate-400">Eventual</span>
-                      ) : (
-                        <div className="flex max-w-md flex-wrap gap-x-2 gap-y-0.5 font-mono text-[11px] text-slate-500">
-                          {datas.map((d, i) => <span key={i}>{d}</span>)}
-                        </div>
-                      )}
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-500">
                       <div>Multa? <span className={o.passivelMulta ? 'text-red-500' : 'text-slate-400'}>{o.passivelMulta ? 'Sim' : 'Nao'}</span></div>
