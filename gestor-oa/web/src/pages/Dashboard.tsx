@@ -292,7 +292,7 @@ function LinhaMetrica({ cor, label, m, sub, to, compact }: { cor: string; label:
     <div onClick={to ? () => nav(to) : undefined}
       className={`flex items-center justify-between ${compact ? 'py-2' : 'py-2.5'} pr-4 ${sub ? 'pl-8' : 'px-4'} ${to ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
       <span className={compact ? 'text-sm font-semibold' : ''} style={{ color: cor }}>{sub ? '↳ ' : ''}{label}:</span>
-      <span className={`rounded-full text-white ${compact ? 'px-2.5 py-1 text-[15px] font-normal leading-none' : 'px-3.5 py-0.5 text-lg font-semibold'}`} style={{ background: cor }}>
+      <span className={`rounded-full text-white leading-none ${compact ? 'px-2.5 py-1 text-[15px] font-normal' : 'px-3 py-1.5 text-lg font-normal'}`} style={{ background: cor }}>
         {m.count}/{m.pct}%
       </span>
     </div>
@@ -345,11 +345,11 @@ function VisaoNumerica({ num }: { num: Painel['numericos'] }) {
 function CardNumero({ titulo, valor, cor, children }: { titulo: string; valor: number; cor: string; children: React.ReactNode }) {
   return (
     <div className="card overflow-hidden">
-      <div className="py-8 text-center">
+      <div className="bg-slate-50 px-2 pb-12 pt-5 text-center">
         <div className="text-2xl font-medium" style={{ color: cor }}>{titulo}</div>
-        <div className="font-light leading-none" style={{ color: cor, fontSize: '5rem' }}>{valor}</div>
+        <div className="font-light leading-none" style={{ color: cor, fontSize: '4.5rem' }}>{valor}</div>
       </div>
-      <div className="divide-y divide-slate-100 border-t border-slate-100 text-base">{children}</div>
+      <div className="divide-y divide-slate-200 border-t border-slate-200 text-base">{children}</div>
     </div>
   );
 }
