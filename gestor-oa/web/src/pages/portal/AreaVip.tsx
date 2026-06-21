@@ -6,7 +6,7 @@ import { useToast, InfoHint } from '../../components/ui';
 import type { Departamento, EmpresaLista } from '../../lib/tipos';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
-const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
+const LBL = 'mb-1 block text-[13px] font-bold text-slate-700';
 
 const OPC_PAGINA = ['Home', 'Calendario', 'Documentos', 'Solicitacoes', 'Comunicados', 'Processos', 'Dashboard'];
 const OPC_CALENDARIO = ['Todas do mes', 'Demandas do dia atual', 'Todas do dia atual'];
@@ -140,7 +140,7 @@ export default function AreaVip() {
 
       {/* Links + Logo */}
       <div className="mb-4 overflow-hidden rounded border border-slate-200 bg-white">
-        <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-semibold text-slate-700">
+        <div className="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-4 py-2 text-[13px] font-bold text-slate-700">
           <Smartphone size={15} className="text-slate-400" /> Link's para Area VIP e Aplicativos / Logo
         </div>
         <div className="divide-y divide-slate-100">
@@ -148,7 +148,7 @@ export default function AreaVip() {
           <LinhaLink label="App Android" valor={cfg.appAndroid} onChange={(v) => set({ appAndroid: v })} onCopy={() => copiar(cfg.appAndroid)} placeholder="https://play.google.com/store/apps/details?id=..." editavel={pode} />
           <LinhaLink label="App Apple" valor={cfg.appApple} onChange={(v) => set({ appApple: v })} onCopy={() => copiar(cfg.appApple)} placeholder="https://apps.apple.com/br/app/..." editavel={pode} />
           <div className="flex items-center gap-4 px-4 py-3">
-            <span className="w-28 font-medium text-status-danger">Logo</span>
+            <span className="w-28 font-bold text-status-danger">Logo</span>
             {logoUrl ? <img src={logoUrl} alt="Logo" className="h-16 rounded border border-slate-200 object-contain p-1" /> : <span className="text-slate-400">Defina o logo em Configuracoes gerais.</span>}
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function AreaVip() {
 
       {/* Links personalizados da Home */}
       <div className="mb-1">
-        <button onClick={() => setShowLinksHome((v) => !v)} className="flex items-center gap-1 text-[13px] font-medium text-marca-700 hover:underline">
+        <button onClick={() => setShowLinksHome((v) => !v)} className="flex items-center gap-1 text-[13px] font-bold text-slate-700 hover:underline">
           {showLinksHome ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
           Link's personalizados da Home <span className="font-normal text-marca-500">(clique para {showLinksHome ? 'ocultar' : 'exibir'})</span>
         </button>
@@ -259,7 +259,7 @@ export default function AreaVip() {
       {/* Politicas de privacidade / Termos de uso */}
       <div className="mt-5 rounded border border-slate-200 bg-white p-4">
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-slate-700">Politicas de privacidade / Termos de uso</span>
+          <span className="text-[13px] font-bold text-slate-700">Politicas de privacidade / Termos de uso</span>
           <button onClick={() => set({ termos: [...termos, { titulo: '', url: '' }] })} className="inline-flex items-center gap-1 rounded bg-marca-500 px-3 py-1 text-[12px] font-medium text-white hover:bg-marca-600"><Plus size={14} /> Adicionar</button>
         </div>
         {termos.length === 0 && <p className="text-[12px] text-status-danger">Nenhum termo de uso encontrado</p>}
@@ -289,7 +289,7 @@ export default function AreaVip() {
 function LinhaLink({ label, valor, onChange, onCopy, placeholder, editavel }: { label: string; valor?: string; onChange: (v: string) => void; onCopy: () => void; placeholder: string; editavel: boolean }) {
   return (
     <div className="flex items-center gap-4 px-4 py-2.5">
-      <span className="w-28 font-medium text-status-danger">{label}</span>
+      <span className="w-28 font-bold text-status-danger">{label}</span>
       <input className={`${INP} flex-1`} value={valor ?? ''} disabled={!editavel} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
       <button onClick={onCopy} title="Copiar" className="text-slate-400 hover:text-marca-600"><Copy size={14} /></button>
     </div>
