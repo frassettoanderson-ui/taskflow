@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Printer, Landmark, List, Cog, Search, Plus, ClipboardList } from 'lucide-react';
+import { Printer, Landmark, List, Sun, Search, Plus, ClipboardList } from 'lucide-react';
 import { api, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
@@ -118,7 +118,7 @@ export default function Catalogo() {
 
         <div className="flex items-center gap-2 rounded border border-slate-200 bg-white px-2 py-1.5 text-marca-600">
           <div className="relative" ref={imprimirRef}>
-            <button title="Imprimir obrigacoes" className="hover:text-marca-800" onClick={() => setImprimirAberto((v) => !v)}><Printer size={18} /></button>
+            <button title="Imprimir obrigacoes" className="text-roxo-400 hover:text-roxo-500" onClick={() => setImprimirAberto((v) => !v)}><Printer size={18} /></button>
             {imprimirAberto && (
               <div className="absolute left-0 top-8 z-50 flex gap-2 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
                 <button className="rounded bg-red-500 px-3 py-1 text-xs font-medium text-white hover:bg-red-600" onClick={() => { setImprimirAberto(false); toast('ok', 'Exportacao PDF: em breve'); }}>PDF</button>
@@ -126,9 +126,9 @@ export default function Catalogo() {
               </div>
             )}
           </div>
-          <button title="Configurar regimes tributarios" className="hover:text-marca-800" onClick={() => navigate('/obrigacoes/regimes')}><Landmark size={18} /></button>
-          <button title="Grupos de obrigacoes" className="hover:text-marca-800" onClick={() => navigate('/obrigacoes/grupos')}><List size={18} /></button>
-          <button title="Configurar feriados" className="text-orange-500 hover:text-orange-600" onClick={() => navigate('/obrigacoes/feriados')}><Cog size={18} /></button>
+          <button title="Configurar regimes tributarios" className="text-marca-500 hover:text-marca-600" onClick={() => navigate('/obrigacoes/regimes')}><Landmark size={18} /></button>
+          <button title="Grupos de obrigacoes" className="text-slate-500 hover:text-slate-600" onClick={() => navigate('/obrigacoes/grupos')}><List size={18} /></button>
+          <button title="Configurar feriados" className="text-status-warn hover:opacity-80" onClick={() => navigate('/obrigacoes/feriados')}><Sun size={18} /></button>
         </div>
 
         <button onClick={carregar} className="flex items-center gap-2 rounded bg-status-ok px-5 py-2 text-sm font-medium text-white hover:bg-emerald-600">
