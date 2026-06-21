@@ -13,6 +13,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { calcularPrazos, montarFeriados } from '../src/lib/prazos.js';
 import { computarStatusPendente } from '../src/modules/entrega/entrega.status.js';
+import { instanciar } from '../src/modules/processo/processo.service.js';
 
 const prisma = new PrismaClient();
 
@@ -82,7 +83,16 @@ async function main() {
     await prisma.comunicado.deleteMany({ where: { escritorioId: eid } });
     await prisma.processoRecorrente.deleteMany({ where: { escritorioId: eid } });
     await prisma.empresaObrigacao.deleteMany({ where: { escritorioId: eid } });
-    await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos (entregas, docs, protocolos, processos)
+    // modelos novos (standalone por escritorioId)
+    await prisma.npsAvaliacao.deleteMany({ where: { escritorioId: eid } });
+    await prisma.formularioSolicitacao.deleteMany({ where: { escritorioId: eid } });
+    await prisma.cobrancaDoc.deleteMany({ where: { escritorioId: eid } });
+    await prisma.reguaCobranca.deleteMany({ where: { escritorioId: eid } });
+    await prisma.custoFixo.deleteMany({ where: { escritorioId: eid } });
+    await prisma.painel.deleteMany({ where: { escritorioId: eid } });
+    await prisma.indicador.deleteMany({ where: { escritorioId: eid } });
+    await prisma.empresa.deleteMany({ where: { escritorioId: eid } }); // cascade nos filhos (entregas, docs, protocolos, processos, tarefas, solicitacoes portal)
+    await prisma.grupoEmpresa.deleteMany({ where: { escritorioId: eid } }); // depois das empresas
     await prisma.matrizProcesso.deleteMany({ where: { escritorioId: eid } });
     await prisma.grupoObrigacoes.deleteMany({ where: { escritorioId: eid } }); // cascade grupoObrigacao
     await prisma.regimeTributario.deleteMany({ where: { escritorioId: eid } }); // cascade regimeObrigacao
@@ -108,9 +118,10 @@ async function main() {
   });
 
   const usuarios = [
-    { nome: 'Ana Admin', email: 'admin@demo.com.br', permissoes: perms(true), tipo: 'Contador socio', custoHora: 90, minutosUteisMes: 8800 },
-    { nome: 'Bruno Fiscal', email: 'fiscal@demo.com.br', permissoes: permsOperacional(), tipo: 'Auxiliar', custoHora: 45, minutosUteisMes: 8800 },
-    { nome: 'Carla Pessoal', email: 'pessoal@demo.com.br', permissoes: permsOperacional(), tipo: 'Assistente', custoHora: 50, minutosUteisMes: 8800 },
+    { nome: 'Ana Admin', email: 'admin@demo.com.br', permissoes: perms(true), tipo: 'Contador socio', custoHora: 90, minutosUteisMes: 8800, salario: 12000, encargos: 4000, beneficios: 1500 },
+    { nome: 'Bruno Fiscal', email: 'fiscal@demo.com.br', permissoes: permsOperacional(), tipo: 'Auxiliar', custoHora: 45, minutosUteisMes: 8800, salario: 3500, encargos: 1200, beneficios: 600 },
+    { nome: 'Carla Pessoal', email: 'pessoal@demo.com.br', permissoes: permsOperacional(), tipo: 'Assistente', custoHora: 50, minutosUteisMes: 8800, salario: 3800, encargos: 1300, beneficios: 650 },
+    { nome: 'Diego Contabil', email: 'contabil@demo.com.br', permissoes: permsOperacional(), tipo: 'Contador', custoHora: 60, minutosUteisMes: 8800, salario: 5200, encargos: 1800, beneficios: 800 },
   ];
 
   const usuariosCriados: Record<string, string> = {};
@@ -124,6 +135,9 @@ async function main() {
         tipo: u.tipo,
         custoHora: u.custoHora,
         minutosUteisMes: u.minutosUteisMes,
+        salario: u.salario,
+        encargos: u.encargos,
+        beneficios: u.beneficios,
         permissao: { create: u.permissoes },
       },
     });
@@ -163,6 +177,14 @@ async function main() {
     tags[t.nome] = tag.id;
   }
 
+  // ---------- Grupos de empresa ----------
+  const gruposDados = ['Grupo Sao Jorge', 'Holding Horizonte'];
+  const grupoEmpresaIds: Record<string, string> = {};
+  for (const g of gruposDados) {
+    const grupo = await prisma.grupoEmpresa.create({ data: { escritorioId: escritorio.id, nome: g } });
+    grupoEmpresaIds[g] = grupo.id;
+  }
+
   // ---------- Modulo 1: 10 Empresas ----------
   const nomes = [
     'Comercio de Alimentos Sao Jorge LTDA',
@@ -183,13 +205,24 @@ async function main() {
 
   for (let i = 0; i < nomes.length; i++) {
     const cnpj = gerarCnpj(String(10000000 + i * 137));
+    const ufs = ['SP', 'RJ', 'MG', 'PR', 'RS', 'SC', 'BA', 'GO', 'PE', 'CE'];
     const empresa = await prisma.empresa.create({
       data: {
         escritorioId: escritorio.id,
         razaoSocial: nomes[i],
         nomeFantasia: nomes[i].split(' ').slice(0, 2).join(' '),
+        numero: i + 1,
+        honorario: 350 + (i % 5) * 220,
+        apelidoEcontinuo: nomes[i].split(' ')[0],
+        grupoEmpresaId: i === 0 ? grupoEmpresaIds['Grupo Sao Jorge'] : i === 2 ? grupoEmpresaIds['Holding Horizonte'] : null,
         emailPrincipal: `contato${i + 1}@cliente.com.br`,
         telefone: `1133${String(330000 + i).slice(-6)}`,
+        cep: `0${1000 + i}-000`,
+        logradouro: `Rua das Empresas, ${100 + i * 10}`,
+        numeroEndereco: String(100 + i * 10),
+        bairro: 'Centro',
+        cidade: 'Sao Paulo',
+        uf: ufs[i],
         ativo: true,
         dataEntrada: new Date(),
         identificadores: {
@@ -223,6 +256,16 @@ async function main() {
       },
     });
     empresaIds.push(empresa.id);
+
+    // tarefas agendadas (esporadicas) em algumas empresas
+    if (i < 4) {
+      await prisma.empresaTarefaAgendada.createMany({
+        data: [
+          { escritorioId: escritorio.id, empresaId: empresa.id, titulo: 'Renovacao do certificado digital', dataHora: new Date(Date.now() + 1000 * 60 * 60 * 24 * (10 + i)) },
+          { escritorioId: escritorio.id, empresaId: empresa.id, titulo: 'Conferir alvara de funcionamento', dataHora: new Date(Date.now() + 1000 * 60 * 60 * 24 * (30 + i)), concluida: i % 2 === 0, concluidaEm: i % 2 === 0 ? new Date() : null },
+        ],
+      });
+    }
   }
 
   // ---------- Modulo 2: Feriados nacionais (ano corrente + proximo) ----------
@@ -387,30 +430,65 @@ async function main() {
       });
       primeira = false;
 
-      // gera a entrega da competencia corrente (apenas MENSAL para o demo)
+      // gera entregas dos ultimos 6 meses (apenas MENSAL para o demo)
       const meta = metaPorNome.get(n);
       if (!meta || meta.per !== 'MENSAL') continue;
-      const { prazoLegal, prazoTecnico } = calcularPrazos(
-        { ...meta.regra, regraNaoUtil: meta.regra.regraNaoUtil ?? 'ANTECIPA', diasAntesTecnico: meta.regra.diasAntesTecnico ?? 2, tipoDiasAntes: meta.regra.tipoDiasAntes ?? 'UTEIS' },
-        compAno, compMes - 1, feriadosSet, false,
-      );
-      const responsavel = meta.dep === F ? fiscalId : meta.dep === P ? pessoalId : null;
-      const status = computarStatusPendente(prazoTecnico, prazoLegal, hoje, 7);
-      await prisma.entrega.create({
-        data: {
-          escritorioId: escritorio.id,
-          empresaId: empresaIds[i],
-          empresaObrigacaoId: eo.id,
-          obrigacaoId: obrigIds[n],
-          competenciaAno: compAno,
-          competenciaMes: compMes,
-          prazoLegal, prazoTecnico,
-          status,
-          responsavelPrazoId: responsavel,
-          responsavelEntregaId: responsavel,
-        },
-      });
-      entregasGeradas++;
+      const responsavel = meta.dep === F ? fiscalId : meta.dep === P ? pessoalId : adminId;
+      for (let off = 5; off >= 0; off--) {
+        const d = new Date(compAno, compMes - 1 - off, 1);
+        const cAno = d.getFullYear();
+        const cMesIdx = d.getMonth(); // 0-based
+        const { prazoLegal, prazoTecnico } = calcularPrazos(
+          { ...meta.regra, regraNaoUtil: meta.regra.regraNaoUtil ?? 'ANTECIPA', diasAntesTecnico: meta.regra.diasAntesTecnico ?? 2, tipoDiasAntes: meta.regra.tipoDiasAntes ?? 'UTEIS' },
+          cAno, cMesIdx, feriadosSet, false,
+        );
+        // variacao deterministica de status para meses passados
+        const sorte = (i * 7 + off * 13 + n.length * 3) % 10;
+        let status: string;
+        let dataEntrega: Date | null = null;
+        let numeroProtocolo: string | null = null;
+        if (off === 0) {
+          status = computarStatusPendente(prazoTecnico, prazoLegal, hoje, 7);
+        } else if (sorte < 7) {
+          status = 'ENTREGUE';
+          dataEntrega = new Date(prazoLegal.getTime() - 1000 * 60 * 60 * 24 * 2);
+          numeroProtocolo = `${cAno}${String(cMesIdx + 1).padStart(2, '0')}${String(1000 + i * 31 + n.length)}`;
+        } else if (sorte < 9) {
+          status = 'ENTREGUE_JUSTIFICADA';
+          dataEntrega = new Date(prazoLegal.getTime() + 1000 * 60 * 60 * 24 * 3);
+          numeroProtocolo = `${cAno}${String(cMesIdx + 1).padStart(2, '0')}${String(2000 + i * 31 + n.length)}`;
+        } else {
+          status = 'EM_ATRASO_LEGAL';
+        }
+        const entrega = await prisma.entrega.create({
+          data: {
+            escritorioId: escritorio.id,
+            empresaId: empresaIds[i],
+            empresaObrigacaoId: eo.id,
+            obrigacaoId: obrigIds[n],
+            competenciaAno: cAno,
+            competenciaMes: cMesIdx + 1,
+            prazoLegal, prazoTecnico,
+            status: status as never,
+            dataEntrega,
+            origemBaixa: dataEntrega ? 'MANUAL' : undefined,
+            numeroProtocolo,
+            responsavelPrazoId: responsavel,
+            responsavelEntregaId: responsavel,
+          },
+        });
+        // historico de movimentacao para entregas baixadas
+        if (dataEntrega) {
+          await prisma.entregaEvento.create({
+            data: {
+              escritorioId: escritorio.id, entregaId: entrega.id, autorId: responsavel,
+              texto: status === 'ENTREGUE_JUSTIFICADA' ? `Marcou como Entregue c/ multa (protocolo ${numeroProtocolo})` : `Marcou como Entregue (protocolo ${numeroProtocolo})`,
+              createdAt: dataEntrega,
+            },
+          });
+        }
+        entregasGeradas++;
+      }
     }
   }
 
@@ -548,11 +626,146 @@ async function main() {
     });
   }
 
+  // ---------- Modulo 6: Processos rodando (instanciados das matrizes) ----------
+  const matrizAdmissao = await prisma.matrizProcesso.findFirst({ where: { escritorioId: escritorio.id, nome: 'Admissao de Funcionario' } });
+  const matrizAbertura = await prisma.matrizProcesso.findFirst({ where: { escritorioId: escritorio.id, nome: 'Abertura de Empresa' } });
+  let processosCriados = 0;
+  const planoProc = [
+    { matriz: matrizAbertura, empresa: empresaIds[0], gestor: adminId, concluir: 3 },
+    { matriz: matrizAdmissao, empresa: empresaIds[1], gestor: pessoalId, concluir: 2 },
+    { matriz: matrizAbertura, empresa: empresaIds[2], gestor: adminId, concluir: 5 },
+    { matriz: matrizAdmissao, empresa: empresaIds[3], gestor: pessoalId, concluir: 1 },
+  ];
+  for (const pl of planoProc) {
+    if (!pl.matriz) continue;
+    const proc = await instanciar(escritorio.id, pl.matriz.id, pl.empresa, { gestorId: pl.gestor });
+    const passos = await prisma.processoPasso.findMany({ where: { processoId: proc.id }, orderBy: { ordem: 'asc' } });
+    // conclui os N primeiros passos e marca alguns como visiveis ao cliente
+    for (let k = 0; k < passos.length; k++) {
+      const concluido = k < pl.concluir;
+      await prisma.processoPasso.update({
+        where: { id: passos[k].id },
+        data: {
+          status: concluido ? 'CONCLUIDO' : 'PENDENTE',
+          concluidoEm: concluido ? new Date(Date.now() - 1000 * 60 * 60 * 24 * (pl.concluir - k)) : null,
+          visivelCliente: k < pl.concluir + 2, // compartilha os feitos + os 2 proximos
+        },
+      });
+    }
+    processosCriados++;
+  }
+
+  // ---------- Metodo APLA: custos fixos ----------
+  await prisma.custoFixo.createMany({
+    data: [
+      { escritorioId: escritorio.id, nome: 'Aluguel do escritorio', escopo: 'GERAL', valor: 4500 },
+      { escritorioId: escritorio.id, nome: 'Software / sistemas', escopo: 'GERAL', valor: 1200 },
+      { escritorioId: escritorio.id, nome: 'Energia e internet', escopo: 'GERAL', valor: 800 },
+      { escritorioId: escritorio.id, nome: 'Consultoria do grupo', escopo: 'GRUPO', grupoId: grupoEmpresaIds['Grupo Sao Jorge'], valor: 600 },
+    ],
+  });
+
+  // ---------- Dashboard Flexivel: indicadores + 1 painel ----------
+  const indDefs = [
+    { nome: 'Entregas baixadas (mes)', tipo: 'numerico', metrica: 'entregas_baixadas', prazo: 'mes_atual' },
+    { nome: 'Demandas a realizar', tipo: 'numerico', metrica: 'a_realizar', prazo: 'mes_atual' },
+    { nome: 'Atrasadas', tipo: 'numerico', metrica: 'atrasadas', prazo: 'mes_atual' },
+    { nome: 'Por colaborador', tipo: 'colaborador', metrica: 'entregas_baixadas', prazo: 'mes_atual' },
+    { nome: 'Por departamento', tipo: 'departamento', metrica: 'pendentes', prazo: 'mes_atual' },
+  ];
+  const indIds: string[] = [];
+  for (const ind of indDefs) {
+    const criado = await prisma.indicador.create({ data: { escritorioId: escritorio.id, criadoPorId: adminId, ...ind } });
+    indIds.push(criado.id);
+  }
+  await prisma.painel.create({
+    data: {
+      escritorioId: escritorio.id, nome: 'Visao geral do mes', transicaoSeg: 30, criadoPorId: adminId,
+      indicadores: { create: indIds.map((indicadorId, ordem) => ({ indicadorId, ordem })) },
+    },
+  });
+
+  // ---------- ACDOX: regua de cobranca + cobrancas do mes ----------
+  const regua = await prisma.reguaCobranca.create({
+    data: {
+      escritorioId: escritorio.id, nome: 'Documentos contabeis mensais', diaLimite: 10, departamentoId: deps['Contabil'],
+      lembreteAntesDias: 5, lembreteDepoisDias: 3,
+      itens: { create: [
+        { nome: 'Extrato bancario', ordem: 0 },
+        { nome: 'Notas fiscais de entrada', ordem: 1 },
+        { nome: 'Notas fiscais de saida', ordem: 2 },
+        { nome: 'Folha de pagamento', ordem: 3 },
+      ] },
+      empresas: { create: empresaIds.slice(0, 6).map((empresaId) => ({ empresaId })) },
+    },
+    include: { itens: true, empresas: true },
+  });
+  const dataLimite = new Date(Date.UTC(compAno, compMes - 1, regua.diaLimite, 12, 0, 0));
+  let cobr = 0;
+  for (let idx = 0; idx < regua.empresas.length; idx++) {
+    const e = regua.empresas[idx];
+    // status geral varia: pendente / recebido / validado / vencido
+    const itensStatus = ['PENDENTE', 'RECEBIDO', 'VALIDADO', 'VENCIDO'][idx % 4];
+    const cob = await prisma.cobrancaDoc.create({
+      data: {
+        escritorioId: escritorio.id, reguaId: regua.id, empresaId: e.empresaId,
+        competenciaAno: compAno, competenciaMes: compMes, dataLimite,
+        status: itensStatus,
+        itens: { create: regua.itens.map((it, j) => ({
+          nome: it.nome,
+          status: itensStatus === 'VALIDADO' ? 'VALIDADO' : itensStatus === 'RECEBIDO' && j < 2 ? 'RECEBIDO' : 'PENDENTE',
+        })) },
+      },
+    });
+    void cob; cobr++;
+  }
+
+  // ---------- NPS (avaliacoes de clientes) ----------
+  await prisma.npsAvaliacao.createMany({
+    data: [
+      { escritorioId: escritorio.id, empresaId: empresaIds[0], contatoEmail: 'responsavel1@cliente.com.br', contatoNome: 'Responsavel 1', nota: 10, comentario: 'Atendimento excelente!' },
+      { escritorioId: escritorio.id, empresaId: empresaIds[1], contatoEmail: 'responsavel2@cliente.com.br', contatoNome: 'Responsavel 2', nota: 9 },
+      { escritorioId: escritorio.id, empresaId: empresaIds[2], contatoEmail: 'responsavel3@cliente.com.br', contatoNome: 'Responsavel 3', nota: 7, comentario: 'Bom, mas demora um pouco no retorno.' },
+      { escritorioId: escritorio.id, empresaId: empresaIds[3], contatoEmail: 'responsavel4@cliente.com.br', contatoNome: 'Responsavel 4', nota: 5, comentario: 'Precisa melhorar a comunicacao.' },
+    ],
+  });
+
+  // ---------- Formulario flexivel de solicitacao ----------
+  await prisma.formularioSolicitacao.create({
+    data: {
+      escritorioId: escritorio.id, nome: 'Abertura de empresa', descricao: 'Preencha para iniciarmos a abertura.',
+      campos: [
+        { id: 'razao', label: 'Razao social pretendida', tipo: 'texto', obrigatorio: true },
+        { id: 'atividade', label: 'Atividade principal', tipo: 'textarea', obrigatorio: true },
+        { id: 'capital', label: 'Capital social (R$)', tipo: 'numero' },
+        { id: 'regime', label: 'Regime pretendido', tipo: 'select', opcoes: ['Simples Nacional', 'Lucro Presumido', 'Lucro Real'], obrigatorio: true },
+      ],
+    },
+  });
+
+  // ---------- Solicitacoes externas (clientes na Area VIP) ----------
+  await prisma.solicitacaoPortal.create({
+    data: {
+      escritorioId: escritorio.id, empresaId: empresaIds[0], contatoEmail: emailContatoDemo || 'responsavel1@cliente.com.br', contatoNome: 'Responsavel 1',
+      titulo: 'Preciso da guia do DAS', descricao: 'Boa tarde, podem reenviar a guia do DAS deste mes? Obrigado.',
+      mensagens: { create: { autorTipo: 'CONTATO', autorNome: 'Responsavel 1', texto: 'Boa tarde, podem reenviar a guia do DAS deste mes?' } },
+    },
+  });
+  await prisma.solicitacaoPortal.create({
+    data: {
+      escritorioId: escritorio.id, empresaId: empresaIds[0], contatoEmail: emailContatoDemo || 'responsavel1@cliente.com.br', contatoNome: 'Responsavel 1',
+      titulo: 'Certidao negativa', descricao: 'Solicito a CND federal.', status: 'FINALIZADA',
+      avaliacaoNota: 5, avaliacaoComentario: 'Rapido e atencioso, obrigado!',
+      mensagens: { create: { autorTipo: 'CONTATO', autorNome: 'Responsavel 1', texto: 'Solicito a CND federal.' } },
+    },
+  });
+
   console.log('\nSeed concluido!');
   console.log(`  Matrizes de processo: ${matrizes.length}`);
   if (emailContatoDemo) console.log(`  Portal (Area VIP): ${emailContatoDemo} / cliente123`);
-  console.log(`  Entregas geradas (competencia ${compMes}/${compAno}): ${entregasGeradas}`);
-  console.log(`  Departamentos: ${depsDados.length} | Tags: ${tagsDados.length} | Empresas: ${nomes.length}`);
+  console.log(`  Entregas geradas (6 meses): ${entregasGeradas}`);
+  console.log(`  Processos rodando: ${processosCriados} | Cobrancas ACDOX: ${cobr}`);
+  console.log(`  Departamentos: ${depsDados.length} | Tags: ${tagsDados.length} | Empresas: ${nomes.length} | Grupos: ${gruposDados.length}`);
   console.log(`  Obrigacoes: ${catalogo.length} | Regimes: ${Object.keys(regimeDefs).length} | Grupos: ${Object.keys(grupoDefs).length}`);
   console.log('  Escritorio: Escritorio Demo Contabilidade');
   console.log('  Login admin:   admin@demo.com.br   / senha123');
