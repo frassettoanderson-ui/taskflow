@@ -292,7 +292,7 @@ function LinhaMetrica({ cor, label, m, sub, to, compact }: { cor: string; label:
     <div onClick={to ? () => nav(to) : undefined}
       className={`flex items-center justify-between ${compact ? 'py-2' : 'py-2.5'} pr-4 ${sub ? 'pl-8' : 'px-4'} ${to ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
       <span className={compact ? 'text-sm font-semibold' : ''} style={{ color: cor }}>{sub ? '↳ ' : ''}{label}:</span>
-      <span className={`rounded-full text-white leading-none ${compact ? 'px-2.5 py-1 text-[15px] font-normal' : 'px-3 py-1.5 text-lg font-normal'}`} style={{ background: cor }}>
+      <span className={`rounded-full text-white leading-none ${compact ? 'px-2 py-0.5 text-[15px] font-normal' : 'px-2.5 py-0.5 text-lg font-normal'}`} style={{ background: cor }}>
         {m.count}/{m.pct}%
       </span>
     </div>
