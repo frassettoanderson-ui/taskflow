@@ -262,17 +262,6 @@ export default function Configuracoes() {
             </Campo>
           </div>
         </Secao>
-
-        {/* Extra nosso: SMTP proprio */}
-        <Secao titulo="Servidor SMTP proprio (opcional)" aberto={!!aberto.smtp} onToggle={() => toggle('smtp')} nosso>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <input className={INP} placeholder="Host SMTP" value={c.smtp?.host ?? ''} onChange={(e) => patch({ smtp: { ...c.smtp, host: e.target.value } })} />
-            <input className={INP} placeholder="Porta" type="number" value={c.smtp?.port ?? ''} onChange={(e) => patch({ smtp: { ...c.smtp, port: Number(e.target.value) } })} />
-            <input className={INP} placeholder="Usuario" value={c.smtp?.user ?? ''} onChange={(e) => patch({ smtp: { ...c.smtp, user: e.target.value } })} />
-            <input className={INP} placeholder="Senha" type="password" value={c.smtp?.pass ?? ''} onChange={(e) => patch({ smtp: { ...c.smtp, pass: e.target.value } })} />
-            <input className={`${INP} md:col-span-2`} placeholder="E-mail remetente (fromEmail)" value={c.smtp?.fromEmail ?? ''} onChange={(e) => patch({ smtp: { ...c.smtp, fromEmail: e.target.value } })} />
-          </div>
-        </Secao>
       </div>
 
       {pode && (
