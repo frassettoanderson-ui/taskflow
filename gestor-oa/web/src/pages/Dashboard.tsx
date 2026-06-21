@@ -306,8 +306,8 @@ function VisaoNumerica({ num }: { num: Painel['numericos'] }) {
       <CardNumero titulo="Entregas" valor={num.entregas.total} cor={COR.ok}>
         <LinhaMetrica cor={COR.info} label="Antecipadas" m={num.entregas.antecipadas} to={linkF2({ flags: 'entregues', entAntecipada: '1' })} />
         <LinhaMetrica cor={COR.info} label="Prazo tecnico" m={num.entregas.prazoTecnico} to={linkF2({ flags: 'entregues', entNoPrazoTec: '1' })} />
-        <LinhaMetrica cor={COR.danger} label="Atrasadas" m={num.entregas.atrasadas} to={linkF2({ flags: 'entregues', entAtrasada: '1' })} />
-        <LinhaMetrica cor={COR.danger} label="Com multa" m={num.entregas.comMulta} sub to={linkF2({ flags: 'entregues', entAtrasada: '1', pmulta: '1' })} />
+        <LinhaMetrica cor={COR.danger} label="Atrasadas" m={num.entregas.atrasadas} to={linkF2({ flags: 'justificadas' })} />
+        <LinhaMetrica cor={COR.danger} label="Com multa" m={num.entregas.comMulta} sub to={linkF2({ flags: 'justificadas', pmulta: '1' })} />
         <LinhaMetrica cor={COR.warn} label="Atraso justificado" m={num.entregas.atrasoJustificado} to={linkF2({ flags: 'justificadas' })} />
       </CardNumero>
 
