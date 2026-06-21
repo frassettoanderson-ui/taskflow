@@ -107,8 +107,8 @@ export default function Usuarios() {
           </div>
         </div>
 
-        {/* +Filtros: combo com chips */}
-        <Sanfona aberto={mostrarFiltros}>
+        {/* +Filtros: combo com chips (sem Sanfona p/ nao cortar o dropdown absoluto) */}
+        {mostrarFiltros && (
           <div className="relative mt-2 border-t border-slate-100 pt-2">
             <div className="flex flex-wrap items-center gap-1.5 rounded border border-slate-300 px-2 py-1.5">
               {chips.map((c) => (
@@ -133,7 +133,7 @@ export default function Usuarios() {
               </div>
             )}
           </div>
-        </Sanfona>
+        )}
 
         {/* Imprimir: PDF / Excel */}
         <Sanfona aberto={mostrarImprimir}>
