@@ -42,12 +42,12 @@ const ROTULO: Record<StatusEntrega, string> = {
   DISPENSADA: 'Dispensada',
 };
 const COR: Record<StatusEntrega, string> = {
-  PENDENTE_ANTECIPADO: '#3a9d3a',
-  PENDENTE: '#5b9bd5',
+  PENDENTE_ANTECIPADO: '#88b87f',
+  PENDENTE: '#69a8d9',
   EM_ATRASO_TECNICO: '#e08a1e',
-  EM_ATRASO_LEGAL: '#cf3c5d',
-  ENTREGUE: '#3a9d3a',
-  ENTREGUE_JUSTIFICADA: '#cf3c5d',
+  EM_ATRASO_LEGAL: '#d15b47',
+  ENTREGUE: '#88b87f',
+  ENTREGUE_JUSTIFICADA: '#d15b47',
   DISPENSADA: '#94a3b8',
 };
 
@@ -259,7 +259,7 @@ export default function ListaEntregas() {
   );
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
       {/* cabecalho */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">
@@ -308,7 +308,7 @@ export default function ListaEntregas() {
             </BotaoExport>
             <BotaoExport cor="bg-pink-600 hover:bg-pink-700" onClick={() => toast('erro', 'Em construcao')}>PDF relacao</BotaoExport>
             <BotaoExport cor="bg-sky-500 hover:bg-sky-600" onClick={() => toast('erro', 'Em construcao')}>PDF relacao com comentarios</BotaoExport>
-            <BotaoExport cor="bg-purple-500 hover:bg-purple-600" onClick={() => toast('erro', 'Em construcao')}>PDF grade</BotaoExport>
+            <BotaoExport cor="bg-roxo-500 hover:bg-roxo-600" onClick={() => toast('erro', 'Em construcao')}>PDF grade</BotaoExport>
             <BotaoExport cor="bg-amber-400 hover:bg-amber-500" onClick={imprimir}>Excel completo</BotaoExport>
           </div>
         )}

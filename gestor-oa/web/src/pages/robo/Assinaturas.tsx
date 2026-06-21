@@ -56,7 +56,7 @@ export default function Assinaturas() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
       {/* Cabecalho */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-500">

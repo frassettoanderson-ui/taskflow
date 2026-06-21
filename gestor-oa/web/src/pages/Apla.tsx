@@ -98,7 +98,7 @@ export default function Apla({ abaInicial = 0 }: { abaInicial?: number }) {
           <Card titulo="Clientes ativos" valor={String(db.clientesAtivos)} />
           <Card titulo="Honorarios" valor={brl(db.honorarios)} cor="text-emerald-600" />
           <Card titulo="Ticket medio" valor={brl(db.ticketMedio)} cor="text-sky-600" />
-          <Card titulo="Dinheiro na mesa" valor={brl(db.dinheiroNaMesa)} cor="text-purple-600" sub="receita potencial ociosa" />
+          <Card titulo="Dinheiro na mesa" valor={brl(db.dinheiroNaMesa)} cor="text-roxo-600" sub="receita potencial ociosa" />
           <Card titulo="Custos fixos" valor={brl(db.custosFixos)} cor="text-amber-600" />
           <Card titulo="Resultado" valor={brl(db.resultado)} cor={db.resultado >= 0 ? 'text-emerald-600' : 'text-red-600'} />
           <Card titulo="Lucratividade" valor={`${db.lucratividadePct}%`} cor={db.resultado >= 0 ? 'text-marca-600' : 'text-red-600'} />
@@ -108,10 +108,10 @@ export default function Apla({ abaInicial = 0 }: { abaInicial?: number }) {
       {aba === 1 && (
         <div className="card overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 px-4 py-3 text-xs text-slate-500">
-            <span className="flex items-center gap-1"><Dot c="#cf3c5d" /> Ocioso (&le;30%)</span>
-            <span className="flex items-center gap-1"><Dot c="#f0ad4e" /> Baixo (31-60%)</span>
-            <span className="flex items-center gap-1"><Dot c="#5cb85c" /> Ideal (61-100%)</span>
-            <span className="flex items-center gap-1"><Dot c="#7e57c2" /> Sobrecarga (&gt;100%)</span>
+            <span className="flex items-center gap-1"><Dot c="#d15b47" /> Ocioso (&le;30%)</span>
+            <span className="flex items-center gap-1"><Dot c="#ffb752" /> Baixo (31-60%)</span>
+            <span className="flex items-center gap-1"><Dot c="#88b87f" /> Ideal (61-100%)</span>
+            <span className="flex items-center gap-1"><Dot c="#9585bf" /> Sobrecarga (&gt;100%)</span>
           </div>
           <table className="w-full text-sm">
             <thead className="border-y border-slate-200 bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -122,7 +122,7 @@ export default function Apla({ abaInicial = 0 }: { abaInicial?: number }) {
                 <tr key={c.id} className="border-b border-slate-100">
                   <td className="px-3 py-2 font-medium text-slate-700">{c.nome}</td>
                   <td className="px-3 py-2">
-                    <div className="h-3 w-full overflow-hidden rounded bg-neutral-100">
+                    <div className="h-3 w-full overflow-hidden rounded bg-fundo">
                       <div className="h-full" style={{ width: `${Math.min(100, c.prodPct)}%`, background: c.cor }} />
                     </div>
                     <span className="text-xs" style={{ color: c.cor }}>{c.prodPct}%</span>

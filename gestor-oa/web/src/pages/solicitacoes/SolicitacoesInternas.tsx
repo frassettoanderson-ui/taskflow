@@ -43,7 +43,7 @@ const STATUS_CLASSE: Record<string, string> = {
 };
 const PRIO_LABEL: Record<string, string> = { BAIXA: 'Baixa', MEDIA: 'Media', ALTA: 'Alta', URGENTE: 'Urgente' };
 const PRIO_CLASSE: Record<string, string> = {
-  BAIXA: 'bg-neutral-100 text-slate-500',
+  BAIXA: 'bg-fundo text-slate-500',
   MEDIA: 'bg-sky-100 text-sky-700',
   ALTA: 'bg-orange-100 text-orange-700',
   URGENTE: 'bg-red-100 text-red-700',

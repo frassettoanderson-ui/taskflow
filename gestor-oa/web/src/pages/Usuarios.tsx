@@ -78,10 +78,10 @@ export default function Usuarios() {
     return (a[campo] ?? '').localeCompare(b[campo] ?? '', 'pt-BR') * dir;
   });
 
-  const ICO = 'grid h-9 w-9 place-items-center rounded text-purple-500 hover:bg-purple-50';
+  const ICO = 'grid h-9 w-9 place-items-center rounded text-roxo-500 hover:bg-roxo-50';
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
       {/* cabecalho (breadcrumb) */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">
@@ -102,7 +102,7 @@ export default function Usuarios() {
           <input className="flex-1 min-w-[220px] rounded border border-slate-300 px-3 py-1.5 text-[13px] outline-none focus:border-marca-400"
             placeholder="Filtrar pelo nome ou por e-mail" value={filtro} onChange={(e) => setFiltro(e.target.value)} />
           <button onClick={() => setMostrarFiltros((v) => !v)}
-            className="flex items-center gap-2 rounded bg-purple-400 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-purple-500">
+            className="flex items-center gap-2 rounded bg-roxo-400 px-4 py-1.5 text-[12px] font-medium text-white hover:bg-roxo-500">
             <SlidersHorizontal size={14} /> +Filtros
           </button>
           <div className="ml-auto flex items-center gap-1">
@@ -118,7 +118,7 @@ export default function Usuarios() {
           <div className="relative mt-2 border-t border-slate-100 pt-2">
             <div className="flex flex-wrap items-center gap-1.5 rounded border border-slate-300 px-2 py-1.5">
               {chips.map((c) => (
-                <span key={`${c.kind}-${c.valor}`} className="inline-flex items-center gap-1 rounded bg-neutral-100 px-2 py-0.5 text-[12px] text-slate-600">
+                <span key={`${c.kind}-${c.valor}`} className="inline-flex items-center gap-1 rounded bg-fundo px-2 py-0.5 text-[12px] text-slate-600">
                   <button onClick={() => removeChip(c)} className="text-slate-400 hover:text-red-500">×</button>{c.label}
                 </span>
               ))}
@@ -145,7 +145,7 @@ export default function Usuarios() {
         <Sanfona aberto={mostrarImprimir}>
           <div className="mt-2 grid grid-cols-2 gap-1.5 border-t border-slate-100 pt-2 md:w-1/2">
             <button onClick={() => toast('ok', 'Em construcao: PDF')} className="flex items-center justify-center gap-2 rounded bg-sky-500 py-2 text-[13px] font-medium text-white hover:bg-sky-600"><Printer size={15} /> PDF</button>
-            <button onClick={exportar} className="flex items-center justify-center gap-2 rounded bg-purple-500 py-2 text-[13px] font-medium text-white hover:bg-purple-600"><Printer size={15} /> Excel</button>
+            <button onClick={exportar} className="flex items-center justify-center gap-2 rounded bg-roxo-500 py-2 text-[13px] font-medium text-white hover:bg-roxo-600"><Printer size={15} /> Excel</button>
           </div>
         </Sanfona>
 
@@ -179,7 +179,7 @@ export default function Usuarios() {
           </thead>
           <tbody>
             {lista.map((u) => (
-              <tr key={u.id} className="border-b border-slate-100 odd:bg-white even:bg-slate-50 hover:bg-neutral-100">
+              <tr key={u.id} className="border-b border-slate-100 odd:bg-white even:bg-slate-50 hover:bg-fundo">
                 <td className="px-3 py-2">
                   <span className="flex items-center gap-2">
                     <UserIcon className={u.ativo ? 'text-status-ok' : 'text-status-danger'} size={15} />

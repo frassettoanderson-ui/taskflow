@@ -9,7 +9,7 @@ interface Nps {
   avaliacoes: Avaliacao[];
 }
 
-function corNota(n: number) { return n <= 6 ? '#cf3c5d' : n <= 8 ? '#f0ad4e' : '#5cb85c'; }
+function corNota(n: number) { return n <= 6 ? '#d15b47' : n <= 8 ? '#ffb752' : '#88b87f'; }
 
 export default function NpsPanel() {
   const [d, setD] = useState<Nps | null>(null);

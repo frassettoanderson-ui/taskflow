@@ -141,7 +141,7 @@ export default function EmpresasList() {
   const ICONE = 'flex h-9 w-9 items-center justify-center rounded hover:opacity-80';
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
       {/* Cabecalho */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-500">
@@ -158,7 +158,7 @@ export default function EmpresasList() {
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-marca-400" />
           <input className="w-full rounded border border-marca-300 bg-white py-2 pl-9 pr-3 text-[13px] outline-none focus:border-marca-500" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Procurar na relacao" />
         </div>
-        <button onClick={() => setMostrarFiltros((v) => !v)} className="flex items-center gap-2 rounded bg-purple-300 px-4 py-2 text-sm font-medium text-white hover:bg-purple-400"><SlidersHorizontal size={15} /> +Filtros</button>
+        <button onClick={() => setMostrarFiltros((v) => !v)} className="flex items-center gap-2 rounded bg-roxo-300 px-4 py-2 text-sm font-medium text-white hover:bg-roxo-400"><SlidersHorizontal size={15} /> +Filtros</button>
 
         <div className="flex items-center gap-1">
           <button title="Exporta e-mails em bloco" onClick={() => toggleBarra('export')} className={`${ICONE} bg-status-ok/15 text-status-ok`}><Mail size={18} /></button>
@@ -166,7 +166,7 @@ export default function EmpresasList() {
           <button title="Motivos de cancelamento" onClick={() => navigate('/empresas/motivos')} className={`${ICONE} bg-red-100 text-red-500`}><XCircle size={18} /></button>
           <button title="Alterar responsaveis pelo dpto da(s) empresa(s) listada(s)" onClick={() => { toggleBarra('resp'); setRespDepto(departamentos[0]?.id ?? ''); setRespUser(usuarios[0]?.id ?? ''); }} className={`${ICONE} bg-marca-100 text-marca-600`}><Network size={18} /></button>
           <button title="Incluir tag's em massa nas empresas listadas" onClick={() => { toggleBarra('tags'); setTagsSel([]); }} className={`${ICONE} bg-status-ok/15 text-status-ok`}><TagsIcon size={18} /></button>
-          <button title="Relacao de empresas" onClick={() => toggleBarra('relacao')} className={`${ICONE} bg-purple-100 text-purple-500`}><Printer size={18} /></button>
+          <button title="Relacao de empresas" onClick={() => toggleBarra('relacao')} className={`${ICONE} bg-roxo-100 text-roxo-500`}><Printer size={18} /></button>
           <button title="Exibir/Ocultar datas" onClick={() => toggleBarra('datas')} className={`${ICONE} bg-red-100 text-red-500`}><Calendar size={18} /></button>
         </div>
 
@@ -222,7 +222,7 @@ export default function EmpresasList() {
       {barra === 'relacao' && (
         <div className="mt-2 flex flex-wrap gap-2">
           <button onClick={() => toast('ok', 'Em construcao: PDF')} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Printer size={16} /> PDF</button>
-          <button onClick={() => toast('ok', 'Em construcao: Excel Compacto')} className="flex items-center gap-2 rounded bg-purple-500 px-5 py-2 text-sm font-medium text-white hover:bg-purple-600"><Printer size={16} /> Excel Compacto</button>
+          <button onClick={() => toast('ok', 'Em construcao: Excel Compacto')} className="flex items-center gap-2 rounded bg-roxo-500 px-5 py-2 text-sm font-medium text-white hover:bg-roxo-600"><Printer size={16} /> Excel Compacto</button>
           <button onClick={() => toast('ok', 'Em construcao: Excel Completo')} className="flex items-center gap-2 rounded bg-amber-400 px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><Printer size={16} /> Excel Completo</button>
           <button onClick={() => toast('ok', 'Em construcao: Excel Completo com Contatos')} className="flex items-center gap-2 rounded bg-slate-400 px-5 py-2 text-sm font-medium text-white hover:bg-slate-500"><Printer size={16} /> Excel Completo com Contatos</button>
           <button onClick={() => toast('ok', 'Em construcao: Empresas inativas em uso')} className="flex items-center gap-2 rounded bg-pink-600 px-5 py-2 text-sm font-medium text-white hover:bg-pink-700"><Printer size={16} /> Empresas inativas em uso</button>
@@ -339,8 +339,8 @@ export default function EmpresasList() {
                   <td className="px-4 py-2" onClick={(ev) => ev.stopPropagation()}>
                     <div className="grid grid-cols-2 gap-1.5">
                       <button title="Comentarios e anotacoes gerais" onClick={() => navigate(`/empresas/${e.id}`)} className="text-status-ok hover:opacity-70"><MessageCircle size={16} /></button>
-                      <button title="Tarefas agendadas" onClick={() => toast('ok', 'Em construcao')} className="text-purple-500 hover:opacity-70"><CheckCircle2 size={16} /></button>
-                      <button title="Contatos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-purple-500 hover:opacity-70"><Users size={16} /></button>
+                      <button title="Tarefas agendadas" onClick={() => toast('ok', 'Em construcao')} className="text-roxo-500 hover:opacity-70"><CheckCircle2 size={16} /></button>
+                      <button title="Contatos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-roxo-500 hover:opacity-70"><Users size={16} /></button>
                       <button title="Responsaveis pelos departamentos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-marca-600 hover:opacity-70"><Network size={16} /></button>
                     </div>
                   </td>

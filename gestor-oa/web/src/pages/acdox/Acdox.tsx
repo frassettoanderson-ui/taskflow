@@ -6,7 +6,7 @@ import { Modal, Spinner, useToast } from '../../components/ui';
 import type { ReguaCobranca, CobrancaLista, CobrancaDetalhe, AcdoxDashboard, Departamento } from '../../lib/tipos';
 
 const ABAS = ['Cobrancas', 'Reguas de cobranca'] as const;
-const COR_STATUS: Record<string, string> = { PENDENTE: '#f0ad4e', VENCIDO: '#cf3c5d', RECEBIDO: '#5b9bd5', VALIDADO: '#5cb85c', RECUSADO: '#94a3b8' };
+const COR_STATUS: Record<string, string> = { PENDENTE: '#ffb752', VENCIDO: '#d15b47', RECEBIDO: '#69a8d9', VALIDADO: '#88b87f', RECUSADO: '#94a3b8' };
 const dataBR = (d: string) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 
 async function baixarArquivo(cobId: string, itemId: string) {
@@ -129,7 +129,7 @@ export default function Acdox() {
                   )}
                 </div>
                 <p className="text-xs text-slate-500">Dia limite {r.diaLimite} · {r.itens.length} doc(s) · {r.empresasCount} empresa(s) · {r.cobrancasCount} cobranca(s){r.ativo ? '' : ' · inativa'}</p>
-                <div className="flex flex-wrap gap-1">{r.itens.map((i) => <span key={i.id} className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-slate-600">{i.nome}</span>)}</div>
+                <div className="flex flex-wrap gap-1">{r.itens.map((i) => <span key={i.id} className="rounded bg-fundo px-2 py-0.5 text-xs text-slate-600">{i.nome}</span>)}</div>
               </div>
             ))}
             {reguas.length === 0 && <p className="col-span-full py-10 text-center text-slate-400">Nenhuma regua cadastrada.</p>}

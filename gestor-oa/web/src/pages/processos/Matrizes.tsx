@@ -39,7 +39,7 @@ export default function Matrizes() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">
           <CheckCircle2 size={16} className="text-slate-400" />

@@ -131,7 +131,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
   function trocarEmpresa(id: string) { setEmpresaAtual(id); window.location.reload(); }
 
   return (
-    <div className="min-h-screen bg-neutral-100">
+    <div className="min-h-screen bg-fundo">
       <header className="flex flex-wrap items-center gap-3 px-6 py-3 text-white" style={{ background: c }}>
         <span className="font-bold">{branding?.nome ?? 'Area VIP'}</span>
         <nav className="flex flex-wrap gap-1 text-sm">
@@ -399,7 +399,7 @@ function SolicitacaoThread({ id, onVoltar }: { id: string; onVoltar: () => void 
       <Card>
         <div className="space-y-2">
           {s.mensagens.map((m) => (
-            <div key={m.id} className={`rounded p-2 text-sm ${m.autorTipo === 'CONTATO' ? 'bg-marca-50' : 'bg-neutral-100'}`}>
+            <div key={m.id} className={`rounded p-2 text-sm ${m.autorTipo === 'CONTATO' ? 'bg-marca-50' : 'bg-fundo'}`}>
               <div className="text-xs text-slate-400">{m.autorNome} · {new Date(m.createdAt).toLocaleString('pt-BR')}</div>
               <div className="text-slate-700">{m.texto}</div>
             </div>
@@ -532,8 +532,8 @@ function AvalieNos() {
         <div className="mt-3 flex flex-wrap gap-1.5">
           {Array.from({ length: 11 }, (_, i) => i).map((n) => (
             <button key={n} onClick={() => setNota(n)}
-              className={`h-9 w-9 rounded text-sm font-medium ${nota === n ? 'text-white' : 'text-slate-600 hover:bg-neutral-100'}`}
-              style={nota === n ? { background: n <= 6 ? '#cf3c5d' : n <= 8 ? '#f0ad4e' : '#5cb85c' } : { border: '1px solid #e2e8f0' }}>{n}</button>
+              className={`h-9 w-9 rounded text-sm font-medium ${nota === n ? 'text-white' : 'text-slate-600 hover:bg-fundo'}`}
+              style={nota === n ? { background: n <= 6 ? '#d15b47' : n <= 8 ? '#ffb752' : '#88b87f' } : { border: '1px solid #e2e8f0' }}>{n}</button>
           ))}
         </div>
         <div className="mt-2 flex justify-between text-xs text-slate-400"><span>Pouco provavel</span><span>Muito provavel</span></div>
@@ -550,7 +550,7 @@ function AvalieNos() {
 
 interface ProcLista { id: string; nome: string; status: string; gestor: string | null; dataInicio: string; previsaoConclusao: string | null; progresso: number; total: number; concluidos: number }
 interface ProcDetalhe { id: string; nome: string; status: string; gestor: string | null; dataInicio: string; previsaoConclusao: string | null; dataConclusao: string | null; passos: { id: string; titulo: string; descricao: string | null; status: string; prazo: string | null; concluidoEm: string | null }[] }
-const COR_PASSO: Record<string, string> = { PENDENTE: '#f0ad4e', EM_ANDAMENTO: '#5b9bd5', CONCLUIDO: '#5cb85c', DISPENSADO: '#94a3b8' };
+const COR_PASSO: Record<string, string> = { PENDENTE: '#ffb752', EM_ANDAMENTO: '#69a8d9', CONCLUIDO: '#88b87f', DISPENSADO: '#94a3b8' };
 
 function Processos() {
   const [lista, setLista] = useState<ProcLista[] | null>(null);
@@ -573,7 +573,7 @@ function Processos() {
               <span className="text-xs text-slate-400">{p.status === 'EM_ANDAMENTO' ? 'Em andamento' : p.status === 'SUSPENSO' ? 'Suspenso' : p.status}</span>
             </div>
             <div className="mt-1 text-xs text-slate-400">{p.gestor ? `Gestor: ${p.gestor} · ` : ''}Inicio: {new Date(p.dataInicio).toLocaleDateString('pt-BR')}{p.previsaoConclusao ? ` · Previsao: ${new Date(p.previsaoConclusao).toLocaleDateString('pt-BR')}` : ''}</div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded bg-neutral-100"><div className="h-full bg-emerald-500" style={{ width: `${p.progresso}%` }} /></div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded bg-fundo"><div className="h-full bg-emerald-500" style={{ width: `${p.progresso}%` }} /></div>
             <div className="mt-1 text-xs text-slate-500">{p.progresso}% · {p.concluidos}/{p.total} etapas</div>
           </Card>
         </button>
@@ -606,7 +606,7 @@ function Processos() {
 
 interface CobItemCli { id: string; nome: string; status: string; temArquivo: boolean; justificativa: string | null }
 interface CobCli { id: string; reguaNome: string; competencia: string; dataLimite: string; status: string; itens: CobItemCli[] }
-const COR_COB: Record<string, string> = { PENDENTE: '#f0ad4e', VENCIDO: '#cf3c5d', RECEBIDO: '#5b9bd5', VALIDADO: '#5cb85c', RECUSADO: '#cf3c5d' };
+const COR_COB: Record<string, string> = { PENDENTE: '#ffb752', VENCIDO: '#d15b47', RECEBIDO: '#69a8d9', VALIDADO: '#88b87f', RECUSADO: '#d15b47' };
 
 function EnviarDocumentos() {
   const [lista, setLista] = useState<CobCli[] | null>(null);

@@ -10,7 +10,7 @@ import { Spinner, useToast } from '../../components/ui';
 import type { ProcessoDetalhe, StatusProcesso, ProcessoPasso, Departamento, UsuarioBasico } from '../../lib/tipos';
 
 const COR: Record<StatusProcesso, string> = {
-  EM_ANDAMENTO: '#5b9bd5', CONCLUIDO: '#5cb85c', SUSPENSO: '#f0ad4e', CANCELADO: '#cf3c5d',
+  EM_ANDAMENTO: '#69a8d9', CONCLUIDO: '#88b87f', SUSPENSO: '#ffb752', CANCELADO: '#d15b47',
 };
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-2 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
@@ -92,7 +92,7 @@ export default function ProcessoFicha() {
     : 'Em andamento';
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
       <div className="mb-4 flex items-center gap-2 text-slate-600">
         <CheckCircle2 size={16} className="text-slate-400" />
         <span className="font-medium text-slate-700">Gestao de processos</span>
@@ -174,7 +174,7 @@ export default function ProcessoFicha() {
           return (
             <div key={g.chave} className="overflow-hidden rounded border border-slate-200 bg-white">
               <button onClick={() => setColapsados((s) => { const n = new Set(s); n.has(g.chave) ? n.delete(g.chave) : n.add(g.chave); return n; })}
-                className="flex w-full items-center gap-1.5 bg-neutral-100 px-3 py-1.5 text-left text-[13px] font-medium text-marca-700">
+                className="flex w-full items-center gap-1.5 bg-fundo px-3 py-1.5 text-left text-[13px] font-medium text-marca-700">
                 {aberto ? <ChevronDown size={15} /> : <ChevronRight size={15} />} {g.nome} <span className="text-slate-400">()</span>
               </button>
               {aberto && (

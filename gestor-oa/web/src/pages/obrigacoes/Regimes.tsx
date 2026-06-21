@@ -41,7 +41,7 @@ export default function Regimes() {
   });
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
       {/* Cabecalho */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-500">
@@ -69,7 +69,7 @@ export default function Regimes() {
           <button title="Imprimir" onClick={() => setImprimirAberto((v) => !v)} className="text-marca-600 hover:text-marca-800"><Printer size={18} /></button>
           {imprimirAberto && (
             <div className="absolute right-0 top-8 z-50 flex flex-col gap-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
-              <button onClick={() => navigate(relUrl('empresas'))} className="flex items-center gap-2 whitespace-nowrap rounded bg-purple-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-600"><Printer size={13} /> Empresas por regime</button>
+              <button onClick={() => navigate(relUrl('empresas'))} className="flex items-center gap-2 whitespace-nowrap rounded bg-roxo-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-roxo-600"><Printer size={13} /> Empresas por regime</button>
               <button onClick={() => navigate(relUrl('obrigacoes'))} className="flex items-center gap-2 whitespace-nowrap rounded bg-amber-400 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500"><Printer size={13} /> Obrigacoes por regime</button>
             </div>
           )}

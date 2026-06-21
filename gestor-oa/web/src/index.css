@@ -4,17 +4,17 @@
 
 :root {
   color-scheme: light;
-  /* Estilo "Azul" (padrao) - canais RGB para a paleta marca */
-  --marca-50: 238 246 251;
-  --marca-100: 212 232 244;
-  --marca-200: 169 209 233;
-  --marca-300: 116 179 216;
-  --marca-400: 79 155 202;
-  --marca-500: 63 140 186;
-  --marca-600: 53 123 166;
-  --marca-700: 46 103 136;
-  --marca-800: 40 82 108;
-  --marca-900: 31 63 84;
+  /* Estilo "Azul" (padrao) - canais RGB. 500=#428bca (azul escuro), 400=#69a8d9 (azul claro) */
+  --marca-50: 238 245 251;
+  --marca-100: 217 233 245;
+  --marca-200: 179 210 235;
+  --marca-300: 141 188 224;
+  --marca-400: 105 168 217;
+  --marca-500: 66 139 202;
+  --marca-600: 58 122 178;
+  --marca-700: 49 102 153;
+  --marca-800: 40 83 127;
+  --marca-900: 31 65 99;
 
   /* Skin do menu lateral (Trocar estilo) - padrao Claro */
   --m-bg: #ffffff;
@@ -22,9 +22,9 @@
   --m-fg: #64748b;
   --m-ic: #94a3b8;
   --m-hv: #f1f5f9;
-  --m-abg: rgb(238 246 251);
-  --m-afg: rgb(46 103 136);
-  --m-acc: rgb(63 140 186);
+  --m-abg: rgb(238 245 251);
+  --m-afg: rgb(49 102 153);
+  --m-acc: rgb(66 139 202);
   --m-title: #334155;
 }
 
@@ -103,7 +103,7 @@ body,
 }
 
 body {
-  @apply bg-neutral-100 text-slate-800 antialiased;
+  @apply bg-fundo text-slate-800 antialiased;
 }
 
 @layer components {

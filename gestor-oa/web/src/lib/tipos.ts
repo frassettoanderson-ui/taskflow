@@ -322,12 +322,12 @@ export type StatusEntrega =
   | 'DISPENSADA';
 
 export const STATUS_INFO: Record<StatusEntrega, { label: string; cor: string }> = {
-  PENDENTE_ANTECIPADO: { label: 'Pendente antecipado', cor: '#5cb85c' },
-  PENDENTE: { label: 'Pendente no prazo', cor: '#5b9bd5' },
-  EM_ATRASO_TECNICO: { label: 'Atraso tecnico', cor: '#f0ad4e' },
-  EM_ATRASO_LEGAL: { label: 'Atraso legal', cor: '#cf3c5d' },
-  ENTREGUE: { label: 'Entregue', cor: '#3a9d3a' },
-  ENTREGUE_JUSTIFICADA: { label: 'Entregue c/ multa', cor: '#cf3c5d' },
+  PENDENTE_ANTECIPADO: { label: 'Pendente antecipado', cor: '#88b87f' },
+  PENDENTE: { label: 'Pendente no prazo', cor: '#69a8d9' },
+  EM_ATRASO_TECNICO: { label: 'Atraso tecnico', cor: '#ffb752' },
+  EM_ATRASO_LEGAL: { label: 'Atraso legal', cor: '#d15b47' },
+  ENTREGUE: { label: 'Entregue', cor: '#88b87f' },
+  ENTREGUE_JUSTIFICADA: { label: 'Entregue c/ multa', cor: '#d15b47' },
   DISPENSADA: { label: 'Dispensada', cor: '#94a3b8' },
 };
 
@@ -593,10 +593,10 @@ export interface RoboPainel {
 }
 
 export const STATUS_ROBO_INFO: Record<StatusRoboJob, { label: string; cor: string }> = {
-  PROCESSANDO: { label: 'Processando', cor: '#5b9bd5' },
-  BAIXADO: { label: 'Baixado', cor: '#5cb85c' },
-  REVISAO: { label: 'Revisao', cor: '#f0ad4e' },
-  ERRO: { label: 'Erro', cor: '#cf3c5d' },
+  PROCESSANDO: { label: 'Processando', cor: '#69a8d9' },
+  BAIXADO: { label: 'Baixado', cor: '#88b87f' },
+  REVISAO: { label: 'Revisao', cor: '#ffb752' },
+  ERRO: { label: 'Erro', cor: '#d15b47' },
   IGNORADO: { label: 'Ignorado', cor: '#94a3b8' },
 };
 
@@ -606,9 +606,9 @@ export type StatusPasso = 'PENDENTE' | 'CONCLUIDO' | 'DISPENSADO';
 export type AcaoAutomatica = 'NENHUMA' | 'CRIAR_TAREFA' | 'CRIAR_OBRIGACAO_NA_EMPRESA' | 'INICIAR_SUBPROCESSO';
 
 export const STATUS_PROCESSO_INFO: Record<StatusProcesso, { label: string; cor: string }> = {
-  EM_ANDAMENTO: { label: 'Em andamento', cor: '#5b9bd5' },
-  SUSPENSO: { label: 'Suspenso', cor: '#f0ad4e' },
-  CONCLUIDO: { label: 'Concluido', cor: '#5cb85c' },
+  EM_ANDAMENTO: { label: 'Em andamento', cor: '#69a8d9' },
+  SUSPENSO: { label: 'Suspenso', cor: '#ffb752' },
+  CONCLUIDO: { label: 'Concluido', cor: '#88b87f' },
   CANCELADO: { label: 'Cancelado', cor: '#94a3b8' },
 };
 
@@ -737,10 +737,10 @@ export interface ChatbotNo {
 
 export const STATUS_COM_INFO: Record<string, { label: string; cor: string }> = {
   FILA: { label: 'Na fila', cor: '#94a3b8' },
-  ENVIADO: { label: 'Enviado', cor: '#5cb85c' },
-  FALHOU: { label: 'Falhou', cor: '#cf3c5d' },
-  LIDO: { label: 'Lido', cor: '#3a9d3a' },
-  INTENCAO: { label: 'Intencao (WhatsApp)', cor: '#5b9bd5' },
+  ENVIADO: { label: 'Enviado', cor: '#88b87f' },
+  FALHOU: { label: 'Falhou', cor: '#d15b47' },
+  LIDO: { label: 'Lido', cor: '#88b87f' },
+  INTENCAO: { label: 'Intencao (WhatsApp)', cor: '#69a8d9' },
 };
 
 export function dataBR(d: string | Date): string {

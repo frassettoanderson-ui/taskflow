@@ -9,8 +9,8 @@ import { STATUS_FISICO_LABEL } from '../../lib/tipos';
 
 const COR: Record<StatusProtocoloFisico, string> = {
   PENDENTE: '#e08a1e', AGUARDANDO_RETIRADA: '#e08a1e',
-  IMPRESSO: '#5b9bd5', DEVOLVIDO: '#5b9bd5',
-  ENTREGUE: '#3a9d3a', CANCELADO: '#cf3c5d',
+  IMPRESSO: '#69a8d9', DEVOLVIDO: '#69a8d9',
+  ENTREGUE: '#88b87f', CANCELADO: '#d15b47',
 };
 
 // flag -> status (inclui legados)
@@ -59,7 +59,7 @@ export default function ProtocolosFisicos() {
   );
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
       {/* cabecalho */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">

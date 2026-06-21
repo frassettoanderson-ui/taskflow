@@ -6,7 +6,7 @@ import { useAuth, temPermissao } from '../lib/auth';
 import { Spinner, useToast, InfoHint } from '../components/ui';
 import type { UsuarioCompleto, JanelaAcesso } from '../lib/tipos';
 import { TIPOS_USUARIO } from '../lib/tipos';
-import { PERMISSION_AREAS, PERMISSION_PRESETS, flagsParaNiveis } from '@gestoroa/shared';
+import { PERMISSION_AREAS, flagsParaNiveis } from '@gestoroa/shared';
 
 // Classes compactas (flat, fundo cinza) - estilo Acessorias
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
@@ -181,7 +181,7 @@ export default function UsuarioForm() {
   const custoMinCalc = minMes > 0 ? custoMesCalc / minMes : 0;
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">
           <Users size={16} className="text-slate-400" />
@@ -221,7 +221,7 @@ export default function UsuarioForm() {
       {/* Foto de perfil */}
       {!novo && (
         <div className="mt-3 flex items-center gap-3">
-          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-neutral-100 text-slate-400">
+          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-fundo text-slate-400">
             {temFoto ? <img src={`/api/v1/usuarios/${id}/foto?t=${fotoTick}&token=${getAccessToken() ?? ''}`} alt="" className="h-full w-full object-cover" /> : <span className="text-2xl">{(nome[0] ?? '?').toUpperCase()}</span>}
           </div>
           <div>
@@ -241,20 +241,8 @@ export default function UsuarioForm() {
         )}
         <div className="grid transition-all duration-200 ease-out" style={{ gridTemplateRows: showPerm ? '1fr' : '0fr' }}>
           <div className="overflow-hidden">
-            <div className="rounded border border-slate-200 bg-white p-4">
+            <div className="rounded border border-slate-200 bg-caixa p-4">
               {!podePermissoes && <p className="mb-2 text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
-              {podePermissoes && (
-                <div className="mb-3 flex flex-wrap items-center gap-2 rounded bg-slate-50 px-3 py-2">
-                  <span className="text-[12px] font-medium text-slate-600">Aplicar preset por cargo:</span>
-                  {PERMISSION_PRESETS.map((p) => (
-                    <button key={p.id} type="button" title={p.descricao}
-                      onClick={() => { if (window.confirm(`Aplicar o preset "${p.label}"? Isso substitui as permissoes atuais.`)) setNiveis(p.niveis); }}
-                      className="rounded border border-marca-300 bg-white px-2.5 py-1 text-[12px] text-marca-700 hover:bg-marca-50">
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-              )}
               <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
                 {PERMISSION_AREAS.filter((a) => !a.extra).filter((a) => a.id === 'administrativo' || (niveis.administrativo ?? 0) < 1).map((a) => (
                   <div key={a.id}>
@@ -276,10 +264,12 @@ export default function UsuarioForm() {
           </div>
         </div>
 
-        {/* Dados de e-mail (colapsavel) */}
+        {/* Dados de e-mail + Custo: aparecem so na edicao (no cadastro novo, igual ao original, nao sao exibidos) */}
+        {!novo && (
+        <>
         <SecaoLink aberto={showEmail} onToggle={() => setShowEmail((v) => !v)} titulo="Dados de e-mail" />
         {showEmail && (
-          <div className="rounded border border-slate-200 bg-white p-4">
+          <div className="rounded border border-slate-200 bg-caixa p-4">
             <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-4">
               <div><label className={LBL}>Servidor de SMTP (Host)</label><input className={INP} value={smtpHost} onChange={(e) => setSmtpHost(e.target.value)} placeholder="smtp.exemplo.com" /></div>
               <div><label className={LBL}>Porta</label><input className={INP} value={smtpPorta} onChange={(e) => setSmtpPorta(e.target.value)} placeholder="587" /></div>
@@ -307,7 +297,7 @@ export default function UsuarioForm() {
         {/* Configuracao do custo e minutos uteis (colapsavel) */}
         <SecaoLink aberto={showCusto} onToggle={() => setShowCusto((v) => !v)} titulo="Configuracao do custo e minutos uteis do colaborador" info={INFO_CUSTO} />
         {showCusto && (
-          <div className="rounded border border-slate-200 bg-white p-4">
+          <div className="rounded border border-slate-200 bg-caixa p-4">
             <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-5">
               <div>
                 <label className={`${LBL} flex items-center gap-1`}>Salario <button type="button" onClick={() => setVerSalario((v) => !v)} className="text-slate-400 hover:text-marca-600">{verSalario ? <EyeOff size={12} /> : <Eye size={12} />}</button></label>
@@ -323,6 +313,8 @@ export default function UsuarioForm() {
               <input className={INP} value={minutosUteisMes} onChange={(e) => setMinutosUteisMes(e.target.value)} placeholder="ex.: 8800" />
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
 

@@ -20,7 +20,7 @@ const INFO_ANEXO = 'Se "Sim", sera obrigatorio anexar um arquivo para concluir e
 const TIPO_INFO: Record<TipoPassoMatriz, { label: string; icon: typeof CheckSquare; cor: string }> = {
   PASSO_SIMPLES: { label: 'Passo simples', icon: CheckSquare, cor: 'text-sky-600' },
   SUB_MATRIZ: { label: 'Sub-matriz', icon: ChevronsDown, cor: 'text-slate-500' },
-  DESDOBRAMENTO: { label: 'Desdobramento', icon: Shuffle, cor: 'text-purple-600' },
+  DESDOBRAMENTO: { label: 'Desdobramento', icon: Shuffle, cor: 'text-roxo-600' },
   FOLLOW_UP: { label: 'Follow-up', icon: Mail, cor: 'text-amber-500' },
 };
 
@@ -160,7 +160,7 @@ export default function MatrizForm() {
   if (carregando) return <Spinner />;
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
       <div className="mb-4 flex items-center gap-2 text-slate-600">
         <CheckCircle2 size={16} className="text-slate-400" />
         <span className="font-medium text-slate-700">Gestao de processos</span>
@@ -215,13 +215,13 @@ export default function MatrizForm() {
           <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <button onClick={abrirNovoPasso} className="flex items-center justify-center gap-2 rounded bg-sky-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-sky-600"><CheckSquare size={15} /> Novo passo simples</button>
             <button onClick={abrirNovaSub} className="flex items-center justify-center gap-2 rounded bg-slate-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-slate-500"><ChevronsDown size={15} /> Nova sub-matriz</button>
-            <button onClick={abrirNovoDesd} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-purple-600"><Shuffle size={15} /> Novo desdobramento</button>
+            <button onClick={abrirNovoDesd} className="flex items-center justify-center gap-2 rounded bg-roxo-500 px-3 py-2 text-[13px] font-medium text-white hover:bg-roxo-600"><Shuffle size={15} /> Novo desdobramento</button>
             <button onClick={() => { setEditando(null); setCriando('FOLLOW'); }} className="flex items-center justify-center gap-2 rounded bg-amber-400 px-3 py-2 text-[13px] font-medium text-white hover:bg-amber-500"><Mail size={15} /> Novo follow-up</button>
           </div>
 
           {/* form Novo desdobramento */}
           {criando === 'DESD' && (
-            <div className="mt-3 space-y-3 rounded border border-purple-200 bg-purple-50/50 p-3">
+            <div className="mt-3 space-y-3 rounded border border-roxo-200 bg-roxo-50/50 p-3">
               <div>
                 <label className="mb-1 block text-[12px] font-semibold text-amber-600">Essa matriz ja esta em uso, o que deseja fazer com este novo desdobramento nos processos?</label>
                 <select className={`${INP} text-marca-600`} value={dForm.propagacao} onChange={(e) => setDForm((f) => ({ ...f, propagacao: e.target.value as typeof f.propagacao }))}>
@@ -237,7 +237,7 @@ export default function MatrizForm() {
                   <option value="">Desdobramento: conclui o passo</option>
                   {matrizesDisp.filter((m) => m.id !== id).map((m) => <option key={m.id} value={m.id}>Sub-matriz: {m.nome}</option>)}
                 </select>
-                <button onClick={addOpcaoDesd} className="flex items-center justify-center gap-2 rounded bg-purple-500 px-4 py-2 text-[12px] font-medium text-white hover:bg-purple-600"><Plus size={14} /> Adicionar</button>
+                <button onClick={addOpcaoDesd} className="flex items-center justify-center gap-2 rounded bg-roxo-500 px-4 py-2 text-[12px] font-medium text-white hover:bg-roxo-600"><Plus size={14} /> Adicionar</button>
               </div>
               {/* opcoes adicionadas */}
               {dForm.opcoes.length === 0 ? (
@@ -246,7 +246,7 @@ export default function MatrizForm() {
                 <ul className="space-y-1">
                   {dForm.opcoes.map((o, k) => (
                     <li key={k} className="flex items-center gap-2 text-[12px] text-slate-600">
-                      <span className="font-medium text-purple-700">{o.label}</span>
+                      <span className="font-medium text-roxo-700">{o.label}</span>
                       <span className="text-slate-400">&raquo;</span>
                       <span>{o.acao === 'CONCLUI' ? 'Conclui o passo' : `Sub-matriz: ${matrizesDisp.find((m) => m.id === o.alvoMatrizId)?.nome ?? '...'}`}</span>
                       <button onClick={() => setDForm((f) => ({ ...f, opcoes: f.opcoes.filter((_, j) => j !== k) }))} className="text-slate-300 hover:text-status-danger"><X size={13} /></button>
@@ -275,7 +275,7 @@ export default function MatrizForm() {
 
           {/* form Nova sub-matriz */}
           {criando === 'SUB' && (
-            <div className="mt-3 space-y-3 rounded border border-slate-300 bg-neutral-100/60 p-3">
+            <div className="mt-3 space-y-3 rounded border border-slate-300 bg-fundo/60 p-3">
               <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
                 <div>
                   <label className={LBL}>Selecione a sub-matriz desejada:</label>
@@ -415,7 +415,7 @@ export default function MatrizForm() {
                           <button onClick={() => setEditando(editavel ? null : i)} className={`text-left hover:underline ${p.titulo ? 'text-marca-600' : 'italic text-slate-400'}`}>{nomeExib}</button>
                         )}
                       </div>
-                      {tipo === 'SUB_MATRIZ' && <div className="mt-0.5 pl-5 text-[11px] text-purple-500">Tarefas apos: {!p.config?.criarApos || p.config.criarApos === 'INICIO' ? 'inicio/autorizacao do processo' : `Ok do '${p.config.criarApos}'`}</div>}
+                      {tipo === 'SUB_MATRIZ' && <div className="mt-0.5 pl-5 text-[11px] text-roxo-500">Tarefas apos: {!p.config?.criarApos || p.config.criarApos === 'INICIO' ? 'inicio/autorizacao do processo' : `Ok do '${p.config.criarApos}'`}</div>}
                       {p.config?.tarefas && <div className="pl-5 text-[11px] text-marca-500">Tarefas: {p.config.tarefas}</div>}
                       {p.config?.obrigacoes && <div className="pl-5 text-[11px] text-amber-600">Obrigacoes: {p.config.obrigacoes}</div>}
                     </div>

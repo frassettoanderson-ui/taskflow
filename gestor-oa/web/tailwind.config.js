@@ -31,13 +31,27 @@ export default {
           800: 'rgb(var(--marca-800) / <alpha-value>)',
           900: 'rgb(var(--marca-900) / <alpha-value>)',
         },
-        // Cores semanticas de status (Painel de Indicadores)
+        // Cores semanticas de status (paleta oficial do projeto)
         status: {
-          ok: '#5cb85c', // verde - antecipado / no prazo
-          info: '#5b9bd5', // azul - no prazo / antecipadas
-          danger: '#cf3c5d', // vermelho/crimson - com multa / atrasado
-          warn: '#f0ad4e', // laranja - a realizar / prazo tecnico
+          ok: '#88b87f', // verde
+          info: '#69a8d9', // azul claro
+          danger: '#d15b47', // vermelho
+          warn: '#ffb752', // amarelo
         },
+        // Roxo oficial
+        roxo: {
+          50: '#f2f0f8',
+          100: '#e6e1f1',
+          200: '#d2cae6',
+          300: '#b3a7d4',
+          400: '#9585bf',
+          500: '#8171ac',
+          600: '#6d5d97',
+          700: '#5b4d7e',
+        },
+        // Fundos cinza (geral / area mais escura)
+        fundo: '#f0f0f0',
+        caixa: '#e8e8e8',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

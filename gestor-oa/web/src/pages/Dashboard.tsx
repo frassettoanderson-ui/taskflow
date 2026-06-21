@@ -47,12 +47,12 @@ interface Painel {
 }
 
 const COR = {
-  ok: '#5cb85c',
-  info: '#3b86c6',
-  infoClaro: '#5dade2',
-  danger: '#cf3c5d',
-  warn: '#f0ad4e',
-  roxo: '#9b59b6',
+  ok: '#88b87f',
+  info: '#428bca',
+  infoClaro: '#69a8d9',
+  danger: '#d15b47',
+  warn: '#ffb752',
+  roxo: '#9585bf',
 };
 
 const VISOES = [
@@ -228,7 +228,7 @@ function PainelFixo() {
 
 function Controle({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title: string }) {
   return (
-    <button onClick={onClick} title={title} className="grid h-8 w-9 place-items-center rounded text-slate-500 hover:bg-neutral-100">
+    <button onClick={onClick} title={title} className="grid h-8 w-9 place-items-center rounded text-slate-500 hover:bg-fundo">
       {children}
     </button>
   );

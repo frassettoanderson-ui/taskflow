@@ -10,7 +10,7 @@ const ROTULO: Record<StatusProcesso, string> = {
   EM_ANDAMENTO: 'Em andamento', CONCLUIDO: 'Concluido', SUSPENSO: 'Suspenso', CANCELADO: 'Desistencia',
 };
 const COR: Record<StatusProcesso, string> = {
-  EM_ANDAMENTO: '#5b9bd5', CONCLUIDO: '#5cb85c', SUSPENSO: '#f0ad4e', CANCELADO: '#cf3c5d',
+  EM_ANDAMENTO: '#69a8d9', CONCLUIDO: '#88b87f', SUSPENSO: '#ffb752', CANCELADO: '#d15b47',
 };
 const GRUPO: Record<string, StatusProcesso[]> = {
   andamento: ['EM_ANDAMENTO'], concluidos: ['CONCLUIDO'], suspensos: ['SUSPENSO'], desistencias: ['CANCELADO'],
@@ -97,7 +97,7 @@ export default function Processos() {
   const COLS = 'grid grid-cols-[1.7fr_2.1fr_1.2fr] gap-3';
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-4 text-[13px]">
       {/* cabecalho */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">

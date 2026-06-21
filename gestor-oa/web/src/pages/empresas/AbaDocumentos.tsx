@@ -128,7 +128,7 @@ function ModalProtocolos({ empresaId, onFechar }: { empresaId: string; onFechar:
             <div key={p.id} className="card p-3 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-slate-700">{p.documento?.nomeArquivo ?? 'Documento'}</span>
-                <Badge className="bg-neutral-100 text-slate-600">{p.canal}</Badge>
+                <Badge className="bg-fundo text-slate-600">{p.canal}</Badge>
               </div>
               <div className="text-xs text-slate-500">Para {p.destinatario} · enviado {new Date(p.enviadoEm).toLocaleString('pt-BR')}</div>
               <div className="mt-1 text-xs">

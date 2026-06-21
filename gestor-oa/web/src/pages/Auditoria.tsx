@@ -5,7 +5,7 @@ import type { LogAuditoriaItem, UsuarioCompleto } from '../lib/tipos';
 
 interface Pagina { items: LogAuditoriaItem[]; total: number; totalPages: number; page: number }
 
-const CORES_ACAO: Record<string, string> = { CREATE: '#5cb85c', UPDATE: '#f0ad4e', DELETE: '#cf3c5d' };
+const CORES_ACAO: Record<string, string> = { CREATE: '#88b87f', UPDATE: '#ffb752', DELETE: '#d15b47' };
 
 export default function Auditoria() {
   const [pagina, setPagina] = useState<Pagina | null>(null);

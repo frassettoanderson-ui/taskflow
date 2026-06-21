@@ -11,7 +11,7 @@ interface SolUnif {
 }
 
 const COR_STATUS: Record<string, string> = {
-  ABERTA: '#5b9bd5', EM_ANDAMENTO: '#f0ad4e', AGUARDANDO: '#94a3b8', RESOLVIDA: '#5cb85c', CANCELADA: '#cf3c5d', FINALIZADA: '#5cb85c',
+  ABERTA: '#69a8d9', EM_ANDAMENTO: '#ffb752', AGUARDANDO: '#94a3b8', RESOLVIDA: '#88b87f', CANCELADA: '#d15b47', FINALIZADA: '#88b87f',
 };
 const ROTULO: Record<string, string> = {
   ABERTA: 'Aberta', EM_ANDAMENTO: 'Em andamento', AGUARDANDO: 'Aguardando', RESOLVIDA: 'Resolvida', CANCELADA: 'Cancelada', FINALIZADA: 'Finalizada',
@@ -40,7 +40,7 @@ export default function GestaoSolicitacoes() {
         </div>
         <div className="flex gap-1 rounded border border-slate-200 bg-white p-1 text-sm">
           {[{ v: '', l: 'Todas' }, { v: 'interna', l: 'Internas' }, { v: 'externa', l: 'Externas' }].map((o) => (
-            <button key={o.v} onClick={() => setTipo(o.v)} className={`rounded px-3 py-1 ${tipo === o.v ? 'bg-marca-500 text-white' : 'text-slate-600 hover:bg-neutral-100'}`}>{o.l}</button>
+            <button key={o.v} onClick={() => setTipo(o.v)} className={`rounded px-3 py-1 ${tipo === o.v ? 'bg-marca-500 text-white' : 'text-slate-600 hover:bg-fundo'}`}>{o.l}</button>
           ))}
         </div>
       </div>

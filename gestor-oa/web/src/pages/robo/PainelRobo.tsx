@@ -25,9 +25,9 @@ export default function PainelRobo() {
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         <Card titulo="Hoje" valor={painel.processadosHoje} />
         <Card titulo="No mes" valor={painel.processadosMes} />
-        <Card titulo="Baixados (mes)" valor={painel.baixadosMes} cor="#5cb85c" />
+        <Card titulo="Baixados (mes)" valor={painel.baixadosMes} cor="#88b87f" />
         <Card titulo="Taxa de match" valor={`${painel.taxaMatch}%`} cor="#3f8cba" />
-        <Card titulo="Em revisao" valor={painel.pendentesRevisao} cor="#f0ad4e" />
+        <Card titulo="Em revisao" valor={painel.pendentesRevisao} cor="#ffb752" />
       </div>
 
       <div className="flex items-center gap-2">

@@ -169,7 +169,7 @@ function Widget({ tipo, dados }: { tipo: string; dados: Dados }) {
     const Icone = meta.icone;
     return (
       <div className="flex items-center gap-4">
-        <div className={`grid h-12 w-12 place-items-center rounded-full bg-neutral-100 ${meta.cor}`}><Icone size={24} /></div>
+        <div className={`grid h-12 w-12 place-items-center rounded-full bg-fundo ${meta.cor}`}><Icone size={24} /></div>
         <div>
           <div className="text-3xl font-bold text-slate-800">{dados.kpis[meta.campo]}</div>
           <div className="text-sm text-slate-500">{meta.titulo}</div>
@@ -204,8 +204,8 @@ function Widget({ tipo, dados }: { tipo: string; dados: Dados }) {
             <BarChart data={dados.porDepartamento}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
               <XAxis dataKey="nome" fontSize={11} /><YAxis fontSize={11} allowDecimals={false} /><Tooltip /><Legend />
-              <Bar dataKey="baixadas" name="Baixadas" fill="#5b9bd5" stackId="a" />
-              <Bar dataKey="pendentes" name="Pendentes" fill="#f0ad4e" stackId="a" />
+              <Bar dataKey="baixadas" name="Baixadas" fill="#69a8d9" stackId="a" />
+              <Bar dataKey="pendentes" name="Pendentes" fill="#ffb752" stackId="a" />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -221,8 +221,8 @@ function Widget({ tipo, dados }: { tipo: string; dados: Dados }) {
             <BarChart data={dados.porColaborador} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
               <XAxis type="number" fontSize={11} allowDecimals={false} /><YAxis type="category" dataKey="nome" fontSize={11} width={100} /><Tooltip /><Legend />
-              <Bar dataKey="baixadas" name="Baixadas" fill="#5b9bd5" stackId="a" />
-              <Bar dataKey="pendentes" name="Pendentes" fill="#f0ad4e" stackId="a" />
+              <Bar dataKey="baixadas" name="Baixadas" fill="#69a8d9" stackId="a" />
+              <Bar dataKey="pendentes" name="Pendentes" fill="#ffb752" stackId="a" />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -238,8 +238,8 @@ function Widget({ tipo, dados }: { tipo: string; dados: Dados }) {
             <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
             <XAxis dataKey="competencia" fontSize={11} /><YAxis fontSize={11} allowDecimals={false} /><Tooltip /><Legend />
             <Line type="monotone" dataKey="total" name="Total" stroke="#94a3b8" />
-            <Line type="monotone" dataKey="baixadas" name="Baixadas" stroke="#5cb85c" />
-            <Line type="monotone" dataKey="atrasadas" name="Atrasadas" stroke="#cf3c5d" />
+            <Line type="monotone" dataKey="baixadas" name="Baixadas" stroke="#88b87f" />
+            <Line type="monotone" dataKey="atrasadas" name="Atrasadas" stroke="#d15b47" />
           </LineChart>
         </ResponsiveContainer>
       </Bloco>

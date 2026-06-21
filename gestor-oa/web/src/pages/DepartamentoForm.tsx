@@ -88,7 +88,7 @@ export default function DepartamentoForm() {
   const candidatosPai = deps.filter((d) => d.id !== id);
 
   return (
-    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
       <div className="mb-3 flex items-center gap-2 text-slate-500">
         <Network size={16} className="text-slate-400" />
         <span>Sistema</span>
