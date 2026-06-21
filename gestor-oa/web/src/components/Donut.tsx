@@ -31,7 +31,7 @@ export function Donut({
           const dash = frac * circ;
           const offset = -acumulado;
           acumulado += dash;
-          return { ...s, dash, gap: circ - dash, offset };
+          return { ...s, dash, gap: circ - dash, offset, pct: Math.round(frac * 100) };
         })
     : [];
 
@@ -58,7 +58,10 @@ export function Donut({
             strokeWidth={espessura}
             strokeDasharray={`${a.dash} ${a.gap}`}
             strokeDashoffset={a.offset}
-          />
+            style={{ cursor: 'pointer' }}
+          >
+            <title>{`${a.valor}/${a.pct}% ${a.label}`}</title>
+          </circle>
         ))}
       </svg>
       <div className="absolute grid place-items-center text-slate-300">{centro}</div>
