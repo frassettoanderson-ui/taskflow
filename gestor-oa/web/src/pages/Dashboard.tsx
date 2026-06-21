@@ -258,7 +258,7 @@ function VisaoEntidades({
     return <p className="text-center text-slate-400">Nenhum dado para exibir na semana atual.</p>;
   }
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
       {comDados.map((it) => {
         const linhas = cats(it.metricas);
         const segmentos: Segmento[] = linhas.map((c) => ({ valor: c.m.count, cor: c.cor, label: c.label }));
@@ -267,11 +267,11 @@ function VisaoEntidades({
         );
         return (
           <div key={it.id} className="card overflow-hidden">
-            <div className="border-b border-slate-200 py-3 text-center text-xl font-semibold text-status-ok">
-              {it.nome}
-            </div>
-            <div className="grid place-items-center py-5">
-              <Donut segmentos={segmentos} centro={avatar} tamanho={170} espessura={20} />
+            <div className="bg-slate-50">
+              <div className="pb-1 pt-4 text-center text-xl font-semibold text-status-ok">{it.nome}</div>
+              <div className="grid place-items-center pb-5 pt-2">
+                <Donut segmentos={segmentos} centro={avatar} tamanho={170} espessura={20} />
+              </div>
             </div>
             <div className="divide-y divide-slate-200 border-t border-slate-200 text-sm">
               {/* so linhas com valor > 0 (igual ao original) */}
@@ -292,7 +292,7 @@ function LinhaMetrica({ cor, label, m, sub, to, compact }: { cor: string; label:
     <div onClick={to ? () => nav(to) : undefined}
       className={`flex items-center justify-between ${compact ? 'py-2' : 'py-2.5'} pr-4 ${sub ? 'pl-8' : 'px-4'} ${to ? 'cursor-pointer hover:bg-slate-50' : ''}`}>
       <span className={compact ? 'text-sm font-semibold' : ''} style={{ color: cor }}>{sub ? '↳ ' : ''}{label}:</span>
-      <span className={`rounded-full text-white ${compact ? 'px-3 py-0.5 text-sm font-semibold' : 'px-3.5 py-0.5 text-lg font-semibold'}`} style={{ background: cor }}>
+      <span className={`rounded-full text-white ${compact ? 'px-2.5 py-1 text-[15px] font-normal leading-none' : 'px-3.5 py-0.5 text-lg font-semibold'}`} style={{ background: cor }}>
         {m.count}/{m.pct}%
       </span>
     </div>
