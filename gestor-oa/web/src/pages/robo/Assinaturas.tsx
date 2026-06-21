@@ -8,6 +8,7 @@ import type { AssinaturaDocumento, Obrigacao } from '../../lib/tipos';
 
 const shortEnvia = (v?: string) => { const x = (v ?? 'Imediato').replace('Sim - ', ''); return x === 'Nao' ? 'Nao' : x; };
 const shortReenvio = (v?: string) => !v ? 'Rep.D.A.A.' : /mant/i.test(v) ? 'Rep.M.A.A.' : /desativa/i.test(v) ? 'Rep.D.A.A.' : v;
+const fullReenvio = (v?: string) => !v ? 'Reprocessa e desativa arquivos anteriores' : /mant/i.test(v) ? 'Reprocessa e mantem arquivos anteriores' : /desativa/i.test(v) ? 'Reprocessa e desativa arquivos anteriores' : v;
 const shortSemDemanda = (v?: string) => !v ? 'Cria' : /ignor/i.test(v) ? 'Ignora' : /criar/i.test(v) ? 'Cria' : v;
 
 export default function Assinaturas() {
@@ -127,7 +128,7 @@ export default function Assinaturas() {
                 </td>
                 <td className="px-4 py-2.5 text-slate-600">{shortEnvia(a.enviaEmail)}</td>
                 <td className="px-4 py-2.5 text-slate-600">{a.copiaLocal === false ? 'Nao' : 'Sim'}</td>
-                <td className="px-4 py-2.5 text-slate-600">{shortReenvio(a.aoReenviar)}</td>
+                <td className="cursor-help px-4 py-2.5 text-slate-600" title={fullReenvio(a.aoReenviar)}>{shortReenvio(a.aoReenviar)}</td>
                 <td className="px-4 py-2.5 text-slate-600">{shortSemDemanda(a.semDemanda)}</td>
               </tr>
             ))}
