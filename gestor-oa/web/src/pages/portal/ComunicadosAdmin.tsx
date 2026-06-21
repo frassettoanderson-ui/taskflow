@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Megaphone, Search, Plus, Bell, Pencil, Trash2, Power } from 'lucide-react';
+import { Megaphone, Search, Plus, Bell, Save } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Modal, Spinner, useToast } from '../../components/ui';
@@ -15,7 +15,6 @@ export default function ComunicadosAdmin() {
   const pode = temPermissao(sessao, 'portal_comunicados');
   const [itens, setItens] = useState<Comunicado[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editando, setEditando] = useState<Comunicado | null>(null);
   const [novo, setNovo] = useState(false);
   const [acoesId, setAcoesId] = useState<string | null>(null);
 
@@ -26,14 +25,6 @@ export default function ComunicadosAdmin() {
 
   function carregar() { setLoading(true); api.get<Comunicado[]>('/gestao-portal/comunicados').then(setItens).finally(() => setLoading(false)); }
   useEffect(carregar, []);
-
-  async function excluir(c: Comunicado) {
-    if (!confirm('Excluir comunicado?')) return;
-    try { await api.del(`/gestao-portal/comunicados/${c.id}`); setAcoesId(null); carregar(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
-  async function alternarAtivo(c: Comunicado) {
-    try { await api.put(`/gestao-portal/comunicados/${c.id}`, { ativo: !c.ativo }); setAcoesId(null); carregar(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
 
   if (loading) return <Spinner />;
 
@@ -106,15 +97,11 @@ export default function ComunicadosAdmin() {
                     <div className="mt-0.5 text-slate-600">{dia(c.publicarEm ?? c.createdAt)}</div>
                   </td>
                 </tr>
-                {/* dropdown de acoes ao clicar na linha */}
+                {/* form inline de edicao ao clicar na linha */}
                 {acoesId === c.id && (
                   <tr className="bg-caixa">
-                    <td colSpan={4} className="px-4 py-2">
-                      <div className="flex flex-wrap gap-2">
-                        {pode && <button onClick={(e) => { e.stopPropagation(); setEditando(c); setAcoesId(null); }} className="flex items-center gap-1.5 rounded bg-marca-500 px-3 py-1 text-[12px] font-medium text-white hover:bg-marca-600"><Pencil size={13} /> Editar</button>}
-                        {pode && <button onClick={(e) => { e.stopPropagation(); alternarAtivo(c); }} className="flex items-center gap-1.5 rounded bg-status-warn px-3 py-1 text-[12px] font-medium text-white hover:bg-amber-500"><Power size={13} /> {c.ativo ? 'Inativar' : 'Ativar'}</button>}
-                        {pode && <button onClick={(e) => { e.stopPropagation(); excluir(c); }} className="flex items-center gap-1.5 rounded bg-status-danger px-3 py-1 text-[12px] font-medium text-white hover:bg-red-600"><Trash2 size={13} /> Excluir</button>}
-                      </div>
+                    <td colSpan={4} className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <ComunicadoForm c={c} pode={pode} onSalvo={() => { setAcoesId(null); carregar(); }} />
                     </td>
                   </tr>
                 )}
@@ -125,24 +112,60 @@ export default function ComunicadosAdmin() {
         </table>
       </div>
 
-      {(novo || editando) && <ComunicadoModal c={editando} onFechar={() => { setNovo(false); setEditando(null); }} onSalvo={() => { setNovo(false); setEditando(null); carregar(); }} />}
+      {novo && <ComunicadoModal onFechar={() => setNovo(false)} onSalvo={() => { setNovo(false); carregar(); }} />}
     </div>
   );
 }
 
-function ComunicadoModal({ c, onFechar, onSalvo }: { c: Comunicado | null; onFechar: () => void; onSalvo: () => void }) {
+const LBL_R = 'mb-1 block text-[13px] font-bold text-status-danger';
+const INP_F = 'block w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
+
+// Formulario inline (abre ao clicar na linha): Assunto / Status / Descricao + Salvar + Registro de Leitura
+function ComunicadoForm({ c, pode, onSalvo }: { c: Comunicado; pode: boolean; onSalvo: () => void }) {
   const toast = useToast();
-  const [titulo, setTitulo] = useState(c?.titulo ?? '');
-  const [conteudo, setConteudo] = useState(c?.conteudo ?? '');
+  const [titulo, setTitulo] = useState(c.titulo);
+  const [conteudo, setConteudo] = useState(c.conteudo);
+  const [ativo, setAtivo] = useState(c.ativo);
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar() {
+    setSalvando(true);
+    try { await api.put(`/gestao-portal/comunicados/${c.id}`, { titulo, conteudo, ativo }); toast('ok', 'Salvo.'); onSalvo(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    finally { setSalvando(false); }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_220px]">
+        <div><label className={LBL_R}>Assunto</label><input className={INP_F} value={titulo} disabled={!pode} onChange={(e) => setTitulo(e.target.value)} /></div>
+        <div><label className={LBL_R}>Status</label>
+          <select className={INP_F} value={ativo ? 'Ativo' : 'Inativo'} disabled={!pode} onChange={(e) => setAtivo(e.target.value === 'Ativo')}>
+            <option>Ativo</option><option>Inativo</option>
+          </select>
+        </div>
+      </div>
+      <div><label className={LBL_R}>Descricao</label><textarea className={INP_F} rows={4} value={conteudo} disabled={!pode} onChange={(e) => setConteudo(e.target.value)} /></div>
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        {pode && <button onClick={salvar} disabled={salvando} className="flex items-center justify-center gap-2 rounded bg-roxo-500 py-2 text-sm font-medium text-white hover:bg-roxo-600 disabled:opacity-60"><Save size={15} /> {salvando ? 'Salvando...' : 'Salvar'}</button>}
+        <button onClick={() => toast('ok', 'Em construcao: Registro de Leitura.')} className="flex items-center justify-center gap-2 rounded bg-marca-400 py-2 text-sm font-medium text-white hover:bg-marca-500"><Search size={15} /> Registro de Leitura</button>
+      </div>
+    </div>
+  );
+}
+
+function ComunicadoModal({ onFechar, onSalvo }: { onFechar: () => void; onSalvo: () => void }) {
+  const toast = useToast();
+  const [titulo, setTitulo] = useState('');
+  const [conteudo, setConteudo] = useState('');
   async function salvar() {
     try {
-      if (c) await api.put(`/gestao-portal/comunicados/${c.id}`, { titulo, conteudo });
-      else await api.post('/gestao-portal/comunicados', { titulo, conteudo });
+      await api.post('/gestao-portal/comunicados', { titulo, conteudo });
       toast('ok', 'Salvo.'); onSalvo();
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
   return (
-    <Modal aberto titulo={c ? 'Editar comunicado' : 'Novo comunicado'} onFechar={onFechar}>
+    <Modal aberto titulo="Novo comunicado" onFechar={onFechar}>
       <div className="space-y-3">
         <div><label className="label">Titulo</label><input className="input" value={titulo} onChange={(e) => setTitulo(e.target.value)} /></div>
         <div><label className="label">Conteudo</label><textarea className="input" rows={5} value={conteudo} onChange={(e) => setConteudo(e.target.value)} /></div>
