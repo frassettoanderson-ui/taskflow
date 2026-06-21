@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Landmark, Save, Plus, RotateCcw, Copy, Trash2 } from 'lucide-react';
+import { Landmark, Save, Plus, RotateCcw, Copy, Trash2, Search } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
 import type { Obrigacao } from '../../lib/tipos';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
-const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
+const LBL = 'mb-1 block text-[13px] font-bold text-slate-700';
 
 interface Item { obrigacaoId: string; nome: string; departamento: string; tempoPrevisto: string }
 interface EmpresaRegime { id: string; razaoSocial: string; nomeFantasia: string | null; cidade: string }
@@ -91,11 +91,16 @@ export default function RegimeForm() {
 
   return (
     <div className="-m-6 min-h-full bg-fundo p-5 text-[13px]">
-      <div className="mb-3 flex items-center gap-2 text-slate-500">
-        <Landmark size={16} className="text-slate-400" />
-        <span>Obrigacoes</span><span className="text-slate-300">›</span>
-        <span>Regimes tributarios</span><span className="text-slate-300">›</span>
-        <span className="text-slate-700">Cadastro de regime tributario</span>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-500">
+          <Landmark size={16} className="text-slate-400" />
+          <span>Obrigacoes</span><span className="text-slate-300">›</span>
+          <span>Regimes tributarios</span><span className="text-slate-300">›</span>
+          <span className="text-slate-700">Cadastro de regime tributario</span>
+        </div>
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400">
+          <Search size={13} /><span className="text-[12px]">Central de ajuda</span>
+        </div>
       </div>
 
       {/* Linha principal */}
@@ -119,7 +124,7 @@ export default function RegimeForm() {
 
       {/* Obrigacoes do regime */}
       <div className="mt-4">
-        <p className="mb-1 text-[13px] font-medium text-slate-700">Obrigacoes que devem ser entregues nesse regime <span className="font-normal text-marca-500">(as selecionadas abaixo serao automaticamente marcadas em novos cadastros de empresas)</span></p>
+        <p className="mb-1 text-[13px] font-bold text-slate-700">Obrigacoes que devem ser entregues nesse regime <span className="font-normal text-roxo-400">(as selecionadas abaixo serao automaticamente marcadas em novos cadastros de empresas)</span></p>
         <div className="flex gap-2">
           <select className={INP} value={novoSel} onChange={(e) => setNovoSel(e.target.value)}>
             <option value="">Selecione...</option>
@@ -133,7 +138,7 @@ export default function RegimeForm() {
           {itens.length > 0 && (
             <div className="flex items-center gap-3 pb-1">
               <span className="flex-1" />
-              <span className="w-1/3 text-center text-[12px] font-medium text-slate-600">Tempo previsto (min)</span>
+              <span className="w-1/3 text-center text-[12px] font-bold text-slate-600">Tempo previsto (min)</span>
               <span className="w-40" />
             </div>
           )}
@@ -142,13 +147,13 @@ export default function RegimeForm() {
             const fechado = grupoFechado[dep];
             return (
               <div key={dep} className="mb-1">
-                <button onClick={() => setGrupoFechado((g) => ({ ...g, [dep]: !g[dep] }))} className="text-left text-[13px] font-medium text-marca-700">
-                  {dep} <span className="font-normal text-marca-500">(clique para exibir/ocultar)</span>
+                <button onClick={() => setGrupoFechado((g) => ({ ...g, [dep]: !g[dep] }))} className="text-left text-[13px] font-bold text-roxo-600">
+                  {dep} <span className="font-normal text-roxo-400">(clique para exibir/ocultar)</span>
                 </button>
                 {!fechado && (
-                  <div className="mt-1 space-y-1">
-                    {lista.map((it) => (
-                      <div key={it.obrigacaoId} className="flex items-center gap-3">
+                  <div className="mt-1">
+                    {lista.map((it, idx) => (
+                      <div key={it.obrigacaoId} className={`flex items-center gap-3 px-2 py-1 ${idx % 2 ? 'bg-fundo' : 'bg-white'}`}>
                         <button onClick={() => navigate(`/obrigacoes/${it.obrigacaoId}`)} className="flex-1 text-left text-marca-600 hover:underline">{it.nome}</button>
                         <input className={`${INP} w-1/3 text-center`} value={it.tempoPrevisto} onChange={(e) => setTempo(it.obrigacaoId, e.target.value.replace(/\D/g, ''))} />
                         <button onClick={() => remover(it.obrigacaoId)} className="flex w-40 items-center justify-center gap-2 rounded bg-status-danger py-1.5 text-sm font-medium text-white hover:bg-red-600"><Trash2 size={15} /> Remover</button>
@@ -165,7 +170,7 @@ export default function RegimeForm() {
       {/* Empresas nesse regime */}
       {!novo && (
         <div className="mt-5">
-          <button onClick={listarEmpresas} className="text-[13px] font-medium text-slate-700">
+          <button onClick={listarEmpresas} className="text-[13px] font-bold text-slate-700">
             Empresas que estao nesse regime [{qtdEmpresas} empresa] <span className="font-normal text-marca-500">(Clique para {showEmpresas ? 'ocultar' : 'listar'})</span>
           </button>
           {showEmpresas && (
@@ -191,7 +196,7 @@ export default function RegimeForm() {
       {/* Log das alteracoes */}
       {!novo && (
         <div className="mt-4">
-          <button onClick={() => setShowLog((v) => !v)} className="text-[13px] font-medium text-slate-700">
+          <button onClick={() => setShowLog((v) => !v)} className="text-[13px] font-bold text-slate-700">
             Log das alteracoes nos dados do regime tributario - ultimas 15 em ordem decrescente <span className="font-normal text-marca-500">(Clique para {showLog ? 'ocultar' : 'listar'})</span>
           </button>
           {showLog && (
