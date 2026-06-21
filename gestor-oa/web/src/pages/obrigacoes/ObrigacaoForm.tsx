@@ -10,8 +10,8 @@ interface UsuarioBasico { id: string; nome: string }
 const MESES = ['Janeiro', 'Fevereiro', 'Marco', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 // Classes compactas (inputs mais finos / fonte menor) - estilo Acessorias
-const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
-const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
+const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
+const LBL = 'mb-1 block text-[13px] font-bold text-slate-700';
 
 function mesesPadrao(): EntregaMes[] {
   return Array.from({ length: 12 }, () => ({ modo: 'DIA_FIXO' as ModoEntregaMes, dia: 20 }));
@@ -131,11 +131,6 @@ export default function ObrigacaoForm() {
   function setMes(i: number, m: EntregaMes) {
     setMeses((arr) => arr.map((x, j) => (j === i ? m : x)));
   }
-  function aplicarTodos() {
-    setMeses((arr) => arr.map(() => ({ ...arr[0] })));
-    toast('ok', 'Aplicado a todos os meses.');
-  }
-
   async function salvar(depois: 'voltar' | 'nova') {
     if (nome.trim().length < 2) return toast('erro', 'Informe o nome da obrigacao.');
     setSalvando(true);
@@ -225,10 +220,6 @@ export default function ObrigacaoForm() {
 
       {/* Entrega mes a mes - 6 colunas, dropdown unico por mes */}
       <div className="mt-4">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-[12px] font-semibold text-slate-600">Entrega mes a mes</span>
-          <button className="text-[11px] text-marca-600 hover:underline" onClick={aplicarTodos}>aplicar Janeiro a todos</button>
-        </div>
         <div className="grid grid-cols-2 gap-x-5 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
           {meses.map((m, i) => (
             <div key={i}>
