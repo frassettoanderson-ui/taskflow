@@ -136,10 +136,10 @@ export default function RegimeForm() {
         <div className="mt-2">
           {/* cabecalho da coluna Tempo previsto */}
           {itens.length > 0 && (
-            <div className="flex items-center gap-3 pb-1">
-              <span className="flex-1" />
-              <span className="w-1/3 text-center text-[12px] font-bold text-slate-600">Tempo previsto (min)</span>
-              <span className="w-40" />
+            <div className="grid grid-cols-[240px_minmax(0,1fr)_170px] items-center gap-3 pb-1">
+              <span />
+              <span className="text-center text-[12px] font-bold text-slate-600">Tempo previsto (min)</span>
+              <span />
             </div>
           )}
           {Object.keys(grupos).length === 0 && <p className="text-[12px] text-slate-400">Nenhuma obrigacao adicionada.</p>}
@@ -153,10 +153,10 @@ export default function RegimeForm() {
                 {!fechado && (
                   <div className="mt-1">
                     {lista.map((it, idx) => (
-                      <div key={it.obrigacaoId} className={`flex items-center gap-3 px-2 py-1 ${idx % 2 ? 'bg-fundo' : 'bg-white'}`}>
-                        <button onClick={() => navigate(`/obrigacoes/${it.obrigacaoId}`)} className="flex-1 text-left text-marca-600 hover:underline">{it.nome}</button>
-                        <input className={`${INP} w-1/3 text-center`} value={it.tempoPrevisto} onChange={(e) => setTempo(it.obrigacaoId, e.target.value.replace(/\D/g, ''))} />
-                        <button onClick={() => remover(it.obrigacaoId)} className="flex w-40 items-center justify-center gap-2 rounded bg-status-danger py-1.5 text-sm font-medium text-white hover:bg-red-600"><Trash2 size={15} /> Remover</button>
+                      <div key={it.obrigacaoId} className={`grid grid-cols-[240px_minmax(0,1fr)_170px] items-center gap-3 px-2 py-1 ${idx % 2 ? 'bg-fundo' : 'bg-white'}`}>
+                        <button onClick={() => navigate(`/obrigacoes/${it.obrigacaoId}`)} className="text-left text-marca-600 hover:underline">{it.nome}</button>
+                        <input className={`${INP} text-center`} value={it.tempoPrevisto} onChange={(e) => setTempo(it.obrigacaoId, e.target.value.replace(/\D/g, ''))} />
+                        <button onClick={() => remover(it.obrigacaoId)} className="flex items-center justify-center gap-2 rounded bg-status-danger py-1.5 text-sm font-medium text-white hover:bg-red-600"><Trash2 size={15} /> Remover</button>
                       </div>
                     ))}
                   </div>
