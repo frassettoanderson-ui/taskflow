@@ -3,19 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { Landmark, Search, Printer, Plus } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
-import { Spinner } from '../../components/ui';
+import { Spinner, useToast } from '../../components/ui';
+import { relatorioEmpresasPorRegime, relatorioObrigacoesPorRegime } from '../../lib/relatorioPdf';
 import type { Regime } from '../../lib/tipos';
-
-function relUrl(tipo: 'obrigacoes' | 'empresas', r?: Regime) {
-  const qs = new URLSearchParams({ tipo });
-  if (r) { qs.set('regimeId', r.id); qs.set('regimeNome', r.nome); }
-  return `/obrigacoes/regimes/relatorio?${qs}`;
-}
 
 export default function Regimes() {
   const { sessao } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
+
+  function gerarPdf(fn: () => Promise<void>) {
+    setImprimirAberto(false);
+    fn().catch(() => toast('erro', 'Falha ao gerar o relatorio.'));
+  }
   const [regimes, setRegimes] = useState<Regime[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
@@ -69,8 +70,8 @@ export default function Regimes() {
           <button title="Imprimir" onClick={() => setImprimirAberto((v) => !v)} className="text-marca-600 hover:text-marca-800"><Printer size={18} /></button>
           {imprimirAberto && (
             <div className="absolute right-0 top-8 z-50 flex flex-col gap-1 rounded-md border border-slate-200 bg-white p-2 shadow-lg">
-              <button onClick={() => navigate(relUrl('empresas'))} className="flex items-center gap-2 whitespace-nowrap rounded bg-roxo-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-roxo-600"><Printer size={13} /> Empresas por regime</button>
-              <button onClick={() => navigate(relUrl('obrigacoes'))} className="flex items-center gap-2 whitespace-nowrap rounded bg-amber-400 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500"><Printer size={13} /> Obrigacoes por regime</button>
+              <button onClick={() => gerarPdf(() => relatorioEmpresasPorRegime())} className="flex items-center gap-2 whitespace-nowrap rounded bg-roxo-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-roxo-600"><Printer size={13} /> Empresas por regime</button>
+              <button onClick={() => gerarPdf(() => relatorioObrigacoesPorRegime())} className="flex items-center gap-2 whitespace-nowrap rounded bg-amber-400 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-500"><Printer size={13} /> Obrigacoes por regime</button>
             </div>
           )}
         </div>
@@ -98,12 +99,12 @@ export default function Regimes() {
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="flex items-center gap-2 text-slate-600">{r.obrigacoes.length}
-                    <button title="Relacao de obrigacoes desse regime" onClick={() => navigate(relUrl('obrigacoes', r))} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
+                    <button title="Relacao de obrigacoes desse regime" onClick={() => gerarPdf(() => relatorioObrigacoesPorRegime(r.id))} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
                   </span>
                 </td>
                 <td className="px-4 py-2.5">
                   <span className="flex items-center gap-2 text-slate-600">{r._count?.empresas ?? 0}
-                    <button title="Relacao de empresas desse regime" onClick={() => navigate(relUrl('empresas', r))} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
+                    <button title="Relacao de empresas desse regime" onClick={() => gerarPdf(() => relatorioEmpresasPorRegime(r.id))} className="text-marca-400 hover:text-marca-600"><Printer size={14} /></button>
                   </span>
                 </td>
                 <td className="px-4 py-2.5 text-right text-slate-600">{r.ativo ? 'Sim' : 'Nao'}</td>
