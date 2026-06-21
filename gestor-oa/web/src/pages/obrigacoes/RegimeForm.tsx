@@ -122,7 +122,8 @@ export default function RegimeForm() {
         </div>
       </div>
 
-      {/* Obrigacoes do regime */}
+      {/* Obrigacoes do regime: so na edicao (no original o "Novo" nao exibe esta secao) */}
+      {!novo && (
       <div className="mt-4">
         <p className="mb-1 text-[13px] font-bold text-slate-700">Obrigacoes que devem ser entregues nesse regime <span className="font-normal text-roxo-400">(as selecionadas abaixo serao automaticamente marcadas em novos cadastros de empresas)</span></p>
         <div className="flex gap-2">
@@ -166,6 +167,7 @@ export default function RegimeForm() {
           })}
         </div>
       </div>
+      )}
 
       {/* Empresas nesse regime */}
       {!novo && (
