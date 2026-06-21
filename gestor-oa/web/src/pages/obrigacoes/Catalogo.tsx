@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Printer, Landmark, List, Sun, Search, Plus, ClipboardList } from 'lucide-react';
+import { Printer, Landmark, List, Sun, Search, Plus, ClipboardList, Bot } from 'lucide-react';
 import { api, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
-import type { Obrigacao, Departamento, EntregaMes } from '../../lib/tipos';
+import type { Obrigacao, Departamento, EntregaMes, AssinaturaDocumento } from '../../lib/tipos';
 import { LABEL_COMPETENCIA } from '../../lib/tipos';
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -38,6 +38,7 @@ export default function Catalogo() {
 
   const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+  const [assinaturas, setAssinaturas] = useState<AssinaturaDocumento[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState('');
   const [ocultarAtivas, setOcultarAtivas] = useState(false);
@@ -57,6 +58,7 @@ export default function Catalogo() {
   }
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
+    api.get<AssinaturaDocumento[]>('/assinaturas').then(setAssinaturas).catch(() => undefined);
   }, []);
   useEffect(() => {
     const t = setTimeout(carregar, 250);
@@ -91,6 +93,13 @@ export default function Catalogo() {
     const depOk = deps.length === 0 || (o.departamentoId != null && deps.includes(o.departamentoId));
     return statusOk && depOk;
   });
+
+  // obrigacoes mapeadas no e-Continuo (assinatura por nome ou na lista de correspondentes) -> id da config p/ abrir
+  const ecMap = new Map<string, string>();
+  for (const a of assinaturas) {
+    if (a.obrigacaoNome) ecMap.set(a.obrigacaoNome, a.id);
+    for (const oc of a.obrigacoesCorrespondentes ?? []) ecMap.set(oc, a.id);
+  }
 
   const porPagina = 10;
   const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
@@ -176,15 +185,21 @@ export default function Catalogo() {
             <tbody>
               {lista.map((o) => {
                 const datas = datasEntrega(o);
+                const ecId = ecMap.get(o.nome) ?? ecMap.get(o.id);
                 return (
                   <tr
                     key={o.id}
-                    className="cursor-pointer border-b border-slate-100 align-top hover:bg-slate-50"
+                    className="cursor-pointer border-b border-slate-100 align-top odd:bg-white even:bg-fundo hover:bg-caixa"
                     onClick={() => navigate(`/obrigacoes/${o.id}`)}
                   >
                     <td className="px-3 py-2">
-                      <div className="font-medium text-marca-700">
-                        {o.nome} {!o.ativo && <span className="text-red-500">[Inativa]</span>}
+                      <div className="flex items-center gap-1.5 font-medium text-marca-700">
+                        {ecId && (
+                          <button onClick={(e) => { e.stopPropagation(); navigate(`/robo/assinaturas/${ecId}`); }} title="e-Continuo mapeado" className="text-marca-500 hover:text-marca-700">
+                            <Bot size={15} />
+                          </button>
+                        )}
+                        <span>{o.nome} {!o.ativo && <span className="text-red-500">[Inativa]</span>}</span>
                       </div>
                       <div className="text-xs text-slate-500">{o.departamento?.nome ?? '—'}</div>
                       <div className="text-xs text-slate-400">{o._count?.empresaObrigacoes ?? 0} empresas</div>
