@@ -41,7 +41,7 @@ export default function Templates() {
             {itens.map((t) => (
               <tr key={t.id} className="border-b border-slate-100">
                 <td className="px-3 py-2 font-medium text-slate-700">{t.nome}</td>
-                <td className="px-3 py-2"><Badge className="bg-slate-100 text-slate-600">{t.tipo}</Badge></td>
+                <td className="px-3 py-2"><Badge className="bg-neutral-100 text-slate-600">{t.tipo}</Badge></td>
                 <td className="px-3 py-2 text-slate-500">{t.assunto}</td>
                 <td className="px-3 py-2 text-right">{pode && <span className="flex justify-end gap-2 text-xs"><button className="text-marca-600 hover:underline" onClick={() => setEditando(t)}>editar</button><button className="text-red-500 hover:underline" onClick={() => excluir(t)}>excluir</button></span>}</td>
               </tr>

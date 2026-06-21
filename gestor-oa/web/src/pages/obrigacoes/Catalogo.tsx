@@ -95,7 +95,7 @@ export default function Catalogo() {
   const paginas = Math.max(1, Math.ceil(lista.length / porPagina));
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       {/* Cabecalho */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-500">
@@ -229,6 +229,6 @@ function Chip({ children, onRemove }: { children: React.ReactNode; onRemove: () 
 
 function OpcaoFiltro({ ativo, onClick, children }: { ativo: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button onClick={(e) => { e.stopPropagation(); onClick(); }} className={`block w-full px-3 py-1.5 text-left text-[13px] ${ativo ? 'bg-marca-500 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{children}</button>
+    <button onClick={(e) => { e.stopPropagation(); onClick(); }} className={`block w-full px-3 py-1.5 text-left text-[13px] ${ativo ? 'bg-marca-500 text-white' : 'text-slate-600 hover:bg-neutral-100'}`}>{children}</button>
   );
 }

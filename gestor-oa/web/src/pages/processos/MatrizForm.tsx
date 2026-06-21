@@ -160,7 +160,7 @@ export default function MatrizForm() {
   if (carregando) return <Spinner />;
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       <div className="mb-4 flex items-center gap-2 text-slate-600">
         <CheckCircle2 size={16} className="text-slate-400" />
         <span className="font-medium text-slate-700">Gestao de processos</span>
@@ -275,7 +275,7 @@ export default function MatrizForm() {
 
           {/* form Nova sub-matriz */}
           {criando === 'SUB' && (
-            <div className="mt-3 space-y-3 rounded border border-slate-300 bg-slate-100/60 p-3">
+            <div className="mt-3 space-y-3 rounded border border-slate-300 bg-neutral-100/60 p-3">
               <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
                 <div>
                   <label className={LBL}>Selecione a sub-matriz desejada:</label>

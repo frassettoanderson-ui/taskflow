@@ -1,16 +1,19 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, RotateCcw, ChevronDown, ChevronRight, Building2, Eye, EyeOff } from 'lucide-react';
+import { Save, RotateCcw, ChevronDown, ChevronRight, Building2, Eye, EyeOff, Users, Search } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../lib/api';
 import { useAuth, temPermissao } from '../lib/auth';
 import { Spinner, useToast, InfoHint } from '../components/ui';
-import type { UsuarioCompleto, JanelaAcesso, Departamento, Tag } from '../lib/tipos';
+import type { UsuarioCompleto, JanelaAcesso } from '../lib/tipos';
 import { TIPOS_USUARIO } from '../lib/tipos';
 import { PERMISSION_AREAS, PERMISSION_PRESETS, flagsParaNiveis } from '@gestoroa/shared';
 
 // Classes compactas (flat, fundo cinza) - estilo Acessorias
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1 text-[12px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
-const LBL = 'mb-0.5 block text-[12px] font-medium text-slate-600';
+// Rotulos maiores e em negrito (estilo Acessorias). LBL_RED = destaque vermelho; LBL_PERM = azul (campos de permissao).
+const LBL = 'mb-1 block text-[13px] font-bold text-slate-700';
+const LBL_RED = 'mb-1 block text-[13px] font-bold text-red-500';
+const LBL_PERM = 'mb-1 block text-[13px] font-bold text-sky-600';
 
 // Textos de ajuda (i) de areas de permissao (estilo Acessorias)
 const INFO_AREAS: Record<string, string> = {
@@ -86,18 +89,10 @@ export default function UsuarioForm() {
   const [temFoto, setTemFoto] = useState(false);
   const [fotoTick, setFotoTick] = useState(0);
 
-  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-
   // secoes colapsaveis (estilo Acessorias)
   const [showPerm, setShowPerm] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [showCusto, setShowCusto] = useState(false);
-
-  useEffect(() => {
-    api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
-    api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     if (novo) return;
@@ -186,8 +181,20 @@ export default function UsuarioForm() {
   const custoMinCalc = minMes > 0 ? custoMesCalc / minMes : 0;
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
-      <div className="mb-3 text-sm text-slate-500">Sistema › Usuarios e Permissoes › <span className="text-slate-700">Cadastro de usuario e suas permissoes</span></div>
+    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-slate-600">
+          <Users size={16} className="text-slate-400" />
+          <span className="text-slate-400">Sistema</span>
+          <span className="text-slate-300">&rsaquo;</span>
+          <span className="text-slate-400">Usuarios e Permissoes</span>
+          <span className="text-slate-300">&rsaquo;</span>
+          <span className="font-medium text-slate-700">Cadastro de usuario e suas permissoes</span>
+        </div>
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400">
+          <Search size={13} /><span className="text-[12px]">Central de ajuda</span>
+        </div>
+      </div>
 
       {/* Linha principal: Nome / E-mail / Senha / Tipo */}
       <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-4">
@@ -214,7 +221,7 @@ export default function UsuarioForm() {
       {/* Foto de perfil */}
       {!novo && (
         <div className="mt-3 flex items-center gap-3">
-          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-slate-100 text-slate-400">
+          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-neutral-100 text-slate-400">
             {temFoto ? <img src={`/api/v1/usuarios/${id}/foto?t=${fotoTick}&token=${getAccessToken() ?? ''}`} alt="" className="h-full w-full object-cover" /> : <span className="text-2xl">{(nome[0] ?? '?').toUpperCase()}</span>}
           </div>
           <div>
@@ -226,71 +233,46 @@ export default function UsuarioForm() {
 
       {/* Secoes colapsaveis (links chapados) */}
       <div className="mt-3 space-y-1">
-        <SecaoLink aberto={showPerm} onToggle={() => setShowPerm((v) => !v)} titulo="Permissoes desse usuario" />
-        {showPerm && (
-          <div className="rounded border border-slate-200 bg-white p-4">
-            {!podePermissoes && <p className="mb-2 text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
-            {podePermissoes && (
-              <div className="mb-3 flex flex-wrap items-center gap-2 rounded bg-slate-50 px-3 py-2">
-                <span className="text-[12px] font-medium text-slate-600">Aplicar preset por cargo:</span>
-                {PERMISSION_PRESETS.map((p) => (
-                  <button key={p.id} type="button" title={p.descricao}
-                    onClick={() => { if (window.confirm(`Aplicar o preset "${p.label}"? Isso substitui as permissoes atuais.`)) setNiveis(p.niveis); }}
-                    className="rounded border border-marca-300 bg-white px-2.5 py-1 text-[12px] text-marca-700 hover:bg-marca-50">
-                    {p.label}
-                  </button>
+        {/* Permissoes desse usuario: dropdown animado; quando aberto, "Administrativo?" vira o cabecalho com (ocultar permissoes) */}
+        {!showPerm && (
+          <button onClick={() => setShowPerm(true)} className="text-[13px] font-bold text-sky-600 hover:underline">
+            Permissoes <span className="font-medium text-sky-500">desse usuario (clique para exibir)</span>
+          </button>
+        )}
+        <div className="grid transition-all duration-200 ease-out" style={{ gridTemplateRows: showPerm ? '1fr' : '0fr' }}>
+          <div className="overflow-hidden">
+            <div className="rounded border border-slate-200 bg-white p-4">
+              {!podePermissoes && <p className="mb-2 text-sm text-amber-600">Voce nao tem permissao para alterar permissoes (apenas visualizacao).</p>}
+              {podePermissoes && (
+                <div className="mb-3 flex flex-wrap items-center gap-2 rounded bg-slate-50 px-3 py-2">
+                  <span className="text-[12px] font-medium text-slate-600">Aplicar preset por cargo:</span>
+                  {PERMISSION_PRESETS.map((p) => (
+                    <button key={p.id} type="button" title={p.descricao}
+                      onClick={() => { if (window.confirm(`Aplicar o preset "${p.label}"? Isso substitui as permissoes atuais.`)) setNiveis(p.niveis); }}
+                      className="rounded border border-marca-300 bg-white px-2.5 py-1 text-[12px] text-marca-700 hover:bg-marca-50">
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
+                {PERMISSION_AREAS.filter((a) => !a.extra).filter((a) => a.id === 'administrativo' || (niveis.administrativo ?? 0) < 1).map((a) => (
+                  <div key={a.id}>
+                    <label className={a.id === 'administrativo' ? 'mb-1 block text-[13px] font-bold text-status-warn' : LBL_PERM}>
+                      {a.label}
+                      {INFO_AREAS[a.id] && <span className="ml-1"><InfoHint texto={INFO_AREAS[a.id]} /></span>}
+                      {a.id === 'administrativo' && (
+                        <button onClick={() => setShowPerm(false)} className="ml-2 align-middle text-[12px] font-bold text-red-500 hover:underline">(ocultar permissoes)</button>
+                      )}
+                    </label>
+                    <select className={INP} disabled={!podePermissoes} value={niveis[a.id] ?? a.niveis[0].v} onChange={(e) => setNivel(a.id, Number(e.target.value))}>
+                      {a.niveis.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
+                    </select>
+                  </div>
                 ))}
               </div>
-            )}
-            <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
-              {PERMISSION_AREAS.filter((a) => a.id === 'administrativo' || (niveis.administrativo ?? 0) < 1).map((a) => (
-                <div key={a.id}>
-                  <label className={`${LBL} ${a.id === 'administrativo' ? 'text-status-warn' : ''}`}>
-                    {a.label}
-                    {INFO_AREAS[a.id] && <span className="ml-1"><InfoHint texto={INFO_AREAS[a.id]} /></span>}
-                    {a.extra && <span className="ml-1 font-normal text-marca-400">(nosso)</span>}
-                  </label>
-                  <select className={INP} disabled={!podePermissoes} value={niveis[a.id] ?? a.niveis[0].v} onChange={(e) => setNivel(a.id, Number(e.target.value))}>
-                    {a.niveis.map((n) => <option key={n.v} value={n.v}>{n.label}</option>)}
-                  </select>
-                </div>
-              ))}
+              {(niveis.administrativo ?? 0) >= 1 && <p className="mt-2 text-[12px] text-marca-600">Administrativo: acesso total liberado (demais permissoes ocultadas).</p>}
             </div>
-            {(niveis.administrativo ?? 0) >= 1 && <p className="mt-2 text-[12px] text-marca-600">Administrativo: acesso total liberado (demais permissoes ocultadas).</p>}
-          </div>
-        )}
-
-        {/* Filtros FORCADOS (inline) */}
-        <div className="pt-2">
-          <label className="mb-0.5 block text-[12px] font-medium text-slate-600">
-            Filtros <span className="text-status-danger">FORCADOS</span> para esse usuario na lista de entregas e demais telas/relatorios:
-          </label>
-          <div className="rounded border border-slate-300 bg-white p-1.5">
-            <div className="mb-1 flex flex-wrap gap-1">
-              {depIds.length === 0 && tagIds.length === 0 && <span className="px-1 text-[11px] text-slate-400">Selecione os filtros desejados</span>}
-              {depIds.map((did) => {
-                const d = departamentos.find((x) => x.id === did);
-                return <span key={did} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[12px] text-slate-600"><button onClick={() => setDepIds((a) => a.filter((x) => x !== did))} className="text-slate-400 hover:text-red-500">×</button>Depto: {d?.nome ?? did}</span>;
-              })}
-              {tagIds.map((tid) => {
-                const t = tags.find((x) => x.id === tid);
-                return <span key={tid} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[12px] text-slate-600"><button onClick={() => setTagIds((a) => a.filter((x) => x !== tid))} className="text-slate-400 hover:text-red-500">×</button>Tag: {t?.nome ?? tid}</span>;
-              })}
-            </div>
-            <select className="w-full border-t border-slate-100 bg-transparent px-1 pt-1 text-[12px] text-slate-600 outline-none" value="" onChange={(e) => {
-              const v = e.target.value; if (!v) return;
-              const sep = v.indexOf(':'); const tp = v.slice(0, sep); const realId = v.slice(sep + 1);
-              if (tp === 'dep') setDepIds((a) => a.includes(realId) ? a : [...a, realId]);
-              else setTagIds((a) => a.includes(realId) ? a : [...a, realId]);
-            }}>
-              <option value="">+ Adicionar filtro...</option>
-              <optgroup label="Departamentos">
-                {departamentos.filter((d) => !depIds.includes(d.id)).map((d) => <option key={d.id} value={`dep:${d.id}`}>{d.nome}</option>)}
-              </optgroup>
-              <optgroup label="Tags">
-                {tags.filter((t) => !tagIds.includes(t.id)).map((t) => <option key={t.id} value={`tag:${t.id}`}>{t.nome}</option>)}
-              </optgroup>
-            </select>
           </div>
         </div>
 
@@ -347,7 +329,7 @@ export default function UsuarioForm() {
       {/* Ativo + Acessos por dia + acoes (Salvar/Voltar a direita) */}
       <div className="mt-4 grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-4">
         <div>
-          <label className={LBL}>Usuario Ativo?</label>
+          <label className={LBL_RED}>Usuario Ativo?</label>
           <select className={INP} value={ativo ? 'sim' : 'nao'} onChange={(e) => setAtivo(e.target.value === 'sim')}>
             <option value="sim">Sim</option>
             <option value="nao">Nao</option>
@@ -401,7 +383,7 @@ function SecaoLink({ aberto, onToggle, titulo, info }: { aberto: boolean; onTogg
 function BlocoAcesso({ titulo, bloco, onChange }: { titulo: string; bloco: AcessoBloco; onChange: (p: Partial<AcessoBloco>) => void }) {
   return (
     <div>
-      <label className={LBL}>{titulo}</label>
+      <label className={LBL_RED}>{titulo}</label>
       <div className="flex gap-1">
         <select className={INP} value={bloco.permitido ? 'p' : 'b'} onChange={(e) => onChange({ permitido: e.target.value === 'p' })}>
           <option value="b">Bloqueado</option>

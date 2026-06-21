@@ -188,7 +188,7 @@ export default function ObrigacaoForm() {
   if (carregando) return <Spinner />;
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       {/* Linha 1 */}
       <div className="grid grid-cols-1 gap-x-5 gap-y-3 md:grid-cols-4">
         <div>

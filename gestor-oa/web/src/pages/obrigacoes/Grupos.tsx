@@ -49,7 +49,7 @@ export default function Grupos() {
             <div className="mt-2 text-sm text-slate-500">{g.obrigacoes.length} obrigacoes</div>
             <div className="mt-2 flex flex-wrap gap-1">
               {g.obrigacoes.slice(0, 8).map((o) => (
-                <span key={o.obrigacaoId} className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{o.obrigacao.nome}</span>
+                <span key={o.obrigacaoId} className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-slate-600">{o.obrigacao.nome}</span>
               ))}
             </div>
             {podeGerenciar && (

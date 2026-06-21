@@ -101,7 +101,7 @@ export default function PainelPlayer({ painelId, onSair }: { painelId: string; o
 }
 
 function Ctrl({ children, onClick, title }: { children: React.ReactNode; onClick: () => void; title: string }) {
-  return <button onClick={onClick} title={title} className="grid h-8 w-9 place-items-center rounded text-slate-500 hover:bg-slate-100">{children}</button>;
+  return <button onClick={onClick} title={title} className="grid h-8 w-9 place-items-center rounded text-slate-500 hover:bg-neutral-100">{children}</button>;
 }
 
 function IndicadorView({ ind }: { ind: IndicadorCalculado }) {
@@ -131,7 +131,7 @@ function CardEntidade({ it, icone }: { it: IndicadorItem; icone: React.ReactNode
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center gap-3 border-b border-slate-100 p-3">
-        <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-slate-100 text-slate-400" style={it.cor ? { background: it.cor + '22', color: it.cor } : undefined}>
+        <div className="grid h-12 w-12 place-items-center overflow-hidden rounded-full bg-neutral-100 text-slate-400" style={it.cor ? { background: it.cor + '22', color: it.cor } : undefined}>
           {it.foto ? <img src={`/api/v1/usuarios/${it.id}/foto?token=${getAccessToken() ?? ''}`} alt="" className="h-full w-full object-cover" /> : icone}
         </div>
         <div className="font-semibold text-status-ok">{it.nome}</div>
@@ -148,7 +148,7 @@ function Barra({ label, valor, pct, cor }: { label: string; valor: number; pct: 
   return (
     <div>
       <div className="mb-1 flex justify-between text-sm"><span style={{ color: cor }}>{label}</span><span className="font-semibold text-slate-600">{valor}</span></div>
-      <div className="h-2 w-full overflow-hidden rounded bg-slate-100"><div className="h-full" style={{ width: `${pct}%`, background: cor }} /></div>
+      <div className="h-2 w-full overflow-hidden rounded bg-neutral-100"><div className="h-full" style={{ width: `${pct}%`, background: cor }} /></div>
     </div>
   );
 }

@@ -129,7 +129,7 @@ export default function Acdox() {
                   )}
                 </div>
                 <p className="text-xs text-slate-500">Dia limite {r.diaLimite} · {r.itens.length} doc(s) · {r.empresasCount} empresa(s) · {r.cobrancasCount} cobranca(s){r.ativo ? '' : ' · inativa'}</p>
-                <div className="flex flex-wrap gap-1">{r.itens.map((i) => <span key={i.id} className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{i.nome}</span>)}</div>
+                <div className="flex flex-wrap gap-1">{r.itens.map((i) => <span key={i.id} className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-slate-600">{i.nome}</span>)}</div>
               </div>
             ))}
             {reguas.length === 0 && <p className="col-span-full py-10 text-center text-slate-400">Nenhuma regua cadastrada.</p>}

@@ -893,7 +893,7 @@ function ModalExcluir({ empresa, onFechar, onExcluido }: { empresa: EmpresaDetal
         <p className="text-sm text-slate-600">
           Esta acao e' irreversivel. Para confirmar, digite a razao social exatamente:
         </p>
-        <p className="rounded bg-slate-100 px-3 py-2 font-mono text-sm">{empresa.razaoSocial}</p>
+        <p className="rounded bg-neutral-100 px-3 py-2 font-mono text-sm">{empresa.razaoSocial}</p>
         <input className="input" value={confirmacao} onChange={(e) => setConfirmacao(e.target.value)} placeholder="Digite para confirmar" />
         <div className="flex justify-end gap-2">
           <button className="btn-ghost" onClick={onFechar}>Cancelar</button>

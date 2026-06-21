@@ -51,7 +51,7 @@ export default function FormulariosSolicitacao() {
             </div>
             {f.descricao && <p className="text-xs text-slate-500">{f.descricao}</p>}
             <p className="text-xs text-slate-400">{f.campos.length} campo(s){f.ativo ? '' : ' · inativo'}</p>
-            <div className="flex flex-wrap gap-1">{f.campos.map((c) => <span key={c.id} className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{c.label}</span>)}</div>
+            <div className="flex flex-wrap gap-1">{f.campos.map((c) => <span key={c.id} className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-slate-600">{c.label}</span>)}</div>
           </div>
         ))}
         {lista.length === 0 && <p className="col-span-full py-10 text-center text-slate-400">Nenhum formulario cadastrado.</p>}

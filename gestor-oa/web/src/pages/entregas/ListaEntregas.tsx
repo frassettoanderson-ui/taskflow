@@ -259,7 +259,7 @@ export default function ListaEntregas() {
   );
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
       {/* cabecalho */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">

@@ -103,7 +103,7 @@ body,
 }
 
 body {
-  @apply bg-slate-100 text-slate-800 antialiased;
+  @apply bg-neutral-100 text-slate-800 antialiased;
 }
 
 @layer components {

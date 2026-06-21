@@ -81,7 +81,7 @@ export default function Usuarios() {
   const ICO = 'grid h-9 w-9 place-items-center rounded text-purple-500 hover:bg-purple-50';
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-4 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-4 text-[13px]">
       {/* cabecalho (breadcrumb) */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-600">
@@ -118,7 +118,7 @@ export default function Usuarios() {
           <div className="relative mt-2 border-t border-slate-100 pt-2">
             <div className="flex flex-wrap items-center gap-1.5 rounded border border-slate-300 px-2 py-1.5">
               {chips.map((c) => (
-                <span key={`${c.kind}-${c.valor}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-[12px] text-slate-600">
+                <span key={`${c.kind}-${c.valor}`} className="inline-flex items-center gap-1 rounded bg-neutral-100 px-2 py-0.5 text-[12px] text-slate-600">
                   <button onClick={() => removeChip(c)} className="text-slate-400 hover:text-red-500">×</button>{c.label}
                 </span>
               ))}
@@ -179,7 +179,7 @@ export default function Usuarios() {
           </thead>
           <tbody>
             {lista.map((u) => (
-              <tr key={u.id} className="border-b border-slate-100 odd:bg-white even:bg-slate-50 hover:bg-slate-100">
+              <tr key={u.id} className="border-b border-slate-100 odd:bg-white even:bg-slate-50 hover:bg-neutral-100">
                 <td className="px-3 py-2">
                   <span className="flex items-center gap-2">
                     <UserIcon className={u.ativo ? 'text-status-ok' : 'text-status-danger'} size={15} />

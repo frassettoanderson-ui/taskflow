@@ -38,7 +38,7 @@ export default function GruposEmpresa() {
   if (loading) return <Spinner />;
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       <div className="mb-3 flex items-center gap-2 text-slate-500">
         <Users size={16} className="text-slate-400" />
         <span className="text-marca-600 hover:underline cursor-pointer" onClick={() => navigate('/empresas')}>Empresas</span>

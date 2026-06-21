@@ -131,7 +131,7 @@ function PortalPrivado({ branding }: { branding: Branding | null }) {
   function trocarEmpresa(id: string) { setEmpresaAtual(id); window.location.reload(); }
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-neutral-100">
       <header className="flex flex-wrap items-center gap-3 px-6 py-3 text-white" style={{ background: c }}>
         <span className="font-bold">{branding?.nome ?? 'Area VIP'}</span>
         <nav className="flex flex-wrap gap-1 text-sm">
@@ -399,7 +399,7 @@ function SolicitacaoThread({ id, onVoltar }: { id: string; onVoltar: () => void 
       <Card>
         <div className="space-y-2">
           {s.mensagens.map((m) => (
-            <div key={m.id} className={`rounded p-2 text-sm ${m.autorTipo === 'CONTATO' ? 'bg-marca-50' : 'bg-slate-100'}`}>
+            <div key={m.id} className={`rounded p-2 text-sm ${m.autorTipo === 'CONTATO' ? 'bg-marca-50' : 'bg-neutral-100'}`}>
               <div className="text-xs text-slate-400">{m.autorNome} · {new Date(m.createdAt).toLocaleString('pt-BR')}</div>
               <div className="text-slate-700">{m.texto}</div>
             </div>
@@ -532,7 +532,7 @@ function AvalieNos() {
         <div className="mt-3 flex flex-wrap gap-1.5">
           {Array.from({ length: 11 }, (_, i) => i).map((n) => (
             <button key={n} onClick={() => setNota(n)}
-              className={`h-9 w-9 rounded text-sm font-medium ${nota === n ? 'text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              className={`h-9 w-9 rounded text-sm font-medium ${nota === n ? 'text-white' : 'text-slate-600 hover:bg-neutral-100'}`}
               style={nota === n ? { background: n <= 6 ? '#cf3c5d' : n <= 8 ? '#f0ad4e' : '#5cb85c' } : { border: '1px solid #e2e8f0' }}>{n}</button>
           ))}
         </div>
@@ -573,7 +573,7 @@ function Processos() {
               <span className="text-xs text-slate-400">{p.status === 'EM_ANDAMENTO' ? 'Em andamento' : p.status === 'SUSPENSO' ? 'Suspenso' : p.status}</span>
             </div>
             <div className="mt-1 text-xs text-slate-400">{p.gestor ? `Gestor: ${p.gestor} · ` : ''}Inicio: {new Date(p.dataInicio).toLocaleDateString('pt-BR')}{p.previsaoConclusao ? ` · Previsao: ${new Date(p.previsaoConclusao).toLocaleDateString('pt-BR')}` : ''}</div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded bg-slate-100"><div className="h-full bg-emerald-500" style={{ width: `${p.progresso}%` }} /></div>
+            <div className="mt-2 h-2 w-full overflow-hidden rounded bg-neutral-100"><div className="h-full bg-emerald-500" style={{ width: `${p.progresso}%` }} /></div>
             <div className="mt-1 text-xs text-slate-500">{p.progresso}% · {p.concluidos}/{p.total} etapas</div>
           </Card>
         </button>

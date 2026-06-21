@@ -40,7 +40,7 @@ export default function GestaoSolicitacoes() {
         </div>
         <div className="flex gap-1 rounded border border-slate-200 bg-white p-1 text-sm">
           {[{ v: '', l: 'Todas' }, { v: 'interna', l: 'Internas' }, { v: 'externa', l: 'Externas' }].map((o) => (
-            <button key={o.v} onClick={() => setTipo(o.v)} className={`rounded px-3 py-1 ${tipo === o.v ? 'bg-marca-500 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>{o.l}</button>
+            <button key={o.v} onClick={() => setTipo(o.v)} className={`rounded px-3 py-1 ${tipo === o.v ? 'bg-marca-500 text-white' : 'text-slate-600 hover:bg-neutral-100'}`}>{o.l}</button>
           ))}
         </div>
       </div>

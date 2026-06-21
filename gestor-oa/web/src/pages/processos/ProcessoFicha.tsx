@@ -92,7 +92,7 @@ export default function ProcessoFicha() {
     : 'Em andamento';
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       <div className="mb-4 flex items-center gap-2 text-slate-600">
         <CheckCircle2 size={16} className="text-slate-400" />
         <span className="font-medium text-slate-700">Gestao de processos</span>
@@ -174,7 +174,7 @@ export default function ProcessoFicha() {
           return (
             <div key={g.chave} className="overflow-hidden rounded border border-slate-200 bg-white">
               <button onClick={() => setColapsados((s) => { const n = new Set(s); n.has(g.chave) ? n.delete(g.chave) : n.add(g.chave); return n; })}
-                className="flex w-full items-center gap-1.5 bg-slate-100 px-3 py-1.5 text-left text-[13px] font-medium text-marca-700">
+                className="flex w-full items-center gap-1.5 bg-neutral-100 px-3 py-1.5 text-left text-[13px] font-medium text-marca-700">
                 {aberto ? <ChevronDown size={15} /> : <ChevronRight size={15} />} {g.nome} <span className="text-slate-400">()</span>
               </button>
               {aberto && (

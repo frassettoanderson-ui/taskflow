@@ -42,7 +42,7 @@ export default function RelatorioRegime() {
   const total = tipo === 'empresas' ? emp.length : obr.length;
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-500">
           <Landmark size={16} className="text-slate-400" />

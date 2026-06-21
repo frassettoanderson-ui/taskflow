@@ -54,7 +54,7 @@ export default function Paineis() {
             </div>
             <p className="text-xs text-slate-500">{p.indicadores.length} indicador(es) - troca a cada {p.transicaoSeg}s - {p.ativo ? 'ativo' : 'inativo'}</p>
             <div className="flex flex-wrap gap-1">
-              {p.indicadores.map((pi) => <span key={pi.indicadorId} className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">{pi.indicador.nome}</span>)}
+              {p.indicadores.map((pi) => <span key={pi.indicadorId} className="rounded bg-neutral-100 px-2 py-0.5 text-xs text-slate-600">{pi.indicador.nome}</span>)}
             </div>
           </div>
         ))}

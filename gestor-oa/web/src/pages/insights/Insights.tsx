@@ -169,7 +169,7 @@ function Widget({ tipo, dados }: { tipo: string; dados: Dados }) {
     const Icone = meta.icone;
     return (
       <div className="flex items-center gap-4">
-        <div className={`grid h-12 w-12 place-items-center rounded-full bg-slate-100 ${meta.cor}`}><Icone size={24} /></div>
+        <div className={`grid h-12 w-12 place-items-center rounded-full bg-neutral-100 ${meta.cor}`}><Icone size={24} /></div>
         <div>
           <div className="text-3xl font-bold text-slate-800">{dados.kpis[meta.campo]}</div>
           <div className="text-sm text-slate-500">{meta.titulo}</div>

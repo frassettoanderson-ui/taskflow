@@ -224,7 +224,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto bg-slate-100 p-6">
+        <main className="flex-1 overflow-y-auto bg-neutral-100 p-6">
           <Outlet />
         </main>
       </div>

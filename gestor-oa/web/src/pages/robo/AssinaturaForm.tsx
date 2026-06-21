@@ -140,7 +140,7 @@ export default function AssinaturaForm() {
   const disponiveis = obrigacoes.map((o) => o.nome).filter((n) => !correspondentes.includes(n));
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       <div className="mb-3 flex items-center gap-2 text-slate-500">
         <Settings size={16} className="text-slate-400" />
         <span>Sistema</span><span className="text-slate-300">›</span>

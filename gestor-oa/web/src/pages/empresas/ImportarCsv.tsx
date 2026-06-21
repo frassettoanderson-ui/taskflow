@@ -97,7 +97,7 @@ export default function ImportarCsv() {
   const btnLaranja = 'flex items-center justify-center gap-2 rounded-md bg-status-warn px-4 py-2 text-sm font-medium text-white hover:bg-amber-500';
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-500">
           <Heart size={16} className="text-slate-400" /><span>Empresas</span>

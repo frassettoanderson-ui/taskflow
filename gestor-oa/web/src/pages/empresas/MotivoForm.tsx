@@ -39,7 +39,7 @@ export default function MotivoForm() {
   if (carregando) return <Spinner />;
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       <div className="mb-3 flex items-center gap-2 text-slate-500">
         <XCircle size={16} className="text-slate-400" /><span>Empresas</span>
         <span className="text-slate-300">›</span><span className="text-slate-700">Motivos de cancelamento das empresas</span>

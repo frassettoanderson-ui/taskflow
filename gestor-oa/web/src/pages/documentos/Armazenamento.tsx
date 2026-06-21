@@ -30,7 +30,7 @@ export default function Armazenamento() {
           {painel.limiteMB && <div className="text-sm text-slate-500">Limite: {painel.limiteMB} MB</div>}
         </div>
         {pct !== null && (
-          <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-3 h-3 w-full overflow-hidden rounded-full bg-neutral-100">
             <div className={`h-full ${pct > 90 ? 'bg-status-danger' : 'bg-marca-500'}`} style={{ width: `${pct}%` }} />
           </div>
         )}

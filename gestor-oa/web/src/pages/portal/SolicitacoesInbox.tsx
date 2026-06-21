@@ -37,7 +37,7 @@ export default function SolicitacoesInbox() {
                 <td className="px-3 py-2 font-medium text-slate-700">{s.titulo}</td>
                 <td className="px-3 py-2 text-slate-500">{s.empresa?.razaoSocial}</td>
                 <td className="px-3 py-2 text-slate-500">{s.contatoNome}</td>
-                <td className="px-3 py-2"><Badge className="bg-slate-100 text-slate-600">{s.status}</Badge></td>
+                <td className="px-3 py-2"><Badge className="bg-neutral-100 text-slate-600">{s.status}</Badge></td>
               </tr>
             ))}
             {itens.length === 0 && <tr><td colSpan={4} className="px-3 py-10 text-center text-slate-400">Nenhuma solicitacao.</td></tr>}
@@ -71,7 +71,7 @@ function Thread({ id, onVoltar }: { id: string; onVoltar: () => void }) {
       {s.avaliacaoNota && <div className="text-sm text-amber-600">Avaliacao do cliente: {'★'.repeat(s.avaliacaoNota)}</div>}
       <div className="card space-y-2 p-4">
         {s.mensagens.map((m) => (
-          <div key={m.id} className={`rounded p-2 text-sm ${m.autorTipo === 'USUARIO' ? 'bg-marca-50' : 'bg-slate-100'}`}>
+          <div key={m.id} className={`rounded p-2 text-sm ${m.autorTipo === 'USUARIO' ? 'bg-marca-50' : 'bg-neutral-100'}`}>
             <div className="text-xs text-slate-400">{m.autorNome} · {new Date(m.createdAt).toLocaleString('pt-BR')}</div>
             <div className="text-slate-700">{m.texto}</div>
           </div>

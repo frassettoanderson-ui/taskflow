@@ -141,7 +141,7 @@ export default function EmpresasList() {
   const ICONE = 'flex h-9 w-9 items-center justify-center rounded hover:opacity-80';
 
   return (
-    <div className="-m-6 min-h-full bg-slate-100 p-5 text-[13px]">
+    <div className="-m-6 min-h-full bg-neutral-100 p-5 text-[13px]">
       {/* Cabecalho */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-slate-500">
