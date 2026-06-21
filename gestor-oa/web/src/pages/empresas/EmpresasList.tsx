@@ -10,6 +10,7 @@ import type {
   Departamento,
   UsuarioBasico,
   GrupoEmpresa,
+  MotivoCancelamento,
 } from '../../lib/tipos';
 import { formatarIdent } from '../../lib/tipos';
 
@@ -40,6 +41,7 @@ export default function EmpresasList() {
   const [departamentoId, setDepartamentoId] = useState('');
   const [grupoId, setGrupoId] = useState(grupoUrl);
   const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
+  const [motivos, setMotivos] = useState<MotivoCancelamento[]>([]);
   const [page, setPage] = useState(1);
   const [refresh, setRefresh] = useState(0);
 
@@ -69,6 +71,7 @@ export default function EmpresasList() {
   // Carrega filtros auxiliares uma vez
   useEffect(() => {
     api.get<GrupoEmpresa[]>('/grupos-empresa').then(setGrupos).catch(() => undefined);
+    api.get<MotivoCancelamento[]>('/motivos-cancelamento').then(setMotivos).catch(() => undefined);
     api.get<Tag[]>('/tags').then(setTags).catch(() => undefined);
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
     api.get<UsuarioBasico[]>('/usuarios').then(setUsuarios).catch(() => undefined);
@@ -305,6 +308,16 @@ export default function EmpresasList() {
           </select>
           <button onClick={() => toast('ok', 'Em construcao: exportacao de e-mails em bloco.')} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><Mail size={16} /> Exportar e-mail's</button>
           <button onClick={() => setBarra(null)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Voltar</button>
+        </div>
+      )}
+
+      {/* Filtro por motivo de cancelamento (vindo da tela de Motivos) */}
+      {motivoUrl && (
+        <div className="mt-2 flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded bg-roxo-100 px-2.5 py-1 text-[12px] font-medium text-roxo-700">
+            Motivo de cancelamento: {motivos.find((m) => m.id === motivoUrl)?.nome ?? '...'}
+            <button onClick={() => navigate('/empresas')} className="text-roxo-500 hover:text-red-500">×</button>
+          </span>
         </div>
       )}
 
