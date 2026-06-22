@@ -59,35 +59,53 @@ router.get('/proximo-numero', async (req, res) => {
 });
 
 // ---------- Consulta CNPJ (autofill no cadastro) ----------
-// Busca dados publicos do CNPJ (BrasilAPI) para preencher a ficha automaticamente.
+// Busca dados publicos do CNPJ em 3 provedores (com fallback por causa de rate-limit).
+const sTxt = (v: unknown) => (v == null ? '' : String(v).trim());
+const fmtCep = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
+const fmtTel = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return /^\d{10,11}$/.test(d) ? d.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : d; };
+interface DadosCnpj { razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string }
+
+async function buscarJson(url: string): Promise<Record<string, unknown> | null> {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'User-Agent': 'GestorOA/1.0', Accept: 'application/json' } });
+    if (!r.ok) return null;
+    return (await r.json()) as Record<string, unknown>;
+  } catch { return null; }
+}
+// Formato "plano" da Receita (minhareceita.org / BrasilAPI)
+function normPlano(d: Record<string, unknown>): DadosCnpj {
+  return {
+    razaoSocial: sTxt(d.razao_social), nomeFantasia: sTxt(d.nome_fantasia), cep: fmtCep(d.cep),
+    logradouro: [sTxt(d.descricao_tipo_de_logradouro), sTxt(d.logradouro)].filter(Boolean).join(' ').trim(),
+    numeroEndereco: sTxt(d.numero), complemento: sTxt(d.complemento), bairro: sTxt(d.bairro),
+    cidade: sTxt(d.municipio), uf: sTxt(d.uf), telefone: fmtTel(d.ddd_telefone_1), email: sTxt(d.email).toLowerCase(),
+  };
+}
+// Formato aninhado da publica.cnpj.ws
+function normCnpjWs(d: Record<string, unknown>): DadosCnpj {
+  const e = (d.estabelecimento ?? {}) as Record<string, unknown>;
+  const cid = (e.cidade ?? {}) as Record<string, unknown>;
+  const est = (e.estado ?? {}) as Record<string, unknown>;
+  return {
+    razaoSocial: sTxt(d.razao_social), nomeFantasia: sTxt(e.nome_fantasia), cep: fmtCep(e.cep),
+    logradouro: [sTxt(e.tipo_logradouro), sTxt(e.logradouro)].filter(Boolean).join(' ').trim(),
+    numeroEndereco: sTxt(e.numero), complemento: sTxt(e.complemento), bairro: sTxt(e.bairro),
+    cidade: sTxt(cid.nome), uf: sTxt(est.sigla), telefone: fmtTel(`${sTxt(e.ddd1)}${sTxt(e.telefone1)}`), email: sTxt(e.email).toLowerCase(),
+  };
+}
+
 router.get('/consulta-cnpj/:cnpj', async (req, res) => {
   const cnpj = (req.params.cnpj || '').replace(/\D/g, '');
   if (cnpj.length !== 14) throw Errors.validacao('Informe um CNPJ valido (14 digitos).');
-  let resp: Awaited<ReturnType<typeof fetch>>;
-  try {
-    resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, { signal: AbortSignal.timeout(8000) });
-  } catch {
-    throw Errors.validacao('Nao foi possivel consultar o CNPJ agora. Tente novamente.');
-  }
-  if (resp.status === 404) throw Errors.naoEncontrado('CNPJ');
-  if (!resp.ok) throw Errors.validacao('Falha ao consultar o CNPJ.');
-  const d = (await resp.json()) as Record<string, unknown>;
-  const s = (v: unknown) => (v == null ? '' : String(v).trim());
-  const tel = s(d.ddd_telefone_1).replace(/\D/g, '');
-  const cep = s(d.cep).replace(/\D/g, '');
-  return ok(res, {
-    razaoSocial: s(d.razao_social),
-    nomeFantasia: s(d.nome_fantasia),
-    cep: cep.length === 8 ? `${cep.slice(0, 5)}-${cep.slice(5)}` : cep,
-    logradouro: [s(d.descricao_tipo_de_logradouro), s(d.logradouro)].filter(Boolean).join(' ').trim(),
-    numeroEndereco: s(d.numero),
-    complemento: s(d.complemento),
-    bairro: s(d.bairro),
-    cidade: s(d.municipio),
-    uf: s(d.uf),
-    telefone: /^\d{10,11}$/.test(tel) ? tel.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : tel,
-    email: s(d.email).toLowerCase(),
-  });
+
+  let dados: DadosCnpj | null = null;
+  const a = await buscarJson(`https://minhareceita.org/${cnpj}`);
+  if (a && a.razao_social) dados = normPlano(a);
+  if (!dados) { const b = await buscarJson(`https://publica.cnpj.ws/cnpj/${cnpj}`); if (b && b.razao_social) dados = normCnpjWs(b); }
+  if (!dados) { const c = await buscarJson(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`); if (c && c.razao_social) dados = normPlano(c); }
+
+  if (!dados) throw Errors.validacao('Nao foi possivel consultar o CNPJ agora (servicos indisponiveis ou limite atingido). Tente de novo em instantes.');
+  return ok(res, dados);
 });
 
 // ---------- Acoes em massa ----------
