@@ -769,7 +769,7 @@ function SecSolicitacoes({ empresa }: { empresa: EmpresaDetalhe }) {
   return (
     <div className="space-y-2">
       <p className="text-[13px] text-slate-500">As solicitacoes enviadas pelo App/Area VIP desta empresa aparecem aqui.</p>
-      <button onClick={() => navigate(`/portal-gestao/solicitacoes?empresa=${empresa.id}`)} className="rounded bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600">Ver solicitacoes da empresa</button>
+      <button onClick={() => navigate('/area-vip/solicitacoes')} className="rounded bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600">Ver solicitacoes da empresa</button>
     </div>
   );
 }
