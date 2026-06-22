@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Heart, Search, Save, RotateCcw, Lock, Unlock, Pencil, Trash2, Eye, EyeOff, RefreshCw, Info, CalendarDays,
+  Heart, Search, Save, RotateCcw, Lock, Unlock, Pencil, Trash2, Eye, EyeOff, RefreshCw, Info, CalendarDays, ChevronDown,
   MapPin, MessageCircle, Tag as TagIcon, CheckSquare, Users, List, LayoutTemplate, CheckCircle2,
   MessagesSquare, Network, Paperclip, Plus,
 } from 'lucide-react';
@@ -44,7 +44,12 @@ export default function EmpresaFicha() {
 
   const [empresa, setEmpresa] = useState<EmpresaDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
-  const [abertas, setAbertas] = useState<Set<SecaoKey>>(new Set(['endereco']));
+  // Secoes abertas: persistidas em localStorage (repete a config na proxima empresa)
+  const [abertas, setAbertas] = useState<Set<SecaoKey>>(() => {
+    try { const raw = localStorage.getItem('goa.empresa.secoes'); if (raw) return new Set(JSON.parse(raw) as SecaoKey[]); } catch { /* ignore */ }
+    return new Set(['endereco']);
+  });
+  const [tour, setTour] = useState(0); // 0 = fechado, 1..3 = passo do tour de ajuda
 
   // dados auxiliares
   const [regimes, setRegimes] = useState<Regime[]>([]);
@@ -99,8 +104,12 @@ export default function EmpresaFicha() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  function persist(n: Set<SecaoKey>) { try { localStorage.setItem('goa.empresa.secoes', JSON.stringify([...n])); } catch { /* ignore */ } }
   function toggle(k: SecaoKey) {
-    setAbertas((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
+    setAbertas((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); persist(n); return n; });
+  }
+  function toggleTodas() {
+    setAbertas((s) => { const n: Set<SecaoKey> = s.size >= SECOES.length ? new Set() : new Set(SECOES.map((x) => x.key)); persist(n); return n; });
   }
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) { setForm((f) => ({ ...f, [k]: v })); }
 
@@ -244,7 +253,11 @@ export default function EmpresaFicha() {
       {/* Faixa de icones + Salvar/Voltar */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="mb-1 text-[13px] text-slate-600">Selecione a secao desejada para exibir/ocultar:</p>
+          <p className="mb-1 flex items-center gap-2 text-[13px] text-slate-600">
+            Selecione a secao desejada para exibir/ocultar:
+            <button title="Ajuda" onClick={() => setTour(1)} className="grid h-4 w-4 place-items-center rounded-full border border-marca-400 text-[10px] text-marca-500 hover:bg-marca-50">?</button>
+            <button title="Exibir/ocultar todas" onClick={toggleTodas} className="text-status-ok hover:text-emerald-600"><ChevronDown size={16} /></button>
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             {SECOES.map(({ key, icon: Icon, titulo }) => (
               <button key={key} title={titulo} onClick={() => toggle(key)} className={`transition-colors ${abertas.has(key) ? 'text-status-ok' : 'text-slate-400 hover:text-slate-600'}`}>
@@ -275,6 +288,27 @@ export default function EmpresaFicha() {
           </SecaoBox>
         ))}
       </div>
+
+      {/* Tour de ajuda das secoes (3 passos) */}
+      {tour > 0 && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setTour(0)}>
+          <div className="max-w-md rounded-lg bg-slate-700 p-5 text-[13px] text-slate-100 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            {tour === 1 && <p>Esse e o modo de navegacao nas secoes do cadastro das empresas. Agora as secoes ficarao totalmente ocultas quando estiverem fechadas e podem ser <span className="text-status-ok">exibidas</span>/<span className="text-status-danger">ocultas</span> atraves desses controles.</p>}
+            {tour === 2 && <p>Para <span className="text-status-ok">exibir</span>/<span className="text-status-danger">ocultar</span> as secoes, basta clicar nos icones correspondentes. Para saber a qual secao o icone corresponde, basta parar o mouse em cima do controle que o nome aparecera.</p>}
+            {tour === 3 && <p>Entao e so clicar nos icones dos controles para <span className="text-status-ok">exibir</span>/<span className="text-status-danger">ocultar</span> a secao desejada! E o mais legal: o Sistema ira <span className="text-marca-300">salvar a ultima opcao</span> que voce utilizou e repetira a configuracao na proxima vez que voce abrir um cadastro de empresa.</p>}
+            <div className="mt-4 flex items-center justify-center gap-1 text-slate-400">
+              {[1, 2, 3].map((n) => <span key={n} className={`h-2 w-2 rounded-full ${tour === n ? 'bg-white' : 'bg-slate-500'}`} />)}
+            </div>
+            <div className="mt-3 flex items-center justify-end gap-3">
+              <button onClick={() => setTour(0)} className="text-[12px] text-slate-300 hover:text-white">Fechar</button>
+              <button disabled={tour === 1} onClick={() => setTour((t) => t - 1)} className="text-[12px] text-slate-300 hover:text-white disabled:opacity-40">Anterior</button>
+              {tour < 3
+                ? <button onClick={() => setTour((t) => t + 1)} className="rounded border border-slate-400 px-3 py-1 text-[12px] hover:bg-slate-600">Proximo</button>
+                : <button onClick={() => setTour(0)} className="rounded border border-slate-400 px-3 py-1 text-[12px] hover:bg-slate-600">OK, entendido</button>}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Popup info do Apelido e-Continuo */}
       {infoApelido && (
