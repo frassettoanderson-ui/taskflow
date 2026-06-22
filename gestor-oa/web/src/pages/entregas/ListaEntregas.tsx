@@ -137,21 +137,27 @@ export default function ListaEntregas() {
     }
     if (p.get('resp')) setResponsavelId(p.get('resp')!);
     if (p.get('dep')) setDepartamentoId(p.get('dep')!);
+    if (p.get('obrigacaoId')) setObrigacaoId(p.get('obrigacaoId')!);
     if (p.get('pmulta') === '1') setPassivelMulta(true);
     const legalDe = p.get('legalDe'); const legalAte = p.get('legalAte');
+    const tecDe = p.get('prazoTecDe'); const tecAte = p.get('prazoTecAte'); const entDe = p.get('entregaDe');
+    const temData = legalDe || legalAte || tecDe || tecAte || entDe;
     setD((cur) => ({
       ...cur,
-      compDe: legalDe || legalAte ? '' : cur.compDe,
-      compAte: legalDe || legalAte ? '' : cur.compAte,
+      compDe: temData ? '' : cur.compDe,
+      compAte: temData ? '' : cur.compAte,
       prazoLegalDe: legalDe ?? cur.prazoLegalDe,
       prazoLegalAte: legalAte ?? cur.prazoLegalAte,
+      prazoTecDe: tecDe ?? cur.prazoTecDe,
+      prazoTecAte: tecAte ?? cur.prazoTecAte,
+      entregaDe: entDe ?? cur.entregaDe,
     }));
     const ch: Record<string, boolean> = {};
     for (const k of ['entAntecipada', 'entNoPrazoTec', 'entAtrasada', 'pendAntesTec', 'pendDentroTec', 'soEntreguesPeloResp', 'naoPassivelMulta']) {
       if (p.get(k) === '1') ch[k] = true;
     }
     setChips(ch);
-    if (legalDe || legalAte) setMostrarDatas(true);
+    if (temData) setMostrarDatas(true);
     setTick((t) => t + 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);

@@ -12,7 +12,7 @@ import type {
   EmpresaDetalhe, Tag, Departamento, UsuarioBasico, GrupoEmpresa, TarefaAgendada, Regime, Contato,
 } from '../../lib/tipos';
 import { formatarIdent, formatarBytes, LABEL_TIPO_IDENT } from '../../lib/tipos';
-import AbaObrigacoes from './AbaObrigacoes';
+import SecObrigacoes from './SecObrigacoes';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-1 block text-[13px] font-bold text-slate-700';
@@ -351,7 +351,7 @@ function SecaoConteudo(props: {
     case 'comentarios': return <SecComentarios empresa={empresa} departamentos={departamentos} onMudou={onMudou} />;
     case 'tags': return <SecTags tags={tags} tagIds={tagIds} setTagIds={setTagIds} />;
     case 'contatos': return <SecContatos empresa={empresa} podeEditar={podeEditar} onMudou={onMudou} />;
-    case 'obrigacoes': return <AbaObrigacoes empresaId={empresa.id} regimeAtualId={empresa.regimeTributarioId} onRegimeMudou={onMudou} />;
+    case 'obrigacoes': return <SecObrigacoes empresaId={empresa.id} empresaNumero={empresa.numero} />;
     case 'tarefas': return <SecTarefas empresa={empresa} departamentos={departamentos} />;
     case 'responsaveis': return <SecResponsaveis empresa={empresa} departamentos={departamentos} usuarios={usuarios} podeEditar={podeEditar} onMudou={onMudou} />;
     case 'anexos': return <SecAnexos empresa={empresa} departamentos={departamentos} onMudou={onMudou} />;

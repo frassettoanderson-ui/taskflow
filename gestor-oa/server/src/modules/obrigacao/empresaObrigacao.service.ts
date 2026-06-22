@@ -216,6 +216,7 @@ export async function atualizarOverrides(
     diaPrazoOverride?: number | null;
     honorario?: number | null;
     tempoPrevistoOverride?: number | null;
+    ativo?: boolean;
   },
 ) {
   const eo = await prisma.empresaObrigacao.findFirst({
@@ -230,6 +231,7 @@ export async function atualizarOverrides(
       honorario: dados.honorario === undefined ? eo.honorario : dados.honorario,
       tempoPrevistoOverride:
         dados.tempoPrevistoOverride === undefined ? eo.tempoPrevistoOverride : dados.tempoPrevistoOverride,
+      ativo: dados.ativo === undefined ? eo.ativo : dados.ativo,
     },
   });
 }
@@ -251,4 +253,71 @@ export async function alocarEmMassa(
     afetadas++;
   }
   return { afetadas };
+}
+
+// ---------- Painel da empresa (contadores por setor/obrigacao) ----------
+// 4 buckets, iguais aos filtros de clique do F2 (count == resultado do clique):
+//   verde   = ENTREGUE com dataEntrega nos ultimos 30 dias
+//   vermelho= pendente/justificada com prazo tecnico vencido (< hoje)
+//   amarelo = pendente/justificada com prazo tecnico entre hoje e hoje+30
+//   azul    = pendente/justificada com prazo tecnico > hoje+30
+type Contadores = { verde: number; vermelho: number; amarelo: number; azul: number };
+const zero = (): Contadores => ({ verde: 0, vermelho: 0, amarelo: 0, azul: 0 });
+function diaUTC(d: Date): Date { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }
+function addDias(d: Date, n: number): Date { const x = new Date(d); x.setUTCDate(x.getUTCDate() + n); return x; }
+
+export async function painelPorEmpresa(escritorioId: string, empresaId: string) {
+  await garantirEmpresa(escritorioId, empresaId);
+  const vinculos = await prisma.empresaObrigacao.findMany({
+    where: { empresaId, escritorioId },
+    include: { obrigacao: { include: { departamento: { select: { id: true, nome: true, cor: true } } } } },
+    orderBy: { createdAt: 'asc' },
+  });
+  const entregas = await prisma.entrega.findMany({
+    where: { escritorioId, empresaId },
+    select: { obrigacaoId: true, status: true, prazoTecnico: true, dataEntrega: true },
+  });
+
+  const hoje = diaUTC(new Date());
+  const d30 = addDias(hoje, 30);
+  const dm30 = addDias(hoje, -30);
+
+  // contadores por obrigacao
+  const porObrig = new Map<string, Contadores>();
+  for (const e of entregas) {
+    const c = porObrig.get(e.obrigacaoId) ?? zero();
+    if (e.status === 'ENTREGUE') {
+      if (e.dataEntrega && diaUTC(e.dataEntrega) >= dm30) c.verde++;
+    } else if (e.status !== 'DISPENSADA') {
+      // pendente (qualquer variante) ou ENTREGUE_JUSTIFICADA
+      if (e.prazoTecnico) {
+        const pt = diaUTC(e.prazoTecnico);
+        if (pt < hoje) c.vermelho++;
+        else if (pt <= d30) c.amarelo++;
+        else c.azul++;
+      }
+    }
+    porObrig.set(e.obrigacaoId, c);
+  }
+
+  // agrupa por departamento (na ordem em que aparecem)
+  const deps = new Map<string, { id: string; nome: string; cor: string; contadores: Contadores; obrigacoes: unknown[] }>();
+  for (const v of vinculos) {
+    const dep = v.obrigacao.departamento;
+    const key = dep?.id ?? 'sem';
+    if (!deps.has(key)) deps.set(key, { id: dep?.id ?? 'sem', nome: dep?.nome ?? 'Sem departamento', cor: dep?.cor ?? '#94a3b8', contadores: zero(), obrigacoes: [] });
+    const grupo = deps.get(key)!;
+    const c = porObrig.get(v.obrigacaoId) ?? zero();
+    grupo.contadores.verde += c.verde; grupo.contadores.vermelho += c.vermelho; grupo.contadores.amarelo += c.amarelo; grupo.contadores.azul += c.azul;
+    grupo.obrigacoes.push({
+      id: v.id,
+      obrigacaoId: v.obrigacaoId,
+      nome: v.obrigacao.nome,
+      ativo: v.ativo,
+      tempoPrevisto: v.tempoPrevistoOverride ?? 0,
+      contadores: c,
+    });
+  }
+
+  return { departamentos: [...deps.values()] };
 }

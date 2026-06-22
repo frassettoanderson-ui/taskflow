@@ -16,6 +16,12 @@ router.get('/empresa/:empresaId', async (req, res) => {
   return ok(res, r);
 });
 
+// Painel da empresa: setores + obrigacoes com contadores (4 cores)
+router.get('/empresa/:empresaId/painel', async (req, res) => {
+  const r = await svc.painelPorEmpresa(req.auth!.escritorioId, req.params.empresaId);
+  return ok(res, r);
+});
+
 // Aplicar/trocar regime (substitui origens REGIME)
 router.put(
   '/empresa/:empresaId/regime',
@@ -71,6 +77,7 @@ router.put(
       diaPrazoOverride: z.number().int().min(1).max(31).nullable().optional(),
       honorario: z.number().min(0).nullable().optional(),
       tempoPrevistoOverride: z.number().int().min(0).nullable().optional(),
+      ativo: z.boolean().optional(),
     }),
   }),
   async (req, res) => {
