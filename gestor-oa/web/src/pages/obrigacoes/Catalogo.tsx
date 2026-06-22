@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Printer, Landmark, List, Sun, Search, Plus, ClipboardList, Bot } from 'lucide-react';
-import { api, getAccessToken } from '../../lib/api';
+import { Printer, Landmark, List, Sun, Search, Plus, ClipboardList, Bot, Trash2 } from 'lucide-react';
+import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
 import type { Obrigacao, Departamento, EntregaMes, AssinaturaDocumento } from '../../lib/tipos';
@@ -55,6 +55,12 @@ export default function Catalogo() {
     const qs = new URLSearchParams();
     if (busca.trim()) qs.set('busca', busca.trim());
     api.get<Obrigacao[]>(`/obrigacoes?${qs}`).then(setObrigacoes).finally(() => setLoading(false));
+  }
+
+  async function excluir(o: Obrigacao) {
+    if (!confirm(`Excluir a obrigacao "${o.nome}"? Ela sai do catalogo.`)) return;
+    try { await api.del(`/obrigacoes/${o.id}`); toast('ok', 'Obrigacao excluida.'); carregar(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao excluir.'); }
   }
   useEffect(() => {
     api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
@@ -193,8 +199,9 @@ export default function Catalogo() {
                     onClick={() => navigate(`/obrigacoes/${o.id}`)}
                   >
                     <td className="px-3 py-2">
-                      <div className="font-medium text-marca-700">
-                        {o.nome} {!o.ativo && <span className="text-red-500">[Inativa]</span>}
+                      <div className="flex items-center gap-1.5 font-medium text-marca-700">
+                        {podeGerenciar && <button onClick={(e) => { e.stopPropagation(); excluir(o); }} title="Excluir obrigacao" className="text-status-danger hover:text-red-700"><Trash2 size={13} /></button>}
+                        <span>{o.nome} {!o.ativo && <span className="text-red-500">[Inativa]</span>}</span>
                       </div>
                       <div className="mt-0.5 grid grid-cols-[200px_auto] text-xs">
                         <span className="text-slate-500">{o.departamento?.nome ? `Depto ${o.departamento.nome}` : '—'}</span>

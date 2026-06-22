@@ -8,7 +8,6 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Indicadores from './pages/dashboard/Indicadores';
 import Paineis from './pages/dashboard/Paineis';
-import Acdox from './pages/acdox/Acdox';
 import Configuracoes from './pages/Configuracoes';
 import Departamentos from './pages/Departamentos';
 import DepartamentoForm from './pages/DepartamentoForm';
@@ -132,7 +131,6 @@ export default function App() {
         <Route path="entregas" element={<ListaEntregas />} />
         <Route path="entregas/calendario" element={<Calendario />} />
         <Route path="documentos/armazenamento" element={<Armazenamento />} />
-        <Route path="acdox" element={<Acdox />} />
         <Route path="documentos/protocolos-fisicos" element={<ProtocolosFisicos />} />
         <Route path="documentos/protocolos-fisicos/novo" element={<ProtocoloFisicoForm />} />
         <Route path="documentos/protocolos-fisicos/:id" element={<ProtocoloFisicoForm />} />

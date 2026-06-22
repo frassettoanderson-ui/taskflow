@@ -8,7 +8,6 @@ import {
   Building2,
   ListChecks,
   CalendarCheck,
-  GitBranch,
   MessageSquare,
   TrendingUp,
   FileText,
@@ -77,31 +76,12 @@ const MENU: Item[] = [
       },
       { label: 'Dados do meu perfil', icon: User, to: '/perfil' },
       { label: 'Trocar estilo', icon: Palette, tema: true },
-      { label: 'Auditoria', icon: ListChecks, to: '/auditoria' },
-      { label: 'Tarefas e Alertas', icon: Activity, to: '/jobs' },
     ],
   },
   { label: 'Obrigacoes', icon: ListChecks, to: '/obrigacoes' },
   { label: 'Empresas', icon: Building2, to: '/empresas' },
   { label: 'Lista de Entregas', icon: CalendarCheck, to: '/entregas' },
-  { label: 'Gestao de processos', icon: GitBranch, to: '/processos' },
-  {
-    label: 'Solicitacoes',
-    icon: MessageSquare,
-    filhos: [
-      { label: 'Gestao (internas + externas)', icon: MessageSquare, to: '/solicitacoes' },
-      { label: 'Solicitacoes internas', icon: MessageSquare, to: '/solicitacoes-internas' },
-      { label: 'Solicitacoes de clientes', icon: MessageSquare, to: '/area-vip/solicitacoes' },
-    ],
-  },
-  {
-    label: 'AC Doc`s',
-    icon: FileText,
-    filhos: [
-      { label: 'Cobranca de documentos', icon: FileText, to: '/acdox' },
-      { label: 'Armazenamento (GED)', icon: FileText, to: '/documentos/armazenamento' },
-    ],
-  },
+  { label: 'Documentos (GED)', icon: FileText, to: '/documentos/armazenamento' },
   {
     label: 'Relatorios',
     icon: ClipboardList,
@@ -144,7 +124,6 @@ export default function Layout() {
         else if (e.key === 'F2') destino = '/entregas';
         else if (e.key === 'F3') destino = '/empresas';
         else if (e.key === 'F6') destino = '/obrigacoes';
-        else if (e.key === 'F10') destino = '/processos';
       } else if (e.ctrlKey && !e.altKey && (e.key === 'u' || e.key === 'U')) destino = '/usuarios';
       else if (e.ctrlKey && !e.altKey && (e.key === 'k' || e.key === 'K')) destino = '/robo/consulta';
       else if (e.altKey && !e.ctrlKey && (e.key === 'c' || e.key === 'C')) destino = '/area-vip/comunicados';
