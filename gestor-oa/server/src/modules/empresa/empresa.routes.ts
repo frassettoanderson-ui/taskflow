@@ -58,6 +58,38 @@ router.get('/proximo-numero', async (req, res) => {
   return ok(res, r);
 });
 
+// ---------- Consulta CNPJ (autofill no cadastro) ----------
+// Busca dados publicos do CNPJ (BrasilAPI) para preencher a ficha automaticamente.
+router.get('/consulta-cnpj/:cnpj', async (req, res) => {
+  const cnpj = (req.params.cnpj || '').replace(/\D/g, '');
+  if (cnpj.length !== 14) throw Errors.validacao('Informe um CNPJ valido (14 digitos).');
+  let resp: Awaited<ReturnType<typeof fetch>>;
+  try {
+    resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`, { signal: AbortSignal.timeout(8000) });
+  } catch {
+    throw Errors.validacao('Nao foi possivel consultar o CNPJ agora. Tente novamente.');
+  }
+  if (resp.status === 404) throw Errors.naoEncontrado('CNPJ');
+  if (!resp.ok) throw Errors.validacao('Falha ao consultar o CNPJ.');
+  const d = (await resp.json()) as Record<string, unknown>;
+  const s = (v: unknown) => (v == null ? '' : String(v).trim());
+  const tel = s(d.ddd_telefone_1).replace(/\D/g, '');
+  const cep = s(d.cep).replace(/\D/g, '');
+  return ok(res, {
+    razaoSocial: s(d.razao_social),
+    nomeFantasia: s(d.nome_fantasia),
+    cep: cep.length === 8 ? `${cep.slice(0, 5)}-${cep.slice(5)}` : cep,
+    logradouro: [s(d.descricao_tipo_de_logradouro), s(d.logradouro)].filter(Boolean).join(' ').trim(),
+    numeroEndereco: s(d.numero),
+    complemento: s(d.complemento),
+    bairro: s(d.bairro),
+    cidade: s(d.municipio),
+    uf: s(d.uf),
+    telefone: /^\d{10,11}$/.test(tel) ? tel.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : tel,
+    email: s(d.email).toLowerCase(),
+  });
+});
+
 // ---------- Acoes em massa ----------
 router.post(
   '/acoes-massa',

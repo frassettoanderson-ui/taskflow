@@ -17,6 +17,7 @@ export default function EmpresaForm() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [grupos, setGrupos] = useState<GrupoEmpresa[]>([]);
   const [salvando, setSalvando] = useState(false);
+  const [buscandoCnpj, setBuscandoCnpj] = useState(false);
   const [proximoId, setProximoId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
@@ -60,6 +61,32 @@ export default function EmpresaForm() {
 
   function set(campo: keyof typeof form, valor: string) {
     setForm((f) => ({ ...f, [campo]: valor }));
+  }
+
+  // Consulta o CNPJ (BrasilAPI via backend) e preenche os campos vazios
+  async function buscarCnpj(cnpj: string) {
+    const dig = (cnpj || '').replace(/\D/g, '');
+    if (dig.length !== 14 || buscandoCnpj) return;
+    setBuscandoCnpj(true);
+    try {
+      const d = await api.get<{ razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string }>(`/empresas/consulta-cnpj/${dig}`);
+      setForm((f) => ({
+        ...f,
+        razaoSocial: f.razaoSocial || d.razaoSocial,
+        nomeFantasia: f.nomeFantasia || d.nomeFantasia,
+        cep: f.cep || d.cep,
+        logradouro: f.logradouro || d.logradouro,
+        numeroEndereco: f.numeroEndereco || d.numeroEndereco,
+        complemento: f.complemento || d.complemento,
+        bairro: f.bairro || d.bairro,
+        cidade: f.cidade || d.cidade,
+        uf: f.uf || d.uf,
+        telefone: f.telefone || d.telefone,
+        emailPrincipal: f.emailPrincipal || d.email,
+      }));
+      toast('ok', 'Dados do CNPJ preenchidos.');
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Nao foi possivel consultar o CNPJ.'); }
+    finally { setBuscandoCnpj(false); }
   }
 
   async function salvar(e: React.FormEvent) {
@@ -178,7 +205,7 @@ export default function EmpresaForm() {
 
         <section className="card space-y-3 p-6">
           <h2 className="font-semibold text-slate-700">Identificadores</h2>
-          <p className="text-sm text-slate-500">CNPJ, CPF, IE, CEI ou CAEPF. Sao a chave de identificacao das guias pelo robo.</p>
+          <p className="text-sm text-slate-500">CNPJ, CPF, IE, CEI ou CAEPF. Sao a chave de identificacao das guias pelo robo.{buscandoCnpj && <span className="ml-2 font-medium text-marca-600">buscando dados do CNPJ...</span>}</p>
           {idents.map((linha, i) => (
             <div key={i} className="flex gap-2">
               <select
@@ -194,9 +221,10 @@ export default function EmpresaForm() {
               </select>
               <input
                 className="input flex-1"
-                placeholder="Valor"
+                placeholder={linha.tipo === 'CNPJ' ? 'CNPJ (preenche os dados ao sair do campo)' : 'Valor'}
                 value={linha.valor}
                 onChange={(e) => setIdents((arr) => arr.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)))}
+                onBlur={() => { if (linha.tipo === 'CNPJ') buscarCnpj(linha.valor); }}
               />
               <input
                 className="input w-40"
