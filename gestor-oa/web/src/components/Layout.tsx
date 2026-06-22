@@ -95,16 +95,6 @@ const MENU: Item[] = [
     ],
   },
   {
-    label: 'Metodo APLA',
-    icon: TrendingUp,
-    filhos: [
-      { label: 'Conheca o APLA', icon: TrendingUp, to: '/apla/sobre' },
-      { label: 'Dashboard', icon: TrendingUp, to: '/apla' },
-      { label: 'Analise produtividade', icon: TrendingUp, to: '/apla/produtividade' },
-      { label: 'Analise lucratividade', icon: TrendingUp, to: '/apla/lucratividade' },
-    ],
-  },
-  {
     label: 'AC Doc`s',
     icon: FileText,
     filhos: [

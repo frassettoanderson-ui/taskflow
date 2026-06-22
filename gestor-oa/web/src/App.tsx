@@ -66,7 +66,6 @@ import GestaoSolicitacoes from './pages/solicitacoes/GestaoSolicitacoes';
 import Insights from './pages/insights/Insights';
 import Notificacoes from './pages/Notificacoes';
 import Jobs from './pages/Jobs';
-import Apla from './pages/Apla';
 
 function Protegida({ children }: { children: React.ReactNode }) {
   const { sessao, carregando } = useAuth();
@@ -157,9 +156,6 @@ export default function App() {
         <Route path="area-vip/avaliacoes" element={<AvaliacoesSolicitacoes />} />
         <Route path="area-vip/formularios" element={<FormulariosSolicitacao />} />
         <Route path="area-vip/usuarios-app" element={<UsuariosApp />} />
-        <Route path="apla/sobre" element={<EmConstrucao titulo="Conheca o APLA" descricao="Apresentacao do Metodo APLA (produtividade e lucratividade)." />} />
-        <Route path="apla/produtividade" element={<Apla abaInicial={1} />} />
-        <Route path="apla/lucratividade" element={<Apla abaInicial={2} />} />
         <Route path="relatorios/semanais" element={<EmConstrucao titulo="Estatisticas semanais" />} />
         <Route path="relatorios/mensais" element={<EmConstrucao titulo="Estatisticas mensais" />} />
         <Route path="relatorios/responsaveis" element={<EmConstrucao titulo="Responsaveis Dptos" descricao="Relacao de responsaveis por departamento em cada empresa." />} />
@@ -171,7 +167,6 @@ export default function App() {
         <Route path="insights" element={<Insights />} />
         <Route path="notificacoes" element={<Notificacoes />} />
         <Route path="jobs" element={<Jobs />} />
-        <Route path="apla" element={<Apla />} />
         <Route path="cadastros" element={<Departamentos />} />
         <Route path="cadastros/novo" element={<DepartamentoForm />} />
         <Route path="cadastros/tags" element={<Tags />} />

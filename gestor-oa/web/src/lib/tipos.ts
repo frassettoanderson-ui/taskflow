@@ -472,13 +472,6 @@ export const PERMISSION_GROUPS: { grupo: string; flags: { flag: string; label: s
   },
   { grupo: 'Relatorios', flags: [{ flag: 'relatorios_ver', label: 'Ver relatorios e insights' }] },
   {
-    grupo: 'Metodo APLA',
-    flags: [
-      { flag: 'apla_ver', label: 'Ver relatorios' },
-      { flag: 'apla_configurar', label: 'Configurar' },
-    ],
-  },
-  {
     grupo: 'Area VIP / App',
     flags: [
       { flag: 'portal_comunicados', label: 'Gerenciar comunicados' },

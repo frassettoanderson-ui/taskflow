@@ -18,7 +18,6 @@ const LBL_PERM = 'mb-1 block text-[13px] font-bold text-sky-600';
 // Textos de ajuda (i) de areas de permissao (estilo Acessorias)
 const INFO_AREAS: Record<string, string> = {
   administrativo: 'Existem algumas operacoes do Sistema, como por exemplo, avisar que uma empresa esta sem contatos em um determinado departamento ao tentar enviar guia agendada, os usuarios administrativos sao avisados por e-mail. Outro exemplo e o recebimento de e-mail dos alertas de solicitacoes que receberam notas de avaliacao abaixo de 4.',
-  apla: 'Como algumas informacoes utilizadas pelo Metodo APLA sao informacoes confidenciais/sensiveis, criamos um nivel extra de permissoes para definir os acessos do Metodo APLA, pois pode acontecer de algum colaborador ter acesso para gerenciar usuarios, mas em alguns casos, nao podera liberar permissoes do Metodo APLA para outros usuarios.',
 };
 
 const INFO_CCO = `Utilize ; para enviar para varios enderecos.
