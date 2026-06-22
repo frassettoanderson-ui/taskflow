@@ -12,7 +12,7 @@ const ENVIA = ['Nao', 'Sim - Imediato', 'Sim - Agendado', 'Sim - Pre-agendado', 
 const REENVIAR = ['Ignorar', 'Reprocessa e mantem arquivos anteriores', 'Reprocessa e desativa arquivos anteriores'];
 const SEM_DEMANDA = ['Ignorar', 'Criar entrega/demanda'];
 // secao de reconhecimento do robo escondida por ora (sera tratada junto do robo no final)
-const MOSTRAR_ROBO = false;
+const MOSTRAR_ROBO = true;
 
 const INFO_ENVIA = `Em obrigacoes correspondentes configuradas em algum grupo de envio por e-mail na empresa, os disparos 'Imediato', 'Agendado' e 'Pre-agendado' serao transformados em 'Agrupado' automaticamente.`;
 
