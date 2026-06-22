@@ -28,8 +28,8 @@ const SECOES: { key: SecaoKey; icon: typeof MapPin; titulo: string }[] = [
   { key: 'obrigacoes', icon: List, titulo: 'Obrigacoes dessa empresa' },
   { key: 'gruposEnvio', icon: LayoutTemplate, titulo: 'Grupo de obrigacoes para envio de e-mails agrupados' },
   { key: 'tarefas', icon: CheckCircle2, titulo: 'Tarefas agendadas' },
-  { key: 'recorrentes', icon: RefreshCw, titulo: 'Processos recorrentes' },
-  { key: 'solicitacoes', icon: MessagesSquare, titulo: 'Solicitacoes' },
+  { key: 'recorrentes', icon: RefreshCw, titulo: 'Processos recorrentes dessa empresa' },
+  { key: 'solicitacoes', icon: MessagesSquare, titulo: 'Solicitacoes App' },
   { key: 'responsaveis', icon: Network, titulo: 'Responsaveis pelos departamentos' },
   { key: 'anexos', icon: Paperclip, titulo: 'Arquivos anexos' },
 ];
@@ -261,8 +261,10 @@ function SecaoConteudo(props: {
     case 'obrigacoes': return <AbaObrigacoes empresaId={empresa.id} regimeAtualId={empresa.regimeTributarioId} onRegimeMudou={onMudou} />;
     case 'tarefas': return <SecTarefas empresa={empresa} />;
     case 'responsaveis': return <SecResponsaveis empresa={empresa} departamentos={departamentos} usuarios={usuarios} podeEditar={podeEditar} onMudou={onMudou} />;
-    case 'anexos': return <SecAnexos empresa={empresa} onMudou={onMudou} />;
+    case 'anexos': return <SecAnexos empresa={empresa} departamentos={departamentos} onMudou={onMudou} />;
     case 'gruposEnvio': return <SecGruposEnvio />;
+    case 'recorrentes': return <SecRecorrentes empresa={empresa} usuarios={usuarios} podeEditar={podeEditar} />;
+    case 'solicitacoes': return <SecSolicitacoes empresa={empresa} />;
     default: return <p className="text-[12px] text-slate-400">Em construcao (aguardando layout).</p>;
   }
 }
@@ -424,6 +426,63 @@ function SecGruposEnvio() {
   );
 }
 
+// 9 - Processos recorrentes dessa empresa
+interface MatrizBasica { id: string; nome: string }
+interface RecorrenteItem { id: string; matrizId: string; empresaId: string | null; tipoRecorrencia: string; config: { diasMes?: number[] }; matriz?: { nome: string } }
+function SecRecorrentes({ empresa, usuarios, podeEditar }: { empresa: EmpresaDetalhe; usuarios: UsuarioBasico[]; podeEditar: boolean }) {
+  const toast = useToast();
+  const [matrizes, setMatrizes] = useState<MatrizBasica[]>([]);
+  const [itens, setItens] = useState<RecorrenteItem[]>([]);
+  const [matrizId, setMatrizId] = useState('');
+  const [gestorId, setGestorId] = useState('');
+  const [dia, setDia] = useState('');
+  const [naoCriaMesAtual, setNaoCriaMesAtual] = useState('nao');
+  function carregar() {
+    api.get<RecorrenteItem[]>('/processos/recorrencias/lista').then((l) => setItens(l.filter((r) => r.empresaId === empresa.id))).catch(() => undefined);
+  }
+  useEffect(() => { api.get<MatrizBasica[]>('/matrizes').then(setMatrizes).catch(() => undefined); carregar(); }, [empresa.id]);
+  async function adicionar() {
+    if (!matrizId || !dia) return toast('erro', 'Selecione o processo e o dia do mes.');
+    try {
+      await api.post('/processos/recorrencias', { matrizId, empresaId: empresa.id, tipoRecorrencia: 'DIAS_MES', config: { diasMes: [Number(dia)] } });
+      setMatrizId(''); setGestorId(''); setDia(''); toast('ok', 'Recorrencia adicionada.'); carregar();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  async function remover(rid: string) { if (!confirm('Remover recorrencia?')) return; try { await api.del(`/processos/recorrencias/${rid}`); carregar(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); } }
+  return (
+    <div className="space-y-2">
+      {podeEditar && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <select className={`${INP} min-w-[200px] flex-1`} value={matrizId} onChange={(e) => setMatrizId(e.target.value)}><option value="">Processo...</option>{matrizes.map((m) => <option key={m.id} value={m.id}>{m.nome}</option>)}</select>
+          <select className={`${INP} min-w-[180px] flex-1`} value={gestorId} onChange={(e) => setGestorId(e.target.value)} title="Gestor do processo (em construcao)"><option value="">Gestor do processo...</option>{usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}</select>
+          <select className={`${INP} w-auto`} value={dia} onChange={(e) => setDia(e.target.value)}><option value="">Dia do mes...</option>{Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}</select>
+          <select className={`${INP} w-auto`} value={naoCriaMesAtual} onChange={(e) => setNaoCriaMesAtual(e.target.value)} title="Em construcao"><option value="nao">Nao cria no mes atual</option><option value="sim">Cria no mes atual</option></select>
+          <button onClick={adicionar} className="flex items-center gap-2 rounded bg-marca-500 px-4 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={15} /> Adicionar</button>
+        </div>
+      )}
+      {itens.map((r) => (
+        <div key={r.id} className="flex flex-wrap items-center gap-1.5">
+          <div className={`${INP} min-w-[200px] flex-1 bg-fundo`}>{r.matriz?.nome ?? 'Processo'}</div>
+          <div className={`${INP} w-auto bg-fundo`}>Dia {r.config?.diasMes?.join(', ') ?? '—'}</div>
+          <button onClick={() => remover(r.id)} className="grid h-9 w-10 place-items-center rounded bg-status-danger text-white hover:bg-red-600"><Trash2 size={15} /></button>
+        </div>
+      ))}
+      {itens.length === 0 && <p className="text-[12px] text-slate-400">Nenhum processo recorrente.</p>}
+    </div>
+  );
+}
+
+// 10 - Solicitacoes App
+function SecSolicitacoes({ empresa }: { empresa: EmpresaDetalhe }) {
+  const navigate = useNavigate();
+  return (
+    <div className="space-y-2">
+      <p className="text-[13px] text-slate-500">As solicitacoes enviadas pelo App/Area VIP desta empresa aparecem aqui.</p>
+      <button onClick={() => navigate(`/portal-gestao/solicitacoes?empresa=${empresa.id}`)} className="rounded bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600">Ver solicitacoes da empresa</button>
+    </div>
+  );
+}
+
 // 8 - Tarefas agendadas (usa modelo atual: titulo + data/hora)
 function SecTarefas({ empresa }: { empresa: EmpresaDetalhe }) {
   const toast = useToast();
@@ -467,33 +526,53 @@ function SecResponsaveis({ empresa, departamentos, usuarios, podeEditar, onMudou
     catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+    <div>
+      <div className="grid grid-cols-[1fr_1.4fr] gap-3 border-b border-slate-200 pb-1 text-[13px] font-bold text-slate-700">
+        <span className="flex items-center gap-1">Departamento <Pencil size={12} className="text-marca-500" /></span>
+        <span>Responsavel padrao</span>
+      </div>
       {departamentos.map((d) => (
-        <div key={d.id}>
-          <label className="mb-1 flex items-center gap-2 text-[13px] font-bold text-slate-700"><span className="inline-block h-2 w-2 rounded-full" style={{ background: d.cor }} />{d.nome}</label>
-          <select className={INP} disabled={!podeEditar} value={respPorDep.get(d.id) ?? ''} onChange={(e) => definir(d.id, e.target.value)}>
-            <option value="">— sem responsavel —</option>
-            {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
-          </select>
-        </div>
+        <RespLinha key={d.id} dep={d} usuarios={usuarios} valor={respPorDep.get(d.id) ?? ''} podeEditar={podeEditar} onSalvar={(uid) => definir(d.id, uid)} />
       ))}
-      {departamentos.length === 0 && <p className="text-[12px] text-slate-400">Nenhum departamento.</p>}
+      {departamentos.length === 0 && <p className="py-2 text-[12px] text-slate-400">Nenhum departamento.</p>}
+    </div>
+  );
+}
+
+function RespLinha({ dep, usuarios, valor, podeEditar, onSalvar }: { dep: Departamento; usuarios: UsuarioBasico[]; valor: string; podeEditar: boolean; onSalvar: (uid: string) => void }) {
+  const [editando, setEditando] = useState(false);
+  return (
+    <div className="grid grid-cols-[1fr_1.4fr] items-center gap-3 border-b border-slate-100 py-1.5">
+      <span className="flex items-center gap-2 text-[13px] text-slate-700">
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: dep.cor }} />{dep.nome}
+        <span className="ml-auto pr-2 text-marca-400" title="Replicar">&raquo;&raquo;&raquo;</span>
+      </span>
+      <div className="flex items-center gap-1.5">
+        <select className={`${INP} ${editando ? '' : 'bg-slate-100 text-slate-500'}`} disabled={!editando} value={valor} onChange={(e) => { onSalvar(e.target.value); }}>
+          <option value="">— sem responsavel —</option>
+          {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nome}</option>)}
+        </select>
+        {podeEditar && <button onClick={() => setEditando((v) => !v)} className="grid h-9 w-10 place-items-center rounded bg-status-warn text-white hover:bg-amber-500" title="Editar"><Pencil size={15} /></button>}
+      </div>
     </div>
   );
 }
 
 // 12 - Arquivos anexos
-function SecAnexos({ empresa, onMudou }: { empresa: EmpresaDetalhe; onMudou: () => void }) {
+function SecAnexos({ empresa, departamentos, onMudou }: { empresa: EmpresaDetalhe; departamentos: Departamento[]; onMudou: () => void }) {
   const { sessao } = useAuth();
   const toast = useToast();
   const podeUpload = temPermissao(sessao, 'documentos_upload');
   const podeExcluir = temPermissao(sessao, 'documentos_excluir');
   const [enviando, setEnviando] = useState(false);
-  async function enviar(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files; if (!files?.length) return;
-    const fd = new FormData(); Array.from(files).forEach((f) => fd.append('arquivos', f));
+  const [descricao, setDescricao] = useState('');
+  const [departamentoId, setDepartamentoId] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  async function adicionar() {
+    if (!arquivo) return toast('erro', 'Escolha um arquivo.');
+    const fd = new FormData(); fd.append('arquivos', arquivo);
     setEnviando(true);
-    try { await api.upload(`/empresas/${empresa.id}/anexos`, fd); toast('ok', 'Anexos enviados.'); onMudou(); }
+    try { await api.upload(`/empresas/${empresa.id}/anexos`, fd); setArquivo(null); setDescricao(''); toast('ok', 'Arquivo anexado.'); onMudou(); }
     catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro'); } finally { setEnviando(false); }
   }
   async function baixar(anexoId: string, nome: string) {
@@ -504,8 +583,20 @@ function SecAnexos({ empresa, onMudou }: { empresa: EmpresaDetalhe; onMudou: () 
   }
   async function remover(anexoId: string) { try { await api.del(`/empresas/${empresa.id}/anexos/${anexoId}`); onMudou(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); } }
   return (
-    <div className="space-y-2">
-      {podeUpload && <input type="file" multiple onChange={enviar} disabled={enviando} className="text-[12px]" />}
+    <div className="space-y-3">
+      {podeUpload && (
+        <div className="flex flex-wrap items-end gap-2">
+          <input className={`${INP} min-w-[200px] flex-1`} placeholder="Descricao do arquivo a ser anexado(s)..." value={descricao} onChange={(e) => setDescricao(e.target.value)} />
+          <label className="flex flex-1 cursor-pointer items-center gap-2 rounded border border-slate-300 bg-white px-2 py-1.5 text-[12px] text-slate-500">
+            <span className="truncate">{arquivo ? arquivo.name : 'Arquivo a ser anexado [ate 60MB]'}</span>
+            <span className="ml-auto rounded bg-marca-400 px-2 py-0.5 text-white">Escolher</span>
+            <input type="file" className="hidden" onChange={(e) => setArquivo(e.target.files?.[0] ?? null)} />
+          </label>
+          <select className={`${INP} w-auto`} value={departamentoId} onChange={(e) => setDepartamentoId(e.target.value)} title="Departamento (visual; nao persistido ainda)"><option value="">Departamento</option>{departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}</select>
+          <button onClick={adicionar} disabled={enviando} className="flex items-center gap-2 rounded bg-marca-500 px-4 py-2 text-sm font-medium text-white hover:bg-marca-600 disabled:opacity-50"><Plus size={15} /> Adicionar</button>
+        </div>
+      )}
+      <div className="flex items-center justify-between border-b border-slate-200 pb-1 text-[12px] font-bold text-slate-600"><span className="flex items-center gap-1">Departamentos / Arquivos <Search size={13} className="text-marca-500" /></span><span>Qtde</span></div>
       <div className="divide-y divide-slate-100">
         {empresa.anexos.map((a) => (
           <div key={a.id} className="flex items-center justify-between py-2 text-[13px]">
@@ -513,7 +604,7 @@ function SecAnexos({ empresa, onMudou }: { empresa: EmpresaDetalhe; onMudou: () 
             <div className="flex items-center gap-3"><span className="text-[12px] text-slate-400">{formatarBytes(a.tamanho)}</span>{podeExcluir && <button onClick={() => remover(a.id)} className="text-status-danger hover:text-red-700"><Trash2 size={14} /></button>}</div>
           </div>
         ))}
-        {empresa.anexos.length === 0 && <p className="py-2 text-center text-[12px] text-slate-400">Nenhum anexo.</p>}
+        {empresa.anexos.length === 0 && <p className="py-2 text-center text-[12px] text-slate-400">Nenhum arquivo.</p>}
       </div>
     </div>
   );
