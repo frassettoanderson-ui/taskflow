@@ -29,16 +29,30 @@ function desktopDir() {
   return fs.existsSync(d) ? d : os.homedir();
 }
 
-// ---------- Dialogos GUI do Windows (sem terminal) ----------
+// ---------- Dialogos GUI do Windows (sempre em primeiro plano) ----------
+// Janela TopMost com caixa de texto (substitui o InputBox do VB, que abria atras do terminal).
 function inputBox(prompt, padrao) {
-  const ps = `Add-Type -AssemblyName Microsoft.VisualBasic; $r=[Microsoft.VisualBasic.Interaction]::InputBox(${JSON.stringify(prompt)}, 'GestorOA e-Continuo', ${JSON.stringify(padrao || '')}); Write-Output $r`;
+  const ps = [
+    'Add-Type -AssemblyName System.Windows.Forms,System.Drawing;',
+    '$f=New-Object System.Windows.Forms.Form;',
+    "$f.Text='GestorOA e-Continuo';$f.TopMost=$true;$f.StartPosition='CenterScreen';$f.ClientSize=New-Object System.Drawing.Size(480,150);$f.FormBorderStyle='FixedDialog';$f.MaximizeBox=$false;$f.MinimizeBox=$false;",
+    `$l=New-Object System.Windows.Forms.Label;$l.Text=${JSON.stringify(prompt)};$l.SetBounds(15,15,450,50);`,
+    `$t=New-Object System.Windows.Forms.TextBox;$t.SetBounds(15,70,450,24);$t.Text=${JSON.stringify(padrao || '')};`,
+    "$o=New-Object System.Windows.Forms.Button;$o.Text='OK';$o.SetBounds(300,105,80,28);$o.DialogResult=[System.Windows.Forms.DialogResult]::OK;",
+    "$c=New-Object System.Windows.Forms.Button;$c.Text='Cancelar';$c.SetBounds(385,105,80,28);$c.DialogResult=[System.Windows.Forms.DialogResult]::Cancel;",
+    '$f.Controls.AddRange(@($l,$t,$o,$c));$f.AcceptButton=$o;$f.CancelButton=$c;',
+    '$f.Add_Shown({$f.Activate();$t.Focus()});',
+    '$r=$f.ShowDialog();',
+    "if($r -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Out.Write($t.Text)}",
+  ].join('');
   try {
-    return execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], { encoding: 'utf8', windowsHide: true }).replace(/\r?\n$/, '');
+    return execFileSync('powershell', ['-NoProfile', '-STA', '-Command', ps], { encoding: 'utf8', windowsHide: true });
   } catch { return null; }
 }
 function msgBox(texto) {
   try {
-    execFileSync('powershell', ['-NoProfile', '-Command', `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show(${JSON.stringify(texto)}, 'GestorOA e-Continuo') | Out-Null`], { windowsHide: true });
+    // 4096 = DefaultDesktopOnly: forca a janela a aparecer na frente de tudo. 64 = icone de informacao.
+    execFileSync('powershell', ['-NoProfile', '-STA', '-Command', `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show(${JSON.stringify(texto)}, 'GestorOA e-Continuo', 0, 64, 0, 4096) | Out-Null`], { windowsHide: true });
   } catch { /* ignore */ }
 }
 
