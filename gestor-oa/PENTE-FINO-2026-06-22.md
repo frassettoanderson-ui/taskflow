@@ -23,10 +23,9 @@ Base: telas comparadas ao Acessórias + materiais/transcrições enviados.
 
 3. **Obrigações da empresa (seção 6 da ficha)** reaproveita o componente antigo `AbaObrigacoes`, cujo layout difere do print do original (que tem: contadores 👍/👎/⚠️/➡️, coluna "Tempo previsto (min)", "Ativa? Sim/Não" por linha, agrupado por departamento colapsável, e ícones 👁/lista/impressora no topo). → revisar para bater com o original.
 
-4. **⚠️ Componentes ÓRFÃOS após a reescrita da ficha**: ao trocar as abas antigas pela estrutura de 12 ícones, dois recursos por-empresa ficaram **sem ponto de entrada**:
-   - `AbaDocumentos.tsx` — **GED/Documentos da empresa** (upload/lista de documentos do robô e GED).
-   - `AbaComunicacao.tsx` — **Comunicação/WhatsApp da empresa** (envio + histórico).
-   No original, os 12 ícones realmente não incluem GED nem Comunicação (eles vivem em outros menus: Documentos › Armazenamento/AC Docs, e Comunicação › Templates/Chatbot). PORÉM o nosso tinha esses recursos POR EMPRESA e agora eles estão inacessíveis. → **Decisão necessária**: (a) deixar fora da ficha (fiel) e garantir acesso ao histórico/GED da empresa por outro caminho, ou (b) reintroduzir como seção/atalho. Hoje o código existe mas ninguém chama (sem erro de build, só inacessível).
+4. **Componentes ÓRFÃOS após a reescrita da ficha** (ao trocar abas pelos 12 ícones):
+   - ✅ **RESOLVIDO `AbaComunicacao.tsx` (WhatsApp por empresa)**: as transcrições confirmam que o original **NÃO tem** WhatsApp como seção/funcionalidade por empresa. No Acessórias o WhatsApp aparece só como **link na Home do App/Área VIP** (título + link, em "Aplicativo e Área VIP") e como canal de suporte. Nossa Área VIP já replica isso ("Link's personalizados da Home", com ícone WhatsApp/Instagram). Então a aba foi invenção nossa (M8) → **arquivo removido**. Obs.: o backend de WhatsApp (M8 WhatsAppProvider/rotas de comunicação) ficou sem uso pelo front da ficha; manter por ora, decidir depois se remove.
+   - ⏳ **PENDENTE `AbaDocumentos.tsx` (GED/Documentos da empresa)**: avaliar se o original mostra documentos por empresa em algum lugar (provável via Robô/AC Docs / Armazenamento) e direcionar para lá, ou remover. Código existe mas ninguém chama.
 
 ## C) Placeholders intencionais (modo de trabalho "caminho pronto + Em construção")
 Esses são esperados — apareceram como `Em construcao` mas são telas/recursos que decidimos deixar para depois:
