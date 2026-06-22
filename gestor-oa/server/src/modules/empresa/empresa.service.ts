@@ -507,14 +507,14 @@ export async function listarTarefas(escritorioId: string, empresaId: string) {
   await garantirEmpresa(escritorioId, empresaId);
   return prisma.empresaTarefaAgendada.findMany({
     where: { escritorioId, empresaId },
-    orderBy: [{ concluida: 'asc' }, { dataHora: 'asc' }],
+    orderBy: [{ concluida: 'asc' }, { createdAt: 'asc' }],
   });
 }
 
 export async function criarTarefa(
   escritorioId: string,
   empresaId: string,
-  input: { titulo: string; descricao?: string | null; dataHora: string },
+  input: { titulo: string; descricao?: string | null; dataHora?: string | null; tempo?: number; departamentoId?: string | null; dia?: number | null; mes?: number | null; ano?: number; lembrarDias?: number | null },
   autorId?: string,
 ) {
   await garantirEmpresa(escritorioId, empresaId);
@@ -524,7 +524,13 @@ export async function criarTarefa(
       empresaId,
       titulo: input.titulo,
       descricao: input.descricao || null,
-      dataHora: new Date(input.dataHora),
+      dataHora: input.dataHora ? new Date(input.dataHora) : null,
+      tempo: input.tempo ?? 0,
+      departamentoId: input.departamentoId || null,
+      dia: input.dia ?? null,
+      mes: input.mes ?? null,
+      ano: input.ano ?? 0,
+      lembrarDias: input.lembrarDias ?? null,
       autorId: autorId ?? null,
     },
   });

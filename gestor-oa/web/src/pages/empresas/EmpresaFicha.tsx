@@ -352,7 +352,7 @@ function SecaoConteudo(props: {
     case 'tags': return <SecTags tags={tags} tagIds={tagIds} setTagIds={setTagIds} />;
     case 'contatos': return <SecContatos empresa={empresa} podeEditar={podeEditar} onMudou={onMudou} />;
     case 'obrigacoes': return <AbaObrigacoes empresaId={empresa.id} regimeAtualId={empresa.regimeTributarioId} onRegimeMudou={onMudou} />;
-    case 'tarefas': return <SecTarefas empresa={empresa} />;
+    case 'tarefas': return <SecTarefas empresa={empresa} departamentos={departamentos} />;
     case 'responsaveis': return <SecResponsaveis empresa={empresa} departamentos={departamentos} usuarios={usuarios} podeEditar={podeEditar} onMudou={onMudou} />;
     case 'anexos': return <SecAnexos empresa={empresa} departamentos={departamentos} onMudou={onMudou} />;
     case 'gruposEnvio': return <SecGruposEnvio />;
@@ -774,33 +774,66 @@ function SecSolicitacoes({ empresa }: { empresa: EmpresaDetalhe }) {
   );
 }
 
-// 8 - Tarefas agendadas (usa modelo atual: titulo + data/hora)
-function SecTarefas({ empresa }: { empresa: EmpresaDetalhe }) {
+// 8 - Tarefas agendadas (Descricao / Tempo / Departamento / Dia / Mes / Ano / Lembrar)
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+function SecTarefas({ empresa, departamentos }: { empresa: EmpresaDetalhe; departamentos: Departamento[] }) {
   const toast = useToast();
   const navigate = useNavigate();
   const [tarefas, setTarefas] = useState<TarefaAgendada[]>([]);
-  const [nova, setNova] = useState({ titulo: '', dataHora: '' });
+  const vazia = { titulo: '', tempo: '', departamentoId: '', dia: '', mes: '', ano: '0', lembrarDias: '' };
+  const [nova, setNova] = useState({ ...vazia });
   function carregar() { api.get<TarefaAgendada[]>(`/empresas/${empresa.id}/tarefas`).then(setTarefas).catch(() => undefined); }
   useEffect(carregar, [empresa.id]);
   async function adicionar() {
-    if (!nova.titulo.trim() || !nova.dataHora) return toast('erro', 'Informe descricao e data/hora.');
-    try { await api.post(`/empresas/${empresa.id}/tarefas`, { titulo: nova.titulo.trim(), dataHora: nova.dataHora }); setNova({ titulo: '', dataHora: '' }); carregar(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    if (!nova.titulo.trim()) return toast('erro', 'Informe a descricao.');
+    try {
+      await api.post(`/empresas/${empresa.id}/tarefas`, {
+        titulo: nova.titulo.trim(),
+        tempo: nova.tempo ? Number(nova.tempo) : 0,
+        departamentoId: nova.departamentoId || null,
+        dia: nova.dia ? Number(nova.dia) : null,
+        mes: nova.mes ? Number(nova.mes) : null,
+        ano: nova.ano ? Number(nova.ano) : 0,
+        lembrarDias: nova.lembrarDias ? Number(nova.lembrarDias) : null,
+      });
+      setNova({ ...vazia }); carregar();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
   async function remover(t: TarefaAgendada) { if (!confirm('Remover tarefa?')) return; try { await api.del(`/empresas/${empresa.id}/tarefas/${t.id}`); carregar(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); } }
+  const depNome = (id: string | null) => departamentos.find((d) => d.id === id)?.nome ?? '';
+  const COLS = 'grid items-center gap-1.5 grid-cols-[1.6fr_70px_1.1fr_90px_90px_80px_90px_auto]';
   return (
-    <div className="space-y-1.5">
-      <p className="text-[12px] text-slate-500">[Gerenciar na <button onClick={() => navigate('/entregas')} className="text-marca-600 hover:underline">Lista de Entregas</button>] — modelo Dia/Mes/Ano/Lembrar: em construcao.</p>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <input className={`${INP} min-w-[220px] flex-1`} placeholder="Descricao. Ex: Renovar certificado" value={nova.titulo} onChange={(e) => setNova((n) => ({ ...n, titulo: e.target.value }))} />
-        <input type="datetime-local" className={`${INP} w-auto`} value={nova.dataHora} onChange={(e) => setNova((n) => ({ ...n, dataHora: e.target.value }))} />
-        <button onClick={adicionar} className="flex items-center gap-2 rounded bg-marca-500 px-4 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={15} /> Adicionar</button>
+    <div className="space-y-1">
+      <p className="text-[12px] text-slate-500">[Gerenciar na <button onClick={() => navigate('/entregas')} className="text-marca-600 hover:underline">Lista de Entregas</button>]</p>
+      {/* cabecalho de colunas */}
+      <div className={`${COLS} px-1 text-[12px] font-bold text-slate-600`}>
+        <span></span><span></span><span></span><span className="text-center">Dia</span><span className="text-center">Mes</span><span className="text-center">Ano</span><span className="text-center">Lembrar em</span><span></span>
       </div>
+      {/* linha nova */}
+      <div className={COLS}>
+        <input className={INP} placeholder="Descricao. Ex: Renovar certificado" value={nova.titulo} onChange={(e) => setNova((n) => ({ ...n, titulo: e.target.value }))} />
+        <input className={`${INP} text-center`} placeholder="Tempo" inputMode="numeric" value={nova.tempo} onChange={(e) => setNova((n) => ({ ...n, tempo: e.target.value.replace(/\D/g, '') }))} />
+        <select className={INP} value={nova.departamentoId} onChange={(e) => setNova((n) => ({ ...n, departamentoId: e.target.value }))}><option value="">Departamento...</option>{departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}</select>
+        <select className={INP} value={nova.dia} onChange={(e) => setNova((n) => ({ ...n, dia: e.target.value }))}><option value="">Dia...</option>{Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>Dia {d}</option>)}</select>
+        <select className={INP} value={nova.mes} onChange={(e) => setNova((n) => ({ ...n, mes: e.target.value }))}><option value="">Mes...</option>{MESES_ABREV.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
+        <input className={`${INP} text-center`} placeholder="0 = todos" inputMode="numeric" value={nova.ano} onChange={(e) => setNova((n) => ({ ...n, ano: e.target.value.replace(/\D/g, '') }))} />
+        <input className={`${INP} text-center`} placeholder="(dias)" inputMode="numeric" value={nova.lembrarDias} onChange={(e) => setNova((n) => ({ ...n, lembrarDias: e.target.value.replace(/\D/g, '') }))} />
+        <button onClick={adicionar} className="flex items-center justify-center gap-1 rounded bg-marca-500 px-3 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={15} /> Adicionar</button>
+      </div>
+      {/* existentes */}
       {tarefas.map((t) => (
-        <div key={t.id} className="flex flex-wrap items-center gap-1.5">
-          <div className={`${INP} min-w-[220px] flex-1 bg-fundo`}>{t.titulo}</div>
-          <div className={`${INP} w-auto bg-fundo`}>{new Date(t.dataHora).toLocaleString('pt-BR')}</div>
-          <button onClick={() => remover(t)} className="grid h-9 w-10 place-items-center rounded bg-status-danger text-white hover:bg-red-600"><Trash2 size={15} /></button>
+        <div key={t.id} className={COLS}>
+          <div className={`${INP} bg-fundo`}>{t.titulo}</div>
+          <div className={`${INP} bg-fundo text-center`}>{t.tempo}</div>
+          <div className={`${INP} bg-fundo`}>{depNome(t.departamentoId)}</div>
+          <div className={`${INP} bg-fundo text-center`}>{t.dia ? `Dia ${t.dia}` : '—'}</div>
+          <div className={`${INP} bg-fundo text-center`}>{t.mes ? MESES_ABREV[t.mes - 1] : '—'}</div>
+          <div className={`${INP} bg-fundo text-center`}>{t.ano}</div>
+          <div className={`${INP} bg-fundo text-center`}>{t.lembrarDias ?? '—'}</div>
+          <div className="flex gap-1.5">
+            <button className="grid h-9 w-10 place-items-center rounded bg-status-warn text-white hover:bg-amber-500" title="Editar"><Pencil size={15} /></button>
+            <button onClick={() => remover(t)} className="grid h-9 w-10 place-items-center rounded bg-status-danger text-white hover:bg-red-600" title="Remover"><Trash2 size={15} /></button>
+          </div>
         </div>
       ))}
       {tarefas.length === 0 && <p className="text-[12px] text-slate-400">Nenhuma tarefa.</p>}

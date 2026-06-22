@@ -100,9 +100,15 @@ export const importarCsvSchema = z.object({
 });
 
 export const tarefaSchema = z.object({
-  titulo: z.string().min(1, 'Informe o titulo da tarefa.'),
+  titulo: z.string().min(1, 'Informe a descricao da tarefa.'),
   descricao: z.string().optional().nullable(),
-  dataHora: z.string().min(1, 'Informe a data/hora.'),
+  dataHora: z.string().optional().nullable(),
+  tempo: z.number().int().min(0).optional(),
+  departamentoId: z.string().optional().nullable(),
+  dia: z.number().int().min(1).max(31).optional().nullable(),
+  mes: z.number().int().min(1).max(12).optional().nullable(),
+  ano: z.number().int().min(0).optional(),
+  lembrarDias: z.number().int().min(0).optional().nullable(),
 });
 
 export const inativarAssistidoSchema = z.object({

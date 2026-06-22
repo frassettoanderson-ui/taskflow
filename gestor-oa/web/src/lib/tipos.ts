@@ -153,7 +153,13 @@ export interface TarefaAgendada {
   id: string;
   titulo: string;
   descricao: string | null;
-  dataHora: string;
+  dataHora: string | null;
+  tempo: number;
+  departamentoId: string | null;
+  dia: number | null;
+  mes: number | null;
+  ano: number;
+  lembrarDias: number | null;
   concluida: boolean;
   concluidaEm: string | null;
 }

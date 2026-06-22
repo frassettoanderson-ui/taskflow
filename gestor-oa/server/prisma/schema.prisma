@@ -353,7 +353,13 @@ model EmpresaTarefaAgendada {
   empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   titulo        String
   descricao     String?
-  dataHora      DateTime
+  dataHora      DateTime?
+  tempo         Int      @default(0)   // tempo previsto (min)
+  departamentoId String?
+  dia           Int?
+  mes           Int?
+  ano           Int      @default(0)   // 0 = todos os anos
+  lembrarDias   Int?                   // lembrar em (dias antes)
   concluida     Boolean  @default(false)
   concluidaEm   DateTime?
   autorId       String?
