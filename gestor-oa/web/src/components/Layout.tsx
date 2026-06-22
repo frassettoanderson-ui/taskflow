@@ -5,9 +5,11 @@ import {
   User,
   HelpCircle,
   Power,
-  Building2,
-  ListChecks,
-  CalendarCheck,
+  Globe,
+  List,
+  Heart,
+  CheckCircle,
+  Folder,
   MessageSquare,
   TrendingUp,
   FileText,
@@ -45,7 +47,7 @@ interface Item {
 const MENU: Item[] = [
   {
     label: 'Sistema',
-    icon: Settings,
+    icon: Globe,
     filhos: [
       { label: 'Usuarios e Permissoes', icon: Users, to: '/usuarios' },
       { label: 'Departamentos', icon: Tags, to: '/cadastros' },
@@ -78,13 +80,13 @@ const MENU: Item[] = [
       { label: 'Trocar estilo', icon: Palette, tema: true },
     ],
   },
-  { label: 'Obrigacoes', icon: ListChecks, to: '/obrigacoes' },
-  { label: 'Empresas', icon: Building2, to: '/empresas' },
-  { label: 'Lista de Entregas', icon: CalendarCheck, to: '/entregas' },
+  { label: 'Obrigacoes', icon: List, to: '/obrigacoes' },
+  { label: 'Empresas', icon: Heart, to: '/empresas' },
+  { label: 'Lista de Entregas', icon: CheckCircle, to: '/entregas' },
   { label: 'Documentos (GED)', icon: FileText, to: '/documentos/armazenamento' },
   {
     label: 'Relatorios',
-    icon: ClipboardList,
+    icon: Folder,
     filhos: [
       { label: 'Insights com filtros', icon: TrendingUp, to: '/insights' },
       { label: 'Indicadores (Dashboard)', icon: TrendingUp, to: '/dashboard/indicadores' },
@@ -136,7 +138,7 @@ export default function Layout() {
   return (
     <div className="flex h-full">
       {/* Sidebar branca (estreita, estilo Acessorias) */}
-      <aside className={`flex flex-col border-r bg-[var(--m-bg)] border-[color:var(--m-bd)] transition-all ${recolhido ? 'w-16' : 'w-56'}`}>
+      <aside className={`flex flex-col border-r-2 border-marca-500 bg-[var(--m-sbg)] transition-all ${recolhido ? 'w-16' : 'w-56'}`}>
         {/* Logo */}
         <div className={`flex items-center gap-2 px-4 py-3 ${recolhido ? 'justify-center' : ''}`}>
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-marca-500 text-sm font-bold text-marca-600">
@@ -164,7 +166,7 @@ export default function Layout() {
         )}
 
         {/* Menu */}
-        <nav className="flex-1 px-1.5 pb-2 text-[13px]">
+        <nav className="flex-1 px-1.5 pb-2 text-[12.5px]">
           <MenuLista itens={MENU} toast={toast} onTema={() => { const e = ciclarMenuEstilo(); toast('ok', `Estilo do menu: ${e}`); }} recolhido={recolhido} topo />
         </nav>
 
@@ -239,11 +241,11 @@ function MenuLista({ itens, toast, onTema, recolhido = false, topo = false }: { 
             >
               <button
                 title={recolhido ? item.label : undefined}
-                className={`flex w-full items-center gap-3 rounded px-3 py-2 text-left transition ${recolhido ? 'justify-center' : ''} ${
+                className={`flex w-full items-center gap-3 rounded px-3 py-2.5 text-left transition ${recolhido ? 'justify-center' : ''} ${
                   aberto === item.label ? 'bg-[var(--m-abg)] text-[color:var(--m-afg)]' : 'text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]'
                 }`}
               >
-                <item.icon size={17} className={aberto === item.label ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
+                <item.icon size={15} className={aberto === item.label ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
                 {!recolhido && <span className="flex-1">{item.label}</span>}
                 {!recolhido && <ChevronRight size={15} className="text-[color:var(--m-ic)]" />}
               </button>
@@ -270,12 +272,12 @@ function MenuLista({ itens, toast, onTema, recolhido = false, topo = false }: { 
 }
 
 function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toast: ToastFn; onTema: () => void; recolhido?: boolean }) {
-  const baseCls = `flex w-full items-center gap-3 rounded px-3 py-2 text-left transition ${recolhido ? 'justify-center' : ''}`;
+  const baseCls = `flex w-full items-center gap-3 rounded px-3 py-2.5 text-left transition ${recolhido ? 'justify-center' : ''}`;
 
   if (item.tema) {
     return (
       <button onClick={onTema} title={recolhido ? item.label : undefined} className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}>
-        <item.icon size={17} className="text-[color:var(--m-ic)]" />
+        <item.icon size={15} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
       </button>
     );
@@ -283,7 +285,7 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
   if (item.href) {
     return (
       <a href={item.href} download title={recolhido ? item.label : undefined} className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}>
-        <item.icon size={17} className="text-[color:var(--m-ic)]" />
+        <item.icon size={15} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
       </a>
     );
@@ -291,7 +293,7 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
   if (item.emBreve) {
     return (
       <button onClick={() => toast('ok', `${item.label}: em breve`)} title="Em breve" className={`${baseCls} text-[color:var(--m-ic)]`}>
-        <item.icon size={17} className="text-[color:var(--m-ic)]" />
+        <item.icon size={15} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
         {!recolhido && <span className="rounded bg-[var(--m-hv)] px-1.5 py-0.5 text-[10px] text-[color:var(--m-ic)]">em breve</span>}
       </button>
@@ -308,7 +310,7 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
     >
       {({ isActive }) => (
         <>
-          <item.icon size={17} className={isActive ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
+          <item.icon size={15} className={isActive ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
           {!recolhido && <span className="flex-1">{item.label}</span>}
         </>
       )}

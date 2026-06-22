@@ -17,12 +17,13 @@
   --marca-900: 31 65 99;
 
   /* Skin do menu lateral (Trocar estilo) - padrao Claro */
-  --m-bg: #ffffff;
+  --m-sbg: #f4f5f7; /* fundo da sidebar (cinza bem claro, igual ao original) */
+  --m-bg: #ffffff;  /* fundo de paineis/flyouts/botoes */
   --m-bd: #e2e8f0;
   --m-fg: #64748b;
-  --m-ic: #94a3b8;
-  --m-hv: #f1f5f9;
-  --m-abg: rgb(238 245 251);
+  --m-ic: #aeb7c4; /* icones do menu mais claros */
+  --m-hv: #eceef1;
+  --m-abg: #ffffff; /* item selecionado: realce branco discreto sobre a sidebar cinza */
   --m-afg: rgb(49 102 153);
   --m-acc: rgb(66 139 202);
   --m-title: #334155;
@@ -30,6 +31,7 @@
 
 /* Skin do menu: Escuro (preto + verde) */
 [data-menu='escuro'] {
+  --m-sbg: #1b1f24;
   --m-bg: #1b1f24;
   --m-bd: #2b3036;
   --m-fg: #cbd5e1;
@@ -43,6 +45,7 @@
 
 /* Skin do menu: Azul (marinho) */
 [data-menu='azul'] {
+  --m-sbg: #163a72;
   --m-bg: #163a72;
   --m-bd: #1f4a8c;
   --m-fg: #d3def0;
@@ -149,7 +152,7 @@ body {
   }
   /* Botoes coloridos de acesso rapido (estilo Acessorias) */
   .quickbtn {
-    @apply grid h-9 w-9 place-items-center rounded text-white transition hover:opacity-90;
+    @apply grid h-10 w-9 place-items-center rounded-lg text-white transition hover:opacity-90;
   }
   .label {
     @apply mb-1 block text-sm font-medium text-slate-600;
