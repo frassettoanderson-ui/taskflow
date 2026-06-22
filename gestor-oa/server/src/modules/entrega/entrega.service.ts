@@ -299,7 +299,8 @@ export interface FiltrosEntrega {
   tagId?: string;
   status?: StatusEntrega;
   // tela [F2]
-  q?: string;                       // busca por empresa (razao/fantasia)
+  q?: string;                       // busca por empresa (razao/fantasia/numero)
+  somenteTarefas?: boolean;         // mostra so as Tarefas Agendadas (em vez das obrigacoes)
   grupoId?: string;                 // grupo de empresas
   passivelMulta?: boolean;          // so obrigacoes passiveis de multa
   naoPassivelMulta?: boolean;       // so obrigacoes NAO passiveis de multa
@@ -326,6 +327,18 @@ export interface FiltrosEntrega {
 
 function diaUTC(d: string, fimDoDia = false): Date {
   return new Date(`${d}T${fimDoDia ? '23:59:59' : '00:00:00'}.000Z`);
+}
+
+// Filtro de empresa por texto: razao/fantasia (contains) ou numero [ID] exato.
+function empresaOrFromQ(q?: string): Prisma.EmpresaWhereInput['OR'] | undefined {
+  const s = q?.trim();
+  if (!s) return undefined;
+  const ors: Prisma.EmpresaWhereInput[] = [
+    { razaoSocial: { contains: s, mode: 'insensitive' } },
+    { nomeFantasia: { contains: s, mode: 'insensitive' } },
+  ];
+  if (/^\d+$/.test(s)) ors.push({ numero: Number(s) });
+  return ors;
 }
 
 function baseWhere(
@@ -359,14 +372,9 @@ function baseWhere(
   if (f.pendAntesTec) and.push({ status: { in: PENDENTES }, prazoTecnico: { gt: agora } });
   if (f.pendDentroTec) and.push({ status: { in: PENDENTES }, prazoTecnico: { lte: agora }, prazoLegal: { gte: agora } });
 
-  // busca por empresa (texto)
-  if (f.q?.trim()) {
-    const q = f.q.trim();
-    and.push({ empresa: { OR: [
-      { razaoSocial: { contains: q, mode: 'insensitive' } },
-      { nomeFantasia: { contains: q, mode: 'insensitive' } },
-    ] } });
-  }
+  // busca por empresa (texto: razao/fantasia/numero)
+  const empOr = empresaOrFromQ(f.q);
+  if (empOr) and.push({ empresa: { OR: empOr } });
 
   // competencia de/ate (composto ano,mes)
   if (f.compDe) and.push({ OR: [
@@ -420,8 +428,14 @@ export async function listar(
   pag: ParsedPagination,
 ) {
   const cfg = await lerConfig(escritorioId);
-  const where = baseWhere(escritorioId, filtros, ff);
   const hoje = new Date();
+
+  // ---- Somente Tarefas Agendadas (a Lista de Entregas e' "Obrigacoes e Tarefas") ----
+  if (filtros.somenteTarefas) {
+    return listarTarefasComoLinhas(escritorioId, filtros, hoje, cfg, pag);
+  }
+
+  const where = baseWhere(escritorioId, filtros, ff);
 
   // comparacao entre colunas (dataEntrega vs prazos) -> SQL direto p/ obter os ids
   if (filtros.entAntecipada || filtros.entNoPrazoTec) {
@@ -452,6 +466,7 @@ export async function listar(
   return {
     items: items.map((e) => ({
       id: e.id,
+      ehTarefa: false,
       empresa: { id: e.empresa.id, numero: e.empresa.numero, razaoSocial: e.empresa.razaoSocial, nomeFantasia: e.empresa.nomeFantasia, cnpjFinal: cnpjFinal(e.empresa.identificadores) },
       obrigacao: e.obrigacao,
       competencia: `${String(e.competenciaMes).padStart(2, '0')}/${e.competenciaAno}`,
@@ -473,6 +488,70 @@ export async function listar(
     })),
     total,
   };
+}
+
+// Tarefas agendadas exibidas como linhas na Lista de Entregas (F2 = Obrigacoes e Tarefas).
+// ano=0 ("todos") expande no ano atual + proximo; status calculado pelo prazo (data agendada).
+async function listarTarefasComoLinhas(
+  escritorioId: string,
+  filtros: FiltrosEntrega,
+  hoje: Date,
+  cfg: { diasAntecipado: number },
+  pag: ParsedPagination,
+) {
+  const empOr = empresaOrFromQ(filtros.q);
+  const tarefas = await prisma.empresaTarefaAgendada.findMany({
+    where: {
+      escritorioId,
+      ...(filtros.departamentoId ? { departamentoId: filtros.departamentoId } : {}),
+      empresa: { deletedAt: null, ...(empOr ? { OR: empOr } : {}) },
+    },
+    include: {
+      empresa: { select: { id: true, numero: true, razaoSocial: true, nomeFantasia: true, identificadores: { select: { tipo: true, valor: true } } } },
+    },
+  });
+  const deps = await prisma.departamento.findMany({ where: { escritorioId }, select: { id: true, nome: true, cor: true } });
+  const depMap = new Map(deps.map((d) => [d.id, { nome: d.nome, cor: d.cor }]));
+  const anoAtual = hoje.getFullYear();
+
+  type Row = ReturnType<typeof montar>;
+  function montar(t: (typeof tarefas)[number], ano: number) {
+    const dia = t.dia ?? 1;
+    const mes = t.mes ?? 1;
+    const prazo = new Date(Date.UTC(ano, mes - 1, dia));
+    return {
+      id: `tarefa:${t.id}:${ano}`,
+      ehTarefa: true,
+      empresa: { id: t.empresa.id, numero: t.empresa.numero, razaoSocial: t.empresa.razaoSocial, nomeFantasia: t.empresa.nomeFantasia, cnpjFinal: cnpjFinal(t.empresa.identificadores) },
+      obrigacao: { id: `tarefa:${t.id}`, nome: t.titulo, exigeAnexoNaBaixa: false, departamento: t.departamentoId ? depMap.get(t.departamentoId) ?? null : null },
+      competencia: `${String(mes).padStart(2, '0')}/${ano}`,
+      competenciaAno: ano,
+      competenciaMes: mes,
+      prazoLegal: prazo,
+      prazoTecnico: prazo,
+      status: statusEfetivo('PENDENTE' as StatusEntrega, prazo, prazo, hoje, cfg.diasAntecipado),
+      statusBase: 'PENDENTE' as string,
+      responsavelPrazoId: null as string | null,
+      responsavelEntregaId: null as string | null,
+      dataEntrega: null as Date | null,
+      justificativa: null as string | null,
+      origemBaixa: null as string | null,
+      qtdAnexos: 0,
+      qtdComentarios: 0,
+      qtdEventos: 0,
+      numeroProtocolo: null as string | null,
+    };
+  }
+
+  const rows: Row[] = [];
+  for (const t of tarefas) {
+    const anos = t.ano && t.ano > 0 ? [t.ano] : [anoAtual, anoAtual + 1];
+    for (const ano of anos) rows.push(montar(t, ano));
+  }
+  rows.sort((a, b) => a.prazoLegal.getTime() - b.prazoLegal.getTime());
+  const total = rows.length;
+  const items = rows.slice(pag.skip, pag.skip + pag.take);
+  return { items, total };
 }
 
 // registra um evento no historico da demanda (balaozinho [F2])

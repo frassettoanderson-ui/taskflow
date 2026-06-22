@@ -83,6 +83,7 @@ export default function ListaEntregas() {
   const [comAnexos, setComAnexos] = useState(false);
   // chips de classificacao vindos do Dashboard (filtros forcados removiveis)
   const [chips, setChips] = useState<Record<string, boolean>>({});
+  const [somenteTarefas, setSomenteTarefas] = useState(false); // F2 "Somente Tarefas Agendadas"
   const [flags, setFlags] = useState({ pendentes: true, justificadas: true, entregues: false, dispensadas: false });
   const [mostrarDatas, setMostrarDatas] = useState(false);
   const [mostrarImprimir, setMostrarImprimir] = useState(false);
@@ -128,6 +129,8 @@ export default function ListaEntregas() {
   useEffect(() => {
     const p = searchParams;
     if ([...p.keys()].length === 0) return;
+    if (p.get('q')) setQ(p.get('q')!);
+    if (p.get('tarefas') === '1') setSomenteTarefas(true);
     if (p.get('flags')) {
       const s = new Set(p.get('flags')!.split(','));
       setFlags({ pendentes: s.has('pendentes'), justificadas: s.has('justificadas'), entregues: s.has('entregues'), dispensadas: s.has('dispensadas') });
@@ -158,6 +161,7 @@ export default function ListaEntregas() {
     const statusList = Object.entries(flags).filter(([, v]) => v).flatMap(([k]) => GRUPO_STATUS[k]);
     const qs = new URLSearchParams({ page: String(page), limit: '50', ordem, dir });
     if (q.trim()) qs.set('q', q.trim());
+    if (somenteTarefas) qs.set('somenteTarefas', 'true');
     if (departamentoId) qs.set('departamentoId', departamentoId);
     if (responsavelId) qs.set('responsavelId', responsavelId);
     if (grupoId) qs.set('grupoId', grupoId);
@@ -366,8 +370,11 @@ export default function ListaEntregas() {
       </div>
 
       {/* chips de filtros forcados (vindos do Dashboard) */}
-      {(responsavelId || Object.values(chips).some(Boolean)) && (
+      {(somenteTarefas || responsavelId || Object.values(chips).some(Boolean)) && (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {somenteTarefas && (
+            <ChipFiltro label="Somente Tarefas Agendadas" onRemove={() => { setSomenteTarefas(false); filtrar(); }} />
+          )}
           {responsavelId && (
             <ChipFiltro label={`Resp: ${nomeUsuario.get(responsavelId) ?? '...'}`} onRemove={() => { setResponsavelId(''); filtrar(); }} />
           )}
@@ -463,11 +470,11 @@ export default function ListaEntregas() {
               const aberta = expandida === e.id;
               return (
                 <Fragment key={e.id}>
-                  <tr onClick={() => setExpandida(aberta ? null : e.id)}
-                    className={`cursor-pointer border-b border-slate-100 align-top hover:bg-slate-50 ${aberta ? 'bg-slate-50' : ''} ${sel.has(e.id) ? 'bg-marca-50' : ''}`}>
+                  <tr onClick={() => { if (!e.ehTarefa) setExpandida(aberta ? null : e.id); }}
+                    className={`border-b border-slate-100 align-top hover:bg-slate-50 ${e.ehTarefa ? '' : 'cursor-pointer'} ${aberta ? 'bg-slate-50' : ''} ${sel.has(e.id) ? 'bg-marca-50' : ''}`}>
                     {podeMassa && (
                       <td className="px-2 py-2 align-middle" onClick={(ev) => ev.stopPropagation()}>
-                        <input type="checkbox" checked={sel.has(e.id)} onChange={() => toggleSel(e.id)} className="accent-marca-600" />
+                        {!e.ehTarefa && <input type="checkbox" checked={sel.has(e.id)} onChange={() => toggleSel(e.id)} className="accent-marca-600" />}
                       </td>
                     )}
                     {/* col 1 */}
@@ -502,10 +509,10 @@ export default function ListaEntregas() {
                     {/* col 5 */}
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-2">
-                        {podeDispensar && (
+                        {!e.ehTarefa && podeDispensar && (
                           <button title="Dispensar entrega" onClick={(ev) => { ev.stopPropagation(); dispensar(e); }} className="text-status-danger hover:opacity-70"><XCircle size={20} /></button>
                         )}
-                        {podeBaixar && (
+                        {!e.ehTarefa && podeBaixar && (
                           <button title="Entrega rapida" onClick={(ev) => { ev.stopPropagation(); entregaRapida(e); }} className="text-status-ok hover:opacity-70"><ThumbsUp size={20} /></button>
                         )}
                       </div>

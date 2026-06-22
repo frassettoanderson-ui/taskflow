@@ -804,7 +804,7 @@ function SecTarefas({ empresa, departamentos }: { empresa: EmpresaDetalhe; depar
   const COLS = 'grid items-center gap-1.5 grid-cols-[1.6fr_70px_1.1fr_90px_90px_80px_90px_auto]';
   return (
     <div className="space-y-1">
-      <p className="text-[12px] text-slate-500">[Gerenciar na <button onClick={() => navigate('/entregas')} className="text-marca-600 hover:underline">Lista de Entregas</button>]</p>
+      <p className="text-[12px] text-slate-500">[Gerenciar na <button onClick={() => navigate(`/entregas?q=${empresa.numero ?? ''}&tarefas=1`)} className="text-marca-600 hover:underline">Lista de Entregas</button>]</p>
       {/* cabecalho de colunas */}
       <div className={`${COLS} px-1 text-[12px] font-bold text-slate-600`}>
         <span></span><span></span><span></span><span className="text-center">Dia</span><span className="text-center">Mes</span><span className="text-center">Ano</span><span className="text-center">Lembrar em</span><span></span>

@@ -31,6 +31,7 @@ const listQuery = z.object({
   status: z.string().optional(),
   // tela [F2]
   q: z.string().optional(),
+  somenteTarefas: z.string().optional(),
   grupoId: z.string().optional(),
   passivelMulta: z.string().optional(),
   naoPassivelMulta: z.string().optional(),
@@ -77,6 +78,7 @@ router.get('/', validate({ query: listQuery }), async (req, res) => {
       tagId: q.tagId,
       status: q.status as StatusEntrega | undefined,
       q: q.q,
+      somenteTarefas: q.somenteTarefas === 'true',
       grupoId: q.grupoId,
       passivelMulta: q.passivelMulta === 'true',
       naoPassivelMulta: q.naoPassivelMulta === 'true',

@@ -350,6 +350,7 @@ export const STATUS_INFO: Record<StatusEntrega, { label: string; cor: string }> 
 
 export interface Entrega {
   id: string;
+  ehTarefa?: boolean;
   empresa: { id: string; numero?: number | null; razaoSocial: string; nomeFantasia?: string | null; cnpjFinal?: string | null };
   obrigacao: { id: string; nome: string; exigeAnexoNaBaixa: boolean; departamento: { nome: string; cor: string } | null };
   competencia: string;
