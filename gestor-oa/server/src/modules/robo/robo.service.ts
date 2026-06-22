@@ -58,6 +58,9 @@ async function identificarObrigacao(escritorioId: string, texto: string) {
   const assinaturas = await prisma.assinaturaDocumento.findMany({
     where: { escritorioId, ativo: true },
   });
+  // testa primeiro as assinaturas com MAIS palavras-chave (mais especificas),
+  // assim DAS-MEI (2 palavras) vence o DAS comum (1 palavra) quando ambos casam.
+  assinaturas.sort((a, b) => ((b.palavras as string[])?.length ?? 0) - ((a.palavras as string[])?.length ?? 0));
   for (const a of assinaturas) {
     const palavras = (a.palavras as string[]) ?? [];
     if (palavras.length === 0) continue;
