@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { aplicarRegime } from '../obrigacao/empresaObrigacao.service.js';
 import { prisma } from '../../prisma.js';
 import { Errors } from '../../lib/errors.js';
 import { soDigitos, identificadorValido } from '../../lib/identificadores.js';
@@ -217,7 +218,7 @@ export async function criar(escritorioId: string, input: CriarInput) {
     numero = (ultimo._max.numero ?? 0) + 1;
   }
 
-  return prisma.empresa.create({
+  const nova = await prisma.empresa.create({
     data: {
       escritorioId,
       razaoSocial: input.razaoSocial,
@@ -265,6 +266,11 @@ export async function criar(escritorioId: string, input: CriarInput) {
     },
     include: { identificadores: true, tags: { include: { tag: true } } },
   });
+  // Aplica as obrigacoes do regime escolhido (vinculos de origem REGIME)
+  if (input.regimeTributarioId) {
+    try { await aplicarRegime(escritorioId, nova.id, input.regimeTributarioId); } catch { /* nao bloqueia o cadastro */ }
+  }
+  return nova;
 }
 
 export async function editar(

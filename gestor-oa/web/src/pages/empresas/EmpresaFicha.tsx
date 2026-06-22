@@ -65,6 +65,7 @@ export default function EmpresaFicha() {
   const [cnpjValor, setCnpjValor] = useState('');
   const [mostrarDatas, setMostrarDatas] = useState(false);
   const [infoApelido, setInfoApelido] = useState(false);
+  const [recargaObrig, setRecargaObrig] = useState(0);
   const [form, setForm] = useState({
     razaoSocial: '', nomeFantasia: '', apelidoEcontinuo: '', grupoEmpresaId: '',
     honorario: '', regimeTributarioId: '', ativo: true,
@@ -112,6 +113,18 @@ export default function EmpresaFicha() {
     setAbertas((s) => { const n: Set<SecaoKey> = s.size >= SECOES.length ? new Set() : new Set(SECOES.map((x) => x.key)); persist(n); return n; });
   }
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) { setForm((f) => ({ ...f, [k]: v })); }
+
+  // Trocar regime: aplica as obrigacoes do regime na hora (vinculos REGIME) e recarrega a secao Obrigacoes
+  async function trocarRegime(regimeId: string) {
+    set('regimeTributarioId', regimeId);
+    if (!empresa) return;
+    try {
+      await api.put(`/empresa-obrigacoes/empresa/${empresa.id}/regime`, { regimeId: regimeId || null });
+      setRecargaObrig((n) => n + 1);
+      setAbertas((s) => new Set(s).add('obrigacoes'));
+      toast('ok', regimeId ? 'Regime aplicado - obrigacoes vinculadas.' : 'Obrigacoes do regime removidas.');
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao aplicar regime.'); }
+  }
 
   const isoOuNull = (d: string) => (d ? new Date(d + 'T00:00:00').toISOString() : null);
 
@@ -196,7 +209,7 @@ export default function EmpresaFicha() {
             <button title="Cadastro de regimes" onClick={() => navigate('/obrigacoes/regimes')} className="text-marca-500 hover:text-marca-700"><Pencil size={13} /></button>
             {podeExcluir && <button title={`Deletar empresa ID [${empresa.numero ?? '-'}]`} onClick={excluir} className="ml-auto text-status-danger hover:text-red-700"><Trash2 size={14} /></button>}
           </div>
-          <select className={INP} value={form.regimeTributarioId} disabled={!podeEditar} onChange={(e) => set('regimeTributarioId', e.target.value)}>
+          <select className={INP} value={form.regimeTributarioId} disabled={!podeEditar} onChange={(e) => trocarRegime(e.target.value)}>
             <option value="">— Selecione —</option>
             {regimes.map((r) => <option key={r.id} value={r.id}>{r.nome}</option>)}
           </select>
@@ -284,7 +297,7 @@ export default function EmpresaFicha() {
               podeEditar={podeEditar}
               tags={tags} tagIds={tagIds} setTagIds={setTagIds}
               departamentos={departamentos} usuarios={usuarios}
-              onMudou={recarregar}
+              onMudou={recarregar} recargaObrig={recargaObrig}
             />
           </SecaoBox>
         ))}
@@ -343,15 +356,15 @@ function SecaoBox({ titulo, onFechar, children }: { titulo: string; onFechar: ()
 function SecaoConteudo(props: {
   secao: SecaoKey; empresa: EmpresaDetalhe; podeEditar: boolean;
   tags: Tag[]; tagIds: string[]; setTagIds: React.Dispatch<React.SetStateAction<string[]>>;
-  departamentos: Departamento[]; usuarios: UsuarioBasico[]; onMudou: () => void;
+  departamentos: Departamento[]; usuarios: UsuarioBasico[]; onMudou: () => void; recargaObrig: number;
 }) {
-  const { secao, empresa, podeEditar, tags, tagIds, setTagIds, departamentos, usuarios, onMudou } = props;
+  const { secao, empresa, podeEditar, tags, tagIds, setTagIds, departamentos, usuarios, onMudou, recargaObrig } = props;
   switch (secao) {
     case 'endereco': return <SecEndereco empresa={empresa} podeEditar={podeEditar} onMudou={onMudou} />;
     case 'comentarios': return <SecComentarios empresa={empresa} departamentos={departamentos} onMudou={onMudou} />;
     case 'tags': return <SecTags tags={tags} tagIds={tagIds} setTagIds={setTagIds} />;
     case 'contatos': return <SecContatos empresa={empresa} podeEditar={podeEditar} onMudou={onMudou} />;
-    case 'obrigacoes': return <SecObrigacoes empresaId={empresa.id} empresaNumero={empresa.numero} />;
+    case 'obrigacoes': return <SecObrigacoes key={recargaObrig} empresaId={empresa.id} empresaNumero={empresa.numero} />;
     case 'tarefas': return <SecTarefas empresa={empresa} departamentos={departamentos} />;
     case 'responsaveis': return <SecResponsaveis empresa={empresa} departamentos={departamentos} usuarios={usuarios} podeEditar={podeEditar} onMudou={onMudou} />;
     case 'anexos': return <SecAnexos empresa={empresa} departamentos={departamentos} onMudou={onMudou} />;
