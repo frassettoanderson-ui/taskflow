@@ -55,6 +55,21 @@ function msgBox(texto) {
     execFileSync('powershell', ['-NoProfile', '-STA', '-Command', `Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show(${JSON.stringify(texto)}, 'GestorOA e-Continuo', 0, 64, 0, 4096) | Out-Null`], { windowsHide: true });
   } catch { /* ignore */ }
 }
+// Seletor de pasta nativo do Windows (sempre em primeiro plano).
+function folderBox() {
+  const ps = [
+    'Add-Type -AssemblyName System.Windows.Forms;',
+    '$o=New-Object System.Windows.Forms.Form;$o.TopMost=$true;$o.ShowInTaskbar=$false;$o.Opacity=0;$o.Show();$o.Activate();',
+    '$d=New-Object System.Windows.Forms.FolderBrowserDialog;',
+    "$d.Description='Selecione ou crie a pasta que sera vigiada. Os PDFs colocados nela sobem sozinhos para o GestorOA.';",
+    '$d.ShowNewFolderButton=$true;',
+    'if($d.ShowDialog($o) -eq [System.Windows.Forms.DialogResult]::OK){[Console]::Out.Write($d.SelectedPath)};',
+    '$o.Close();',
+  ].join('');
+  try {
+    return execFileSync('powershell', ['-NoProfile', '-STA', '-Command', ps], { encoding: 'utf8', windowsHide: true });
+  } catch { return null; }
+}
 
 // fallback p/ terminal quando GUI nao disponivel (dev)
 function perguntaConsole(texto, padrao) {
@@ -65,28 +80,29 @@ function perguntaConsole(texto, padrao) {
 }
 
 async function assistente() {
-  let apiUrl = API_URL_PADRAO, apiKey = '', setor = 'Geral';
-  const guiKey = inputBox('Cole a API key (Sistema > e-Continuo > Caixa do Robo > Integracao):', '');
+  let apiUrl = API_URL_PADRAO, apiKey = '', pasta = '';
+  const guiKey = inputBox('Bem-vindo ao agente e-Continuo do GestorOA.\n\nCole abaixo a CHAVE API do seu escritorio.\nPara obter: no GestorOA acesse Sistema > e-Continuo > Caixa do Robo > secao Integracao (API) > botao Gerar.', '');
   if (guiKey !== null) {
     apiKey = (guiKey || '').trim();
     if (apiKey) {
-      const s = inputBox('Nome do setor/departamento (ex.: Fiscal):', 'Geral');
-      setor = (s || 'Geral').trim() || 'Geral';
+      // Passo 2: a pessoa escolhe (ou cria) a pasta que sera vigiada.
+      const p = folderBox();
+      pasta = (p || '').trim();
     }
   } else {
     // sem GUI -> terminal
     apiUrl = (await perguntaConsole('Endereco do sistema', API_URL_PADRAO)) || API_URL_PADRAO;
     while (!apiKey) apiKey = await perguntaConsole('Cole a API key');
-    setor = (await perguntaConsole('Nome do setor/departamento', 'Geral')) || 'Geral';
+    pasta = (await perguntaConsole('Pasta a vigiar', path.join(desktopDir(), 'GestorOA - guias')));
   }
-  if (!apiKey) { msgBox('API key nao informada. Abra o programa novamente para configurar.'); process.exit(1); }
-
-  const pasta = path.join(desktopDir(), `GestorOA - ${setor}`);
+  if (!apiKey) { msgBox('Chave API nao informada. Abra o programa novamente para configurar.'); process.exit(1); }
+  if (!pasta) pasta = path.join(desktopDir(), 'GestorOA - guias'); // se nao escolheu, cria uma padrao
   fs.mkdirSync(pasta, { recursive: true });
+  const setor = path.basename(pasta);
   const cfg = { apiUrl, apiKey, pasta, setor };
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
   registrarInicioAutomatico();
-  msgBox(`Tudo pronto!\n\nFoi criada a pasta na Area de Trabalho:\n"${pasta}"\n\nArraste os documentos (PDF) para essa pasta - eles sobem sozinhos.\nO agente vai rodar em segundo plano e iniciar junto com o Windows.`);
+  msgBox(`Tudo pronto!\n\nPasta vigiada:\n${pasta}\n\nArraste os documentos (PDF) para essa pasta - eles sobem sozinhos.\nO agente vai rodar em segundo plano e iniciar junto com o Windows.`);
   return cfg;
 }
 

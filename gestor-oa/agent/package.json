@@ -1,12 +1,12 @@
 {
   "name": "gestoroa-agente",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Agente e-Continuo do GestorOA - instalador + agente que vigia uma pasta e envia os PDFs novos.",
   "bin": "agent.cjs",
   "scripts": {
     "start": "node agent.cjs",
-    "build:exe": "pkg agent.cjs --targets node18-win-x64 --output dist/gestoroa-agente.exe"
+    "build:exe": "pkg agent.cjs --targets node18-win-x64 --output dist/gestoroa-agente.exe && node scripts/no-console.cjs dist/gestoroa-agente.exe"
   },
   "dependencies": {
     "chokidar": "^3.6.0"
