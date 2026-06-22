@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2, SlidersHorizontal, X, SearchX, CalendarDays, SquarePen,
-  Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save, History,
+  Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save, History, Clock,
 } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
@@ -84,6 +84,10 @@ export default function ListaEntregas() {
   // chips de classificacao vindos do Dashboard (filtros forcados removiveis)
   const [chips, setChips] = useState<Record<string, boolean>>({});
   const [somenteTarefas, setSomenteTarefas] = useState(false); // F2 "Somente Tarefas Agendadas"
+  const [comboTxt, setComboTxt] = useState(''); // +Filtros (combo chip)
+  const [comboAberto, setComboAberto] = useState(false);
+  const [tempoModal, setTempoModal] = useState<Entrega | null>(null); // relogio: tempo previsto
+  const [novoTempo, setNovoTempo] = useState('0');
   const [flags, setFlags] = useState({ pendentes: true, justificadas: true, entregues: false, dispensadas: false });
   const [mostrarDatas, setMostrarDatas] = useState(false);
   const [mostrarImprimir, setMostrarImprimir] = useState(false);
@@ -188,6 +192,15 @@ export default function ListaEntregas() {
   useEffect(carregar, [tick, page, ordem, dir]);
 
   function filtrar() { setExpandida(null); setSel(new Set()); page === 1 ? setTick((t) => t + 1) : setPage(1); }
+
+  async function salvarTempo() {
+    if (!tempoModal) return;
+    try {
+      await api.put(`/empresa-obrigacoes/empresa/${tempoModal.empresa.id}/obrigacao/${tempoModal.obrigacao.id}/tempo`, { tempo: Math.max(0, parseInt(novoTempo, 10) || 0) });
+      toast('ok', 'Tempo previsto atualizado.');
+      setTempoModal(null);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
 
   const items = pagina?.items ?? [];
   const nomeUsuario = useMemo(() => new Map(usuarios.map((u) => [u.id, u.nome])), [usuarios]);
@@ -323,40 +336,41 @@ export default function ListaEntregas() {
           </div>
         )}
 
-        {/* +Filtros: chip por departamento + grupo/obrigacao/multa/anexos */}
+        {/* +Filtros: combo com chips (departamento / grupo / obrigacao / outros) */}
         {mostrarFiltros && (
-          <div className="mt-2 border-t border-slate-100 pt-2">
-            <div className="mb-1 text-[11px] font-semibold uppercase text-slate-400">Filtrar por departamento</div>
-            <div className="flex flex-wrap gap-1.5">
-              <Chip ativo={departamentoId === ''} onClick={() => setDepartamentoId('')}>Todos</Chip>
-              {departamentos.map((dp) => (
-                <Chip key={dp.id} ativo={departamentoId === dp.id} cor={dp.cor} onClick={() => setDepartamentoId(dp.id)}>
-                  Dpto: {dp.nome}
-                </Chip>
-              ))}
+          <div className="relative mt-2 border-t border-slate-100 pt-2">
+            <div className="flex flex-wrap items-center gap-1.5 rounded border border-slate-300 bg-white px-2 py-1.5">
+              {departamentoId && <ChipFiltro label={`Dpto: ${departamentos.find((d) => d.id === departamentoId)?.nome ?? ''}`} onRemove={() => setDepartamentoId('')} />}
+              {grupoId && <ChipFiltro label={`Grupo: ${grupos.find((g) => g.id === grupoId)?.nome ?? ''}`} onRemove={() => setGrupoId('')} />}
+              {obrigacaoId && <ChipFiltro label={`Obrig: ${obrigacoes.find((o) => o.id === obrigacaoId)?.nome ?? ''}`} onRemove={() => setObrigacaoId('')} />}
+              {passivelMulta && <ChipFiltro label="Passiveis de multa" onRemove={() => setPassivelMulta(false)} />}
+              {comAnexos && <ChipFiltro label="Com anexos/documentos" onRemove={() => setComAnexos(false)} />}
+              <input className="min-w-[140px] flex-1 text-[13px] outline-none" placeholder="Filtros..." value={comboTxt}
+                onChange={(e) => { setComboTxt(e.target.value); setComboAberto(true); }} onFocus={() => setComboAberto(true)} onBlur={() => setTimeout(() => setComboAberto(false), 150)} />
             </div>
-            <div className="mt-2 flex flex-wrap items-end gap-3">
-              <div>
-                <div className="mb-0.5 text-[11px] uppercase text-slate-400">Grupo de empresas</div>
-                <select className={`${INP} w-48`} value={grupoId} onChange={(e) => setGrupoId(e.target.value)}>
-                  <option value="">Todos</option>
-                  {grupos.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
-                </select>
-              </div>
-              <div>
-                <div className="mb-0.5 text-[11px] uppercase text-slate-400">Obrigacao especifica</div>
-                <select className={`${INP} w-56`} value={obrigacaoId} onChange={(e) => setObrigacaoId(e.target.value)}>
-                  <option value="">Todas</option>
-                  {obrigacoes.map((o) => <option key={o.id} value={o.id}>{o.nome}</option>)}
-                </select>
-              </div>
-              <label className="flex cursor-pointer items-center gap-1.5 pb-1.5 text-[12px] text-slate-600">
-                <input type="checkbox" checked={passivelMulta} onChange={(e) => setPassivelMulta(e.target.checked)} className="accent-marca-600" /> Passiveis de multa
-              </label>
-              <label className="flex cursor-pointer items-center gap-1.5 pb-1.5 text-[12px] text-slate-600">
-                <input type="checkbox" checked={comAnexos} onChange={(e) => setComAnexos(e.target.checked)} className="accent-marca-600" /> Com anexos/documentos
-              </label>
-            </div>
+            {comboAberto && (() => {
+              const tq = comboTxt.trim().toLowerCase();
+              const od = departamentos.filter((d) => d.id !== departamentoId && d.nome.toLowerCase().includes(tq));
+              const og = grupos.filter((g) => g.id !== grupoId && g.nome.toLowerCase().includes(tq));
+              const oo = obrigacoes.filter((o) => o.id !== obrigacaoId && o.nome.toLowerCase().includes(tq));
+              const outros = ([['pmulta', 'Passiveis de multa', passivelMulta], ['anexos', 'Com anexos/documentos', comAnexos]] as const).filter(([, label, on]) => !on && label.toLowerCase().includes(tq));
+              const vazio = od.length + og.length + oo.length + outros.length === 0;
+              const ITEM = 'block w-full px-3 py-1.5 text-left text-[13px] hover:bg-marca-50';
+              const HDR = 'px-3 py-1 text-[11px] font-semibold text-slate-400';
+              return (
+                <div className="absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded border border-slate-200 bg-white shadow-lg">
+                  {od.length > 0 && <div className={HDR}>Filtrar por departamento</div>}
+                  {od.map((d) => <button key={d.id} onMouseDown={() => { setDepartamentoId(d.id); setComboTxt(''); setComboAberto(false); }} className={ITEM}>Dpto: {d.nome}</button>)}
+                  {og.length > 0 && <div className={HDR}>Filtrar por grupo de empresas</div>}
+                  {og.map((g) => <button key={g.id} onMouseDown={() => { setGrupoId(g.id); setComboTxt(''); setComboAberto(false); }} className={ITEM}>Grupo: {g.nome}</button>)}
+                  {oo.length > 0 && <div className={HDR}>Filtrar por obrigacao</div>}
+                  {oo.map((o) => <button key={o.id} onMouseDown={() => { setObrigacaoId(o.id); setComboTxt(''); setComboAberto(false); }} className={ITEM}>Obrig: {o.nome}</button>)}
+                  {outros.length > 0 && <div className={HDR}>Outros filtros</div>}
+                  {outros.map(([k, label]) => <button key={k} onMouseDown={() => { if (k === 'pmulta') setPassivelMulta(true); else setComAnexos(true); setComboTxt(''); setComboAberto(false); }} className={ITEM}>{label}</button>)}
+                  {vazio && <div className="px-3 py-2 text-[12px] text-slate-400">Nenhum filtro encontrado.</div>}
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -493,6 +507,9 @@ export default function ListaEntregas() {
                     </td>
                     {/* col 2 */}
                     <td className="px-3 py-2">
+                      {!e.ehTarefa && (
+                        <button title="Tempo previsto para execucao (em minutos) - Clique para alterar" onClick={(ev) => { ev.stopPropagation(); setNovoTempo('0'); setTempoModal(e); }} className="mr-1 align-middle text-slate-400 hover:text-marca-600"><Clock size={14} /></button>
+                      )}
                       <span className="inline-block rounded px-1.5 py-0.5 text-[12px] font-medium" style={{ background: COR[e.status] + '22', color: COR[e.status] }}>
                         {dataCurta(e.prazoTecnico)} {ROTULO[e.status]}
                       </span>
@@ -550,6 +567,20 @@ export default function ListaEntregas() {
       <div className="mt-3 text-center text-[11px] text-slate-400">
         <Link to="/entregas/calendario" className="text-marca-600 hover:underline">Ver calendario</Link>
       </div>
+
+      {/* Modal: tempo previsto de execucao (relogio da coluna Prazo) */}
+      {tempoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setTempoModal(null)}>
+          <div className="w-72 rounded-lg bg-white p-5 text-center shadow-xl" onClick={(ev) => ev.stopPropagation()}>
+            <p className="mb-3 text-[15px] font-medium text-slate-700">Informe o novo tempo de execucao</p>
+            <input type="number" min={0} value={novoTempo} autoFocus onChange={(e) => setNovoTempo(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && salvarTempo()} className="mb-4 w-full rounded border border-slate-300 px-3 py-2 text-center text-[14px] outline-none focus:border-marca-400" />
+            <div className="flex justify-center gap-2">
+              <button onClick={salvarTempo} className="rounded bg-marca-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-marca-600">Alterar tempo</button>
+              <button onClick={() => setTempoModal(null)} className="rounded bg-status-danger px-4 py-1.5 text-sm font-medium text-white hover:bg-red-600">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -567,16 +598,6 @@ function BotaoExport({ cor, onClick, children }: { cor: string; onClick: () => v
   return (
     <button onClick={onClick} className={`flex items-center justify-center gap-2 rounded px-3 py-2 text-[13px] font-medium text-white ${cor}`}>
       <Printer size={15} /> {children}
-    </button>
-  );
-}
-
-function Chip({ ativo, cor, onClick, children }: { ativo: boolean; cor?: string; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] ${ativo ? 'border-marca-400 bg-marca-50 text-marca-700' : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50'}`}>
-      {cor && <span className="h-2 w-2 rounded-full" style={{ background: cor }} />}
-      {children}
     </button>
   );
 }

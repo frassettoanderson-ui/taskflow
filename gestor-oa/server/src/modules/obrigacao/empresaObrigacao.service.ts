@@ -255,6 +255,14 @@ export async function alocarEmMassa(
   return { afetadas };
 }
 
+// Define o tempo previsto (min) de uma obrigacao da empresa pelo par (empresa, obrigacao).
+// Usado pelo relogio da Lista de Entregas.
+export async function definirTempo(escritorioId: string, empresaId: string, obrigacaoId: string, tempo: number) {
+  const eo = await prisma.empresaObrigacao.findFirst({ where: { empresaId, obrigacaoId, escritorioId } });
+  if (!eo) throw Errors.naoEncontrado('Vinculo');
+  return prisma.empresaObrigacao.update({ where: { id: eo.id }, data: { tempoPrevistoOverride: tempo } });
+}
+
 // ---------- Painel da empresa (contadores por setor/obrigacao) ----------
 // 4 buckets, iguais aos filtros de clique do F2 (count == resultado do clique):
 //   verde   = ENTREGUE com dataEntrega nos ultimos 30 dias

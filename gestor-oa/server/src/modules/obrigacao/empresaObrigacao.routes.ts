@@ -22,6 +22,17 @@ router.get('/empresa/:empresaId/painel', async (req, res) => {
   return ok(res, r);
 });
 
+// Define tempo previsto (min) de uma obrigacao da empresa (relogio do F2)
+router.put(
+  '/empresa/:empresaId/obrigacao/:obrigacaoId/tempo',
+  gerenciar,
+  validate({ body: z.object({ tempo: z.number().int().min(0) }) }),
+  async (req, res) => {
+    const r = await svc.definirTempo(req.auth!.escritorioId, req.params.empresaId, req.params.obrigacaoId, req.body.tempo);
+    return ok(res, r);
+  },
+);
+
 // Aplicar/trocar regime (substitui origens REGIME)
 router.put(
   '/empresa/:empresaId/regime',
