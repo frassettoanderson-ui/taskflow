@@ -98,6 +98,9 @@ export default function Assinaturas() {
         </div>
         <div className="flex items-center px-1 py-2 text-[13px] text-marca-600">Listando {filtrados.length} registro(s)</div>
         <button onClick={() => setAberto(false)} className="flex items-center gap-2 rounded bg-status-ok px-6 py-2 text-sm font-medium text-white hover:bg-emerald-600"><Search size={15} /> Filtrar</button>
+        {podeGerenciar && (
+          <button onClick={() => navigate('/robo/assinaturas/novo')} className="flex items-center gap-2 rounded bg-marca-500 px-6 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={16} /> Novo</button>
+        )}
       </div>
 
       {/* Tabela */}
@@ -143,13 +146,6 @@ export default function Assinaturas() {
         <span>Office: {office || '—'}</span>
       </div>
 
-      {/* FAB novo */}
-      {podeGerenciar && (
-        <button onClick={() => navigate('/robo/assinaturas/novo')} title="Nova entrega automatizada"
-          className="fixed bottom-6 right-6 flex h-12 w-12 items-center justify-center rounded-full bg-marca-500 text-white shadow-lg hover:bg-marca-600">
-          <Plus size={22} />
-        </button>
-      )}
     </div>
   );
 }
