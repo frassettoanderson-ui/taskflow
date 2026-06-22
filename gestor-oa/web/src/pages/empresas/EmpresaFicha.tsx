@@ -868,7 +868,7 @@ function RespLinha({ dep, usuarios, valor, podeEditar, onSalvar }: { dep: Depart
   return (
     <div className="grid grid-cols-[1fr_1.4fr] items-center gap-3 border-b border-slate-100 py-1.5">
       <span className="flex items-center gap-2 text-[13px] text-slate-700">
-        <span className="inline-block h-2 w-2 rounded-full" style={{ background: dep.cor }} />{dep.nome}
+        {dep.nome}
         <span className="ml-auto pr-2 text-marca-400" title="Replicar">&raquo;&raquo;&raquo;</span>
       </span>
       <div className="flex items-center gap-1.5">
