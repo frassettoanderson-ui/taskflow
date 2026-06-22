@@ -3,13 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heart, Search, Save, RotateCcw, Lock, Unlock, Pencil, Trash2, Eye, EyeOff, RefreshCw, Info, CalendarDays, ChevronDown,
   MapPin, MessageCircle, Tag as TagIcon, CheckSquare, Users, List, LayoutTemplate, CheckCircle2,
-  MessagesSquare, Network, Paperclip, Plus, Smartphone, History,
+  MessagesSquare, Network, Paperclip, Plus, Smartphone, History, Mail,
 } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
 import type {
-  EmpresaDetalhe, Tag, Departamento, UsuarioBasico, GrupoEmpresa, TarefaAgendada, Regime,
+  EmpresaDetalhe, Tag, Departamento, UsuarioBasico, GrupoEmpresa, TarefaAgendada, Regime, Contato,
 } from '../../lib/tipos';
 import { formatarIdent, formatarBytes, LABEL_TIPO_IDENT } from '../../lib/tipos';
 import AbaObrigacoes from './AbaObrigacoes';
@@ -535,49 +535,171 @@ function SecTags({ tags, tagIds, setTagIds }: { tags: Tag[]; tagIds: string[]; s
   );
 }
 
-// 5 - Contatos (tabela inline)
+// 5 - Contatos (tabela inline com paineis: departamentos / acesso ao app)
+const ICO_CT = 'grid h-9 w-10 shrink-0 place-items-center rounded text-white';
+interface ObrigacaoBasica { id: string; nome: string }
+
 function SecContatos({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe; podeEditar: boolean; onMudou: () => void }) {
   const toast = useToast();
-  const [novo, setNovo] = useState({ nome: '', cargo: '', whatsapp: '', email: '' });
+  const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
+  const [obrigacoes, setObrigacoes] = useState<ObrigacaoBasica[]>([]);
+  useEffect(() => {
+    api.get<Departamento[]>('/departamentos').then(setDepartamentos).catch(() => undefined);
+    api.get<ObrigacaoBasica[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
+  }, []);
+
+  // novo contato
+  const [painelNovo, setPainelNovo] = useState<'none' | 'dep' | 'app'>('none');
+  const [novo, setNovo] = useState({ nome: '', cargo: '', whatsapp: '', email: '', depIds: [] as string[], obrIds: [] as string[], appAtivo: false, senha: '' });
+  useEffect(() => { if (departamentos.length && novo.depIds.length === 0) setNovo((n) => ({ ...n, depIds: departamentos.map((d) => d.id) })); }, [departamentos]);
+
   async function adicionar() {
     if (!novo.nome.trim()) return toast('erro', 'Informe o nome.');
-    try { await api.post(`/empresas/${empresa.id}/contatos`, { ...novo, email: novo.email || null }); setNovo({ nome: '', cargo: '', whatsapp: '', email: '' }); toast('ok', 'Contato adicionado.'); onMudou(); }
-    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    try {
+      await api.post(`/empresas/${empresa.id}/contatos`, { nome: novo.nome, cargo: novo.cargo, whatsapp: novo.whatsapp, email: novo.email || null, departamentoIds: novo.depIds, obrigacaoIds: novo.obrIds });
+      setNovo({ nome: '', cargo: '', whatsapp: '', email: '', depIds: departamentos.map((d) => d.id), obrIds: [], appAtivo: false, senha: '' });
+      setPainelNovo('none'); toast('ok', 'Contato adicionado.'); onMudou();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
-  async function remover(cid: string) {
-    if (!confirm('Remover este contato?')) return;
-    try { await api.del(`/empresas/${empresa.id}/contatos/${cid}`); onMudou(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
-  }
-  const ICO = 'grid h-9 w-10 place-items-center rounded text-white';
+
   return (
     <div className="space-y-1.5">
+      {/* Linha de novo contato */}
       {podeEditar && (
-        <div className="flex flex-wrap items-center gap-1.5">
-          <input className={`${INP} min-w-[160px] flex-1`} placeholder="Nome" value={novo.nome} onChange={(e) => setNovo((n) => ({ ...n, nome: e.target.value }))} />
-          <input className={`${INP} min-w-[120px] flex-1`} placeholder="Cargo" value={novo.cargo} onChange={(e) => setNovo((n) => ({ ...n, cargo: e.target.value }))} />
-          <input className={`${INP} min-w-[120px] flex-1`} placeholder="Celular" value={novo.whatsapp} onChange={(e) => setNovo((n) => ({ ...n, whatsapp: e.target.value }))} />
-          <input className={`${INP} min-w-[160px] flex-1`} placeholder="E-Mail" value={novo.email} onChange={(e) => setNovo((n) => ({ ...n, email: e.target.value }))} />
-          <button className={`${ICO} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
-          <button className={`${ICO} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
-          <button onClick={adicionar} className="flex items-center gap-2 rounded bg-marca-500 px-4 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={15} /> Adicionar</button>
-        </div>
+        <>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <input className={`${INP} min-w-[160px] flex-1`} placeholder="Nome" value={novo.nome} onChange={(e) => setNovo((n) => ({ ...n, nome: e.target.value }))} />
+            <input className={`${INP} min-w-[120px] flex-1`} placeholder="Cargo" value={novo.cargo} onChange={(e) => setNovo((n) => ({ ...n, cargo: e.target.value }))} />
+            <input className={`${INP} min-w-[120px] flex-1`} placeholder="Celular" value={novo.whatsapp} onChange={(e) => setNovo((n) => ({ ...n, whatsapp: e.target.value }))} />
+            <input className={`${INP} min-w-[160px] flex-1`} placeholder="E-Mail" value={novo.email} onChange={(e) => setNovo((n) => ({ ...n, email: e.target.value }))} />
+            <button onClick={() => setPainelNovo((p) => (p === 'dep' ? 'none' : 'dep'))} className={`${ICO_CT} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
+            <button onClick={() => setPainelNovo((p) => (p === 'app' ? 'none' : 'app'))} className={`${ICO_CT} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
+            <button onClick={adicionar} className="flex items-center gap-2 rounded bg-marca-500 px-4 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={15} /> Adicionar</button>
+          </div>
+          {painelNovo === 'dep' && <PainelDepartamentos novo departamentos={departamentos} obrigacoes={obrigacoes} depIds={novo.depIds} setDepIds={(f) => setNovo((n) => ({ ...n, depIds: f(n.depIds) }))} obrIds={novo.obrIds} setObrIds={(f) => setNovo((n) => ({ ...n, obrIds: f(n.obrIds) }))} />}
+          {painelNovo === 'app' && <PainelApp appAtivo={novo.appAtivo} setAppAtivo={(v) => setNovo((n) => ({ ...n, appAtivo: v }))} senha={novo.senha} setSenha={(v) => setNovo((n) => ({ ...n, senha: v }))} />}
+        </>
       )}
+      {/* Contatos existentes */}
       {empresa.contatos.map((c) => (
-        <div key={c.id} className="flex flex-wrap items-center gap-1.5">
-          <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{c.nome}</div>
-          <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{c.cargo ?? ''}</div>
-          <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{c.whatsapp ?? ''}</div>
-          <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{c.email ?? ''}</div>
-          <button className={`${ICO} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
-          <button className={`${ICO} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
-          {podeEditar && <>
-            <button className={`${ICO} bg-status-warn hover:bg-amber-500`} title="Editar"><Pencil size={15} /></button>
-            <button className={`${ICO} bg-slate-400 hover:bg-slate-500`} title="Log's de alteracao do contato"><History size={15} /></button>
-            <button onClick={() => remover(c.id)} className={`${ICO} bg-status-danger hover:bg-red-600`} title="Remover"><Trash2 size={15} /></button>
-          </>}
-        </div>
+        <ContatoLinha key={c.id} empresaId={empresa.id} contato={c} departamentos={departamentos} obrigacoes={obrigacoes} podeEditar={podeEditar} onMudou={onMudou} />
       ))}
       {empresa.contatos.length === 0 && <p className="text-[12px] text-slate-400">Nenhum contato.</p>}
+    </div>
+  );
+}
+
+function ContatoLinha({ empresaId, contato, departamentos, obrigacoes, podeEditar, onMudou }: { empresaId: string; contato: Contato; departamentos: Departamento[]; obrigacoes: ObrigacaoBasica[]; podeEditar: boolean; onMudou: () => void }) {
+  const toast = useToast();
+  const [painel, setPainel] = useState<'none' | 'dep' | 'app'>('none');
+  const [depIds, setDepIds] = useState<string[]>(contato.departamentoIds);
+  const [obrIds, setObrIds] = useState<string[]>(contato.obrigacaoIds);
+  const [appAtivo, setAppAtivo] = useState(contato.ativo);
+  const [senha, setSenha] = useState('');
+
+  async function salvarDeps(novDep: string[], novObr: string[]) {
+    try { await api.put(`/empresas/${empresaId}/contatos/${contato.id}`, { nome: contato.nome, email: contato.email, whatsapp: contato.whatsapp, cargo: contato.cargo, departamentoIds: novDep, obrigacaoIds: novObr }); onMudou(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  async function remover() { if (!confirm('Remover este contato?')) return; try { await api.del(`/empresas/${empresaId}/contatos/${contato.id}`); onMudou(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); } }
+  async function ativarAcesso() {
+    try { const r = await api.post<{ email: string; senha: string }>(`/empresas/${empresaId}/contatos/${contato.id}/ativar-acesso`, {}); toast('ok', `Acesso ativado. Login: ${r.email} / senha: ${r.senha}`); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+
+  return (
+    <>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{contato.nome}</div>
+        <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{contato.cargo ?? ''}</div>
+        <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{contato.whatsapp ?? ''}</div>
+        <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{contato.email ?? ''}</div>
+        <button onClick={() => setPainel((p) => (p === 'dep' ? 'none' : 'dep'))} className={`${ICO_CT} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
+        <button onClick={() => setPainel((p) => (p === 'app' ? 'none' : 'app'))} className={`${ICO_CT} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
+        {podeEditar && <>
+          <button className={`${ICO_CT} bg-status-warn hover:bg-amber-500`} title="Editar"><Pencil size={15} /></button>
+          <button className={`${ICO_CT} bg-slate-400 hover:bg-slate-500`} title="Log's de alteracao do contato"><History size={15} /></button>
+          <button onClick={remover} className={`${ICO_CT} bg-status-danger hover:bg-red-600`} title="Remover"><Trash2 size={15} /></button>
+        </>}
+      </div>
+      {painel === 'dep' && <PainelDepartamentos existente departamentos={departamentos} obrigacoes={obrigacoes}
+        depIds={depIds} setDepIds={(f) => { setDepIds((cur) => { const nv = f(cur); salvarDeps(nv, obrIds); return nv; }); }}
+        obrIds={obrIds} setObrIds={(f) => { setObrIds((cur) => { const nv = f(cur); salvarDeps(depIds, nv); return nv; }); }} />}
+      {painel === 'app' && <PainelApp existente appAtivo={appAtivo} setAppAtivo={(v) => { setAppAtivo(v); if (v) ativarAcesso(); }} senha={senha} setSenha={setSenha} ultimoAcesso={null} />}
+    </>
+  );
+}
+
+// Painel roxo: departamentos permitidos + obrigacoes especificas
+function PainelDepartamentos({ existente, departamentos, obrigacoes, depIds, setDepIds, obrIds, setObrIds }: {
+  existente?: boolean; novo?: boolean; departamentos: Departamento[]; obrigacoes: ObrigacaoBasica[];
+  depIds: string[]; setDepIds: (f: (cur: string[]) => string[]) => void;
+  obrIds: string[]; setObrIds: (f: (cur: string[]) => string[]) => void;
+}) {
+  const [obrTxt, setObrTxt] = useState('');
+  const [obrAberto, setObrAberto] = useState(false);
+  const dispObr = obrigacoes.filter((o) => !obrIds.includes(o.id) && o.nome.toLowerCase().includes(obrTxt.trim().toLowerCase()));
+  return (
+    <div className="grid grid-cols-1 gap-3 py-2 md:grid-cols-[1fr_1.2fr]">
+      <div>
+        <div className="mb-1 flex items-center gap-2 text-[13px] text-slate-700">
+          <span>&#8618; Departamentos permitidos</span>
+          <button title="Marcar todos" onClick={() => setDepIds(() => departamentos.map((d) => d.id))} className="grid h-4 w-4 place-items-center rounded border border-status-ok text-[10px] text-status-ok">✓</button>
+          <button title="Desmarcar todos" onClick={() => setDepIds(() => [])} className="grid h-4 w-4 place-items-center rounded border border-status-danger text-[10px] text-status-danger">×</button>:
+        </div>
+        <div className="space-y-0.5">
+          {departamentos.map((d) => (
+            <label key={d.id} className="flex items-center gap-2 text-[13px] text-slate-700"><input type="checkbox" checked={depIds.includes(d.id)} onChange={(e) => setDepIds((cur) => (e.target.checked ? [...cur, d.id] : cur.filter((x) => x !== d.id)))} />{d.nome}</label>
+          ))}
+        </div>
+        <label className="mt-2 flex items-center gap-2 text-[13px] text-slate-700"><input type="checkbox" defaultChecked />Recebe e-mails ref. documentos postados</label>
+        {existente && <button className="mt-1 flex items-center gap-1 text-[13px] font-medium text-slate-700"><Mail size={14} /> Checar block-list <Mail size={14} /></button>}
+        {!existente && <label className="mt-2 flex items-center gap-2 text-[12px] text-status-danger"><input type="checkbox" />Trazer novos cadastros de contatos sempre com TODOS os departamentos selecionados</label>}
+      </div>
+      <div className="relative">
+        <div className="flex flex-wrap items-center gap-1.5 rounded border border-slate-300 bg-white px-2 py-1.5">
+          {obrIds.map((oid) => { const o = obrigacoes.find((x) => x.id === oid); return <span key={oid} className="inline-flex items-center gap-1 rounded bg-fundo px-2 py-0.5 text-[12px] text-slate-600"><button onClick={() => setObrIds((c) => c.filter((x) => x !== oid))} className="text-slate-400 hover:text-red-500">×</button>{o?.nome ?? oid}</span>; })}
+          <input className="min-w-[160px] flex-1 text-[13px] outline-none" placeholder="Permitir somente obrigacoes especificas..." value={obrTxt} onChange={(e) => { setObrTxt(e.target.value); setObrAberto(true); }} onFocus={() => setObrAberto(true)} onBlur={() => setTimeout(() => setObrAberto(false), 150)} />
+        </div>
+        {obrAberto && (
+          <div className="absolute z-20 mt-1 max-h-52 w-full overflow-auto rounded border border-slate-200 bg-white shadow-lg">
+            {dispObr.slice(0, 50).map((o) => <button key={o.id} onMouseDown={() => { setObrIds((c) => [...c, o.id]); setObrTxt(''); }} className="block w-full px-3 py-1.5 text-left text-[13px] hover:bg-marca-50">{o.nome}</button>)}
+            {dispObr.length === 0 && <div className="px-3 py-2 text-[12px] text-slate-400">Nenhuma obrigacao.</div>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Painel azul: acesso ao app + senha + horarios
+function PainelApp({ existente, appAtivo, setAppAtivo, senha, setSenha, ultimoAcesso }: {
+  existente?: boolean; appAtivo: boolean; setAppAtivo: (v: boolean) => void; senha: string; setSenha: (v: string) => void; ultimoAcesso?: string | null;
+}) {
+  const HORAS = Array.from({ length: 24 }, (_, h) => `${String(h).padStart(2, '0')}:00`);
+  const Periodo = ({ label }: { label: string }) => (
+    <div>
+      <label className={LBL}>{label}</label>
+      <div className="flex gap-1">
+        <select className={`${INP} w-20`} disabled><option>Sim</option><option>Nao</option></select>
+        <select className={`${INP} w-24`} disabled>{['00:00', ...HORAS].map((h) => <option key={h}>{h}</option>)}</select>
+        <select className={`${INP} w-24`} disabled>{['23:59', ...HORAS].map((h) => <option key={h}>{h}</option>)}</select>
+      </div>
+    </div>
+  );
+  return (
+    <div className="space-y-2 py-2">
+      <div className="flex flex-wrap items-end gap-3">
+        <div><label className="mb-1 block text-[13px] font-bold text-status-danger">Acesso ao App</label><select className={`${INP} w-32`} value={appAtivo ? 'ativo' : 'inativo'} onChange={(e) => setAppAtivo(e.target.value === 'ativo')}><option value="inativo">Inativo</option><option value="ativo">Ativo</option></select></div>
+        <div><label className="mb-1 block text-[13px] font-bold text-status-danger">Senha</label><input className={`${INP} w-40`} placeholder="Senha" value={senha} onChange={(e) => setSenha(e.target.value)} /></div>
+        {existente && <>
+          <Periodo label="Acesso aos Domingos:" />
+          <Periodo label="Segunda a Sexta-Feira:" />
+          <Periodo label="Acesso aos Sabados:" />
+        </>}
+      </div>
+      {existente && ultimoAcesso && <p className="text-[12px] font-medium text-status-danger">Ultimo acesso: {new Date(ultimoAcesso).toLocaleDateString('pt-BR')}</p>}
+      {existente && <p className="text-[11px] text-slate-400">Horarios de acesso e ultimo acesso: em construcao (aguardando ajuste do modelo).</p>}
     </div>
   );
 }
