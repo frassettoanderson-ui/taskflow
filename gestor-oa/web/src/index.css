@@ -20,12 +20,12 @@
   --m-sbg: #f4f5f7; /* fundo da sidebar (cinza bem claro, igual ao original) */
   --m-bg: #ffffff;  /* fundo de paineis/flyouts/botoes */
   --m-bd: #e2e8f0;
-  --m-fg: #64748b;
+  --m-fg: #6c6d6c; /* cor da fonte do menu (igual ao original) */
   --m-ic: #aeb7c4; /* icones do menu mais claros */
   --m-hv: #eceef1;
   --m-abg: #ffffff; /* item selecionado: realce branco discreto sobre a sidebar cinza */
-  --m-afg: rgb(49 102 153);
-  --m-acc: rgb(66 139 202);
+  --m-afg: #417fbe; /* fonte selecionada / mouse em cima */
+  --m-acc: #417fbe;
   --m-title: #334155;
 }
 

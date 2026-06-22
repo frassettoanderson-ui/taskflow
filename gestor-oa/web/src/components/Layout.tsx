@@ -83,7 +83,6 @@ const MENU: Item[] = [
   { label: 'Obrigacoes', icon: List, to: '/obrigacoes' },
   { label: 'Empresas', icon: Heart, to: '/empresas' },
   { label: 'Lista de Entregas', icon: CheckCircle, to: '/entregas' },
-  { label: 'Documentos (GED)', icon: FileText, to: '/documentos/armazenamento' },
   {
     label: 'Relatorios',
     icon: Folder,
@@ -166,7 +165,7 @@ export default function Layout() {
         )}
 
         {/* Menu */}
-        <nav className="flex-1 px-1.5 pb-2 text-[14px]">
+        <nav className="flex-1 px-1.5 pb-2 text-[16px]">
           <MenuLista itens={MENU} toast={toast} onTema={() => { const e = ciclarMenuEstilo(); toast('ok', `Estilo do menu: ${e}`); }} recolhido={recolhido} topo />
         </nav>
 
@@ -242,10 +241,10 @@ function MenuLista({ itens, toast, onTema, recolhido = false, topo = false }: { 
               <button
                 title={recolhido ? item.label : undefined}
                 className={`flex w-full items-center gap-3 rounded px-3 py-2.5 text-left transition ${recolhido ? 'justify-center' : ''} ${
-                  aberto === item.label ? 'bg-[var(--m-abg)] text-[color:var(--m-afg)]' : 'text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]'
+                  aberto === item.label ? 'bg-[var(--m-abg)] text-[color:var(--m-afg)]' : 'text-[color:var(--m-fg)] hover:bg-[var(--m-hv)] hover:text-[color:var(--m-afg)]'
                 }`}
               >
-                <item.icon size={18} className={aberto === item.label ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
+                <item.icon size={20} className={aberto === item.label ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
                 {!recolhido && <span className="flex-1">{item.label}</span>}
                 {!recolhido && <ChevronRight size={15} className="text-[color:var(--m-ic)]" />}
               </button>
@@ -277,7 +276,7 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
   if (item.tema) {
     return (
       <button onClick={onTema} title={recolhido ? item.label : undefined} className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}>
-        <item.icon size={18} className="text-[color:var(--m-ic)]" />
+        <item.icon size={20} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
       </button>
     );
@@ -285,7 +284,7 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
   if (item.href) {
     return (
       <a href={item.href} download title={recolhido ? item.label : undefined} className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}>
-        <item.icon size={18} className="text-[color:var(--m-ic)]" />
+        <item.icon size={20} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
       </a>
     );
@@ -293,7 +292,7 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
   if (item.emBreve) {
     return (
       <button onClick={() => toast('ok', `${item.label}: em breve`)} title="Em breve" className={`${baseCls} text-[color:var(--m-ic)]`}>
-        <item.icon size={18} className="text-[color:var(--m-ic)]" />
+        <item.icon size={20} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
         {!recolhido && <span className="rounded bg-[var(--m-hv)] px-1.5 py-0.5 text-[10px] text-[color:var(--m-ic)]">em breve</span>}
       </button>
@@ -305,12 +304,12 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
       end={item.to === '/'}
       title={recolhido ? item.label : undefined}
       className={({ isActive }) =>
-        `${baseCls} border-l-[3px] ${isActive ? 'border-[color:var(--m-acc)] bg-[var(--m-abg)] font-medium text-[color:var(--m-afg)]' : 'border-transparent text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]'}`
+        `${baseCls} border-l-[3px] ${isActive ? 'border-[color:var(--m-acc)] bg-[var(--m-abg)] font-medium text-[color:var(--m-afg)]' : 'border-transparent text-[color:var(--m-fg)] hover:bg-[var(--m-hv)] hover:text-[color:var(--m-afg)]'}`
       }
     >
       {({ isActive }) => (
         <>
-          <item.icon size={18} className={isActive ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
+          <item.icon size={20} className={isActive ? 'text-[color:var(--m-afg)]' : 'text-[color:var(--m-ic)]'} />
           {!recolhido && <span className="flex-1">{item.label}</span>}
         </>
       )}
