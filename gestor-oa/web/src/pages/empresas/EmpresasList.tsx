@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, Search, SlidersHorizontal, Mail, Download, XCircle, Network, Tags as TagsIcon, Printer, Calendar, Plus, MessageCircle, CheckCircle2, Users, ArrowUpDown, RotateCcw, Pencil, Trash2 } from 'lucide-react';
 import { api, ApiError } from '../../lib/api';
@@ -6,6 +6,7 @@ import { useAuth, temPermissao } from '../../lib/auth';
 import { Badge, Spinner, useToast } from '../../components/ui';
 import type {
   EmpresaLista,
+  EmpresaDetalhe,
   Tag,
   Departamento,
   UsuarioBasico,
@@ -13,6 +14,7 @@ import type {
   MotivoCancelamento,
 } from '../../lib/tipos';
 import { formatarIdent } from '../../lib/tipos';
+import { SecComentarios, SecContatos, SecTarefas, SecResponsaveis } from './EmpresaFicha';
 
 interface Pagina {
   items: EmpresaLista[];
@@ -57,6 +59,12 @@ export default function EmpresasList() {
   const [chips, setChips] = useState<ChipF[]>([]);
   const [ordenar, setOrdenar] = useState<'razao' | 'fantasia'>('razao');
   const [dir, setDir] = useState<'asc' | 'desc'>('asc');
+  // painel inline expandido na linha (comentarios/tarefas/contatos/responsaveis)
+  type PainelLinha = 'coment' | 'tarefas' | 'contatos' | 'resp';
+  const [expandido, setExpandido] = useState<{ id: string; painel: PainelLinha } | null>(null);
+  function togglePainel(id: string, painel: PainelLinha) {
+    setExpandido((cur) => (cur && cur.id === id && cur.painel === painel ? null : { id, painel }));
+  }
   // barra de acao ativa (so uma por vez; clicar de novo recolhe)
   const [barra, setBarra] = useState<'resp' | 'tags' | 'export' | 'relacao' | 'datas' | null>(null);
   const toggleBarra = (b: 'resp' | 'tags' | 'export' | 'relacao' | 'datas') => setBarra((atual) => (atual === b ? null : b));
@@ -405,7 +413,8 @@ export default function EmpresasList() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {itensOrdenados.map((e) => (
-                <tr key={e.id} className="cursor-pointer align-top hover:bg-slate-50" onClick={() => navigate(`/empresas/${e.id}`)}>
+                <Fragment key={e.id}>
+                <tr className="cursor-pointer align-top hover:bg-slate-50" onClick={() => navigate(`/empresas/${e.id}`)}>
                   <td className="px-4 py-2">
                     <div className="font-medium text-marca-600">{e.razaoSocial} <span className="font-normal text-slate-400">[{e.numero ?? '-'}]</span>{!e.ativo && <span className="text-slate-400"> [inativa]</span>}</div>
                     <div className="text-slate-500">{e.nomeFantasia ?? '—'}</div>
@@ -429,13 +438,28 @@ export default function EmpresasList() {
                   </td>
                   <td className="px-4 py-2" onClick={(ev) => ev.stopPropagation()}>
                     <div className="grid w-fit grid-cols-2 gap-x-2 gap-y-1">
-                      <button title="Comentarios e anotacoes gerais" onClick={() => navigate(`/empresas/${e.id}`)} className="text-status-ok hover:opacity-70"><MessageCircle size={15} /></button>
-                      <button title="Tarefas agendadas" onClick={() => toast('ok', 'Em construcao')} className="text-roxo-500 hover:opacity-70"><CheckCircle2 size={15} /></button>
-                      <button title="Contatos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-roxo-500 hover:opacity-70"><Users size={15} /></button>
-                      <button title="Responsaveis pelos departamentos" onClick={() => navigate(`/empresas/${e.id}`)} className="text-marca-600 hover:opacity-70"><Network size={15} /></button>
+                      <button title="Comentarios e anotacoes gerais" onClick={() => togglePainel(e.id, 'coment')} className={`hover:opacity-70 ${expandido?.id === e.id && expandido.painel === 'coment' ? 'text-status-ok ring-2 ring-status-ok/40 rounded' : 'text-status-ok'}`}><MessageCircle size={15} /></button>
+                      <button title="Tarefas agendadas" onClick={() => togglePainel(e.id, 'tarefas')} className={`hover:opacity-70 ${expandido?.id === e.id && expandido.painel === 'tarefas' ? 'text-roxo-500 ring-2 ring-roxo-500/40 rounded' : 'text-roxo-500'}`}><CheckCircle2 size={15} /></button>
+                      <button title="Contatos" onClick={() => togglePainel(e.id, 'contatos')} className={`hover:opacity-70 ${expandido?.id === e.id && expandido.painel === 'contatos' ? 'text-roxo-500 ring-2 ring-roxo-500/40 rounded' : 'text-roxo-500'}`}><Users size={15} /></button>
+                      <button title="Responsaveis pelos departamentos" onClick={() => togglePainel(e.id, 'resp')} className={`hover:opacity-70 ${expandido?.id === e.id && expandido.painel === 'resp' ? 'text-marca-600 ring-2 ring-marca-600/40 rounded' : 'text-marca-600'}`}><Network size={15} /></button>
                     </div>
                   </td>
                 </tr>
+                {expandido?.id === e.id && (
+                  <tr className="bg-fundo">
+                    <td colSpan={5} className="border-l-4 border-marca-400 px-6 py-4" onClick={(ev) => ev.stopPropagation()}>
+                      <PainelLinhaEmpresa
+                        empresaId={e.id}
+                        painel={expandido.painel}
+                        departamentos={departamentos}
+                        usuarios={usuarios}
+                        podeEditar={podeEditar}
+                        onFechar={() => setExpandido(null)}
+                      />
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
               {items.length === 0 && !loading && (
                 <tr><td colSpan={5} className="px-4 py-10 text-center text-slate-400">Nenhuma empresa encontrada.</td></tr>
@@ -455,6 +479,51 @@ export default function EmpresasList() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// Painel inline expandido na linha da lista: carrega a ficha da empresa e
+// reaproveita as mesmas secoes editaveis usadas na tela de consulta.
+const TITULO_PAINEL: Record<'coment' | 'tarefas' | 'contatos' | 'resp', string> = {
+  coment: 'Comentarios e Anotacoes gerais',
+  tarefas: 'Tarefas agendadas',
+  contatos: 'Contatos na empresa',
+  resp: 'Responsaveis pelos departamentos',
+};
+
+function PainelLinhaEmpresa({ empresaId, painel, departamentos, usuarios, podeEditar, onFechar }: {
+  empresaId: string;
+  painel: 'coment' | 'tarefas' | 'contatos' | 'resp';
+  departamentos: Departamento[];
+  usuarios: UsuarioBasico[];
+  podeEditar: boolean;
+  onFechar: () => void;
+}) {
+  const [empresa, setEmpresa] = useState<EmpresaDetalhe | null>(null);
+  const [carregando, setCarregando] = useState(true);
+  function recarregar() {
+    return api.get<EmpresaDetalhe>(`/empresas/${empresaId}`).then((e) => { setEmpresa(e); return e; }).catch(() => undefined);
+  }
+  useEffect(() => { setCarregando(true); recarregar().finally(() => setCarregando(false)); }, [empresaId]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-bold text-slate-700">{TITULO_PAINEL[painel]}</span>
+        <button onClick={onFechar} className="text-[12px] text-slate-400 hover:text-slate-600">Fechar &times;</button>
+      </div>
+      {carregando || !empresa ? (
+        <div className="py-4"><Spinner /></div>
+      ) : painel === 'coment' ? (
+        <SecComentarios empresa={empresa} departamentos={departamentos} onMudou={recarregar} />
+      ) : painel === 'tarefas' ? (
+        <SecTarefas empresa={empresa} departamentos={departamentos} />
+      ) : painel === 'contatos' ? (
+        <SecContatos empresa={empresa} podeEditar={podeEditar} onMudou={recarregar} />
+      ) : (
+        <SecResponsaveis empresa={empresa} departamentos={departamentos} usuarios={usuarios} podeEditar={podeEditar} onMudou={recarregar} />
+      )}
     </div>
   );
 }

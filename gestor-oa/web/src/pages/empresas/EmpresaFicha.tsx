@@ -482,7 +482,7 @@ function SecEndereco({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe
 }
 
 // 2 - Comentarios e anotacoes
-function SecComentarios({ empresa, departamentos, onMudou }: { empresa: EmpresaDetalhe; departamentos: Departamento[]; onMudou: () => void }) {
+export function SecComentarios({ empresa, departamentos, onMudou }: { empresa: EmpresaDetalhe; departamentos: Departamento[]; onMudou: () => void }) {
   const toast = useToast();
   const [busca, setBusca] = useState('');
   const [filtroDep, setFiltroDep] = useState('');
@@ -552,7 +552,7 @@ function SecTags({ tags, tagIds, setTagIds }: { tags: Tag[]; tagIds: string[]; s
 const ICO_CT = 'grid h-9 w-10 shrink-0 place-items-center rounded text-white';
 interface ObrigacaoBasica { id: string; nome: string }
 
-function SecContatos({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe; podeEditar: boolean; onMudou: () => void }) {
+export function SecContatos({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe; podeEditar: boolean; onMudou: () => void }) {
   const toast = useToast();
   const [departamentos, setDepartamentos] = useState<Departamento[]>([]);
   const [obrigacoes, setObrigacoes] = useState<ObrigacaoBasica[]>([]);
@@ -808,7 +808,7 @@ function SecSolicitacoes({ empresa }: { empresa: EmpresaDetalhe }) {
 
 // 8 - Tarefas agendadas (Descricao / Tempo / Departamento / Dia / Mes / Ano / Lembrar)
 const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-function SecTarefas({ empresa, departamentos }: { empresa: EmpresaDetalhe; departamentos: Departamento[] }) {
+export function SecTarefas({ empresa, departamentos }: { empresa: EmpresaDetalhe; departamentos: Departamento[] }) {
   const toast = useToast();
   const navigate = useNavigate();
   const [tarefas, setTarefas] = useState<TarefaAgendada[]>([]);
@@ -924,7 +924,7 @@ function TarefaLinha({ empresaId, tarefa, departamentos, cols, depNome, onMudou,
 }
 
 // 11 - Responsaveis pelos departamentos
-function SecResponsaveis({ empresa, departamentos, usuarios, podeEditar, onMudou }: { empresa: EmpresaDetalhe; departamentos: Departamento[]; usuarios: UsuarioBasico[]; podeEditar: boolean; onMudou: () => void }) {
+export function SecResponsaveis({ empresa, departamentos, usuarios, podeEditar, onMudou }: { empresa: EmpresaDetalhe; departamentos: Departamento[]; usuarios: UsuarioBasico[]; podeEditar: boolean; onMudou: () => void }) {
   const toast = useToast();
   const respPorDep = new Map(empresa.responsaveis.map((r) => [r.departamentoId, r.usuarioId]));
   async function definir(departamentoId: string, usuarioId: string) {
