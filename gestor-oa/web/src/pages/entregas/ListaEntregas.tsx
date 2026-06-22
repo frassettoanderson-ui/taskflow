@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  CheckCircle2, SlidersHorizontal, X, SearchX, CalendarDays, SquarePen,
+  CheckCircle2, SlidersHorizontal, X, ZoomIn, ZoomOut, CalendarDays, SquarePen,
   Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save, History, Clock,
 } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
@@ -84,6 +84,7 @@ export default function ListaEntregas() {
   // chips de classificacao vindos do Dashboard (filtros forcados removiveis)
   const [chips, setChips] = useState<Record<string, boolean>>({});
   const [somenteTarefas, setSomenteTarefas] = useState(false); // F2 "Somente Tarefas Agendadas"
+  const [modoRemovedor, setModoRemovedor] = useState(false); // toggle visual inclusivos/removedores
   const [comboTxt, setComboTxt] = useState(''); // +Filtros (combo chip)
   const [comboAberto, setComboAberto] = useState(false);
   const [tempoModal, setTempoModal] = useState<Entrega | null>(null); // relogio: tempo previsto
@@ -313,7 +314,7 @@ export default function ListaEntregas() {
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            <IconBtn title="Exibir filtros removedores" onClick={() => toast('erro', 'Em construcao')}><SearchX size={17} /></IconBtn>
+            <IconBtn title={modoRemovedor ? 'Exibir somente filtros inclusivos' : 'Exibir filtros removedores'} onClick={() => setModoRemovedor((v) => !v)}>{modoRemovedor ? <ZoomIn size={17} className="text-status-ok" /> : <ZoomOut size={17} className="text-roxo-500" />}</IconBtn>
             <IconBtn title="Exibir/ocultar datas" onClick={() => setMostrarDatas((v) => !v)}><CalendarDays size={17} /></IconBtn>
             <IconBtn title="Protocolo fisico" onClick={() => navigate('/documentos/protocolos-fisicos')}><SquarePen size={17} /></IconBtn>
             <IconBtn title="Imprimir" onClick={() => setMostrarImprimir((v) => !v)}><Printer size={17} /></IconBtn>
