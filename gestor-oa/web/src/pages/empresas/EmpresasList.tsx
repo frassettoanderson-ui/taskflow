@@ -63,6 +63,8 @@ export default function EmpresasList() {
   const [respDepto, setRespDepto] = useState('');
   const [respUser, setRespUser] = useState('');
   const [tagsSel, setTagsSel] = useState<string[]>([]);
+  const [tagTxt, setTagTxt] = useState('');
+  const [tagAberto, setTagAberto] = useState(false);
   const [expDepto, setExpDepto] = useState('');
   const [expBloco, setExpBloco] = useState('50');
   const [expTipo, setExpTipo] = useState<'nomes' | 'enderecos'>('nomes');
@@ -244,21 +246,28 @@ export default function EmpresasList() {
       {/* Barra: Incluir tags em massa */}
       {barra === 'tags' && (
         <div className="mt-2 flex flex-wrap items-end gap-2">
-          <div className="min-w-[260px] flex-1">
+          <div className="relative min-w-[260px] flex-1">
             <label className="mb-0.5 block text-[12px] font-medium text-slate-600">Adicionar nas {pagina?.total ?? 0} empresas listadas as Tag's:</label>
-            <div className="rounded border border-marca-300 bg-white p-1.5">
-              <div className="mb-1 flex flex-wrap gap-1">
-                {tagsSel.length === 0 && <span className="px-1 text-[12px] text-slate-400">Tag's...</span>}
-                {tagsSel.map((id) => {
-                  const t = tags.find((x) => x.id === id);
-                  return <span key={id} className="inline-flex items-center gap-1 rounded border border-slate-300 bg-slate-50 px-2 py-0.5 text-[12px] text-slate-600"><button onClick={() => setTagsSel((a) => a.filter((x) => x !== id))} className="text-slate-400 hover:text-red-500">×</button>{t?.nome ?? id}</span>;
-                })}
-              </div>
-              <select className="w-full border-t border-slate-100 bg-transparent px-1 pt-1 text-[12px] text-slate-600 outline-none" value="" onChange={(e) => { if (e.target.value) setTagsSel((a) => [...a, e.target.value]); }}>
-                <option value="">Tag's...</option>
-                {tags.filter((t) => !tagsSel.includes(t.id)).map((t) => <option key={t.id} value={t.id}>{t.nome}</option>)}
-              </select>
+            <div className="flex flex-wrap items-center gap-1.5 rounded border border-marca-300 bg-white px-2 py-1.5">
+              {tagsSel.map((id) => {
+                const t = tags.find((x) => x.id === id);
+                return <span key={id} className="inline-flex items-center gap-1 rounded bg-fundo px-2 py-0.5 text-[12px] text-slate-600"><button onClick={() => setTagsSel((a) => a.filter((x) => x !== id))} className="text-slate-400 hover:text-red-500">×</button>{t?.nome ?? id}</span>;
+              })}
+              <input className="min-w-[120px] flex-1 text-[13px] outline-none" placeholder="Tag's..." value={tagTxt}
+                onChange={(e) => { setTagTxt(e.target.value); setTagAberto(true); }}
+                onFocus={() => setTagAberto(true)} onBlur={() => setTimeout(() => setTagAberto(false), 150)} />
             </div>
+            {tagAberto && (
+              <div className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded border border-slate-200 bg-white shadow-lg">
+                <div className="px-3 py-1 text-[11px] font-semibold text-slate-400">Tag's</div>
+                {tags.filter((t) => !tagsSel.includes(t.id) && t.nome.toLowerCase().includes(tagTxt.trim().toLowerCase())).map((t) => (
+                  <button key={t.id} onMouseDown={() => { setTagsSel((a) => [...a, t.id]); setTagTxt(''); }} className="block w-full px-3 py-1.5 text-left text-[13px] hover:bg-marca-50">{t.nome}</button>
+                ))}
+                {tags.filter((t) => !tagsSel.includes(t.id) && t.nome.toLowerCase().includes(tagTxt.trim().toLowerCase())).length === 0 && (
+                  <div className="px-3 py-2 text-[12px] text-slate-400">Nenhuma tag.</div>
+                )}
+              </div>
+            )}
           </div>
           <button onClick={adicionarTags} className="flex items-center gap-2 rounded bg-marca-400 px-5 py-2 text-sm font-medium text-white hover:bg-marca-500"><TagsIcon size={16} /> OK - Adicionar</button>
           <button onClick={() => setBarra(null)} className="flex items-center gap-2 rounded bg-status-warn px-5 py-2 text-sm font-medium text-white hover:bg-amber-500"><RotateCcw size={16} /> Cancelar</button>
