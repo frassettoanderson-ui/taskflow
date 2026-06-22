@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "escriba",
+      "runtimeExecutable": "C:\\Users\\ander\\Downloads\\taskflow_backup_completo\\transcritor-video\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["C:\\Users\\ander\\Downloads\\taskflow_backup_completo\\transcritor-video\\server.py", "--no-window"],
+      "port": 8765,
+      "autoPort": false
+    }
+  ]
+}

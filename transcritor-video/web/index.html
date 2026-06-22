@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escriba — Transcritor</title>
+<link rel="icon" type="image/svg+xml" href="/icone.svg">
+<link rel="icon" sizes="any" href="/favicon.ico">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --indigo:#4F46E5; --indigo-d:#4338CA; --emerald:#10B981; --emerald-d:#059669;
+    --ink:#0F172A; --ink2:#1E293B; --mut:#64748B; --mut2:#94A3B8;
+    --line:#EEF0F4; --paper:#FFFFFF; --field:#F1F5F9;
+    --side-tx:#EEF2FF; --side-tx2:#C7D2FE; --side-tx3:#A5B4FC;
+  }
+  html,body{height:100%}
+  body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;color:var(--ink);background:#E5E7EB;
+       display:flex;overflow:hidden}
+  .app{display:flex;width:100%;height:100vh;background:var(--paper)}
+
+  /* ---------- Sidebar ---------- */
+  .side{width:268px;flex-shrink:0;background:var(--indigo);color:var(--side-tx);
+        padding:20px 18px;display:flex;flex-direction:column;gap:16px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .brand .logo{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.16);
+        display:flex;align-items:center;justify-content:center}
+  .brand h1{font-size:18px;font-weight:600;letter-spacing:.2px}
+  .lbl{font-size:11.5px;color:var(--side-tx2);margin-bottom:6px}
+  .field{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.13);
+        border-radius:11px;padding:0 11px;height:40px;border:1.5px solid transparent;transition:border-color .15s}
+  .field:focus-within{border-color:rgba(255,255,255,.5)}
+  .field svg{width:18px;height:18px;flex-shrink:0;color:#fff}
+  .field input{flex:1;background:none;border:none;outline:none;color:#fff;font-size:13px}
+  .field input::placeholder{color:var(--side-tx3)}
+  .field.ok{border-color:#34D399;background:rgba(52,211,153,.22)}
+  .field.bad{border-color:#FCA5A5;background:rgba(248,113,113,.18)}
+  .lspin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;display:none;flex-shrink:0}
+  .field.loading .lspin{display:block;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .preview{display:none;gap:14px;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:12px;max-width:540px}
+  .preview img{width:168px;height:94px;object-fit:cover;border-radius:8px;flex-shrink:0;background:#e2e8f0}
+  .pv-title{font-size:15px;font-weight:600;color:var(--ink);line-height:1.4}
+  .pv-meta{font-size:13px;color:var(--mut);margin-top:5px}
+  .field.multi{align-items:flex-start}
+  .field textarea{flex:1;background:none;border:none;outline:none;color:#fff;font-size:13px;resize:none;font-family:inherit;line-height:1.45;max-height:92px;overflow-y:auto;padding:0}
+  .field textarea::placeholder{color:var(--side-tx3)}
+  .queue{display:none;margin-bottom:16px}
+  .qitem{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;font-size:13px}
+  .qitem+.qitem{margin-top:3px}
+  .qitem.atual{background:#EEF2FF}
+  .qdot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:#CBD5E1}
+  .qitem.atual .qdot{background:#4F46E5;animation:qpulse 1s infinite}
+  .qitem.ok .qdot{background:#10B981}
+  .qitem.erro .qdot{background:#EF4444}
+  .qitem.cancelado .qdot{background:#94A3B8}
+  .qtxt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
+  .qitem.na_fila .qtxt{color:var(--mut)}
+  @keyframes qpulse{50%{opacity:.35}}
+  .ou{display:flex;align-items:center;gap:9px;color:var(--side-tx3);font-size:11.5px}
+  .ou span{flex:1;height:1px;background:rgba(255,255,255,.18)}
+  .filebtn{display:flex;align-items:center;gap:11px;border:1.5px dashed rgba(255,255,255,.34);
+        border-radius:11px;padding:11px;cursor:pointer;transition:background .15s,border-color .15s}
+  .filebtn:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.5)}
+  .filebtn svg{width:20px;height:20px;color:#fff;flex-shrink:0}
+  .filebtn .ft{font-size:13px;color:var(--side-tx)}
+  .filebtn .fs{font-size:11.5px;color:var(--side-tx3);max-width:160px;overflow:hidden;
+        text-overflow:ellipsis;white-space:nowrap}
+  .seg{display:flex;background:rgba(255,255,255,.10);border-radius:11px;padding:3px;gap:3px}
+  .seg-opt{flex:1;text-align:center;font-size:12px;padding:7px 0;border-radius:8px;
+        color:var(--side-tx2);cursor:pointer;user-select:none;transition:background .15s,color .15s}
+  .seg-opt.active{background:var(--emerald);color:#fff;font-weight:500}
+  .grow{flex:1}
+  .ghost{background:transparent;border:1px solid rgba(255,255,255,.26);color:var(--side-tx);
+        border-radius:10px;height:38px;font-size:12.5px;display:flex;align-items:center;
+        justify-content:center;gap:7px;cursor:pointer;transition:background .15s}
+  .ghost:hover{background:rgba(255,255,255,.08)}
+  .ghost svg{width:16px;height:16px}
+  .start{background:var(--emerald);color:#fff;border:none;border-radius:12px;height:48px;
+        font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px;
+        cursor:pointer;transition:background .15s,transform .05s}
+  .start:hover{background:var(--emerald-d)}
+  .start:active{transform:scale(.985)}
+  .start:disabled{background:#94A3B8;cursor:default}
+  .start.cancel{background:#EF4444}.start.cancel:hover{background:#DC2626}
+  .start svg{width:19px;height:19px;fill:#fff}
+
+  /* ---------- Main ---------- */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+        padding:15px 20px;border-bottom:1px solid var(--line)}
+  .src{min-width:0}
+  .src .t{font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .src .s{font-size:12px;color:var(--mut2);margin-top:1px}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;
+        font-size:12.5px;font-weight:500;flex-shrink:0;background:#F1F5F9;color:#475569}
+  .pill.run{background:#ECFDF5;color:#047857}
+  .pill.err{background:#FEF2F2;color:#B91C1C}
+  .eq{display:none;align-items:flex-end;gap:2px;height:14px}
+  .pill.run .eq{display:inline-flex}
+  .eq i{width:3px;height:14px;background:#10B981;border-radius:2px;transform-origin:bottom;
+        animation:eq .9s ease-in-out infinite}
+  .eq i:nth-child(2){animation-delay:.15s}.eq i:nth-child(3){animation-delay:.3s}.eq i:nth-child(4){animation-delay:.45s}
+  @keyframes eq{0%,100%{transform:scaleY(.35)}50%{transform:scaleY(1)}}
+  .bar{height:4px;background:#E2E8F0;overflow:hidden}
+  .bar .fill{height:100%;width:0;background:var(--emerald);transition:width .4s ease}
+  .bar.indet .fill{width:32% !important;animation:slide 1.1s ease-in-out infinite}
+  @keyframes slide{0%{margin-left:-32%}100%{margin-left:100%}}
+  .paper{flex:1;overflow-y:auto;padding:22px 24px;font-size:15px;line-height:1.8;color:var(--ink2)}
+  .paper .ph{color:var(--mut2);font-size:14px}
+  #ttext{white-space:pre-wrap}
+  .caret{display:none;width:7px;height:18px;background:var(--indigo);vertical-align:-3px;margin-left:2px}
+  .running .caret{display:inline-block;animation:blink 1s step-start infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  .err-box{color:#B91C1C;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;
+        padding:12px 14px;font-size:14px;display:flex;gap:9px;align-items:flex-start}
+  .err-box svg{width:18px;height:18px;flex-shrink:0;margin-top:1px}
+  .foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--line)}
+  .act{background:#fff;border:1px solid #E2E8F0;color:#334155;border-radius:9px;height:35px;
+        padding:0 13px;font-size:12.5px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:background .15s}
+  .act:hover{background:#F8FAFC}
+  .act:disabled{opacity:.45;cursor:default}
+  .act svg{width:16px;height:16px}
+  .hint{font-size:12px;color:#fca5a5;text-align:center;min-height:14px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0F172A;color:#fff;
+        padding:9px 16px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></symbol>
+  <symbol id="i-yt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="4"/><path d="M10 9l5 3-5 3z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/><circle cx="10" cy="7" r="2.3" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2.3" fill="currentColor" stroke="none"/><circle cx="8" cy="17" r="2.3" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 2h6a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 6v12l10-6z"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.01"/></symbol>
+</svg>
+
+<div class="app" id="app">
+  <aside class="side">
+    <div class="brand"><div class="logo"><svg width="20" height="20"><use href="#i-mic"/></svg></div><h1>Escriba</h1></div>
+
+    <div>
+      <div class="lbl">Link(s) do YouTube</div>
+      <div class="field multi" id="linkField"><svg style="margin-top:1px"><use href="#i-yt"/></svg><textarea id="linkInput" rows="1" placeholder="cole um ou vários links (um por linha)" autocomplete="off"></textarea><span class="lspin" id="lspin"></span></div>
+    </div>
+
+    <div class="ou"><span></span>ou<span></span></div>
+
+    <div class="filebtn" id="btnFile">
+      <svg><use href="#i-film"/></svg>
+      <div><div class="ft">Selecionar arquivo</div><div class="fs" id="fileName">áudio ou vídeo do PC</div></div>
+    </div>
+    <input id="fileInput" type="file" accept="audio/*,video/*,.mp3,.wav,.m4a,.ogg,.mp4,.mkv,.mov,.webm,.avi" style="display:none">
+
+    <div>
+      <div class="lbl" style="display:flex;align-items:center;gap:6px"><svg width="14" height="14" style="color:var(--side-tx2)"><use href="#i-sliders"/></svg>Velocidade</div>
+      <div class="seg">
+        <div class="seg-opt active" data-q="rapido">Rápido</div>
+        <div class="seg-opt" data-q="medio">Médio</div>
+        <div class="seg-opt" data-q="preciso">Preciso</div>
+      </div>
+    </div>
+
+    <div class="hint" id="hint"></div>
+    <div class="grow"></div>
+
+    <button class="ghost" id="btnFolder"><svg><use href="#i-folder"/></svg>Abrir pasta das transcrições</button>
+    <button class="start" id="btnStart"><svg><use id="startIcon" href="#i-play"/></svg><span id="startLabel">Transcrever</span></button>
+  </aside>
+
+  <main class="main">
+    <div class="head">
+      <div class="src"><div class="t" id="srcTitle">Pronto para transcrever</div><div class="s" id="srcSub">cole um link ou escolha um arquivo</div></div>
+      <span class="pill" id="pill"><span class="eq"><i></i><i></i><i></i><i></i></span><span id="pillText">aguardando</span></span>
+    </div>
+    <div class="bar" id="bar"><div class="fill" id="fill"></div></div>
+    <div class="paper" id="paper">
+      <div class="ph" id="placeholder">A transcrição vai aparecer aqui, frase por frase, conforme o programa escuta o áudio.</div>
+      <div class="preview" id="preview"><img id="pvThumb" alt=""><div class="pv-info"><div class="pv-title" id="pvTitle"></div><div class="pv-meta" id="pvMeta"></div></div></div>
+      <div class="queue" id="queue"></div>
+      <span id="ttext"></span><span class="caret" id="caret"></span>
+      <div class="err-box" id="errBox" style="display:none"><svg><use href="#i-alert"/></svg><span id="errText"></span></div>
+    </div>
+    <div class="foot">
+      <button class="act" id="btnCopy" disabled><svg><use href="#i-copy"/></svg>Copiar</button>
+      <button class="act" id="btnFolderMain"><svg><use href="#i-folder"/></svg>Abrir pasta</button>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let quality='rapido', selectedFile=null, polling=null, running=false, sourceLabel='';
+
+document.querySelectorAll('.seg-opt').forEach(b=>b.addEventListener('click',()=>{
+  if(running) return;
+  document.querySelectorAll('.seg-opt').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); quality=b.dataset.q;
+}));
+
+const fileInput=$('#fileInput');
+$('#btnFile').addEventListener('click',()=>{ if(!running) fileInput.click(); });
+fileInput.addEventListener('change',()=>{
+  if(fileInput.files.length){ selectedFile=fileInput.files[0]; $('#fileName').textContent=selectedFile.name; $('#linkInput').value=''; linkField.classList.remove('ok','bad','loading'); hidePreview(); }
+});
+const linkInput=$('#linkInput'), linkField=$('#linkField');
+let infoTimer=null;
+function parseLinks(v){ return (v||'').split(/[\s,]+/).map(x=>x.trim()).filter(Boolean); }
+function autoGrow(){ linkInput.style.height='auto'; linkInput.style.height=Math.min(linkInput.scrollHeight,92)+'px'; }
+linkInput.addEventListener('input',()=>{
+  autoGrow();
+  const links=parseLinks(linkInput.value);
+  if(links.length){ selectedFile=null; fileInput.value=''; $('#fileName').textContent='áudio ou vídeo do PC'; }
+  linkField.classList.remove('ok','bad','loading');
+  hidePreview();
+  clearTimeout(infoTimer);
+  if(links.length===1 && isYouTube(links[0])) infoTimer=setTimeout(()=>fetchInfo(links[0]),500);
+});
+function isYouTube(u){ return /^(https?:\/\/)?(www\.|m\.)?(youtube\.com\/(watch|shorts)|youtu\.be\/)/i.test(u); }
+async function fetchInfo(url){
+  if(running) return;
+  linkField.classList.remove('ok','bad'); linkField.classList.add('loading');
+  try{
+    const j=await(await fetch('/info?url='+encodeURIComponent(url))).json();
+    linkField.classList.remove('loading');
+    if(j.ok){ linkField.classList.add('ok'); showPreview(j); }
+    else linkField.classList.add('bad');
+  }catch(e){ linkField.classList.remove('loading'); }
+}
+function showPreview(j){
+  const img=$('#pvThumb');
+  if(j.thumb){ img.src=j.thumb; img.style.display='block'; } else { img.style.display='none'; }
+  $('#pvTitle').textContent=j.titulo||'Vídeo';
+  $('#pvMeta').textContent=(j.canal?j.canal+' · ':'')+(j.duracao_fmt||'');
+  $('#placeholder').style.display='none'; $('#preview').style.display='flex';
+  $('#srcTitle').textContent=j.titulo||'Vídeo do YouTube'; $('#srcSub').textContent='pronto para transcrever';
+}
+function hidePreview(){
+  $('#preview').style.display='none';
+  if(!$('#ttext').textContent && $('#errBox').style.display==='none') $('#placeholder').style.display='block';
+  if(!running){ $('#srcTitle').textContent='Pronto para transcrever'; $('#srcSub').textContent='cole um link ou escolha um arquivo'; }
+}
+
+$('#btnFolder').addEventListener('click',()=>fetch('/abrir_pasta',{method:'POST'}));
+$('#btnFolderMain').addEventListener('click',()=>fetch('/abrir_pasta',{method:'POST'}));
+$('#btnCopy').addEventListener('click',()=>{
+  const t=$('#ttext').textContent.trim();
+  if(t){ navigator.clipboard.writeText(t).then(()=>toast('Texto copiado')); }
+});
+
+$('#btnStart').addEventListener('click',async()=>{
+  if(running){
+    fetch('/cancelar',{method:'POST'}).catch(()=>{});
+    $('#startLabel').textContent='Cancelando…'; $('#btnStart').disabled=true;
+    return;
+  }
+  const links=parseLinks($('#linkInput').value);
+  if(links.length===0 && !selectedFile){ hint('Cole um link ou selecione um arquivo'); return; }
+  hint('');
+  sourceLabel = selectedFile ? selectedFile.name : (links.length>1 ? links.length+' vídeos' : 'Vídeo do YouTube');
+  prepRun();
+  try{
+    let resp;
+    if(selectedFile){
+      const fd=new FormData(); fd.append('arquivo',selectedFile); fd.append('qualidade',quality);
+      resp=await fetch('/iniciar_arquivo',{method:'POST',body:fd});
+    }else{
+      resp=await fetch('/iniciar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fontes:links,qualidade:quality})});
+    }
+    const j=await resp.json();
+    if(!j.ok){ showError(j.erro||'Não consegui iniciar.'); endRun(); return; }
+    startPolling();
+  }catch(e){ showError('Não consegui falar com o servidor.'); endRun(); }
+});
+
+function startPolling(){
+  polling=setInterval(async()=>{
+    let s; try{ s=await(await fetch('/estado')).json(); }catch(e){ return; }
+    render(s);
+    if(s.status==='concluido'||s.status==='erro'||s.status==='cancelado'){ clearInterval(polling); polling=null; endRun(s); }
+  },600);
+}
+
+const STATUS={iniciando:'Iniciando…',baixando:'Baixando áudio…',baixando_modelo:'Baixando o modelo (1ª vez)…',carregando_modelo:'Preparando o modelo…',transcrevendo:'Transcrevendo',concluido:'Concluído',cancelado:'Cancelado',erro:'Erro'};
+
+function render(s){
+  const pill=$('#pill'), bar=$('#bar'), fill=$('#fill');
+  pill.classList.remove('err'); pill.classList.add('run');
+  if(s.status==='transcrevendo'){ $('#pillText').textContent='Transcrevendo · '+(s.progress||0)+'%'; bar.classList.remove('indet'); fill.style.width=(s.progress||0)+'%'; }
+  else if(s.status==='baixando'){ $('#pillText').textContent='Baixando · '+(s.progress||0)+'%'; bar.classList.remove('indet'); fill.style.width=(s.progress||0)+'%'; }
+  else if(s.status==='baixando_modelo'||s.status==='carregando_modelo'||s.status==='iniciando'){ $('#pillText').textContent=STATUS[s.status]||'…'; bar.classList.add('indet'); }
+  if(s.titulo){ $('#srcTitle').textContent=s.titulo; }
+  { const tt=$('#ttext'); const nt=s.texto||''; if(tt.textContent!==nt){ tt.textContent=nt; if(nt){ $('#placeholder').style.display='none'; const p=$('#paper'); p.scrollTop=p.scrollHeight; } } }
+  renderFila(s);
+}
+function esc(t){ return (t||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function shortTitle(t){ t=String(t||''); return t.startsWith('http')? t.replace(/^https?:\/\/(www\.)?/,'') : t; }
+function renderFila(s){
+  const q=$('#queue');
+  if(s.fila_total>1 && s.fila && s.fila.length){
+    q.style.display='block';
+    q.innerHTML=s.fila.map(it=>'<div class="qitem '+it.status+'"><span class="qdot"></span><span class="qtxt">'+esc(shortTitle(it.titulo))+'</span></div>').join('');
+    if(running){
+      const cur=s.fila[s.fila_idx];
+      $('#srcTitle').textContent=(cur && !String(cur.titulo).startsWith('http'))? cur.titulo : ('Vídeo '+(s.fila_idx+1));
+      $('#srcSub').textContent='vídeo '+(s.fila_idx+1)+' de '+s.fila_total;
+    }
+  } else { q.style.display='none'; }
+}
+
+function prepRun(){
+  running=true; $('#app').classList.add('running');
+  $('#btnStart').disabled=false; $('#btnStart').classList.add('cancel');
+  $('#startLabel').textContent='Cancelar'; $('#startIcon').setAttribute('href','#i-stop');
+  $('#btnCopy').disabled=true;
+  $('#srcTitle').textContent=sourceLabel; $('#srcSub').textContent=quality==='rapido'?'qualidade rápida':quality==='medio'?'qualidade média':'qualidade alta';
+  $('#errBox').style.display='none'; $('#ttext').textContent=''; $('#placeholder').style.display='none'; $('#preview').style.display='none'; $('#queue').style.display='none';
+  const pill=$('#pill'); pill.className='pill run'; $('#pillText').textContent='Iniciando…';
+  $('#bar').classList.add('indet'); $('#fill').style.width='0%';
+}
+
+function endRun(s){
+  running=false; $('#app').classList.remove('running');
+  $('#btnStart').disabled=false; $('#btnStart').classList.remove('cancel');
+  $('#startLabel').textContent='Transcrever'; $('#startIcon').setAttribute('href','#i-play');
+  if(s && s.status==='concluido'){
+    const pill=$('#pill'); pill.className='pill run'; $('#pillText').textContent='Concluído';
+    $('#bar').classList.remove('indet'); $('#fill').style.width='100%';
+    if(s.fila_total>1){
+      const oks=(s.fila||[]).filter(it=>it.status==='ok').length;
+      $('#srcTitle').textContent='Fila concluída';
+      $('#srcSub').textContent=oks+' de '+s.fila_total+' vídeos transcritos';
+      $('#btnCopy').disabled=true;
+    } else {
+      $('#btnCopy').disabled=false;
+      if(s.titulo) $('#srcTitle').textContent=s.titulo;
+      $('#srcSub').textContent='salvo na pasta de transcrições';
+    }
+  }else if(s && s.status==='erro'){
+    showError(s.erro||'Algo deu errado.');
+  }else if(s && s.status==='cancelado'){
+    const pill=$('#pill'); pill.className='pill'; $('#pillText').textContent='Cancelado';
+    $('#bar').classList.remove('indet'); $('#fill').style.width='0%';
+    $('#srcSub').textContent='transcrição cancelada';
+    toast('Transcrição cancelada');
+  }
+}
+
+function showError(msg){
+  const pill=$('#pill'); pill.className='pill err'; $('#pillText').textContent='Erro';
+  $('#bar').classList.remove('indet'); $('#fill').style.width='0%';
+  $('#placeholder').style.display='none';
+  $('#errText').textContent=msg; $('#errBox').style.display='flex';
+}
+
+let hintT;
+function hint(m){ $('#hint').textContent=m; clearTimeout(hintT); if(m) hintT=setTimeout(()=>$('#hint').textContent='',4000); }
+let toastT;
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1800); }
+
+// Heartbeat: avisa o servidor que a janela continua aberta.
+setInterval(()=>{ fetch('/ping').catch(()=>{}); }, 4000);
+// Ao voltar o foco (sair do segundo plano), avisa na hora.
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) fetch('/ping').catch(()=>{}); });
+window.addEventListener('focus',()=>{ fetch('/ping').catch(()=>{}); });
+// Ao FECHAR a janela de verdade, manda o servidor encerrar.
+window.addEventListener('pagehide',()=>{ try{ navigator.sendBeacon('/encerrar'); }catch(e){} });
+</script>
+</body>
+</html>

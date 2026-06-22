@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Casa e automóvel ao pôr do sol">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe0ef"/>
+      <stop offset="0.42" stop-color="#f0dcc3"/>
+      <stop offset="0.70" stop-color="#f6c98a"/>
+      <stop offset="1" stop-color="#e9a85f"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="62%" cy="60%" r="34%">
+      <stop offset="0" stop-color="#fff4dc" stop-opacity="0.95"/>
+      <stop offset="0.5" stop-color="#ffe1ad" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ffe1ad" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7d8a73"/>
+      <stop offset="1" stop-color="#5d6857"/>
+    </linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6b6f76"/>
+      <stop offset="1" stop-color="#3b3e44"/>
+    </linearGradient>
+    <linearGradient id="house" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b3f47"/>
+      <stop offset="1" stop-color="#23262c"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd98c"/>
+      <stop offset="1" stop-color="#f4a14e"/>
+    </linearGradient>
+    <linearGradient id="car" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2a2d34"/>
+      <stop offset="1" stop-color="#101216"/>
+    </linearGradient>
+  </defs>
+
+  <!-- céu -->
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="990" cy="540" r="520" fill="url(#sun)"/>
+
+  <!-- skyline distante (direita) -->
+  <g fill="#b98a64" opacity="0.45">
+    <rect x="1150" y="430" width="40" height="160"/>
+    <rect x="1200" y="390" width="34" height="200"/>
+    <rect x="1244" y="450" width="46" height="140"/>
+    <rect x="1300" y="360" width="30" height="230"/>
+    <rect x="1340" y="420" width="52" height="170"/>
+    <rect x="1402" y="400" width="36" height="190"/>
+    <rect x="1448" y="450" width="44" height="140"/>
+    <rect x="1502" y="380" width="32" height="210"/>
+  </g>
+
+  <!-- chão -->
+  <rect y="590" width="1600" height="310" fill="url(#ground)"/>
+
+  <!-- estrada que vai até o horizonte (direita) -->
+  <polygon points="1600,900 1600,612 1080,612 1320,900" fill="url(#road)"/>
+  <polygon points="1280,900 1180,612 1196,612 1340,900" fill="#e9c989" opacity="0.5"/>
+
+  <!-- casa moderna (esquerda) -->
+  <g>
+    <rect x="120" y="430" width="430" height="170" fill="url(#house)"/>
+    <rect x="120" y="408" width="300" height="40" fill="#2c3038"/>
+    <!-- janelas iluminadas -->
+    <rect x="150" y="470" width="70" height="100" fill="url(#glass)"/>
+    <rect x="235" y="470" width="55" height="100" fill="url(#glass)" opacity="0.85"/>
+    <rect x="430" y="455" width="95" height="120" fill="url(#glass)" opacity="0.9"/>
+    <!-- pilar/varanda -->
+    <rect x="120" y="448" width="14" height="152" fill="#4a4f59"/>
+    <rect x="536" y="430" width="14" height="170" fill="#4a4f59"/>
+    <!-- vegetação -->
+    <circle cx="95" cy="585" r="46" fill="#46523c"/>
+    <circle cx="560" cy="588" r="40" fill="#46523c"/>
+  </g>
+
+  <!-- SUV escuro na estrada -->
+  <g transform="translate(840,470) scale(1.15)">
+    <path d="M20 96 C24 72 44 58 96 56 L150 54 C176 30 214 26 252 30 C300 36 320 50 344 58 C380 62 404 70 410 92 L412 116 L18 116 Z" fill="url(#car)"/>
+    <path d="M120 56 C150 38 196 36 236 40 C262 44 286 50 300 58 Z" fill="#5b6470" opacity="0.85"/>
+    <rect x="18" y="104" width="396" height="16" rx="6" fill="#0b0c0f"/>
+    <circle cx="96" cy="120" r="30" fill="#15171b"/><circle cx="96" cy="120" r="13" fill="#454a52"/>
+    <circle cx="330" cy="120" r="30" fill="#15171b"/><circle cx="330" cy="120" r="13" fill="#454a52"/>
+    <rect x="392" y="74" width="22" height="12" rx="4" fill="#ffe6a6"/>
+  </g>
+
+  <!-- leve neblina dourada no horizonte -->
+  <rect x="0" y="560" width="1600" height="70" fill="#ffdca0" opacity="0.18"/>
+</svg>

@@ -1,0 +1,21 @@
+# Ambiente virtual
+venv/
+.venv/
+
+# Saída gerada pelo script
+transcricoes/
+
+# Arquivos do app Escriba
+_uploads/
+_appwin/
+escriba_log.txt
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Áudios temporários (caso fiquem soltos)
+*.mp3
+*.wav
+*.m4a
+*.webm

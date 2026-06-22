@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heart, Search, Save, RotateCcw, Lock, Unlock, Pencil, Trash2, Eye, EyeOff, RefreshCw, Info, CalendarDays, ChevronDown,
   MapPin, MessageCircle, Tag as TagIcon, CheckSquare, Users, List, LayoutTemplate, CheckCircle2,
-  MessagesSquare, Network, Paperclip, Plus, Smartphone, History, Mail,
+  MessagesSquare, Network, Paperclip, Plus, Smartphone, History, Mail, Check, X,
 } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
@@ -609,10 +609,20 @@ function ContatoLinha({ empresaId, contato, departamentos, obrigacoes, podeEdita
   const [obrIds, setObrIds] = useState<string[]>(contato.obrigacaoIds);
   const [appAtivo, setAppAtivo] = useState(contato.ativo);
   const [senha, setSenha] = useState('');
+  const [editando, setEditando] = useState(false);
+  const [form, setForm] = useState({ nome: contato.nome, cargo: contato.cargo ?? '', whatsapp: contato.whatsapp ?? '', email: contato.email ?? '' });
 
   async function salvarDeps(novDep: string[], novObr: string[]) {
     try { await api.put(`/empresas/${empresaId}/contatos/${contato.id}`, { nome: contato.nome, email: contato.email, whatsapp: contato.whatsapp, cargo: contato.cargo, departamentoIds: novDep, obrigacaoIds: novObr }); onMudou(); }
     catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  function abrirEdicao() { setForm({ nome: contato.nome, cargo: contato.cargo ?? '', whatsapp: contato.whatsapp ?? '', email: contato.email ?? '' }); setEditando(true); }
+  async function salvarEdicao() {
+    if (!form.nome.trim()) return toast('erro', 'Informe o nome.');
+    try {
+      await api.put(`/empresas/${empresaId}/contatos/${contato.id}`, { nome: form.nome.trim(), cargo: form.cargo || null, whatsapp: form.whatsapp || null, email: form.email || null, departamentoIds: depIds, obrigacaoIds: obrIds });
+      setEditando(false); onMudou();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
   }
   async function remover() { if (!confirm('Remover este contato?')) return; try { await api.del(`/empresas/${empresaId}/contatos/${contato.id}`); onMudou(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); } }
   async function ativarAcesso() {
@@ -623,16 +633,25 @@ function ContatoLinha({ empresaId, contato, departamentos, obrigacoes, podeEdita
   return (
     <>
       <div className="flex flex-wrap items-center gap-1.5">
-        <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{contato.nome}</div>
-        <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{contato.cargo ?? ''}</div>
-        <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{contato.whatsapp ?? ''}</div>
-        <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{contato.email ?? ''}</div>
-        <button onClick={() => setPainel((p) => (p === 'dep' ? 'none' : 'dep'))} className={`${ICO_CT} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
-        <button onClick={() => setPainel((p) => (p === 'app' ? 'none' : 'app'))} className={`${ICO_CT} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
-        {podeEditar && <>
-          <button className={`${ICO_CT} bg-status-warn hover:bg-amber-500`} title="Editar"><Pencil size={15} /></button>
-          <button className={`${ICO_CT} bg-slate-400 hover:bg-slate-500`} title="Log's de alteracao do contato"><History size={15} /></button>
-          <button onClick={remover} className={`${ICO_CT} bg-status-danger hover:bg-red-600`} title="Remover"><Trash2 size={15} /></button>
+        {editando ? <>
+          <input className={`${INP} min-w-[160px] flex-1`} placeholder="Nome" value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} />
+          <input className={`${INP} min-w-[120px] flex-1`} placeholder="Cargo" value={form.cargo} onChange={(e) => setForm((f) => ({ ...f, cargo: e.target.value }))} />
+          <input className={`${INP} min-w-[120px] flex-1`} placeholder="WhatsApp" inputMode="tel" value={form.whatsapp} onChange={(e) => setForm((f) => ({ ...f, whatsapp: e.target.value }))} />
+          <input className={`${INP} min-w-[160px] flex-1`} placeholder="E-mail" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} />
+          <button onClick={salvarEdicao} className={`${ICO_CT} bg-status-ok hover:bg-green-600`} title="Salvar"><Check size={15} /></button>
+          <button onClick={() => setEditando(false)} className={`${ICO_CT} bg-slate-400 hover:bg-slate-500`} title="Cancelar"><X size={15} /></button>
+        </> : <>
+          <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{contato.nome}</div>
+          <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{contato.cargo ?? ''}</div>
+          <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{contato.whatsapp ?? ''}</div>
+          <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{contato.email ?? ''}</div>
+          <button onClick={() => setPainel((p) => (p === 'dep' ? 'none' : 'dep'))} className={`${ICO_CT} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
+          <button onClick={() => setPainel((p) => (p === 'app' ? 'none' : 'app'))} className={`${ICO_CT} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
+          {podeEditar && <>
+            <button onClick={abrirEdicao} className={`${ICO_CT} bg-status-warn hover:bg-amber-500`} title="Editar"><Pencil size={15} /></button>
+            <button className={`${ICO_CT} bg-slate-400 hover:bg-slate-500`} title="Log's de alteracao do contato"><History size={15} /></button>
+            <button onClick={remover} className={`${ICO_CT} bg-status-danger hover:bg-red-600`} title="Remover"><Trash2 size={15} /></button>
+          </>}
         </>}
       </div>
       {painel === 'dep' && <PainelDepartamentos existente departamentos={departamentos} obrigacoes={obrigacoes}
@@ -835,21 +854,71 @@ function SecTarefas({ empresa, departamentos }: { empresa: EmpresaDetalhe; depar
       </div>
       {/* existentes */}
       {tarefas.map((t) => (
-        <div key={t.id} className={COLS}>
-          <div className={`${INP} bg-fundo`}>{t.titulo}</div>
-          <div className={`${INP} bg-fundo text-center`}>{t.tempo}</div>
-          <div className={`${INP} bg-fundo`}>{depNome(t.departamentoId)}</div>
-          <div className={`${INP} bg-fundo text-center`}>{t.dia ? `Dia ${t.dia}` : '—'}</div>
-          <div className={`${INP} bg-fundo text-center`}>{t.mes ? MESES_ABREV[t.mes - 1] : '—'}</div>
-          <div className={`${INP} bg-fundo text-center`}>{t.ano}</div>
-          <div className={`${INP} bg-fundo text-center`}>{t.lembrarDias ?? '—'}</div>
-          <div className="flex gap-1.5">
-            <button className="grid h-9 w-10 place-items-center rounded bg-status-warn text-white hover:bg-amber-500" title="Editar"><Pencil size={15} /></button>
-            <button onClick={() => remover(t)} className="grid h-9 w-10 place-items-center rounded bg-status-danger text-white hover:bg-red-600" title="Remover"><Trash2 size={15} /></button>
-          </div>
-        </div>
+        <TarefaLinha key={t.id} empresaId={empresa.id} tarefa={t} departamentos={departamentos} cols={COLS} depNome={depNome} onMudou={carregar} onRemover={() => remover(t)} />
       ))}
       {tarefas.length === 0 && <p className="text-[12px] text-slate-400">Nenhuma tarefa.</p>}
+    </div>
+  );
+}
+
+function TarefaLinha({ empresaId, tarefa, departamentos, cols, depNome, onMudou, onRemover }: {
+  empresaId: string; tarefa: TarefaAgendada; departamentos: Departamento[]; cols: string;
+  depNome: (id: string | null) => string; onMudou: () => void; onRemover: () => void;
+}) {
+  const toast = useToast();
+  const [editando, setEditando] = useState(false);
+  const fromT = () => ({
+    titulo: tarefa.titulo, tempo: String(tarefa.tempo ?? ''), departamentoId: tarefa.departamentoId ?? '',
+    dia: tarefa.dia ? String(tarefa.dia) : '', mes: tarefa.mes ? String(tarefa.mes) : '',
+    ano: String(tarefa.ano ?? 0), lembrarDias: tarefa.lembrarDias != null ? String(tarefa.lembrarDias) : '',
+  });
+  const [form, setForm] = useState(fromT());
+  function abrir() { setForm(fromT()); setEditando(true); }
+  async function salvar() {
+    if (!form.titulo.trim()) return toast('erro', 'Informe a descricao.');
+    try {
+      await api.put(`/empresas/${empresaId}/tarefas/${tarefa.id}`, {
+        titulo: form.titulo.trim(),
+        tempo: form.tempo ? Number(form.tempo) : 0,
+        departamentoId: form.departamentoId || null,
+        dia: form.dia ? Number(form.dia) : null,
+        mes: form.mes ? Number(form.mes) : null,
+        ano: form.ano ? Number(form.ano) : 0,
+        lembrarDias: form.lembrarDias ? Number(form.lembrarDias) : null,
+      });
+      setEditando(false); onMudou();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  if (editando) {
+    return (
+      <div className={cols}>
+        <input className={INP} value={form.titulo} onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))} />
+        <input className={`${INP} text-center`} inputMode="numeric" value={form.tempo} onChange={(e) => setForm((f) => ({ ...f, tempo: e.target.value.replace(/\D/g, '') }))} />
+        <select className={INP} value={form.departamentoId} onChange={(e) => setForm((f) => ({ ...f, departamentoId: e.target.value }))}><option value="">Departamento...</option>{departamentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}</select>
+        <select className={INP} value={form.dia} onChange={(e) => setForm((f) => ({ ...f, dia: e.target.value }))}><option value="">Dia...</option>{Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>Dia {d}</option>)}</select>
+        <select className={INP} value={form.mes} onChange={(e) => setForm((f) => ({ ...f, mes: e.target.value }))}><option value="">Mes...</option>{MESES_ABREV.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select>
+        <input className={`${INP} text-center`} inputMode="numeric" value={form.ano} onChange={(e) => setForm((f) => ({ ...f, ano: e.target.value.replace(/\D/g, '') }))} />
+        <input className={`${INP} text-center`} inputMode="numeric" value={form.lembrarDias} onChange={(e) => setForm((f) => ({ ...f, lembrarDias: e.target.value.replace(/\D/g, '') }))} />
+        <div className="flex gap-1.5">
+          <button onClick={salvar} className="grid h-9 w-10 place-items-center rounded bg-status-ok text-white hover:bg-green-600" title="Salvar"><Check size={15} /></button>
+          <button onClick={() => setEditando(false)} className="grid h-9 w-10 place-items-center rounded bg-slate-400 text-white hover:bg-slate-500" title="Cancelar"><X size={15} /></button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className={cols}>
+      <div className={`${INP} bg-fundo`}>{tarefa.titulo}</div>
+      <div className={`${INP} bg-fundo text-center`}>{tarefa.tempo}</div>
+      <div className={`${INP} bg-fundo`}>{depNome(tarefa.departamentoId)}</div>
+      <div className={`${INP} bg-fundo text-center`}>{tarefa.dia ? `Dia ${tarefa.dia}` : '—'}</div>
+      <div className={`${INP} bg-fundo text-center`}>{tarefa.mes ? MESES_ABREV[tarefa.mes - 1] : '—'}</div>
+      <div className={`${INP} bg-fundo text-center`}>{tarefa.ano}</div>
+      <div className={`${INP} bg-fundo text-center`}>{tarefa.lembrarDias ?? '—'}</div>
+      <div className="flex gap-1.5">
+        <button onClick={abrir} className="grid h-9 w-10 place-items-center rounded bg-status-warn text-white hover:bg-amber-500" title="Editar"><Pencil size={15} /></button>
+        <button onClick={onRemover} className="grid h-9 w-10 place-items-center rounded bg-status-danger text-white hover:bg-red-600" title="Remover"><Trash2 size={15} /></button>
+      </div>
     </div>
   );
 }

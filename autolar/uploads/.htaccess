@@ -1,0 +1,5 @@
+# Permite servir imagens, mas IMPEDE execução de qualquer script nesta pasta.
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar|pl|py|cgi|sh)$">
+    Require all denied
+</FilesMatch>
+Options -Indexes -ExecCGI

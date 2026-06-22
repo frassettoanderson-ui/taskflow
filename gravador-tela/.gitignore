@@ -1,0 +1,25 @@
+# Ambiente virtual Python
+venv/
+.venv/
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Artefatos do PyInstaller
+build/
+dist/
+*.spec
+
+# Ícone gerado por gerar_icone.py
+icon.ico
+
+# Instalador gerado pelo Inno Setup
+Output/
+
+# FFmpeg embutido (caso copie para a pasta)
+ffmpeg.exe
+ffmpeg/
+
+# FFmpeg leve baixado por baixar_ffmpeg_leve.ps1
+vendor/

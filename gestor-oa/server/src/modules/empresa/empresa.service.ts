@@ -551,6 +551,27 @@ export async function alternarTarefa(escritorioId: string, empresaId: string, ta
   });
 }
 
+export async function atualizarTarefa(
+  escritorioId: string, empresaId: string, tarefaId: string,
+  dados: { titulo?: string; tempo?: number; departamentoId?: string | null; dia?: number | null; mes?: number | null; ano?: number; lembrarDias?: number | null; concluida?: boolean },
+) {
+  const t = await prisma.empresaTarefaAgendada.findFirst({ where: { id: tarefaId, empresaId, escritorioId } });
+  if (!t) throw Errors.naoEncontrado('Tarefa');
+  return prisma.empresaTarefaAgendada.update({
+    where: { id: tarefaId },
+    data: {
+      titulo: dados.titulo ?? t.titulo,
+      tempo: dados.tempo ?? t.tempo,
+      departamentoId: dados.departamentoId === undefined ? t.departamentoId : (dados.departamentoId || null),
+      dia: dados.dia === undefined ? t.dia : dados.dia,
+      mes: dados.mes === undefined ? t.mes : dados.mes,
+      ano: dados.ano ?? t.ano,
+      lembrarDias: dados.lembrarDias === undefined ? t.lembrarDias : dados.lembrarDias,
+      ...(dados.concluida !== undefined ? { concluida: dados.concluida, concluidaEm: dados.concluida ? new Date() : null } : {}),
+    },
+  });
+}
+
 export async function removerTarefa(escritorioId: string, empresaId: string, tarefaId: string) {
   const t = await prisma.empresaTarefaAgendada.findFirst({ where: { id: tarefaId, empresaId, escritorioId } });
   if (!t) throw Errors.naoEncontrado('Tarefa');

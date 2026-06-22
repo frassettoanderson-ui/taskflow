@@ -1,0 +1,19 @@
+# Dependências Python do Gravador de Tela
+# (Tkinter já vem incluído na instalação padrão do Python no Windows.)
+
+# Detecção de múltiplos monitores e resoluções.
+screeninfo>=0.8
+
+# Atalho global para parar a gravação (Ctrl+Alt+S) mesmo sem foco na janela.
+keyboard>=0.13.5
+
+# Ícone na bandeja do sistema (perto do relógio) + geração do ícone +
+# exibição da webcam ao vivo.
+pystray>=0.19
+pillow>=10.0
+
+# Webcam ao vivo (leitura da câmera). Versão "headless" = menor e sem GUI extra.
+opencv-python-headless>=4.8
+
+# OBS.: o FFmpeg NÃO é instalado por aqui. Ele é um programa externo.
+#       Veja o README.md para instalá-lo e adicioná-lo ao PATH.

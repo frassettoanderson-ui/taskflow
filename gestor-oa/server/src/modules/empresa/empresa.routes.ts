@@ -196,9 +196,9 @@ router.post(
 router.put(
   '/:id/tarefas/:tarefaId',
   requirePermission('empresas_editar'),
-  validate({ body: z.object({ concluida: z.boolean() }) }),
+  validate({ body: tarefaSchema.partial().extend({ concluida: z.boolean().optional() }) }),
   async (req, res) => {
-    const r = await svc.alternarTarefa(req.auth!.escritorioId, req.params.id, req.params.tarefaId, req.body.concluida);
+    const r = await svc.atualizarTarefa(req.auth!.escritorioId, req.params.id, req.params.tarefaId, req.body);
     return ok(res, r);
   },
 );

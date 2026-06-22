@@ -1,0 +1,5 @@
+# Dependências usadas APENAS para empacotar/gerar o instalador
+# (não são necessárias para apenas rodar o gravador_tela.py).
+
+pyinstaller>=6.0     # gera o .exe
+pillow>=10.0         # gera o ícone (icon.ico)
