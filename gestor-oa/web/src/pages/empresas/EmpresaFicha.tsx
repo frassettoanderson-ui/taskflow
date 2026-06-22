@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Heart, Search, Save, RotateCcw, Lock, Unlock, Pencil, Trash2, Eye, EyeOff, RefreshCw, Info, CalendarDays, ChevronDown,
   MapPin, MessageCircle, Tag as TagIcon, CheckSquare, Users, List, LayoutTemplate, CheckCircle2,
-  MessagesSquare, Network, Paperclip, Plus,
+  MessagesSquare, Network, Paperclip, Plus, Smartphone, History,
 } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
@@ -557,6 +557,8 @@ function SecContatos({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe
           <input className={`${INP} min-w-[120px] flex-1`} placeholder="Cargo" value={novo.cargo} onChange={(e) => setNovo((n) => ({ ...n, cargo: e.target.value }))} />
           <input className={`${INP} min-w-[120px] flex-1`} placeholder="Celular" value={novo.whatsapp} onChange={(e) => setNovo((n) => ({ ...n, whatsapp: e.target.value }))} />
           <input className={`${INP} min-w-[160px] flex-1`} placeholder="E-Mail" value={novo.email} onChange={(e) => setNovo((n) => ({ ...n, email: e.target.value }))} />
+          <button className={`${ICO} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
+          <button className={`${ICO} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
           <button onClick={adicionar} className="flex items-center gap-2 rounded bg-marca-500 px-4 py-2 text-sm font-medium text-white hover:bg-marca-600"><Plus size={15} /> Adicionar</button>
         </div>
       )}
@@ -566,8 +568,11 @@ function SecContatos({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe
           <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{c.cargo ?? ''}</div>
           <div className={`${INP} min-w-[120px] flex-1 bg-fundo`}>{c.whatsapp ?? ''}</div>
           <div className={`${INP} min-w-[160px] flex-1 bg-fundo`}>{c.email ?? ''}</div>
+          <button className={`${ICO} bg-roxo-500 hover:bg-roxo-600`} title="Selecionar departamentos"><Network size={15} /></button>
+          <button className={`${ICO} bg-marca-400 hover:bg-marca-500`} title="Acesso ao App"><Smartphone size={15} /></button>
           {podeEditar && <>
             <button className={`${ICO} bg-status-warn hover:bg-amber-500`} title="Editar"><Pencil size={15} /></button>
+            <button className={`${ICO} bg-slate-400 hover:bg-slate-500`} title="Log's de alteracao do contato"><History size={15} /></button>
             <button onClick={() => remover(c.id)} className={`${ICO} bg-status-danger hover:bg-red-600`} title="Remover"><Trash2 size={15} /></button>
           </>}
         </div>
