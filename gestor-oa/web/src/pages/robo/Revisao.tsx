@@ -43,6 +43,12 @@ export default function Revisao() {
             obrigacoes={obrigacoes}
             onPrevia={() => previa(j.id)}
             onResolvido={() => { toast('ok', 'Baixa realizada.'); carregar(); }}
+            onReprocessado={(r) => {
+              if (r.baixados > 0) toast('ok', 'Reprocessado: baixa automatica realizada!');
+              else if (r.revisao > 0) toast('ok', 'Reprocessado, mas ainda em revisao (ajuste a assinatura ou a entrega).');
+              else toast('ok', 'Reprocessado.');
+              carregar();
+            }}
           />
         ))}
       </div>
@@ -50,8 +56,9 @@ export default function Revisao() {
   );
 }
 
-function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido }: {
+function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onReprocessado }: {
   job: RoboJob; empresas: EmpresaLista[]; obrigacoes: Obrigacao[]; onPrevia: () => void; onResolvido: () => void;
+  onReprocessado: (r: { total: number; baixados: number; revisao: number }) => void;
 }) {
   const toast = useToast();
   const hoje = new Date();
@@ -60,6 +67,7 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido }: {
   const [ano, setAno] = useState(job.competenciaAno ?? hoje.getFullYear());
   const [mes, setMes] = useState(job.competenciaMes ?? hoje.getMonth() + 1);
   const [salvando, setSalvando] = useState(false);
+  const [reprocessando, setReprocessando] = useState(false);
 
   async function resolver() {
     if (!empresaId || !obrigacaoNome) return toast('erro', 'Selecione empresa e obrigacao.');
@@ -71,6 +79,15 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido }: {
     finally { setSalvando(false); }
   }
 
+  async function reprocessar() {
+    setReprocessando(true);
+    try {
+      const r = await api.post<{ total: number; baixados: number; revisao: number }>(`/robo/revisao/${job.id}/reprocessar`, {});
+      onReprocessado(r);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    finally { setReprocessando(false); }
+  }
+
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between">
@@ -78,7 +95,10 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido }: {
           <div className="font-medium text-slate-700">{job.arquivoNome}</div>
           <div className="text-xs text-amber-700">{job.motivo}</div>
         </div>
-        <button className="btn-ghost border border-slate-300" onClick={onPrevia}>Ver PDF</button>
+        <div className="flex gap-2">
+          <button className="btn-ghost border border-slate-300" onClick={reprocessar} disabled={reprocessando} title="Re-roda a identificacao automatica (util apos cadastrar/ajustar assinaturas)">{reprocessando ? 'Reprocessando...' : 'Reprocessar'}</button>
+          <button className="btn-ghost border border-slate-300" onClick={onPrevia}>Ver PDF</button>
+        </div>
       </div>
       {job.textoTrecho && <pre className="mt-2 max-h-24 overflow-auto rounded bg-slate-50 p-2 text-[11px] text-slate-500">{job.textoTrecho}</pre>}
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">

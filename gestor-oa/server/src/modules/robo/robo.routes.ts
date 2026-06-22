@@ -115,6 +115,12 @@ router.post(
   },
 );
 
+// Reprocessar um job (re-roda a identificacao automatica - util apos cadastrar/ajustar assinaturas)
+router.post('/revisao/:id/reprocessar', requirePermission('entregas_baixar'), async (req, res) => {
+  const r = await svc.reprocessarJob(req.auth!.escritorioId, req.params.id);
+  return ok(res, r);
+});
+
 // Download do PDF de um job (para previa na revisao)
 router.get('/jobs/:id/arquivo', async (req, res) => {
   const fs = await import('node:fs');

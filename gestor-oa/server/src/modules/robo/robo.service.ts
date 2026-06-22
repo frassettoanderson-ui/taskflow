@@ -334,6 +334,21 @@ export async function resolverRevisao(
   return { ok: true };
 }
 
+// ---------- Reprocessar um job (re-roda a identificacao automatica no arquivo guardado) ----------
+export async function reprocessarJob(escritorioId: string, jobId: string) {
+  const job = await prisma.roboJob.findFirst({ where: { id: jobId, escritorioId } });
+  if (!job) throw new Error('Job nao encontrado');
+  if (!fs.existsSync(job.caminho)) throw new Error('Arquivo original nao encontrado para reprocessar');
+  // tira o sufixo de pagina (ex.: " (p.2)") para reusar o nome original
+  const nome = job.arquivoNome.replace(/\s*\(p\.\d+\)\s*$/, '');
+  const resultados = await processarArquivo(escritorioId, job.caminho, nome, job.origem as 'UPLOAD' | 'WATCHER' | 'API');
+  // o job antigo foi substituido pelos novos resultados
+  await prisma.roboJob.delete({ where: { id: jobId } }).catch(() => undefined);
+  const baixados = resultados.filter((r) => r.status === 'BAIXADO').length;
+  const revisao = resultados.filter((r) => r.status === 'REVISAO').length;
+  return { total: resultados.length, baixados, revisao };
+}
+
 // ---------- Painel / estatisticas ----------
 // ---------- Consulta documento (dry-run de identificacao na base de conhecimento) ----------
 export interface ConsultaResultado {
