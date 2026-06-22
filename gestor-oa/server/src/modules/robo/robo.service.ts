@@ -6,6 +6,7 @@ import { generateToken } from '../../lib/password.js';
 import { sendMail } from '../../lib/mailer.js';
 import { env } from '../../env.js';
 import { dividirPaginas, extrairTexto, digitosDoTexto } from './extracao.js';
+import { gerarAvulsaObrigacao } from '../entrega/entrega.service.js';
 
 interface Etapa {
   etapa: string;
@@ -84,7 +85,7 @@ async function identificarObrigacao(escritorioId: string, texto: string) {
       }
     }
     if (!comp) comp = parseCompetencia(t);
-    return { obrigacaoNome: a.obrigacaoNome, competencia: comp };
+    return { obrigacaoNome: a.obrigacaoNome, competencia: comp, semDemanda: a.semDemanda };
   }
   return null;
 }
@@ -169,7 +170,7 @@ async function processarPagina(
       where: { escritorioId, nome: obr.obrigacaoNome, deletedAt: null },
       select: { id: true, nome: true, departamentoId: true },
     });
-    const entrega = obrigacao
+    let entrega = obrigacao
       ? await prisma.entrega.findFirst({
           where: {
             escritorioId,
@@ -181,6 +182,21 @@ async function processarPagina(
         })
       : null;
     marcar('localizar_entrega', !!entrega, ini);
+
+    // Igual ao original: se nao existe a entrega/demanda na competencia e a assinatura
+    // esta como "Criar entrega/demanda", o robo cria o vinculo + a entrega e segue para a baixa.
+    if (!entrega && obrigacao && obr.semDemanda === 'Criar entrega/demanda') {
+      const iniCriar = Date.now();
+      await gerarAvulsaObrigacao(
+        escritorioId, obrigacao.id, emp.empresaId,
+        { ano: obr.competencia.ano, mes: obr.competencia.mes },
+        { ano: obr.competencia.ano, mes: obr.competencia.mes },
+      ).catch(() => undefined);
+      entrega = await prisma.entrega.findFirst({
+        where: { escritorioId, empresaId: emp.empresaId, obrigacaoId: obrigacao.id, competenciaAno: obr.competencia.ano, competenciaMes: obr.competencia.mes },
+      });
+      marcar('criar_entrega', !!entrega, iniCriar, 'demanda criada automaticamente');
+    }
 
     if (!entrega || !obrigacao) {
       return finalizar(job.id, 'REVISAO', etapas, t0, {
