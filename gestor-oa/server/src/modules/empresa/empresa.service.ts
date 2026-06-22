@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../prisma.js';
 import { Errors } from '../../lib/errors.js';
 import { soDigitos, identificadorValido } from '../../lib/identificadores.js';
@@ -184,6 +184,13 @@ interface CriarInput {
   cidade?: string | null;
   uf?: string | null;
   grupoEnvio?: string | null;
+  nire?: string | null;
+  inscricaoMunicipal?: string | null;
+  inscMunicipalData?: string | null;
+  website?: string | null;
+  ieIsenta?: boolean;
+  inscricoesEstaduais?: { valor: string; data?: string | null; uf?: string | null }[] | null;
+  dataAbertura?: string | null;
   regimeTributarioId?: string | null;
   anotacoes?: string | null;
   ativo?: boolean;
@@ -230,6 +237,13 @@ export async function criar(escritorioId: string, input: CriarInput) {
       cidade: input.cidade || null,
       uf: input.uf || null,
       grupoEnvio: input.grupoEnvio || null,
+      nire: input.nire || null,
+      inscricaoMunicipal: input.inscricaoMunicipal || null,
+      inscMunicipalData: input.inscMunicipalData || null,
+      website: input.website || null,
+      ieIsenta: input.ieIsenta ?? false,
+      inscricoesEstaduais: input.inscricoesEstaduais ?? undefined,
+      dataAbertura: input.dataAbertura ? new Date(input.dataAbertura) : null,
       regimeTributarioId: input.regimeTributarioId || null,
       anotacoes: input.anotacoes || null,
       ativo: input.ativo ?? true,
@@ -295,6 +309,21 @@ export async function editar(
       cidade: input.cidade === undefined ? empresa.cidade : input.cidade || null,
       uf: input.uf === undefined ? empresa.uf : input.uf || null,
       grupoEnvio: input.grupoEnvio === undefined ? empresa.grupoEnvio : input.grupoEnvio || null,
+      nire: input.nire === undefined ? empresa.nire : input.nire || null,
+      inscricaoMunicipal: input.inscricaoMunicipal === undefined ? empresa.inscricaoMunicipal : input.inscricaoMunicipal || null,
+      inscMunicipalData: input.inscMunicipalData === undefined ? empresa.inscMunicipalData : input.inscMunicipalData || null,
+      website: input.website === undefined ? empresa.website : input.website || null,
+      ieIsenta: input.ieIsenta === undefined ? empresa.ieIsenta : input.ieIsenta,
+      inscricoesEstaduais:
+        (input.inscricoesEstaduais ?? empresa.inscricoesEstaduais) == null
+          ? Prisma.JsonNull
+          : ((input.inscricoesEstaduais ?? empresa.inscricoesEstaduais) as Prisma.InputJsonValue),
+      dataAbertura:
+        input.dataAbertura === undefined
+          ? empresa.dataAbertura
+          : input.dataAbertura
+            ? new Date(input.dataAbertura)
+            : null,
       regimeTributarioId:
         input.regimeTributarioId === undefined
           ? empresa.regimeTributarioId

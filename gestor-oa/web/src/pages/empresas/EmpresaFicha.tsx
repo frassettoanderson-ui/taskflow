@@ -11,7 +11,7 @@ import { Spinner, useToast } from '../../components/ui';
 import type {
   EmpresaDetalhe, Tag, Departamento, UsuarioBasico, GrupoEmpresa, TarefaAgendada, Regime,
 } from '../../lib/tipos';
-import { formatarIdent, formatarBytes } from '../../lib/tipos';
+import { formatarIdent, formatarBytes, LABEL_TIPO_IDENT } from '../../lib/tipos';
 import AbaObrigacoes from './AbaObrigacoes';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
@@ -83,7 +83,7 @@ export default function EmpresaFicha() {
         honorario: e.honorario != null ? String(e.honorario) : '',
         regimeTributarioId: e.regimeTributarioId ?? '',
         ativo: e.ativo,
-        dataAbertura: '',
+        dataAbertura: e.dataAbertura ? e.dataAbertura.slice(0, 10) : '',
         dataEntrada: e.dataEntrada ? e.dataEntrada.slice(0, 10) : '',
         dataSaida: e.dataSaida ? e.dataSaida.slice(0, 10) : '',
       });
@@ -127,6 +127,7 @@ export default function EmpresaFicha() {
         honorario: form.honorario === '' ? null : Number(form.honorario),
         regimeTributarioId: form.regimeTributarioId || null,
         ativo: form.ativo,
+        dataAbertura: isoOuNull(form.dataAbertura),
         dataEntrada: isoOuNull(form.dataEntrada),
         dataSaida: isoOuNull(form.dataSaida),
         tagIds,
@@ -244,7 +245,7 @@ export default function EmpresaFicha() {
       {/* Datas (exibir/ocultar pelo calendario em Ativa?) */}
       {mostrarDatas && (
         <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 rounded bg-white p-3 shadow-sm md:grid-cols-3">
-          <div><label className={LBL}>Data abertura</label><input type="date" className={INP} value={form.dataAbertura} disabled={!podeEditar} onChange={(e) => set('dataAbertura', e.target.value)} /><span className="text-[11px] text-slate-400">(em construcao)</span></div>
+          <div><label className={LBL}>Data abertura</label><input type="date" className={INP} value={form.dataAbertura} disabled={!podeEditar} onChange={(e) => set('dataAbertura', e.target.value)} /></div>
           <div><label className={LBL}>Cliente desde</label><input type="date" className={INP} value={form.dataEntrada} disabled={!podeEditar} onChange={(e) => set('dataEntrada', e.target.value)} /></div>
           <div><label className={LBL}>Cliente ate</label><input type="date" className={INP} value={form.dataSaida} disabled={!podeEditar} onChange={(e) => set('dataSaida', e.target.value)} /></div>
         </div>
@@ -329,7 +330,7 @@ export default function EmpresaFicha() {
 // ---------- Caixa colapsavel ----------
 function SecaoBox({ titulo, onFechar, children }: { titulo: string; onFechar: () => void; children: React.ReactNode }) {
   return (
-    <div className="rounded bg-white p-3 shadow-sm">
+    <div className="py-2">
       <button onClick={onFechar} className="mb-2 text-left text-[13px] font-bold text-slate-700">
         {titulo} <span className="font-normal text-status-danger">(clique para ocultar)</span>
       </button>
@@ -361,6 +362,18 @@ function SecaoConteudo(props: {
   }
 }
 
+// Mascaras de campo
+const fmtCep = (v: string) => { const d = v.replace(/\D/g, '').slice(0, 8); return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
+const fmtFone = (v: string) => {
+  const d = v.replace(/\D/g, '').slice(0, 11);
+  if (!d) return '';
+  if (d.length <= 10) return d.replace(/^(\d{0,2})(\d{0,4})(\d{0,4}).*/, (_m, a, b, c) => [a && `(${a}`, a.length === 2 && ') ', b, c && `-${c}`].filter(Boolean).join(''));
+  return d.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, (_m, a, b, c) => `(${a}) ${b}${c ? `-${c}` : ''}`);
+};
+const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+
+interface IE { valor: string; data?: string | null; uf?: string | null }
+
 // 1 - Endereco e inscricoes
 function SecEndereco({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe; podeEditar: boolean; onMudou: () => void }) {
   const toast = useToast();
@@ -368,29 +381,88 @@ function SecEndereco({ empresa, podeEditar, onMudou }: { empresa: EmpresaDetalhe
   const [f, setF] = useState({
     logradouro: empresa.logradouro ?? '', numeroEndereco: empresa.numeroEndereco ?? '', complemento: empresa.complemento ?? '',
     cep: empresa.cep ?? '', bairro: empresa.bairro ?? '', cidade: empresa.cidade ?? '', uf: empresa.uf ?? '', telefone: empresa.telefone ?? '',
+    nire: empresa.nire ?? '', inscricaoMunicipal: empresa.inscricaoMunicipal ?? '', inscMunicipalData: empresa.inscMunicipalData ?? '', website: empresa.website ?? '',
   });
+  const [ieIsenta, setIeIsenta] = useState(empresa.ieIsenta);
+  const [ies, setIes] = useState<IE[]>(empresa.inscricoesEstaduais ?? []);
+  const [novaIe, setNovaIe] = useState<IE>({ valor: '', data: '', uf: '' });
+  // Outros identificadores (reusa o sistema de identificadores, exceto CNPJ)
+  const outros = empresa.identificadores.filter((i) => i.tipo !== 'CNPJ');
+  const [novoIdent, setNovoIdent] = useState<{ tipo: string; valor: string }>({ tipo: 'CPF', valor: '' });
+
   function s<K extends keyof typeof f>(k: K, v: (typeof f)[K]) { setF((x) => ({ ...x, [k]: v })); }
+  function addIe() { if (!novaIe.valor.trim()) return; setIes((a) => [...a, novaIe]); setNovaIe({ valor: '', data: '', uf: '' }); }
+  function rmIe(idx: number) { setIes((a) => a.filter((_, i) => i !== idx)); }
+
+  async function addIdent() {
+    if (!novoIdent.valor.trim()) return;
+    try { await api.post(`/empresas/${empresa.id}/identificadores`, { tipo: novoIdent.tipo, valor: novoIdent.valor.trim() }); setNovoIdent({ tipo: 'CPF', valor: '' }); toast('ok', 'Identificador adicionado.'); onMudou(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+  async function rmIdent(identId: string) { try { await api.del(`/empresas/${empresa.id}/identificadores/${identId}`); onMudou(); } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); } }
+
   async function salvar() {
     setSalvando(true);
-    try { await api.put(`/empresas/${empresa.id}`, f); toast('ok', 'Endereco salvo.'); onMudou(); }
+    try { await api.put(`/empresas/${empresa.id}`, { ...f, ieIsenta, inscricoesEstaduais: ies }); toast('ok', 'Endereco salvo.'); onMudou(); }
     catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
     finally { setSalvando(false); }
   }
+
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[2fr_0.7fr_1fr_1fr]">
-        <div><label className={LBL}>Endereco</label><input className={INP} value={f.logradouro} disabled={!podeEditar} onChange={(e) => s('logradouro', e.target.value)} /></div>
-        <div><label className={LBL}>Numero</label><input className={INP} value={f.numeroEndereco} disabled={!podeEditar} onChange={(e) => s('numeroEndereco', e.target.value)} /></div>
+      {/* Linha 1: Endereco|Numero / Complemento / CEP / Inscricoes Estaduais */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[2fr_1fr_1fr_1.6fr]">
+        <div>
+          <label className={LBL}>Endereco | Numero</label>
+          <div className="flex gap-2"><input className={INP} value={f.logradouro} disabled={!podeEditar} onChange={(e) => s('logradouro', e.target.value)} /><input className={`${INP} w-20`} value={f.numeroEndereco} disabled={!podeEditar} onChange={(e) => s('numeroEndereco', e.target.value)} /></div>
+        </div>
         <div><label className={LBL}>Complemento</label><input className={INP} value={f.complemento} disabled={!podeEditar} onChange={(e) => s('complemento', e.target.value)} /></div>
-        <div><label className={LBL}>CEP</label><input className={INP} value={f.cep} disabled={!podeEditar} onChange={(e) => s('cep', e.target.value)} /></div>
+        <div><label className={LBL}>CEP</label><input className={INP} value={f.cep} disabled={!podeEditar} inputMode="numeric" placeholder="00000-000" onChange={(e) => s('cep', fmtCep(e.target.value))} /></div>
+        <div>
+          <div className="flex items-center justify-between"><label className={LBL}>Inscricoes Estaduais</label><label className="flex items-center gap-1 text-[12px] text-slate-500"><input type="checkbox" checked={ieIsenta} disabled={!podeEditar} onChange={(e) => setIeIsenta(e.target.checked)} /> Empresa isenta</label></div>
+          <div className="flex gap-1">
+            <input className={INP} placeholder="Inscricao Estadual" value={novaIe.valor} disabled={!podeEditar || ieIsenta} onChange={(e) => setNovaIe((x) => ({ ...x, valor: e.target.value }))} />
+            <input type="date" className={`${INP} w-32`} value={novaIe.data ?? ''} disabled={!podeEditar || ieIsenta} onChange={(e) => setNovaIe((x) => ({ ...x, data: e.target.value }))} />
+            <select className={`${INP} w-20`} value={novaIe.uf ?? ''} disabled={!podeEditar || ieIsenta} onChange={(e) => setNovaIe((x) => ({ ...x, uf: e.target.value }))}><option value="">UF</option>{UFS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
+            <button onClick={addIe} disabled={!podeEditar || ieIsenta} className="grid h-9 w-9 shrink-0 place-items-center rounded bg-marca-500 text-white hover:bg-marca-600 disabled:opacity-40"><Plus size={15} /></button>
+          </div>
+          {ies.map((ie, i) => (
+            <div key={i} className="mt-1 flex items-center gap-2 text-[12px] text-slate-600"><button onClick={() => rmIe(i)} className="text-status-danger">×</button>{ie.valor}{ie.uf ? ` (${ie.uf})` : ''}{ie.data ? ` - ${ie.data}` : ''}</div>
+          ))}
+        </div>
       </div>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.5fr_1.5fr_0.5fr_1fr]">
+
+      {/* Linha 2: Bairro / Cidade|UF / NIRE / Outros identificadores */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.3fr_1.3fr_1fr_1.6fr]">
         <div><label className={LBL}>Bairro</label><input className={INP} value={f.bairro} disabled={!podeEditar} onChange={(e) => s('bairro', e.target.value)} /></div>
-        <div><label className={LBL}>Cidade</label><input className={INP} value={f.cidade} disabled={!podeEditar} onChange={(e) => s('cidade', e.target.value)} /></div>
-        <div><label className={LBL}>UF</label><input className={INP} maxLength={2} value={f.uf} disabled={!podeEditar} onChange={(e) => s('uf', e.target.value.toUpperCase())} /></div>
-        <div><label className={LBL}>Fone(s)</label><input className={INP} value={f.telefone} disabled={!podeEditar} onChange={(e) => s('telefone', e.target.value)} /></div>
+        <div>
+          <label className={LBL}>Cidade | UF</label>
+          <div className="flex gap-2"><input className={INP} value={f.cidade} disabled={!podeEditar} onChange={(e) => s('cidade', e.target.value)} /><input className={`${INP} w-16 text-center`} maxLength={2} value={f.uf} disabled={!podeEditar} onChange={(e) => s('uf', e.target.value.toUpperCase())} /></div>
+        </div>
+        <div><label className={LBL}>NIRE</label><input className={INP} value={f.nire} disabled={!podeEditar} onChange={(e) => s('nire', e.target.value)} /></div>
+        <div>
+          <label className={LBL}>Outros identificadores</label>
+          <div className="flex gap-1">
+            <select className={`${INP} w-24`} value={novoIdent.tipo} disabled={!podeEditar} onChange={(e) => setNovoIdent((x) => ({ ...x, tipo: e.target.value }))}><option value="CPF">CPF</option><option value="CEI">CEI</option><option value="CAEPF">CAEPF</option><option value="INSCRICAO_ESTADUAL">IE</option></select>
+            <input className={INP} placeholder="Ex: CPF / CEI" value={novoIdent.valor} disabled={!podeEditar} onChange={(e) => setNovoIdent((x) => ({ ...x, valor: e.target.value }))} />
+            <button onClick={addIdent} disabled={!podeEditar} className="grid h-9 w-9 shrink-0 place-items-center rounded bg-marca-500 text-white hover:bg-marca-600 disabled:opacity-40"><Plus size={15} /></button>
+          </div>
+          {outros.map((o) => (
+            <div key={o.id} className="mt-1 flex items-center gap-2 text-[12px] text-slate-600"><button onClick={() => rmIdent(o.id)} className="text-status-danger">×</button>{LABEL_TIPO_IDENT[o.tipo]}: {formatarIdent(o.tipo, o.valor)}</div>
+          ))}
+        </div>
       </div>
-      <p className="text-[12px] text-slate-400">Inscricoes Estaduais, NIRE, Insc. Municipal e Website: em construcao (aguardando ajuste do modelo).</p>
+
+      {/* Linha 3: Fone(s) / Website / Insc. Municipal */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.3fr_1.6fr_1fr]">
+        <div><label className={LBL}>Fone(s)</label><input className={INP} value={f.telefone} disabled={!podeEditar} inputMode="tel" placeholder="(00) 00000-0000" onChange={(e) => s('telefone', fmtFone(e.target.value))} /></div>
+        <div><label className={LBL}>Website da empresa</label><input className={INP} value={f.website} disabled={!podeEditar} placeholder="https://" onChange={(e) => s('website', e.target.value)} /></div>
+        <div>
+          <label className={LBL}>Insc. Municipal</label>
+          <div className="flex gap-2"><input className={INP} placeholder="Numero" value={f.inscricaoMunicipal} disabled={!podeEditar} onChange={(e) => s('inscricaoMunicipal', e.target.value)} /><input type="date" className={`${INP} w-32`} value={f.inscMunicipalData} disabled={!podeEditar} onChange={(e) => s('inscMunicipalData', e.target.value)} /></div>
+        </div>
+      </div>
+
       {podeEditar && <button onClick={salvar} disabled={salvando} className="rounded bg-status-ok px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50">{salvando ? '...' : 'Salvar endereco'}</button>}
     </div>
   );

@@ -129,6 +129,13 @@ export interface EmpresaDetalhe {
   cidade: string | null;
   uf: string | null;
   grupoEnvio: string | null;
+  nire: string | null;
+  inscricaoMunicipal: string | null;
+  inscMunicipalData: string | null;
+  website: string | null;
+  ieIsenta: boolean;
+  inscricoesEstaduais: { valor: string; data?: string | null; uf?: string | null }[] | null;
+  dataAbertura: string | null;
   regimeTributarioId: string | null;
   anotacoes: string | null;
   ativo: boolean;

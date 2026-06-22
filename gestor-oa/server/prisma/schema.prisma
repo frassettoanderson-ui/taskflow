@@ -303,6 +303,14 @@ model Empresa {
   cidade             String?
   uf                 String?
   grupoEnvio         String?            // grupo de envio de e-mails (lote)
+  // Inscricoes / dados fiscais adicionais (secao Endereco e inscricoes)
+  nire               String?
+  inscricaoMunicipal String?
+  inscMunicipalData  String?
+  website            String?
+  ieIsenta           Boolean  @default(false) // "Empresa isenta" de Inscricao Estadual
+  inscricoesEstaduais Json?              // [{ valor, data, uf }]
+  dataAbertura       DateTime?          // data de abertura da empresa
   regimeTributarioId String?
   regimeTributario   RegimeTributario? @relation(fields: [regimeTributarioId], references: [id])
   motivoCancelamentoId String?
