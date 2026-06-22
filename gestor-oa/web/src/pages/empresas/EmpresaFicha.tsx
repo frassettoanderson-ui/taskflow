@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Heart, Search, Save, RotateCcw, Lock, Pencil, Trash2, Eye, EyeOff, RefreshCw, Info, CalendarDays,
+  Heart, Search, Save, RotateCcw, Lock, Unlock, Pencil, Trash2, Eye, EyeOff, RefreshCw, Info, CalendarDays,
   MapPin, MessageCircle, Tag as TagIcon, CheckSquare, Users, List, LayoutTemplate, CheckCircle2,
   MessagesSquare, Network, Paperclip, Plus,
 } from 'lucide-react';
@@ -56,9 +56,14 @@ export default function EmpresaFicha() {
   // form do topo
   const [verHonorario, setVerHonorario] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [cnpjDesbloqueado, setCnpjDesbloqueado] = useState(false);
+  const [cnpjValor, setCnpjValor] = useState('');
+  const [mostrarDatas, setMostrarDatas] = useState(false);
+  const [infoApelido, setInfoApelido] = useState(false);
   const [form, setForm] = useState({
     razaoSocial: '', nomeFantasia: '', apelidoEcontinuo: '', grupoEmpresaId: '',
     honorario: '', regimeTributarioId: '', ativo: true,
+    dataAbertura: '', dataEntrada: '', dataSaida: '',
   });
   const [tagIds, setTagIds] = useState<string[]>([]);
 
@@ -73,7 +78,12 @@ export default function EmpresaFicha() {
         honorario: e.honorario != null ? String(e.honorario) : '',
         regimeTributarioId: e.regimeTributarioId ?? '',
         ativo: e.ativo,
+        dataAbertura: '',
+        dataEntrada: e.dataEntrada ? e.dataEntrada.slice(0, 10) : '',
+        dataSaida: e.dataSaida ? e.dataSaida.slice(0, 10) : '',
       });
+      setCnpjValor(e.identificadores.find((i) => i.tipo === 'CNPJ')?.valor ?? '');
+      setCnpjDesbloqueado(false);
       setTagIds(e.tags.map((t) => t.tag.id));
     }).catch((err) => toast('erro', err instanceof ApiError ? err.message : 'Erro'));
   }
@@ -94,6 +104,8 @@ export default function EmpresaFicha() {
   }
   function set<K extends keyof typeof form>(k: K, v: (typeof form)[K]) { setForm((f) => ({ ...f, [k]: v })); }
 
+  const isoOuNull = (d: string) => (d ? new Date(d + 'T00:00:00').toISOString() : null);
+
   async function salvar() {
     if (!empresa) return;
     setSalvando(true);
@@ -106,12 +118,31 @@ export default function EmpresaFicha() {
         honorario: form.honorario === '' ? null : Number(form.honorario),
         regimeTributarioId: form.regimeTributarioId || null,
         ativo: form.ativo,
+        dataEntrada: isoOuNull(form.dataEntrada),
+        dataSaida: isoOuNull(form.dataSaida),
         tagIds,
       });
+      // CNPJ (so se destravado e alterado)
+      const cnpjAtual = empresa.identificadores.find((i) => i.tipo === 'CNPJ');
+      if (cnpjDesbloqueado && cnpjValor.trim() && cnpjValor.trim() !== (cnpjAtual?.valor ?? '')) {
+        if (cnpjAtual) await api.del(`/empresas/${empresa.id}/identificadores/${cnpjAtual.id}`);
+        await api.post(`/empresas/${empresa.id}/identificadores`, { tipo: 'CNPJ', valor: cnpjValor.trim() });
+      }
       toast('ok', 'Empresa salva.');
       recarregar();
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao salvar.'); }
     finally { setSalvando(false); }
+  }
+
+  async function trocarId() {
+    if (!empresa) return;
+    const atual = empresa.numero != null ? String(empresa.numero) : '';
+    const novo = prompt('Trocar ID da empresa:', atual);
+    if (novo == null || novo.trim() === '' || novo.trim() === atual) return;
+    const n = Number(novo);
+    if (!Number.isInteger(n) || n < 0) return toast('erro', 'Informe um numero valido.');
+    try { await api.put(`/empresas/${empresa.id}`, { numero: n }); toast('ok', 'ID trocado.'); recarregar(); }
+    catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro ao trocar ID.'); }
   }
 
   async function excluir() {
@@ -139,22 +170,21 @@ export default function EmpresaFicha() {
           <span>Empresas</span><span className="text-slate-300">&rsaquo;</span>
           <span className="text-slate-700">Cadastro de empresa cliente do escritorio</span>
         </div>
-        <div className="flex items-center gap-3">
-          {podeExcluir && <button onClick={excluir} className="text-[12px] font-medium text-status-danger hover:underline">Excluir empresa</button>}
-          <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400"><Search size={13} /><span className="text-[12px]">Central de ajuda</span></div>
-        </div>
+        <div className="flex items-center gap-1 rounded border border-slate-300 bg-white px-2 py-1 text-slate-400"><Search size={13} /><span className="text-[12px]">Central de ajuda</span></div>
       </div>
 
       {/* Linha 1: CNPJ / Regime / Grupo / Honorario / ID */}
       <div className="grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[1.4fr_1.2fr_1fr_0.9fr_0.7fr]">
         <div>
-          <div className="flex items-center justify-between"><label className={LBL}>CNPJ / CPF / CAEPF</label><Lock size={14} className="text-amber-500" /></div>
-          <input className={`${INP} bg-slate-100`} value={cnpjFmt} readOnly placeholder="Sem identificador" />
+          <div className="flex items-center justify-between"><label className={LBL}>CNPJ / CPF / CAEPF</label>
+            {podeEditar && <button title={cnpjDesbloqueado ? 'Bloquear campo do CNPJ' : 'Desbloquear campo do CNPJ'} onClick={() => setCnpjDesbloqueado((v) => !v)}>{cnpjDesbloqueado ? <Unlock size={14} className="text-status-ok" /> : <Lock size={14} className="text-amber-500" />}</button>}
+          </div>
+          <input className={`${INP} ${cnpjDesbloqueado ? '' : 'bg-slate-100'}`} value={cnpjDesbloqueado ? cnpjValor : cnpjFmt} readOnly={!cnpjDesbloqueado} onChange={(e) => setCnpjValor(e.target.value)} placeholder="Sem identificador" />
         </div>
         <div>
           <div className="flex items-center gap-2"><label className={LBL}>Regime tributario</label>
             <button title="Cadastro de regimes" onClick={() => navigate('/obrigacoes/regimes')} className="text-marca-500 hover:text-marca-700"><Pencil size={13} /></button>
-            <button title="Remover regime" onClick={() => set('regimeTributarioId', '')} className="ml-auto text-status-danger hover:text-red-700"><Trash2 size={14} /></button>
+            {podeExcluir && <button title={`Deletar empresa ID [${empresa.numero ?? '-'}]`} onClick={excluir} className="ml-auto text-status-danger hover:text-red-700"><Trash2 size={14} /></button>}
           </div>
           <select className={INP} value={form.regimeTributarioId} disabled={!podeEditar} onChange={(e) => set('regimeTributarioId', e.target.value)}>
             <option value="">— Selecione —</option>
@@ -177,7 +207,9 @@ export default function EmpresaFicha() {
           <input className={INP} type={verHonorario ? 'number' : 'password'} step="0.01" min="0" value={form.honorario} disabled={!podeEditar} onChange={(e) => set('honorario', e.target.value)} />
         </div>
         <div>
-          <div className="flex items-center gap-2"><label className={LBL}>ID Empresa</label><RefreshCw size={13} className="text-marca-400" /></div>
+          <div className="flex items-center gap-2"><label className={LBL}>ID Empresa</label>
+            {podeEditar && <button title="Trocar ID" onClick={trocarId} className="text-status-warn hover:text-amber-600"><RefreshCw size={13} /></button>}
+          </div>
           <input className={`${INP} bg-slate-100`} value={empresa.numero ?? ''} readOnly />
         </div>
       </div>
@@ -186,15 +218,28 @@ export default function EmpresaFicha() {
       <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-[1.6fr_0.6fr_1.2fr_1fr]">
         <div><label className={LBL}>Razao Social</label><input className={INP} value={form.razaoSocial} disabled={!podeEditar} onChange={(e) => set('razaoSocial', e.target.value)} /></div>
         <div>
-          <div className="flex items-center gap-2"><label className={LBL}>Ativa?</label><CalendarDays size={13} className="text-status-danger" /></div>
+          <div className="flex items-center gap-2"><label className={LBL}>Ativa?</label>
+            <button title="Exibir/ocultar datas" onClick={() => setMostrarDatas((v) => !v)} className="text-status-danger hover:text-red-700"><CalendarDays size={13} /></button>
+          </div>
           <select className={INP} value={form.ativo ? 'sim' : 'nao'} disabled={!podeEditar} onChange={(e) => set('ativo', e.target.value === 'sim')}><option value="sim">Sim</option><option value="nao">Nao</option></select>
         </div>
         <div><label className={LBL}>Nome Fantasia</label><input className={INP} value={form.nomeFantasia} disabled={!podeEditar} onChange={(e) => set('nomeFantasia', e.target.value)} /></div>
         <div>
-          <div className="flex items-center gap-2"><label className={LBL}>Apelido e-Continuo</label><Info size={13} className="text-marca-400" /></div>
+          <div className="flex items-center gap-2"><label className={LBL}>Apelido e-Continuo</label>
+            <button title="Sobre o apelido e-Continuo" onClick={() => setInfoApelido(true)} className="text-marca-400 hover:text-marca-600"><Info size={13} /></button>
+          </div>
           <input className={INP} value={form.apelidoEcontinuo} disabled={!podeEditar} onChange={(e) => set('apelidoEcontinuo', e.target.value)} />
         </div>
       </div>
+
+      {/* Datas (exibir/ocultar pelo calendario em Ativa?) */}
+      {mostrarDatas && (
+        <div className="mt-3 grid grid-cols-1 gap-x-4 gap-y-3 rounded bg-white p-3 shadow-sm md:grid-cols-3">
+          <div><label className={LBL}>Data abertura</label><input type="date" className={INP} value={form.dataAbertura} disabled={!podeEditar} onChange={(e) => set('dataAbertura', e.target.value)} /><span className="text-[11px] text-slate-400">(em construcao)</span></div>
+          <div><label className={LBL}>Cliente desde</label><input type="date" className={INP} value={form.dataEntrada} disabled={!podeEditar} onChange={(e) => set('dataEntrada', e.target.value)} /></div>
+          <div><label className={LBL}>Cliente ate</label><input type="date" className={INP} value={form.dataSaida} disabled={!podeEditar} onChange={(e) => set('dataSaida', e.target.value)} /></div>
+        </div>
+      )}
 
       {/* Faixa de icones + Salvar/Voltar */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -230,6 +275,19 @@ export default function EmpresaFicha() {
           </SecaoBox>
         ))}
       </div>
+
+      {/* Popup info do Apelido e-Continuo */}
+      {infoApelido && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setInfoApelido(false)}>
+          <div className="max-w-lg rounded-lg bg-white p-6 text-center shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <Info size={40} className="mx-auto mb-3 text-marca-400" />
+            <p className="text-[14px] text-slate-600">No robo e-Continuo e (opcionalmente) salvo uma copia do arquivo localmente na maquina do usuario.</p>
+            <p className="mt-3 text-[14px] text-slate-600">Essas copias sao organizadas em pastas com o ID dos clientes ou com o <span className="text-status-danger">apelido da empresa</span>.</p>
+            <p className="mt-3 text-[14px] text-slate-600">Se deixar o apelido em branco, sera considerado o ID da empresa.</p>
+            <button onClick={() => setInfoApelido(false)} className="mt-5 rounded bg-marca-500 px-6 py-1.5 text-sm font-medium text-white hover:bg-marca-600">OK</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
