@@ -60,9 +60,7 @@ const MENU: Item[] = [
           { label: 'Consulta documento', icon: FileText, to: '/robo/consulta' },
           { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
           { label: 'Painel', icon: Activity, to: '/robo/painel' },
-          { label: 'Instalador Windows 10', icon: Download, href: '/gestoroa-agente.exe' },
-          { label: 'Instalador Windows 8', icon: Download, href: '/gestoroa-agente.exe' },
-          { label: 'Instalador Windows 7', icon: Download, href: '/gestoroa-agente.exe' },
+          { label: 'Baixar agente (Windows)', icon: Download, href: '/GestorOA-eContinuo-Setup.exe' },
         ],
       },
       {
