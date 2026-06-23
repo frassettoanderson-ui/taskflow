@@ -25,14 +25,25 @@ const MESES_EXT: Record<string, number> = {
 };
 
 // Tenta extrair { ano, mes } de um trecho de texto.
+// Valida mes 1-12 e ano plausivel (evita pegar pedaco de CNPJ, ex.: 966/0001).
 function parseCompetencia(s: string): { ano: number; mes: number } | null {
   const t = semAcento(s);
-  let m = t.match(/(\d{1,2})[\/\-.](\d{4})/);
-  if (m) return { mes: Number(m[1]), ano: Number(m[2]) };
-  m = t.match(/(\d{4})[\/\-.](\d{1,2})/);
-  if (m) return { ano: Number(m[1]), mes: Number(m[2]) };
-  m = t.match(/([a-z]+)\s*(?:de|\/)?\s*(\d{4})/);
-  if (m && MESES_EXT[m[1]]) return { mes: MESES_EXT[m[1]], ano: Number(m[2]) };
+  const valido = (mes: number, ano: number) => mes >= 1 && mes <= 12 && ano >= 2000 && ano <= 2100;
+
+  // 1) Competencia perto de uma palavra-chave de periodo (mais confiavel que vencimento).
+  const ctx = t.match(/(?:apuracao|pa\s*:|competencia|referencia)[^\d]{0,12}(\d{1,2})[\/\-.](\d{4})/);
+  if (ctx) { const mes = Number(ctx[1]), ano = Number(ctx[2]); if (valido(mes, ano)) return { mes, ano }; }
+
+  // 2) Mes por extenso (ex.: "Maio/2026").
+  const ext = t.match(/(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*(?:de|\/)?\s*(\d{4})/);
+  if (ext && MESES_EXT[ext[1]]) { const ano = Number(ext[2]); if (valido(MESES_EXT[ext[1]], ano)) return { mes: MESES_EXT[ext[1]], ano }; }
+
+  // 3) Primeiro MM/AAAA valido em qualquer lugar.
+  for (const m of t.matchAll(/(\d{1,2})[\/\-.](\d{4})/g)) { const mes = Number(m[1]), ano = Number(m[2]); if (valido(mes, ano)) return { mes, ano }; }
+
+  // 4) Formato AAAA/MM.
+  for (const m of t.matchAll(/(\d{4})[\/\-.](\d{1,2})/g)) { const ano = Number(m[1]), mes = Number(m[2]); if (valido(mes, ano)) return { mes, ano }; }
+
   return null;
 }
 
