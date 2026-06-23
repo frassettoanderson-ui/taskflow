@@ -139,8 +139,15 @@ function lerConfig() {
 }
 
 // Garante instancia unica em segundo plano.
+// A trava tem "heartbeat": o agente saudavel reescreve o lock a cada 30s. Se o lock
+// estiver velho (>90s), a instancia anterior morreu OU esta congelada (ex.: suspensa
+// pelo antivirus) - nesse caso a nova instancia ASSUME o controle em vez de sair.
+// Isso evita o cenario "processo vivo mas pasta vazia" (instancia-fantasma com lock).
 function jaRodando() {
   try {
+    const st = fs.statSync(LOCK_PATH);
+    const fresco = Date.now() - st.mtimeMs < 90 * 1000;
+    if (!fresco) return false; // lock velho -> instancia anterior nao esta saudavel
     const pid = Number(fs.readFileSync(LOCK_PATH, 'utf8'));
     if (pid && pid !== process.pid) { process.kill(pid, 0); return true; } // existe e vivo
   } catch { /* sem lock ou processo morto */ }
@@ -211,6 +218,7 @@ async function iniciar(cfg) {
   watcher.on('add', (arq) => { if (path.extname(arq).toLowerCase() === '.pdf') { fila.add(arq); drenar(); } });
 
   setInterval(() => {
+    try { fs.writeFileSync(LOCK_PATH, String(process.pid)); } catch {} // heartbeat da trava
     const varrer = (dir) => {
       for (const nome of fs.readdirSync(dir)) {
         const arq = path.join(dir, nome);

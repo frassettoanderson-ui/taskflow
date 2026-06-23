@@ -142,7 +142,17 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   chave, pasta, pastaJson, cfg: String;
   linhas: TArrayOfString;
+  ResultCode: Integer;
 begin
+  // Antes de copiar o exe novo: mata qualquer instancia antiga e limpa a trava (lock).
+  // Sem isso, uma instancia presa de uma instalacao anterior faz a nova sair na hora
+  // por achar que "ja tem um rodando" - e a pasta vigiada nunca recebe os arquivos.
+  if CurStep = ssInstall then
+  begin
+    Exec('taskkill.exe', '/IM gestoroa-agente.exe /F', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    DeleteFile(ExpandConstant('{app}\gestoroa-agente.lock'));
+  end;
+
   if CurStep = ssPostInstall then
   begin
     if ChaveAuto <> '' then
