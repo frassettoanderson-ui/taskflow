@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, FileText, Pencil, Settings } from 'lucide-react';
+import { Search, Plus, FileText, Pencil, Settings, Download, Monitor } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
+import { baixarAgente } from '../../lib/agente';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
 import type { AssinaturaDocumento, Obrigacao } from '../../lib/tipos';
@@ -25,6 +26,8 @@ export default function Assinaturas() {
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [aberto, setAberto] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [baixando, setBaixando] = useState(false);
+  const [verChave, setVerChave] = useState(false);
 
   function carregar() {
     setLoading(true);
@@ -43,6 +46,15 @@ export default function Assinaturas() {
       setApiKey(r.apiKey);
       toast('ok', 'API key gerada.');
     } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
+
+  async function baixar() {
+    setBaixando(true);
+    try {
+      const r = await baixarAgente();
+      toast('ok', r.comChave ? 'Instalador baixado. Rode no PC: next, next, finish - nao precisa digitar nada.' : 'Instalador baixado (generico).');
+    } catch (e) { toast('erro', e instanceof Error ? e.message : 'Falha ao baixar.'); }
+    finally { setBaixando(false); }
   }
 
   const filtrados = useMemo(() => {
@@ -151,14 +163,38 @@ export default function Assinaturas() {
         </table>
       </div>
 
-      {/* Chave API do agente */}
+      {/* Conectar um computador (download do agente ja configurado) */}
       {podeAdmin && (
-        <div className="mt-4 rounded border border-slate-200 bg-white p-4">
-          <p className="mb-1 text-[13px] font-semibold text-slate-700">Chave de conexao do agente (e-Continuo)</p>
-          <p className="mb-2 text-[12px] text-slate-500">Cole essa chave no instalador do agente Windows para conectar a pasta monitorada a este escritorio.</p>
-          <div className="flex items-center gap-2">
-            <input className="input font-mono text-xs" readOnly value={apiKey ?? 'Nenhuma chave gerada ainda'} />
-            <button className="btn-ghost border border-slate-300 text-[13px]" onClick={regenerarKey}>{apiKey ? 'Regenerar' : 'Gerar chave'}</button>
+        <div className="mt-4 rounded border border-marca-200 bg-white p-4">
+          <div className="flex items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-marca-50 text-marca-600">
+              <Monitor size={20} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[14px] font-semibold text-slate-700">Conectar um computador</p>
+              <p className="mt-0.5 text-[12px] text-slate-500">
+                Baixe o instalador <b>ja configurado</b> com a chave deste escritorio e rode no PC: <b>avancar, avancar, concluir</b>.
+                Nao precisa digitar nada. O mesmo arquivo serve para quantos computadores quiser - cada PC que receber PDFs na pasta vigiada envia tudo sozinho.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button onClick={baixar} disabled={baixando} className="flex items-center gap-2 rounded bg-marca-500 px-5 py-2 text-sm font-medium text-white hover:bg-marca-600 disabled:opacity-60">
+                  <Download size={16} /> {baixando ? 'Preparando...' : 'Baixar agente (Windows)'}
+                </button>
+                <button onClick={() => setVerChave((v) => !v)} className="text-[12px] text-slate-500 underline hover:text-slate-700">
+                  {verChave ? 'Ocultar chave' : 'Ver chave (avancado)'}
+                </button>
+              </div>
+              {verChave && (
+                <div className="mt-3 rounded bg-slate-50 p-3">
+                  <p className="mb-1 text-[11px] text-slate-500">Chave API do escritorio (uso manual / integracoes externas):</p>
+                  <div className="flex items-center gap-2">
+                    <input className="input font-mono text-xs" readOnly value={apiKey ?? 'Nenhuma chave gerada ainda'} />
+                    <button className="btn-ghost border border-slate-300 text-[13px]" onClick={regenerarKey}>{apiKey ? 'Regenerar' : 'Gerar chave'}</button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-amber-600">Ao regenerar, os computadores ja instalados param de enviar ate baixarem o instalador novo.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -28,6 +28,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '../lib/auth';
+import { baixarAgente } from '../lib/agente';
 import { useToast } from './ui';
 import FAB from './FAB';
 import NotificacoesBell from './NotificacoesBell';
@@ -40,6 +41,7 @@ interface Item {
   icon: LucideIcon;
   emBreve?: boolean;
   tema?: boolean; // item de acao: abre o seletor "Trocar estilo"
+  baixarAgente?: boolean; // item de acao: baixa o instalador ja carimbado com a chave
   filhos?: Item[];
 }
 
@@ -59,7 +61,7 @@ const MENU: Item[] = [
           { label: 'Configurar obrigacoes', icon: Settings, to: '/robo/assinaturas' },
           { label: 'Consulta documento', icon: FileText, to: '/robo/consulta' },
           { label: 'Revisao', icon: ClipboardList, to: '/robo/revisao' },
-          { label: 'Baixar agente (Windows)', icon: Download, href: '/GestorOA-eContinuo-Setup.exe' },
+          { label: 'Baixar agente (Windows)', icon: Download, baixarAgente: true },
         ],
       },
       {
@@ -273,6 +275,26 @@ function ItemMenu({ item, toast, onTema, recolhido = false }: { item: Item; toas
   if (item.tema) {
     return (
       <button onClick={onTema} title={recolhido ? item.label : undefined} className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}>
+        <item.icon size={20} className="text-[color:var(--m-ic)]" />
+        {!recolhido && <span className="flex-1">{item.label}</span>}
+      </button>
+    );
+  }
+  if (item.baixarAgente) {
+    return (
+      <button
+        onClick={async () => {
+          toast('ok', 'Preparando o instalador (ja com a chave do escritorio)...');
+          try {
+            const r = await baixarAgente();
+            toast('ok', r.comChave ? 'Instalador baixado. E so rodar no PC: nao precisa digitar nada.' : 'Instalador baixado (generico - sera pedida a chave na instalacao).');
+          } catch (e) {
+            toast('erro', e instanceof Error ? e.message : 'Falha ao baixar o instalador.');
+          }
+        }}
+        title={recolhido ? item.label : undefined}
+        className={`${baseCls} text-[color:var(--m-fg)] hover:bg-[var(--m-hv)]`}
+      >
         <item.icon size={20} className="text-[color:var(--m-ic)]" />
         {!recolhido && <span className="flex-1">{item.label}</span>}
       </button>

@@ -1,9 +1,16 @@
 ; Instalador do agente e-Continuo do GestorOA (Inno Setup 6)
-; Coleta a chave API e a pasta vigiada DENTRO do assistente, grava a config
-; ao lado do agente e ja deixa ele rodando + iniciando com o Windows.
+;
+; FLUXO NOVO (instalador "carimbado"):
+;   O admin baixa o instalador de DENTRO do GestorOA. O download injeta a chave
+;   do escritorio no NOME do arquivo, ex.: "GestorOA-eContinuo-Setup__goa_XXXX.exe".
+;   O instalador le essa chave do proprio nome e configura tudo sozinho:
+;   next -> next -> finish, sem digitar nada, pasta criada automatica.
+;
+;   Se o arquivo NAO trouxer a chave no nome (instalador generico), o assistente
+;   pede a chave e a pasta como antes (fallback).
 
 #define MyAppName "GestorOA e-Continuo"
-#define MyAppVersion "0.3.0"
+#define MyAppVersion "0.4.0"
 #define MyAppExe "gestoroa-agente.exe"
 #define ApiUrlPadrao "http://89.117.79.163:8090"
 
@@ -45,14 +52,56 @@ Filename: "{cmd}"; Parameters: "/C taskkill /IM {#MyAppExe} /F"; Flags: runhidde
 var
   PgChave: TInputQueryWizardPage;
   PgPasta: TInputDirWizardPage;
+  ChaveAuto: String;   // chave lida do nome do arquivo (vazio = instalador generico)
+
+// Mantem apenas os caracteres validos de uma chave (a-z A-Z 0-9 _), parando no
+// primeiro caractere diferente (espaco, ponto, parentese do "(1)" do navegador).
+function LimpaChave(s: String): String;
+var
+  i: Integer;
+  c: Char;
+  r: String;
+begin
+  r := '';
+  for i := 1 to Length(s) do
+  begin
+    c := s[i];
+    if ((c >= 'a') and (c <= 'z')) or ((c >= 'A') and (c <= 'Z')) or
+       ((c >= '0') and (c <= '9')) or (c = '_') then
+      r := r + c
+    else
+      Break;
+  end;
+  Result := r;
+end;
+
+// Extrai a chave embutida no nome do instalador (depois de "__").
+function ChaveEmbutida(): String;
+var
+  nome, resto: String;
+  p: Integer;
+begin
+  Result := '';
+  nome := ExtractFileName(ExpandConstant('{srcexe}'));
+  p := Pos('__', nome);
+  if p > 0 then
+  begin
+    resto := LimpaChave(Copy(nome, p + 2, Length(nome)));
+    if Copy(resto, 1, 4) = 'goa_' then
+      Result := resto;
+  end;
+end;
 
 procedure InitializeWizard;
 begin
+  ChaveAuto := ChaveEmbutida();
+
   PgChave := CreateInputQueryPage(wpWelcome,
     'Chave de conexao',
     'Cole a chave API do seu escritorio',
-    'No GestorOA acesse: Sistema > e-Continuo > Caixa do Robo > secao Integracao (API) > botao Gerar.' + #13#10 +
-    'Copie a chave (comeca com goa_) e cole abaixo:');
+    'No GestorOA acesse: Sistema > e-Continuo > Configurar obrigacoes > botao "Baixar agente".' + #13#10 +
+    'Dica: baixando por ali, a chave ja vem embutida e voce nem precisa preencher isto.' + #13#10#13#10 +
+    'Se preferir, cole a chave manualmente abaixo (comeca com goa_):');
   PgChave.Add('Chave API:', False);
 
   PgPasta := CreateInputDirPage(PgChave.ID,
@@ -62,12 +111,24 @@ begin
     False, 'GestorOA - guias');
   PgPasta.Add('');
   PgPasta.Values[0] := ExpandConstant('{userdesktop}\GestorOA - guias');
+
+  // Veio com a chave no nome? Preenche e pula as duas paginas (next/next/finish).
+  if ChaveAuto <> '' then
+    PgChave.Values[0] := ChaveAuto;
+end;
+
+// Quando a chave veio embutida, nao mostra as paginas de chave/pasta.
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if (ChaveAuto <> '') and ((PageID = PgChave.ID) or (PageID = PgPasta.ID)) then
+    Result := True;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   Result := True;
-  if CurPageID = PgChave.ID then
+  if (CurPageID = PgChave.ID) and (ChaveAuto = '') then
   begin
     if Trim(PgChave.Values[0]) = '' then
     begin
@@ -83,8 +144,14 @@ var
 begin
   if CurStep = ssPostInstall then
   begin
-    chave := Trim(PgChave.Values[0]);
+    if ChaveAuto <> '' then
+      chave := ChaveAuto
+    else
+      chave := Trim(PgChave.Values[0]);
+
     pasta := PgPasta.Values[0];
+    if pasta = '' then
+      pasta := ExpandConstant('{userdesktop}\GestorOA - guias');
     ForceDirectories(pasta);
 
     // escapa as barras invertidas do caminho para o JSON (\ -> \\)

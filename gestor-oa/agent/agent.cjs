@@ -153,7 +153,7 @@ function enviarArquivo(cfg, arquivo) {
       headers: { 'x-api-key': cfg.apiKey, 'Content-Type': `multipart/form-data; boundary=${boundary}`, 'Content-Length': body.length },
     }, (res) => {
       let data = ''; res.on('data', (c) => (data += c));
-      res.on('end', () => { let j = null; try { j = JSON.parse(data); } catch {} resolve({ ok: res.statusCode >= 200 && res.statusCode < 300 && j && j.ok, status: res.statusCode, erro: j && j.error && j.error.message }); });
+      res.on('end', () => { let j = null; try { j = JSON.parse(data); } catch {} resolve({ ok: res.statusCode >= 200 && res.statusCode < 300 && j && j.ok, status: res.statusCode, erro: j && j.error && j.error.message, auth: res.statusCode === 401 || res.statusCode === 403 }); });
     });
     req.on('error', (e) => resolve({ ok: false, erro: e.message, rede: true }));
     req.write(body); req.end();
@@ -187,6 +187,7 @@ async function iniciar(cfg) {
       const nome = path.basename(arq);
       const r = await enviarArquivo(cfg, arq);
       if (r.ok) { try { fs.renameSync(arq, destinoUnico(ENVIADOS, nome)); } catch {} log(`OK    ${nome}`); }
+      else if (r.auth) { log(`CHAVE INVALIDA: o servidor recusou a chave (HTTP ${r.status}). Confira a chave no GestorOA. "${nome}" sera reenviado automaticamente quando a chave for corrigida.`); }
       else if (r.rede) { log(`FALHA ${nome} -> ${r.erro} (nova tentativa depois)`); }
       else { try { fs.renameSync(arq, destinoUnico(ERROS, nome)); } catch {} log(`ERRO  ${nome} -> ${r.erro || ('HTTP ' + r.status)}`); }
     }
