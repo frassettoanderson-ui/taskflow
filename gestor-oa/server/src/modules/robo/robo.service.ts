@@ -199,7 +199,7 @@ async function processarPagina(
     if (!obr?.obrigacaoNome || !obr.competencia) {
       // As assinaturas (palavras-chave) nao casaram. Se a IA estiver ligada, pede uma
       // sugestao de obrigacao (ela apenas SUGERE; o humano confirma na tela de Revisao).
-      let ia: { obrigacao: string | null; confianca: number; palavras: string[] } | null = null;
+      let ia: { obrigacao: string | null; confianca: number | null; palavras: string[] } | null = null;
       if (iaDisponivel() && !obr?.obrigacaoNome) {
         const iniIa = Date.now();
         const obrigs = await prisma.obrigacao.findMany({ where: { escritorioId, deletedAt: null }, select: { nome: true } });

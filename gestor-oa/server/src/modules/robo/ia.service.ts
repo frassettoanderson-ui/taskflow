@@ -10,9 +10,23 @@ import { env } from '../../env.js';
 //   - 'anthropic' -> Claude (pago por uso).
 
 export interface SugestaoIa {
-  obrigacao: string | null; // nome exato (da lista) ou null se nao reconhecer
-  confianca: number;        // 0..1
-  palavras: string[];       // 1-3 termos do documento que justificam (p/ virar assinatura)
+  obrigacao: string | null;   // nome exato (da lista) ou null se nao reconhecer
+  confianca: number | null;   // 0..1 (null = a IA nao informou de forma utilizavel)
+  palavras: string[];         // 1-3 termos do documento que justificam (p/ virar assinatura)
+}
+
+// A IA as vezes responde a confianca como texto ("alta") em vez de numero.
+function normalizarConfianca(v: unknown): number | null {
+  if (typeof v === 'number') return Math.max(0, Math.min(1, v));
+  if (typeof v === 'string') {
+    const s = v.toLowerCase();
+    if (s.includes('alta') || s.includes('high')) return 0.9;
+    if (s.includes('med')) return 0.6;
+    if (s.includes('baix') || s.includes('low')) return 0.3;
+    const n = parseFloat(s.replace(',', '.'));
+    if (!Number.isNaN(n)) return n > 1 ? Math.min(1, n / 100) : Math.max(0, n);
+  }
+  return null;
 }
 
 export function iaDisponivel(): boolean {
@@ -31,7 +45,7 @@ function montarPrompt(texto: string, obrigacoes: string[]): string {
     `OBRIGACOES DISPONIVEIS:\n${lista}\n\n` +
     `TEXTO DO DOCUMENTO:\n"""\n${doc}\n"""\n\n` +
     'Responda APENAS um JSON valido, sem texto antes ou depois, no formato:\n' +
-    '{"obrigacao": "<nome exato da lista ou null>", "confianca": <0 a 1>, ' +
+    '{"obrigacao": "<nome exato da lista ou null>", "confianca": <numero decimal entre 0 e 1, ex: 0.9>, ' +
     '"palavras": ["termo curto 1", "termo 2"]}\n' +
     'Em "palavras", escolha 1 a 3 termos/expressoes que aparecem no texto e identificam ' +
     'esse tipo de documento (ex.: um titulo, um codigo de receita), para servir de regra futura.'
@@ -96,12 +110,12 @@ export async function classificarObrigacao(
     const obrigacao = typeof parsed.obrigacao === 'string' ? parsed.obrigacao : null;
     // so aceita se for um nome EXATO da lista (evita alucinacao)
     const valida = obrigacao && obrigacoes.includes(obrigacao) ? obrigacao : null;
-    const confianca = typeof parsed.confianca === 'number' ? Math.max(0, Math.min(1, parsed.confianca)) : 0;
+    const confianca = normalizarConfianca(parsed.confianca);
     const palavras = Array.isArray(parsed.palavras)
       ? parsed.palavras.filter((p): p is string => typeof p === 'string' && p.trim().length > 0).slice(0, 3)
       : [];
 
-    return { obrigacao: valida, confianca: valida ? confianca : 0, palavras };
+    return { obrigacao: valida, confianca: valida ? confianca : null, palavras };
   } catch {
     return null; // falha de rede / parsing -> degrada para as regras
   }
