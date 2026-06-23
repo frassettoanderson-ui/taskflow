@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, FileText, Pencil, Settings } from 'lucide-react';
-import { api, getAccessToken } from '../../lib/api';
+import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
 import { Spinner, useToast } from '../../components/ui';
 import type { AssinaturaDocumento, Obrigacao } from '../../lib/tipos';
@@ -16,6 +16,7 @@ export default function Assinaturas() {
   const toast = useToast();
   const navigate = useNavigate();
   const podeGerenciar = temPermissao(sessao, 'obrigacoes_gerenciar');
+  const podeAdmin = temPermissao(sessao, 'admin_escritorio');
   const [itens, setItens] = useState<AssinaturaDocumento[]>([]);
   const [obrigacoes, setObrigacoes] = useState<Obrigacao[]>([]);
   const [office, setOffice] = useState('');
@@ -23,6 +24,7 @@ export default function Assinaturas() {
   const [busca, setBusca] = useState('');
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [aberto, setAberto] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
   function carregar() {
     setLoading(true);
@@ -32,7 +34,16 @@ export default function Assinaturas() {
     carregar();
     api.get<Obrigacao[]>('/obrigacoes').then(setObrigacoes).catch(() => undefined);
     api.get<{ nome: string }>('/escritorio').then((e) => setOffice(e.nome)).catch(() => undefined);
-  }, []);
+    if (podeAdmin) api.get<{ apiKey: string | null }>('/robo/api-key').then((r) => setApiKey(r.apiKey)).catch(() => undefined);
+  }, [podeAdmin]);
+
+  async function regenerarKey() {
+    try {
+      const r = await api.post<{ apiKey: string }>('/robo/api-key/regenerar');
+      setApiKey(r.apiKey);
+      toast('ok', 'API key gerada.');
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+  }
 
   const filtrados = useMemo(() => {
     if (selecionados.length === 0) return itens;
@@ -140,8 +151,20 @@ export default function Assinaturas() {
         </table>
       </div>
 
+      {/* Chave API do agente */}
+      {podeAdmin && (
+        <div className="mt-4 rounded border border-slate-200 bg-white p-4">
+          <p className="mb-1 text-[13px] font-semibold text-slate-700">Chave de conexao do agente (e-Continuo)</p>
+          <p className="mb-2 text-[12px] text-slate-500">Cole essa chave no instalador do agente Windows para conectar a pasta monitorada a este escritorio.</p>
+          <div className="flex items-center gap-2">
+            <input className="input font-mono text-xs" readOnly value={apiKey ?? 'Nenhuma chave gerada ainda'} />
+            <button className="btn-ghost border border-slate-300 text-[13px]" onClick={regenerarKey}>{apiKey ? 'Regenerar' : 'Gerar chave'}</button>
+          </div>
+        </div>
+      )}
+
       {/* Rodape */}
-      <div className="mt-6 flex items-center justify-between border-t border-marca-200 pt-2 text-[12px] text-marca-600">
+      <div className="mt-4 flex items-center justify-between border-t border-marca-200 pt-2 text-[12px] text-marca-600">
         <span>Usuario: {sessao?.usuario?.nome ?? '—'}</span>
         <span>Office: {office || '—'}</span>
       </div>
