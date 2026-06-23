@@ -139,7 +139,12 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
           <p className="text-[12px] font-medium text-slate-700">Mapear este documento (ensinar o robo)</p>
           {temSugestao && (
             <p className="mb-2 rounded bg-status-ok/10 px-2 py-1 text-[11px] text-emerald-700">
-              ✨ Sugestao automatica do robo {job.sugestaoObrigacao ? <>— obrigacao <b>{job.sugestaoObrigacao}</b></> : '(confira a obrigacao no campo acima)'}. Confira e clique em salvar.
+              {job.sugestaoFonte === 'ia' ? '🤖 Sugestao da IA' : '✨ Sugestao automatica do robo'}
+              {job.sugestaoObrigacao ? <>— obrigacao <b>{job.sugestaoObrigacao}</b></> : ' (confira a obrigacao no campo acima)'}
+              {job.sugestaoFonte === 'ia' && typeof job.sugestaoConfianca === 'number' && (
+                <> · confianca <b>{Math.round(job.sugestaoConfianca * 100)}%</b></>
+              )}
+              . Confira e clique em salvar.
             </p>
           )}
           <p className="mb-2 text-[11px] text-slate-500">

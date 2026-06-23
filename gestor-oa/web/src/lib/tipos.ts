@@ -575,6 +575,8 @@ export interface RoboJob {
   // sugestao automatica de mapeamento (calculada no backend p/ itens em revisao)
   sugestaoObrigacao?: string | null;
   sugestaoPalavras?: string[];
+  sugestaoFonte?: 'ia' | 'regra' | null;
+  sugestaoConfianca?: number | null;
 }
 
 export interface AssinaturaDocumento {

@@ -943,6 +943,11 @@ model RoboJob {
   // trecho do texto extraido (para a tela de revisao)
   textoTrecho   String?
 
+  // sugestao da IA (quando as assinaturas nao casam) - apenas sugere; humano confirma
+  iaObrigacao   String?
+  iaPalavras    String[] @default([])
+  iaConfianca   Float?
+
   createdAt     DateTime @default(now())
   processadoEm  DateTime?
 

@@ -46,6 +46,12 @@ export const env = {
 
   ocrLang: process.env.OCR_LANG ?? 'por',
 
+  ia: {
+    // Classificacao de documentos do robo via Claude. Sem chave, o robo usa so as regras/assinaturas.
+    apiKey: process.env.ANTHROPIC_API_KEY ?? '',
+    model: process.env.IA_MODEL ?? 'claude-haiku-4-5-20251001',
+  },
+
   whatsapp: {
     provider: process.env.WHATSAPP_PROVIDER ?? 'wa_me', // wa_me | meta_cloud
     cloudToken: process.env.WHATSAPP_CLOUD_TOKEN ?? '',

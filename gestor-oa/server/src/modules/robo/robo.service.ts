@@ -7,6 +7,7 @@ import { sendMail } from '../../lib/mailer.js';
 import { env } from '../../env.js';
 import { dividirPaginas, extrairTexto, digitosDoTexto } from './extracao.js';
 import { gerarAvulsaObrigacao } from '../entrega/entrega.service.js';
+import { classificarObrigacao, iaDisponivel } from './ia.service.js';
 
 interface Etapa {
   etapa: string;
@@ -196,11 +197,23 @@ async function processarPagina(
     const obr = await identificarObrigacao(escritorioId, texto);
     marcar('identificar_obrigacao', !!obr?.obrigacaoNome, ini, obr?.obrigacaoNome);
     if (!obr?.obrigacaoNome || !obr.competencia) {
+      // As assinaturas (palavras-chave) nao casaram. Se a IA estiver ligada, pede uma
+      // sugestao de obrigacao (ela apenas SUGERE; o humano confirma na tela de Revisao).
+      let ia: { obrigacao: string | null; confianca: number; palavras: string[] } | null = null;
+      if (iaDisponivel() && !obr?.obrigacaoNome) {
+        const iniIa = Date.now();
+        const obrigs = await prisma.obrigacao.findMany({ where: { escritorioId, deletedAt: null }, select: { nome: true } });
+        ia = await classificarObrigacao(texto, obrigs.map((o) => o.nome));
+        marcar('ia_sugestao', !!ia?.obrigacao, iniIa, ia?.obrigacao ? `${ia.obrigacao} (${Math.round((ia.confianca ?? 0) * 100)}%)` : 'sem sugestao');
+      }
       return finalizar(job.id, 'REVISAO', etapas, t0, {
         motivo: !obr?.obrigacaoNome ? 'Obrigacao nao identificada' : 'Competencia nao identificada',
         textoTrecho: trecho,
         empresaId: emp.empresaId,
         obrigacaoNome: obr?.obrigacaoNome,
+        iaObrigacao: ia?.obrigacao ?? null,
+        iaPalavras: ia?.palavras ?? [],
+        iaConfianca: ia?.confianca ?? null,
       });
     }
 

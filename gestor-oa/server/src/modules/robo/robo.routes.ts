@@ -102,12 +102,24 @@ router.get('/jobs', async (req, res) => {
   return ok(res, jobs.map((j) => {
     let sugestaoObrigacao: string | null = null;
     let sugestaoPalavras: string[] = [];
-    if (j.status === 'REVISAO' && j.textoTrecho) {
-      const s = svc.sugerirMapeamento(j.textoTrecho);
-      sugestaoPalavras = s.palavras;
-      sugestaoObrigacao = s.obrigacaoNome && nomesObrig.has(s.obrigacaoNome) ? s.obrigacaoNome : null;
+    let sugestaoFonte: 'ia' | 'regra' | null = null;
+    let sugestaoConfianca: number | null = null;
+    if (j.status === 'REVISAO') {
+      // 1o) sugestao da IA persistida (so se for um nome valido do catalogo)
+      if (j.iaObrigacao && nomesObrig.has(j.iaObrigacao)) {
+        sugestaoObrigacao = j.iaObrigacao;
+        sugestaoPalavras = (j.iaPalavras as string[]) ?? [];
+        sugestaoConfianca = j.iaConfianca ?? null;
+        sugestaoFonte = 'ia';
+      } else if (j.textoTrecho) {
+        // 2o) fallback: regras por palavras-chave
+        const s = svc.sugerirMapeamento(j.textoTrecho);
+        sugestaoPalavras = s.palavras;
+        sugestaoObrigacao = s.obrigacaoNome && nomesObrig.has(s.obrigacaoNome) ? s.obrigacaoNome : null;
+        if (sugestaoObrigacao) sugestaoFonte = 'regra';
+      }
     }
-    return { ...j, empresaNome: j.empresaId ? mapa.get(j.empresaId) ?? null : null, sugestaoObrigacao, sugestaoPalavras };
+    return { ...j, empresaNome: j.empresaId ? mapa.get(j.empresaId) ?? null : null, sugestaoObrigacao, sugestaoPalavras, sugestaoFonte, sugestaoConfianca };
   }));
 });
 
