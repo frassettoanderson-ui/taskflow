@@ -1,9 +1,13 @@
 import { env } from '../../env.js';
 
-// Classificacao de documentos do e-Continuo via Claude.
+// Classificacao de documentos do e-Continuo via IA.
 // Quando as assinaturas (palavras-chave) NAO casam, a IA le o texto do documento
 // e a lista de obrigacoes do escritorio e responde qual obrigacao corresponde.
 // O resultado e' apenas uma SUGESTAO na tela de Revisao - o humano confirma.
+//
+// Provedores suportados (env IA_PROVIDER):
+//   - 'gemini'    -> Google Gemini (tem nivel GRATIS). Default.
+//   - 'anthropic' -> Claude (pago por uso).
 
 export interface SugestaoIa {
   obrigacao: string | null; // nome exato (da lista) ou null se nao reconhecer
@@ -15,16 +19,10 @@ export function iaDisponivel(): boolean {
   return !!env.ia.apiKey;
 }
 
-export async function classificarObrigacao(
-  texto: string,
-  obrigacoes: string[],
-): Promise<SugestaoIa | null> {
-  if (!env.ia.apiKey || obrigacoes.length === 0) return null;
-
+function montarPrompt(texto: string, obrigacoes: string[]): string {
   const doc = texto.slice(0, 4000); // primeiras ~4k chars bastam p/ identificar a guia
   const lista = obrigacoes.map((o) => `- ${o}`).join('\n');
-
-  const prompt =
+  return (
     'Voce classifica documentos fiscais/contabeis brasileiros (guias, DARF, DAS, INSS, ' +
     'FGTS, DCTFWeb, folha de pagamento, etc.) de um escritorio de contabilidade.\n\n' +
     'Dada a lista de OBRIGACOES cadastradas e o TEXTO de um documento, responda qual ' +
@@ -36,28 +34,63 @@ export async function classificarObrigacao(
     '{"obrigacao": "<nome exato da lista ou null>", "confianca": <0 a 1>, ' +
     '"palavras": ["termo curto 1", "termo 2"]}\n' +
     'Em "palavras", escolha 1 a 3 termos/expressoes que aparecem no texto e identificam ' +
-    'esse tipo de documento (ex.: um titulo, um codigo de receita), para servir de regra futura.';
+    'esse tipo de documento (ex.: um titulo, um codigo de receita), para servir de regra futura.'
+  );
+}
+
+// ---- Google Gemini (free tier) ----
+async function chamarGemini(prompt: string): Promise<string | null> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${env.ia.model}:generateContent?key=${env.ia.apiKey}`;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0, maxOutputTokens: 300, responseMimeType: 'application/json' },
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!resp.ok) return null;
+  const data = (await resp.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
+  return data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+}
+
+// ---- Anthropic Claude (pago) ----
+async function chamarAnthropic(prompt: string): Promise<string | null> {
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': env.ia.apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: env.ia.model,
+      max_tokens: 300,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+  if (!resp.ok) return null;
+  const data = (await resp.json()) as { content?: { type: string; text?: string }[] };
+  return data.content?.find((c) => c.type === 'text')?.text ?? null;
+}
+
+export async function classificarObrigacao(
+  texto: string,
+  obrigacoes: string[],
+): Promise<SugestaoIa | null> {
+  if (!env.ia.apiKey || obrigacoes.length === 0) return null;
+
+  const prompt = montarPrompt(texto, obrigacoes);
 
   try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': env.ia.apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: env.ia.model,
-        max_tokens: 300,
-        messages: [{ role: 'user', content: prompt }],
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!resp.ok) return null;
+    const bruto = env.ia.provider === 'anthropic'
+      ? await chamarAnthropic(prompt)
+      : await chamarGemini(prompt);
+    if (!bruto) return null;
 
-    const data = (await resp.json()) as { content?: { type: string; text?: string }[] };
-    const texto0 = data.content?.find((c) => c.type === 'text')?.text ?? '';
-    const json = texto0.slice(texto0.indexOf('{'), texto0.lastIndexOf('}') + 1);
+    const json = bruto.slice(bruto.indexOf('{'), bruto.lastIndexOf('}') + 1);
     const parsed = JSON.parse(json) as { obrigacao: unknown; confianca: unknown; palavras: unknown };
 
     const obrigacao = typeof parsed.obrigacao === 'string' ? parsed.obrigacao : null;

@@ -47,9 +47,11 @@ export const env = {
   ocrLang: process.env.OCR_LANG ?? 'por',
 
   ia: {
-    // Classificacao de documentos do robo via Claude. Sem chave, o robo usa so as regras/assinaturas.
-    apiKey: process.env.ANTHROPIC_API_KEY ?? '',
-    model: process.env.IA_MODEL ?? 'claude-haiku-4-5-20251001',
+    // Classificacao de documentos do robo. Sem chave, o robo usa so as regras/assinaturas.
+    // provider: 'gemini' (Google, tem nivel GRATIS) | 'anthropic' (Claude, pago).
+    provider: (process.env.IA_PROVIDER ?? 'gemini') as 'gemini' | 'anthropic',
+    apiKey: process.env.IA_API_KEY ?? process.env.GEMINI_API_KEY ?? process.env.ANTHROPIC_API_KEY ?? '',
+    model: process.env.IA_MODEL ?? ((process.env.IA_PROVIDER ?? 'gemini') === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gemini-2.0-flash'),
   },
 
   whatsapp: {
