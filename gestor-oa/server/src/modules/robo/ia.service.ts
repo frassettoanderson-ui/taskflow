@@ -15,6 +15,16 @@ export interface SugestaoIa {
   palavras: string[];         // 1-3 termos do documento que justificam (p/ virar assinatura)
 }
 
+// Casa o nome devolvido pela IA com o catalogo de forma tolerante (sem acento,
+// caixa e espacos), e retorna o nome CANONICO do catalogo. A IA costuma variar a
+// capitalizacao/acentuacao ("folha de pagamento" vs "Folha de Pagamento").
+function acharNoCatalogo(nome: string | null, obrigacoes: string[]): string | null {
+  if (!nome) return null;
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  const alvo = norm(nome);
+  return obrigacoes.find((o) => norm(o) === alvo) ?? null;
+}
+
 // A IA as vezes responde a confianca como texto ("alta") em vez de numero.
 function normalizarConfianca(v: unknown): number | null {
   if (typeof v === 'number') return Math.max(0, Math.min(1, v));
@@ -126,8 +136,9 @@ export async function classificarObrigacao(
     const parsed = JSON.parse(json) as { obrigacao: unknown; confianca: unknown; palavras: unknown };
 
     const obrigacao = typeof parsed.obrigacao === 'string' ? parsed.obrigacao : null;
-    // so aceita se for um nome EXATO da lista (evita alucinacao)
-    const valida = obrigacao && obrigacoes.includes(obrigacao) ? obrigacao : null;
+    // casa com o catalogo de forma tolerante (caixa/acento) e retorna o nome canonico
+    const valida = acharNoCatalogo(obrigacao, obrigacoes);
+    if (!valida) console.warn('[ia] sem match -> IA respondeu obrigacao=%o | bruto=%s', obrigacao, (bruto || '').slice(0, 200));
     const confianca = normalizarConfianca(parsed.confianca);
     const palavras = Array.isArray(parsed.palavras)
       ? parsed.palavras.filter((p): p is string => typeof p === 'string' && p.trim().length > 0).slice(0, 3)
