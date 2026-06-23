@@ -125,7 +125,17 @@ function subirEmSegundoPlano() {
 }
 
 function lerConfig() {
-  try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); } catch { return null; }
+  try {
+    const buf = fs.readFileSync(CONFIG_PATH);
+    let cfg = JSON.parse(buf.toString('utf8'));
+    // Cinto de seguranca: se o config foi gravado em ANSI (instalador antigo),
+    // acentos do caminho viram U+FFFD ("Area de Trabalho" quebrada) e o robo
+    // vigiaria uma pasta-fantasma. Nesse caso, relemos em latin1.
+    if (cfg && typeof cfg.pasta === 'string' && cfg.pasta.includes('�')) {
+      cfg = JSON.parse(buf.toString('latin1'));
+    }
+    return cfg;
+  } catch { return null; }
 }
 
 // Garante instancia unica em segundo plano.

@@ -141,6 +141,7 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   chave, pasta, pastaJson, cfg: String;
+  linhas: TArrayOfString;
 begin
   if CurStep = ssPostInstall then
   begin
@@ -166,6 +167,11 @@ begin
       '  "setor": "' + ExtractFileName(pasta) + '"' + #13#10 +
       '}';
 
-    SaveStringToFile(ExpandConstant('{app}\gestoroa-agente.config.json'), cfg, False);
+    // CRUCIAL: gravar em UTF-8 (sem BOM). O agente (Node) le o config em UTF-8;
+    // se gravar em ANSI, o acento de "Area de Trabalho" corrompe e o robo passa
+    // a vigiar uma pasta-fantasma. SaveStringToFile gravaria ANSI - nao usar.
+    SetArrayLength(linhas, 1);
+    linhas[0] := cfg;
+    SaveStringsToUTF8File(ExpandConstant('{app}\gestoroa-agente.config.json'), linhas, False);
   end;
 end;
