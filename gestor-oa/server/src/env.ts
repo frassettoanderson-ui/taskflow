@@ -51,7 +51,7 @@ export const env = {
     // provider: 'gemini' (Google, tem nivel GRATIS) | 'anthropic' (Claude, pago).
     provider: (process.env.IA_PROVIDER ?? 'gemini') as 'gemini' | 'anthropic',
     apiKey: process.env.IA_API_KEY ?? process.env.GEMINI_API_KEY ?? process.env.ANTHROPIC_API_KEY ?? '',
-    model: process.env.IA_MODEL ?? ((process.env.IA_PROVIDER ?? 'gemini') === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gemini-2.0-flash'),
+    model: process.env.IA_MODEL ?? ((process.env.IA_PROVIDER ?? 'gemini') === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gemini-2.5-flash'),
   },
 
   whatsapp: {
