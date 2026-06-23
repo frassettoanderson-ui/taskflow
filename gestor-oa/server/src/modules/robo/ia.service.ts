@@ -54,17 +54,20 @@ function montarPrompt(texto: string, obrigacoes: string[]): string {
 
 // POST com retry para erros transitorios (429 rate limit, 5xx sobrecarga).
 // O free tier do Gemini retorna 429/503 com frequencia; tentar de novo resolve a maioria.
-async function postComRetry(url: string, options: RequestInit, tentativas = 3): Promise<Response | null> {
-  for (let i = 0; i < tentativas; i++) {
+// Backoff generoso: o free tier do Gemini limita req/minuto e pede ~20s de espera
+// no 429. Esperas progressivas cobrem esse intervalo (o processamento e' assincrono).
+const BACKOFF_MS = [4000, 9000, 16000];
+async function postComRetry(url: string, options: RequestInit): Promise<Response | null> {
+  for (let i = 0; i <= BACKOFF_MS.length; i++) {
     try {
-      const resp = await fetch(url, { ...options, signal: AbortSignal.timeout(15000) });
+      const resp = await fetch(url, { ...options, signal: AbortSignal.timeout(20000) });
       if (resp.ok) return resp;
       const transitorio = resp.status === 429 || resp.status === 500 || resp.status === 502 || resp.status === 503;
-      if (!transitorio || i === tentativas - 1) return null;
+      if (!transitorio || i === BACKOFF_MS.length) return null;
     } catch {
-      if (i === tentativas - 1) return null;
+      if (i === BACKOFF_MS.length) return null;
     }
-    await new Promise((r) => setTimeout(r, 1500 * (i + 1))); // 1.5s, 3s
+    await new Promise((r) => setTimeout(r, BACKOFF_MS[i]));
   }
   return null;
 }
