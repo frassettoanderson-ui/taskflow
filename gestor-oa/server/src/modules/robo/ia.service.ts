@@ -52,26 +52,42 @@ function montarPrompt(texto: string, obrigacoes: string[]): string {
   );
 }
 
+// POST com retry para erros transitorios (429 rate limit, 5xx sobrecarga).
+// O free tier do Gemini retorna 429/503 com frequencia; tentar de novo resolve a maioria.
+async function postComRetry(url: string, options: RequestInit, tentativas = 3): Promise<Response | null> {
+  for (let i = 0; i < tentativas; i++) {
+    try {
+      const resp = await fetch(url, { ...options, signal: AbortSignal.timeout(15000) });
+      if (resp.ok) return resp;
+      const transitorio = resp.status === 429 || resp.status === 500 || resp.status === 502 || resp.status === 503;
+      if (!transitorio || i === tentativas - 1) return null;
+    } catch {
+      if (i === tentativas - 1) return null;
+    }
+    await new Promise((r) => setTimeout(r, 1500 * (i + 1))); // 1.5s, 3s
+  }
+  return null;
+}
+
 // ---- Google Gemini (free tier) ----
 async function chamarGemini(prompt: string): Promise<string | null> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${env.ia.model}:generateContent?key=${env.ia.apiKey}`;
-  const resp = await fetch(url, {
+  const resp = await postComRetry(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: { temperature: 0, maxOutputTokens: 300, responseMimeType: 'application/json' },
     }),
-    signal: AbortSignal.timeout(20000),
   });
-  if (!resp.ok) return null;
+  if (!resp) return null;
   const data = (await resp.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
 }
 
 // ---- Anthropic Claude (pago) ----
 async function chamarAnthropic(prompt: string): Promise<string | null> {
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+  const resp = await postComRetry('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -83,9 +99,8 @@ async function chamarAnthropic(prompt: string): Promise<string | null> {
       max_tokens: 300,
       messages: [{ role: 'user', content: prompt }],
     }),
-    signal: AbortSignal.timeout(20000),
   });
-  if (!resp.ok) return null;
+  if (!resp) return null;
   const data = (await resp.json()) as { content?: { type: string; text?: string }[] };
   return data.content?.find((c) => c.type === 'text')?.text ?? null;
 }
