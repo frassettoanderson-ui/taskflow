@@ -58,9 +58,7 @@ const MENU: Item[] = [
         filhos: [
           { label: 'Configurar obrigacoes', icon: Settings, to: '/robo/assinaturas' },
           { label: 'Consulta documento', icon: FileText, to: '/robo/consulta' },
-          { label: 'Caixa do Robo', icon: Bot, to: '/robo' },
           { label: 'Revisao', icon: ClipboardList, to: '/robo/revisao' },
-          { label: 'Painel', icon: Activity, to: '/robo/painel' },
           { label: 'Baixar agente (Windows)', icon: Download, href: '/GestorOA-eContinuo-Setup.exe' },
         ],
       },
