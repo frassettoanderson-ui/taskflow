@@ -572,6 +572,9 @@ export interface RoboJob {
   etapas: { etapa: string; ok: boolean; ms: number; detalhe?: string }[];
   textoTrecho: string | null;
   createdAt: string;
+  // sugestao automatica de mapeamento (calculada no backend p/ itens em revisao)
+  sugestaoObrigacao?: string | null;
+  sugestaoPalavras?: string[];
 }
 
 export interface AssinaturaDocumento {

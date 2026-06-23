@@ -62,14 +62,15 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
 }) {
   const toast = useToast();
   const hoje = new Date();
+  const temSugestao = !!(job.sugestaoObrigacao || (job.sugestaoPalavras && job.sugestaoPalavras.length));
   const [empresaId, setEmpresaId] = useState(job.empresaId ?? '');
-  const [obrigacaoNome, setObrigacaoNome] = useState(job.obrigacaoNome ?? '');
+  const [obrigacaoNome, setObrigacaoNome] = useState(job.obrigacaoNome ?? job.sugestaoObrigacao ?? '');
   const [ano, setAno] = useState(job.competenciaAno ?? hoje.getFullYear());
   const [mes, setMes] = useState(job.competenciaMes ?? hoje.getMonth() + 1);
   const [salvando, setSalvando] = useState(false);
   const [reprocessando, setReprocessando] = useState(false);
-  const [mapeando, setMapeando] = useState(false);
-  const [palavras, setPalavras] = useState('');
+  const [mapeando, setMapeando] = useState(temSugestao); // abre o painel ja com o palpite
+  const [palavras, setPalavras] = useState((job.sugestaoPalavras ?? []).join('\n'));
   const [salvandoMap, setSalvandoMap] = useState(false);
 
   async function resolver() {
@@ -136,6 +137,11 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
       {mapeando && (
         <div className="mt-3 rounded border border-marca-200 bg-marca-50/40 p-3">
           <p className="text-[12px] font-medium text-slate-700">Mapear este documento (ensinar o robo)</p>
+          {temSugestao && (
+            <p className="mb-2 rounded bg-status-ok/10 px-2 py-1 text-[11px] text-emerald-700">
+              ✨ Sugestao automatica do robo {job.sugestaoObrigacao ? <>— obrigacao <b>{job.sugestaoObrigacao}</b></> : '(confira a obrigacao no campo acima)'}. Confira e clique em salvar.
+            </p>
+          )}
           <p className="mb-2 text-[11px] text-slate-500">
             1) Escolha a <b>Obrigacao</b> no campo acima. 2) Digite abaixo uma ou mais frases que aparecem <b>sempre</b> neste tipo de documento (uma por linha; todas precisam aparecer). Use o texto do PDF acima como referencia. Ex.: um codigo de receita ou um titulo unico.
           </p>

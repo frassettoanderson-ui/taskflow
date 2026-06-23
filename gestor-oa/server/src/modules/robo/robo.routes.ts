@@ -94,7 +94,21 @@ router.get('/jobs', async (req, res) => {
   const empresaIds = [...new Set(jobs.map((j) => j.empresaId).filter(Boolean) as string[])];
   const empresas = await prisma.empresa.findMany({ where: { id: { in: empresaIds } }, select: { id: true, razaoSocial: true } });
   const mapa = new Map(empresas.map((e) => [e.id, e.razaoSocial]));
-  return ok(res, jobs.map((j) => ({ ...j, empresaNome: j.empresaId ? mapa.get(j.empresaId) ?? null : null })));
+
+  // sugestao automatica de mapeamento (so p/ itens em revisao); valida a obrigacao contra o catalogo
+  const obrigs = await prisma.obrigacao.findMany({ where: { escritorioId: req.auth!.escritorioId, deletedAt: null }, select: { nome: true } });
+  const nomesObrig = new Set(obrigs.map((o) => o.nome));
+
+  return ok(res, jobs.map((j) => {
+    let sugestaoObrigacao: string | null = null;
+    let sugestaoPalavras: string[] = [];
+    if (j.status === 'REVISAO' && j.textoTrecho) {
+      const s = svc.sugerirMapeamento(j.textoTrecho);
+      sugestaoPalavras = s.palavras;
+      sugestaoObrigacao = s.obrigacaoNome && nomesObrig.has(s.obrigacaoNome) ? s.obrigacaoNome : null;
+    }
+    return { ...j, empresaNome: j.empresaId ? mapa.get(j.empresaId) ?? null : null, sugestaoObrigacao, sugestaoPalavras };
+  }));
 });
 
 // Resolver item de revisao

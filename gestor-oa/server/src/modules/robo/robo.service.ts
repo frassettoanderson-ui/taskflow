@@ -64,6 +64,35 @@ async function identificarEmpresa(escritorioId: string, texto: string) {
   return null;
 }
 
+// ---------- Sugestao automatica de mapeamento (para itens em revisao) ----------
+// Analisa o texto de um documento ainda nao mapeado e sugere obrigacao + palavras-chave,
+// para o usuario apenas conferir/confirmar na tela de Revisao.
+const CODIGOS_DARF: Record<string, string> = {
+  '1082': 'INSS', '1099': 'INSS', // contribuicao previdenciaria (segurado / patronal)
+  '8109': 'DARF PIS', '6912': 'DARF PIS',
+  '2172': 'DARF COFINS', '5856': 'DARF COFINS',
+  '2089': 'DARF IRPJ', '0220': 'DARF IRPJ', '2362': 'DARF IRPJ', '5993': 'DARF IRPJ',
+  '2372': 'DARF CSLL', '2484': 'DARF CSLL', '6012': 'DARF CSLL',
+};
+export function sugerirMapeamento(texto: string): { obrigacaoNome: string | null; palavras: string[] } {
+  const t = semAcento(texto);
+  if (t.includes('receitas federais')) {
+    let codigo: string | null = null;
+    for (const c of Object.keys(CODIGOS_DARF)) { if (new RegExp(`\\b${c}\\b`).test(t)) { codigo = c; break; } }
+    if (codigo) return { obrigacaoNome: CODIGOS_DARF[codigo], palavras: ['Receitas Federais', codigo] };
+    return { obrigacaoNome: null, palavras: ['Receitas Federais'] };
+  }
+  if (t.includes('documento de arrecadacao do simples nacional')) {
+    if (t.includes('microempreendedor individual')) return { obrigacaoNome: 'DAS-MEI', palavras: ['Documento de Arrecadacao do Simples Nacional', 'Microempreendedor Individual'] };
+    return { obrigacaoNome: 'DAS - Simples Nacional', palavras: ['Documento de Arrecadacao do Simples Nacional'] };
+  }
+  if (t.includes('guia da previdencia social')) return { obrigacaoNome: 'INSS', palavras: ['Guia da Previdencia Social'] };
+  if (t.includes('fgts digital')) return { obrigacaoNome: 'FGTS Digital', palavras: ['FGTS Digital'] };
+  if (t.includes('dctfweb')) return { obrigacaoNome: 'DCTFWeb', palavras: ['DCTFWeb'] };
+  if (t.includes('dare') && t.includes('icms')) return { obrigacaoNome: 'ICMS (DARE/DAE)', palavras: ['DARE', 'ICMS'] };
+  return { obrigacaoNome: null, palavras: [] };
+}
+
 // ---------- Identificacao da obrigacao + competencia ----------
 async function identificarObrigacao(escritorioId: string, texto: string) {
   const t = semAcento(texto);
