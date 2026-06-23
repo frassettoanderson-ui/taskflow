@@ -68,6 +68,9 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
   const [mes, setMes] = useState(job.competenciaMes ?? hoje.getMonth() + 1);
   const [salvando, setSalvando] = useState(false);
   const [reprocessando, setReprocessando] = useState(false);
+  const [mapeando, setMapeando] = useState(false);
+  const [palavras, setPalavras] = useState('');
+  const [salvandoMap, setSalvandoMap] = useState(false);
 
   async function resolver() {
     if (!empresaId || !obrigacaoNome) return toast('erro', 'Selecione empresa e obrigacao.');
@@ -88,6 +91,21 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
     finally { setReprocessando(false); }
   }
 
+  // Mapear = ensinar o robo: cria a assinatura (obrigacao + palavras-chave) e reprocessa.
+  // A partir daqui, documentos iguais sao reconhecidos e baixados automaticamente.
+  async function mapear() {
+    if (!obrigacaoNome) return toast('erro', 'Escolha (no campo Obrigacao) qual obrigacao esse documento representa.');
+    const lista = palavras.split('\n').map((p) => p.trim()).filter(Boolean);
+    if (lista.length === 0) return toast('erro', 'Informe ao menos uma palavra-chave que aparece nesse documento.');
+    setSalvandoMap(true);
+    try {
+      await api.post('/assinaturas', { nome: obrigacaoNome, obrigacoesCorrespondentes: [obrigacaoNome], palavras: lista, ativo: true });
+      const r = await api.post<{ total: number; baixados: number; revisao: number }>(`/robo/revisao/${job.id}/reprocessar`, {});
+      onReprocessado(r);
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    finally { setSalvandoMap(false); }
+  }
+
   return (
     <div className="card p-4">
       <div className="flex items-center justify-between">
@@ -96,6 +114,7 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
           <div className="text-xs text-amber-700">{job.motivo}</div>
         </div>
         <div className="flex gap-2">
+          <button className={`btn-ghost border ${mapeando ? 'border-marca-400 text-marca-600' : 'border-slate-300'}`} onClick={() => setMapeando((v) => !v)} title="Ensinar o robo a reconhecer esse tipo de documento daqui pra frente">Mapear</button>
           <button className="btn-ghost border border-slate-300" onClick={reprocessar} disabled={reprocessando} title="Re-roda a identificacao automatica (util apos cadastrar/ajustar assinaturas)">{reprocessando ? 'Reprocessando...' : 'Reprocessar'}</button>
           <button className="btn-ghost border border-slate-300" onClick={onPrevia}>Ver PDF</button>
         </div>
@@ -113,7 +132,28 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
         <input type="number" className="input" placeholder="Mes" value={mes} min={1} max={12} onChange={(e) => setMes(Number(e.target.value))} />
         <input type="number" className="input" placeholder="Ano" value={ano} onChange={(e) => setAno(Number(e.target.value))} />
       </div>
-      <div className="mt-2 flex justify-end">
+
+      {mapeando && (
+        <div className="mt-3 rounded border border-marca-200 bg-marca-50/40 p-3">
+          <p className="text-[12px] font-medium text-slate-700">Mapear este documento (ensinar o robo)</p>
+          <p className="mb-2 text-[11px] text-slate-500">
+            1) Escolha a <b>Obrigacao</b> no campo acima. 2) Digite abaixo uma ou mais frases que aparecem <b>sempre</b> neste tipo de documento (uma por linha; todas precisam aparecer). Use o texto do PDF acima como referencia. Ex.: um codigo de receita ou um titulo unico.
+          </p>
+          <textarea
+            className="input font-mono"
+            rows={3}
+            placeholder={'Ex.:\nReceitas Federais\n1082'}
+            value={palavras}
+            onChange={(e) => setPalavras(e.target.value)}
+          />
+          <div className="mt-2 flex justify-end">
+            <button className="btn-primary" onClick={mapear} disabled={salvandoMap}>{salvandoMap ? 'Salvando...' : 'Salvar mapeamento e baixar'}</button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-2 flex items-center justify-end gap-2">
+        <span className="mr-auto text-[11px] text-slate-400">Dica: <b>Mapear</b> ensina o robo (vale pro futuro). <b>Dar baixa</b> resolve so este documento.</span>
         <button className="btn-primary" onClick={resolver} disabled={salvando}>{salvando ? 'Baixando...' : 'Dar baixa'}</button>
       </div>
     </div>
