@@ -294,10 +294,10 @@ export async function painelPorEmpresa(escritorioId: string, empresaId: string) 
   const porObrig = new Map<string, Contadores>();
   for (const e of entregas) {
     const c = porObrig.get(e.obrigacaoId) ?? zero();
-    if (e.status === 'ENTREGUE') {
+    if (e.status === 'ENTREGUE' || e.status === 'ENTREGUE_JUSTIFICADA') {
       if (e.dataEntrega && diaUTC(e.dataEntrega) >= dm30) c.verde++;
     } else if (e.status !== 'DISPENSADA') {
-      // pendente (qualquer variante) ou ENTREGUE_JUSTIFICADA
+      // pendente (qualquer variante, incluindo JUSTIFICADA)
       if (e.prazoTecnico) {
         const pt = diaUTC(e.prazoTecnico);
         if (pt < hoje) c.vermelho++;

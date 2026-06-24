@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../prisma.js';
-import { statusEfetivo, type StatusEntrega } from '../entrega/entrega.status.js';
+import { statusParaIndicador, type StatusEntrega } from '../entrega/entrega.status.js';
 
 export const CORES_IND = {
   ok: '#5cb85c', info: '#5b9bd5', warn: '#f0ad4e', danger: '#cf3c5d', neutro: '#94a3b8', roxo: '#7e57c2',
@@ -102,7 +102,7 @@ export async function calcularIndicador(escritorioId: string, ind: IndicadorRow)
 
   if (ind.tipo === 'numerico') {
     let valor = 0;
-    for (const e of entregas) valor += pegaMetrica(conta(statusEfetivo(e.status as StatusEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado)));
+    for (const e of entregas) valor += pegaMetrica(conta(statusParaIndicador(e.status as StatusEntrega, e.dataEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado)));
     return { valor };
   }
 
@@ -111,7 +111,7 @@ export async function calcularIndicador(escritorioId: string, ind: IndicadorRow)
   const acc = new Map<string, { baixadas: number; pendentes: number }>();
   for (const e of entregas) {
     const k = chave(e); if (!k) continue;
-    const c = conta(statusEfetivo(e.status as StatusEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado));
+    const c = conta(statusParaIndicador(e.status as StatusEntrega, e.dataEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado));
     const cur = acc.get(k) ?? { baixadas: 0, pendentes: 0 };
     if (c.baixada) cur.baixadas++; else if (c.pendente) cur.pendentes++;
     acc.set(k, cur);

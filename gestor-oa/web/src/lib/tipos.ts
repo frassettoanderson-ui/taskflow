@@ -334,6 +334,7 @@ export type StatusEntrega =
   | 'PENDENTE_ANTECIPADO'
   | 'EM_ATRASO_TECNICO'
   | 'EM_ATRASO_LEGAL'
+  | 'JUSTIFICADA'
   | 'ENTREGUE'
   | 'ENTREGUE_JUSTIFICADA'
   | 'DISPENSADA';
@@ -343,6 +344,7 @@ export const STATUS_INFO: Record<StatusEntrega, { label: string; cor: string }> 
   PENDENTE: { label: 'Pendente no prazo', cor: '#69a8d9' },
   EM_ATRASO_TECNICO: { label: 'Atraso tecnico', cor: '#ffb752' },
   EM_ATRASO_LEGAL: { label: 'Atraso legal', cor: '#d15b47' },
+  JUSTIFICADA: { label: 'Justificada', cor: '#9585bf' },
   ENTREGUE: { label: 'Entregue', cor: '#88b87f' },
   ENTREGUE_JUSTIFICADA: { label: 'Entregue c/ multa', cor: '#d15b47' },
   DISPENSADA: { label: 'Dispensada', cor: '#94a3b8' },

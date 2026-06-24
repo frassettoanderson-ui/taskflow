@@ -264,14 +264,12 @@ async function processarPagina(
 
     // 5. baixa ROBO + anexo + GED
     ini = Date.now();
-    const aposLegal = new Date() > entrega.prazoLegal;
     await prisma.entrega.update({
       where: { id: entrega.id },
       data: {
-        status: aposLegal ? 'ENTREGUE_JUSTIFICADA' : 'ENTREGUE',
+        status: 'ENTREGUE', // entregue (no prazo ou atrasada); o atraso vem de dataEntrega > prazoLegal
         dataEntrega: new Date(),
         origemBaixa: 'ROBO',
-        justificativa: aposLegal ? 'Baixa automatica pelo robo (apos prazo)' : null,
       },
     });
     await prisma.entregaAnexo.create({

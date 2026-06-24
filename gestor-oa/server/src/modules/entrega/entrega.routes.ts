@@ -266,6 +266,17 @@ router.post(
   },
 );
 
+// Justificar o atraso de uma pendencia (sem entregar) - fiel ao Acessorias
+router.post(
+  '/:id/justificar-atraso',
+  requirePermission('entregas_baixar'),
+  validate({ body: z.object({ motivo: z.string().min(1) }) }),
+  async (req, res) => {
+    const r = await svc.justificarAtraso(req.auth!.escritorioId, req.params.id, req.body.motivo, req.auth!.id);
+    return ok(res, r);
+  },
+);
+
 router.put(
   '/:id/prazo',
   requirePermission('entregas_editar_prazos'),

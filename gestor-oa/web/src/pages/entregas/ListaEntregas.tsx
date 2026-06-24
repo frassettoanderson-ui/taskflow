@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   CheckCircle2, SlidersHorizontal, X, ZoomIn, ZoomOut, CalendarDays, SquarePen,
-  Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save, History, Clock,
+  Printer, Search, XCircle, ThumbsUp, MessageSquare, Paperclip, Save, History, Clock, AlertTriangle,
 } from 'lucide-react';
 import { api, ApiError, getAccessToken } from '../../lib/api';
 import { useAuth, temPermissao } from '../../lib/auth';
@@ -15,8 +15,8 @@ const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'O
 // flag -> grupo de status (stored)
 const GRUPO_STATUS: Record<string, StatusEntrega[]> = {
   pendentes: ['PENDENTE', 'PENDENTE_ANTECIPADO', 'EM_ATRASO_TECNICO', 'EM_ATRASO_LEGAL'],
-  justificadas: ['ENTREGUE_JUSTIFICADA'],
-  entregues: ['ENTREGUE'],
+  justificadas: ['JUSTIFICADA'],
+  entregues: ['ENTREGUE', 'ENTREGUE_JUSTIFICADA'],
   dispensadas: ['DISPENSADA'],
 };
 
@@ -37,6 +37,7 @@ const ROTULO: Record<StatusEntrega, string> = {
   PENDENTE: 'No prazo',
   EM_ATRASO_TECNICO: 'Prazo tecnico',
   EM_ATRASO_LEGAL: 'Atrasada!',
+  JUSTIFICADA: 'Justificada',
   ENTREGUE: 'Entregue',
   ENTREGUE_JUSTIFICADA: 'Entregue c/ multa',
   DISPENSADA: 'Dispensada',
@@ -46,6 +47,7 @@ const COR: Record<StatusEntrega, string> = {
   PENDENTE: '#69a8d9',
   EM_ATRASO_TECNICO: '#e08a1e',
   EM_ATRASO_LEGAL: '#d15b47',
+  JUSTIFICADA: '#9585bf',
   ENTREGUE: '#88b87f',
   ENTREGUE_JUSTIFICADA: '#d15b47',
   DISPENSADA: '#94a3b8',
@@ -250,6 +252,12 @@ export default function ListaEntregas() {
     const motivo = prompt('Motivo da dispensa da entrega:');
     if (motivo === null) return;
     try { await api.post(`/entregas/${e.id}/dispensar`, { motivo }); toast('ok', 'Entrega dispensada.'); carregar(); }
+    catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro'); }
+  }
+  async function justificarAtraso(e: Entrega) {
+    const motivo = prompt('Justificativa do atraso (a obrigacao continua pendente):', e.justificativa ?? '');
+    if (motivo === null || !motivo.trim()) return;
+    try { await api.post(`/entregas/${e.id}/justificar-atraso`, { motivo: motivo.trim() }); toast('ok', 'Atraso justificado.'); carregar(); }
     catch (err) { toast('erro', err instanceof ApiError ? err.message : 'Erro'); }
   }
   async function entregaRapida(e: Entrega) {
@@ -533,6 +541,9 @@ export default function ListaEntregas() {
                     {/* col 5 */}
                     <td className="px-3 py-2">
                       <div className="flex items-center justify-end gap-2">
+                        {!e.ehTarefa && podeBaixar && (e.status === 'EM_ATRASO_TECNICO' || e.status === 'EM_ATRASO_LEGAL' || e.status === 'JUSTIFICADA') && (
+                          <button title="Justificar atraso (continua pendente)" onClick={(ev) => { ev.stopPropagation(); justificarAtraso(e); }} className="text-[#9585bf] hover:opacity-70"><AlertTriangle size={20} /></button>
+                        )}
                         {!e.ehTarefa && podeDispensar && (
                           <button title="Dispensar entrega" onClick={(ev) => { ev.stopPropagation(); dispensar(e); }} className="text-status-danger hover:opacity-70"><XCircle size={20} /></button>
                         )}

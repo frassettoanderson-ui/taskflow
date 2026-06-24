@@ -7,7 +7,7 @@ import {
   expandirFeriados,
   type FeriadosSet,
 } from '../../lib/prazos.js';
-import { statusEfetivo, type StatusEntrega } from './entrega.status.js';
+import { statusEfetivo, ehStatusFinal, type StatusEntrega } from './entrega.status.js';
 import type { RegraPrazo } from '@gestoroa/shared';
 import type { AuthUser } from '../../middleware/auth.js';
 import type { ParsedPagination } from '../../lib/http.js';
@@ -368,7 +368,8 @@ function baseWhere(
   // chips de classificacao (cliques do Dashboard)
   const agora = new Date();
   const PENDENTES: StatusEntrega[] = ['PENDENTE', 'PENDENTE_ANTECIPADO', 'EM_ATRASO_TECNICO', 'EM_ATRASO_LEGAL'];
-  if (f.entAtrasada) and.push({ status: 'ENTREGUE_JUSTIFICADA' });
+  // entregue com atraso = baixada (ENTREGUE/legado) com dataEntrega depois do prazo legal
+  if (f.entAtrasada) and.push({ status: { in: ['ENTREGUE', 'ENTREGUE_JUSTIFICADA'] }, dataEntrega: { gt: prisma.entrega.fields.prazoLegal } });
   if (f.pendAntesTec) and.push({ status: { in: PENDENTES }, prazoTecnico: { gt: agora } });
   if (f.pendDentroTec) and.push({ status: { in: PENDENTES }, prazoTecnico: { lte: agora }, prazoLegal: { gte: agora } });
 
@@ -597,15 +598,12 @@ export async function baixar(
     throw Errors.validacao('Esta obrigacao exige anexo na baixa.');
   }
 
-  const aposLegal = dataEntrega > e.prazoLegal;
-  if (aposLegal && !dados.justificativa?.trim()) {
-    throw Errors.validacao('Baixa apos o prazo legal exige justificativa.');
-  }
-
+  // Entregar (mesmo apos o prazo) marca ENTREGUE; o atraso vem de dataEntrega > prazoLegal.
+  // Justificar o atraso e' uma acao separada (justificarAtraso), feita na pendencia.
   const entrega = await prisma.entrega.update({
     where: { id: e.id },
     data: {
-      status: aposLegal ? 'ENTREGUE_JUSTIFICADA' : 'ENTREGUE',
+      status: 'ENTREGUE',
       dataEntrega,
       numeroProtocolo: dados.numeroProtocolo?.trim() || null,
       vencimentoGuia: dados.vencimentoGuia ? new Date(dados.vencimentoGuia + 'T12:00:00') : null,
@@ -621,7 +619,7 @@ export async function baixar(
     });
     await registrarEvento(escritorioId, e.id, `Comentou: ${dados.comentario.trim()}`, userId);
   }
-  await registrarEvento(escritorioId, e.id, `Marcou como ${aposLegal ? 'Entregue c/ multa' : 'Entregue'}${dados.numeroProtocolo?.trim() ? ` (protocolo ${dados.numeroProtocolo.trim()})` : ''}`, userId);
+  await registrarEvento(escritorioId, e.id, `Marcou como ${dataEntrega > e.prazoLegal ? 'Entregue (em atraso)' : 'Entregue'}${dados.numeroProtocolo?.trim() ? ` (protocolo ${dados.numeroProtocolo.trim()})` : ''}`, userId);
 
   return entrega;
 }
@@ -641,6 +639,23 @@ export async function desfazer(escritorioId: string, entregaId: string, userId?:
     },
   });
   await registrarEvento(escritorioId, e.id, 'Desfez a baixa (demanda reaberta)', userId);
+  return r;
+}
+
+// ---------- Justificar atraso (pendencia atrasada com motivo) ----------
+// Igual ao Acessorias: documenta POR QUE a obrigacao esta atrasada, sem entrega-la.
+// A entrega continua pendente (status JUSTIFICADA) ate ser baixada ou dispensada.
+export async function justificarAtraso(escritorioId: string, entregaId: string, motivo: string, userId?: string) {
+  const e = await getEntrega(escritorioId, entregaId);
+  if (ehStatusFinal(e.status as StatusEntrega)) {
+    throw Errors.validacao('Esta obrigacao ja foi entregue/dispensada - nao ha atraso a justificar.');
+  }
+  if (!motivo?.trim()) throw Errors.validacao('Informe o motivo do atraso.');
+  const r = await prisma.entrega.update({
+    where: { id: e.id },
+    data: { status: 'JUSTIFICADA', justificativa: motivo.trim() },
+  });
+  await registrarEvento(escritorioId, e.id, `Atraso justificado: ${motivo.trim()}`, userId);
   return r;
 }
 
@@ -720,10 +735,9 @@ export async function acoesMassa(
       await prisma.entrega.update({
         where: { id: e.id },
         data: {
-          status: new Date() > e.prazoLegal ? 'ENTREGUE_JUSTIFICADA' : 'ENTREGUE',
+          status: 'ENTREGUE', // atraso (se houver) vem de dataEntrega > prazoLegal
           dataEntrega: new Date(),
           origemBaixa: 'MANUAL',
-          justificativa: new Date() > e.prazoLegal ? 'Baixa em lote' : null,
           responsavelEntregaId: e.responsavelEntregaId ?? userId,
         },
       });

@@ -654,8 +654,9 @@ enum StatusEntrega {
   PENDENTE_ANTECIPADO
   EM_ATRASO_TECNICO
   EM_ATRASO_LEGAL
+  JUSTIFICADA            // pendencia atrasada com justificativa de atraso (NAO entregue) - fiel ao Acessorias
   ENTREGUE
-  ENTREGUE_JUSTIFICADA
+  ENTREGUE_JUSTIFICADA   // legado: entregue apos o prazo. Novas baixas usam ENTREGUE (atraso vem da data)
   DISPENSADA
 }
 

@@ -4,7 +4,7 @@ import { prisma } from '../../prisma.js';
 import { ok } from '../../lib/http.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate } from '../../middleware/auth.js';
-import { statusEfetivo, type StatusEntrega } from '../entrega/entrega.status.js';
+import { statusParaIndicador, type StatusEntrega } from '../entrega/entrega.status.js';
 import { computarDados } from './insights.service.js';
 
 const router = Router();
@@ -135,7 +135,7 @@ router.get('/painel', async (req, res) => {
 
   for (const e of entregas) {
     const passivelMulta = !!e.obrigacao.passivelMulta;
-    const status = statusEfetivo(e.status as StatusEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado);
+    const status = statusParaIndicador(e.status as StatusEntrega, e.dataEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado);
     if (e.responsavelPrazoId && porColab.has(e.responsavelPrazoId)) classificar(porColab.get(e.responsavelPrazoId)!, status, passivelMulta);
     if (e.obrigacao.departamentoId && porDep.has(e.obrigacao.departamentoId)) classificar(porDep.get(e.obrigacao.departamentoId)!, status, passivelMulta);
 

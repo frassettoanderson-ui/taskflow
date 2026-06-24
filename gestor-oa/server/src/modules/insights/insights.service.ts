@@ -1,5 +1,5 @@
 import { prisma } from '../../prisma.js';
-import { statusEfetivo, type StatusEntrega } from '../entrega/entrega.status.js';
+import { statusParaIndicador, type StatusEntrega } from '../entrega/entrega.status.js';
 
 // Cores alinhadas ao tema (status de entrega).
 export const CORES = {
@@ -64,7 +64,7 @@ export async function computarDados(escritorioId: string, meses = 6) {
 
   for (const e of entregasJanela) {
     const ref = new Date(e.competenciaAno, e.competenciaMes - 1, 1);
-    const st = statusEfetivo(e.status as StatusEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado);
+    const st = statusParaIndicador(e.status as StatusEntrega, e.dataEntrega, e.prazoTecnico, e.prazoLegal, hoje, diasAntecipado);
     const baixada = st === 'ENTREGUE' || st === 'ENTREGUE_JUSTIFICADA';
     const label = `${String(e.competenciaMes).padStart(2, '0')}/${e.competenciaAno}`;
     void ref;
