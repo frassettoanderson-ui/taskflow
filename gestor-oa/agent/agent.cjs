@@ -24,6 +24,15 @@ const CONFIG_PATH = path.join(APP_DIR, 'gestoroa-agente.config.json');
 const LOCK_PATH = path.join(APP_DIR, 'gestoroa-agente.lock');
 const BG = process.argv.includes('--bg');
 
+// Log de inicializacao SEMPRE gravado ao lado do exe (o agente roda sem console,
+// entao este arquivo e' a unica forma de saber o que aconteceu no boot).
+const BOOT_LOG = path.join(APP_DIR, 'boot.log');
+function blog(msg) {
+  try { fs.appendFileSync(BOOT_LOG, `[${new Date().toLocaleString('pt-BR')}] pid=${process.pid} bg=${BG} ${msg}\n`); } catch { /* ignore */ }
+}
+process.on('uncaughtException', (e) => { blog('UNCAUGHT: ' + ((e && e.stack) || e)); });
+process.on('unhandledRejection', (e) => { blog('UNHANDLED: ' + ((e && e.stack) || e)); });
+
 function desktopDir() {
   const d = path.join(os.homedir(), 'Desktop');
   return fs.existsSync(d) ? d : os.homedir();
@@ -188,7 +197,13 @@ async function iniciar(cfg) {
   const PASTA = path.resolve(cfg.pasta);
   const ENVIADOS = path.join(PASTA, '_enviados');
   const ERROS = path.join(PASTA, '_erros');
-  for (const d of [PASTA, ENVIADOS, ERROS]) fs.mkdirSync(d, { recursive: true });
+  blog(`iniciar(): PASTA resolvida = ${PASTA}`);
+  try {
+    for (const d of [PASTA, ENVIADOS, ERROS]) fs.mkdirSync(d, { recursive: true });
+  } catch (e) {
+    blog(`FALHA ao criar pastas em ${PASTA}: ${(e && e.message) || e}`);
+    throw e;
+  }
   const logFile = path.join(PASTA, 'agente.log');
   const log = (...a) => { try { fs.appendFileSync(logFile, `[${new Date().toLocaleString('pt-BR')}] ${a.join(' ')}\n`); } catch {} };
 
@@ -233,20 +248,26 @@ async function iniciar(cfg) {
 }
 
 (async () => {
+  blog(`=== boot === APP_DIR=${APP_DIR}`);
   let cfg = lerConfig();
+  blog('config: ' + (cfg ? `apiKey=${cfg.apiKey ? 'sim' : 'NAO'} pasta=${cfg.pasta}` : 'NULA (nao leu o config)'));
   if (!cfg || !cfg.apiKey || !cfg.pasta) {
+    blog('sem config valido -> abre assistente');
     cfg = await assistente();           // 1a vez: configura via janelas
     if (process.pkg) { subirEmSegundoPlano(); process.exit(0); } // sobe oculto e fecha
   }
   // Se foi aberto manualmente (sem --bg) e ja esta configurado: relanca oculto e fecha.
   if (process.pkg && !BG) {
+    blog('modo relancador (sem --bg) -> sobe instancia oculta e fecha');
     if (!jaRodando()) subirEmSegundoPlano();
     process.exit(0);
   }
   // Modo segundo plano: instancia unica + vigia
-  if (jaRodando()) process.exit(0);
-  try { fs.writeFileSync(LOCK_PATH, String(process.pid)); } catch {}
+  if (jaRodando()) { blog('jaRodando=true -> sai (outra instancia ativa)'); process.exit(0); }
+  try { fs.writeFileSync(LOCK_PATH, String(process.pid)); } catch (e) { blog('erro ao gravar lock: ' + e); }
   const limpar = () => { try { fs.unlinkSync(LOCK_PATH); } catch {} };
   process.on('exit', limpar); process.on('SIGINT', () => { limpar(); process.exit(0); }); process.on('SIGTERM', () => { limpar(); process.exit(0); });
-  await iniciar(cfg);
+  blog('chamando iniciar() -> vai criar _enviados/_erros/agente.log e vigiar');
+  try { await iniciar(cfg); blog('iniciar() OK - vigiando a pasta'); }
+  catch (e) { blog('ERRO em iniciar(): ' + ((e && e.stack) || e)); }
 })();
