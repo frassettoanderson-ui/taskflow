@@ -331,21 +331,10 @@ export async function processarArquivo(
   origem: 'UPLOAD' | 'WATCHER' | 'API',
 ) {
   const buffer = fs.readFileSync(caminhoArquivo);
-  const paginas = await dividirPaginas(buffer);
-  const dir = ensureDir(path.join(STORAGE_ROOT, 'robo', 'paginas', escritorioId));
-  const resultados = [];
-
-  if (paginas.length === 1) {
-    resultados.push(await processarPagina(escritorioId, caminhoArquivo, nomeOriginal, null, buffer, origem));
-  } else {
-    for (let i = 0; i < paginas.length; i++) {
-      const nome = `${Date.now()}_${i + 1}_${nomeOriginal.replace(/[^\w.\-]/g, '_')}`;
-      const cam = path.join(dir, nome);
-      fs.writeFileSync(cam, paginas[i]);
-      resultados.push(await processarPagina(escritorioId, cam, `${nomeOriginal} (p.${i + 1})`, i + 1, paginas[i], origem));
-    }
-  }
-  return resultados;
+  // Processa o ARQUIVO INTEIRO como 1 documento (nao divide por pagina): gera 1 job
+  // e, quando identificado, 1 entrega com o PDF completo. O texto extraido cobre
+  // todas as paginas para a identificacao.
+  return [await processarPagina(escritorioId, caminhoArquivo, nomeOriginal, null, buffer, origem)];
 }
 
 // ---------- Resolver item de revisao manualmente ----------
@@ -416,6 +405,14 @@ export async function reprocessarJob(escritorioId: string, jobId: string) {
   const baixados = resultados.filter((r) => r.status === 'BAIXADO').length;
   const revisao = resultados.filter((r) => r.status === 'REVISAO').length;
   return { total: resultados.length, baixados, revisao };
+}
+
+// Exclui um job da revisao (descarta o documento que entrou errado) + apaga o arquivo local.
+export async function excluirJob(escritorioId: string, jobId: string) {
+  const job = await prisma.roboJob.findFirst({ where: { id: jobId, escritorioId } });
+  if (job?.caminho) { try { if (fs.existsSync(job.caminho)) fs.unlinkSync(job.caminho); } catch { /* ignore */ } }
+  await prisma.roboJob.deleteMany({ where: { id: jobId, escritorioId } });
+  return { ok: true };
 }
 
 // ---------- Painel / estatisticas ----------

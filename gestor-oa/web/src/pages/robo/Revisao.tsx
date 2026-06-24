@@ -49,6 +49,7 @@ export default function Revisao() {
               else toast('ok', 'Reprocessado.');
               carregar();
             }}
+            onExcluido={() => { toast('ok', 'Documento excluido da revisao.'); carregar(); }}
           />
         ))}
       </div>
@@ -56,11 +57,24 @@ export default function Revisao() {
   );
 }
 
-function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onReprocessado }: {
+function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onReprocessado, onExcluido }: {
   job: RoboJob; empresas: EmpresaLista[]; obrigacoes: Obrigacao[]; onPrevia: () => void; onResolvido: () => void;
   onReprocessado: (r: { total: number; baixados: number; revisao: number }) => void;
+  onExcluido: () => void;
 }) {
   const toast = useToast();
+  const [excluindo, setExcluindo] = useState(false);
+
+  async function excluir() {
+    if (!confirm('Excluir este documento da revisao? O arquivo sera descartado.')) return;
+    setExcluindo(true);
+    try {
+      await api.post(`/robo/revisao/${job.id}/excluir`, {});
+      onExcluido();
+    } catch (e) { toast('erro', e instanceof ApiError ? e.message : 'Erro'); }
+    finally { setExcluindo(false); }
+  }
+
   const hoje = new Date();
   const temSugestao = !!(job.sugestaoObrigacao || (job.sugestaoPalavras && job.sugestaoPalavras.length));
   const [empresaId, setEmpresaId] = useState(job.empresaId ?? '');
@@ -165,6 +179,7 @@ function ItemRevisao({ job, empresas, obrigacoes, onPrevia, onResolvido, onRepro
 
       <div className="mt-2 flex items-center justify-end gap-2">
         <span className="mr-auto text-[11px] text-slate-400">Dica: <b>Mapear</b> ensina o robo (vale pro futuro). <b>Dar baixa</b> resolve so este documento.</span>
+        <button className="btn-ghost border border-status-danger text-status-danger hover:bg-status-danger hover:text-white" onClick={excluir} disabled={excluindo}>{excluindo ? 'Excluindo...' : 'Excluir'}</button>
         <button className="btn-primary" onClick={resolver} disabled={salvando}>{salvando ? 'Baixando...' : 'Dar baixa'}</button>
       </div>
     </div>

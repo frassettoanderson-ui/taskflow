@@ -147,6 +147,12 @@ router.post('/revisao/:id/reprocessar', requirePermission('entregas_baixar'), as
   return ok(res, r);
 });
 
+// Excluir um job da revisao (descarta o documento que entrou errado)
+router.post('/revisao/:id/excluir', requirePermission('entregas_baixar'), async (req, res) => {
+  const r = await svc.excluirJob(req.auth!.escritorioId, req.params.id);
+  return ok(res, r);
+});
+
 // Download do PDF de um job (para previa na revisao)
 router.get('/jobs/:id/arquivo', async (req, res) => {
   const fs = await import('node:fs');
