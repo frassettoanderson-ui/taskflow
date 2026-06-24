@@ -143,19 +143,22 @@ async function getToken(escritorioId: string): Promise<string> {
 }
 
 // ---------- Operacoes no Drive (REST v3) ----------
-function esc(s: string) { return s.replace(/'/g, "\\'"); }
-
 async function driveGet(token: string, url: string) {
   const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!r.ok) throw new Error(`Drive GET ${r.status}: ${await r.text()}`);
   return r.json();
 }
 
+function norm(s: string) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
+
 export async function acharOuCriarPasta(token: string, nome: string, parentId: string): Promise<string> {
-  const q = `name='${esc(nome)}' and '${parentId}' in parents and mimeType='${PASTA}' and trashed=false`;
-  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1`;
-  const data = (await driveGet(token, url)) as { files?: { id: string }[] };
-  if (data.files && data.files.length) return data.files[0].id;
+  // lista as subpastas do parent e compara o nome ignorando caixa/acento, p/ reusar
+  // pastas existentes (ex.: "OUTROS" criada manualmente == "outros" do codigo).
+  const q = `'${parentId}' in parents and mimeType='${PASTA}' and trashed=false`;
+  const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1000`;
+  const data = (await driveGet(token, url)) as { files?: { id: string; name: string }[] };
+  const achada = data.files?.find((f) => norm(f.name) === norm(nome));
+  if (achada) return achada.id;
   // cria
   const r = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
     method: 'POST',
