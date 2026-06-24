@@ -86,13 +86,29 @@ export async function conectar(escritorioId: string, code: string) {
     email = ((await r.json()) as { email?: string }).email;
   } catch { /* opcional */ }
 
-  // cria a estrutura raiz: GestorOA / Entrada
+  // cria a estrutura de pastas (DRIVE / outros / entrada)
   const token = tok.access_token!;
-  const raizId = await acharOuCriarPasta(token, 'GestorOA', 'root');
-  const entradaId = await acharOuCriarPasta(token, 'Entrada', raizId);
-  await salvarCfg(escritorioId, { raizId, entradaId, email });
+  const { entradaId } = await garantirEstrutura(token, escritorioId);
+  await salvarCfg(escritorioId, { email });
 
   return { email: email ?? null, entradaId };
+}
+
+// Estrutura no Drive: a pasta de entrada fica em DRIVE/outros/entrada (escondida);
+// os arquivos organizados ficam direto em DRIVE/{Departamento}/{Apelido}/{Obrigacao}.
+// Idempotente: reusa as pastas que ja existem.
+async function garantirEstrutura(token: string, escritorioId: string) {
+  const raizId = await acharOuCriarPasta(token, 'DRIVE', 'root');
+  const outrosId = await acharOuCriarPasta(token, 'outros', raizId);
+  const entradaId = await acharOuCriarPasta(token, 'entrada', outrosId);
+  await salvarCfg(escritorioId, { raizId, entradaId });
+  return { raizId, entradaId };
+}
+
+// Recria/atualiza a estrutura de pastas usando a conexao atual (sem refazer o OAuth).
+export async function recriarPastas(escritorioId: string) {
+  const token = await getToken(escritorioId);
+  return garantirEstrutura(token, escritorioId);
 }
 
 export async function desconectar(escritorioId: string) {

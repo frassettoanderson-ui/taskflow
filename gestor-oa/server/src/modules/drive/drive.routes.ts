@@ -28,6 +28,12 @@ router.post('/desconectar', requirePermission('admin_escritorio'), async (req, r
   return ok(res, { ok: true });
 });
 
+// Recria/atualiza a estrutura de pastas (DRIVE/outros/entrada) sem refazer o OAuth
+router.post('/recriar-pastas', requirePermission('admin_escritorio'), async (req, res) => {
+  await svc.recriarPastas(req.auth!.escritorioId);
+  return ok(res, { ok: true });
+});
+
 // Roda o processamento da Entrada agora (alem do polling automatico)
 router.post('/processar-agora', requirePermission('entregas_baixar'), async (req, res) => {
   return ok(res, await svc.processarEntrada(req.auth!.escritorioId));

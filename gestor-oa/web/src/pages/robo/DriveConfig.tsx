@@ -45,6 +45,16 @@ export default function DriveConfig() {
     }
   }
 
+  async function recriarPastas() {
+    try {
+      await api.post('/drive/recriar-pastas', {});
+      toast('ok', 'Estrutura de pastas atualizada (DRIVE / outros / entrada).');
+      carregar();
+    } catch (e) {
+      toast('erro', e instanceof ApiError ? e.message : 'Erro');
+    }
+  }
+
   async function processarAgora() {
     setProcessando(true);
     try {
@@ -77,8 +87,8 @@ export default function DriveConfig() {
         <h1 className="text-2xl font-semibold text-slate-800">e-Continuo via Google Drive</h1>
       </div>
       <p className="text-sm text-slate-500">
-        Conecte uma conta do Google Drive. A partir dai, todo PDF colocado na pasta <b>Entrada</b> e' lancado
-        automaticamente no sistema e arquivado em <code>Departamento / Apelido do cliente / Obrigacao / Obrigacao - MM-AAAA.pdf</code>.
+        Conecte uma conta do Google Drive. A partir dai, todo PDF colocado na pasta <b>DRIVE / outros / entrada</b> e' lancado
+        automaticamente no sistema e arquivado em <code>DRIVE / Departamento / Apelido / Obrigacao / Obrigacao - MM-AAAA.pdf</code>.
         Nao precisa instalar nada em PC nenhum.
       </p>
 
@@ -112,13 +122,14 @@ export default function DriveConfig() {
             <span className="font-medium">Conectado{status.email ? ` — ${status.email}` : ''}</span>
           </div>
           <div className="rounded bg-slate-50 p-3 text-[13px] text-slate-600">
-            Coloque os PDFs na pasta <b>GestorOA › Entrada</b> do seu Drive. A cada poucos minutos o sistema processa os novos.
-            Documentos nao identificados ficam na Entrada para voce resolver na <b>Revisao</b>.
+            Coloque os PDFs na pasta <b>DRIVE › outros › entrada</b> do seu Drive. A cada poucos minutos o sistema processa os novos.
+            Documentos nao identificados ficam na entrada para voce resolver na <b>Revisao</b>.
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={processarAgora} disabled={processando} className="btn-primary inline-flex items-center gap-2">
               <RefreshCw size={16} className={processando ? 'animate-spin' : ''} /> {processando ? 'Processando...' : 'Processar agora'}
             </button>
+            <button onClick={recriarPastas} className="btn-ghost border border-slate-300">Atualizar pastas</button>
             <button onClick={desconectar} className="btn-ghost border border-slate-300">Desconectar</button>
           </div>
         </div>
