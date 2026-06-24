@@ -22,6 +22,7 @@ import {
   Activity,
   Palette,
   Download,
+  HardDrive,
   Smartphone,
   Star,
   ClipboardList,
@@ -59,9 +60,9 @@ const MENU: Item[] = [
         icon: Bot,
         filhos: [
           { label: 'Configurar obrigacoes', icon: Settings, to: '/robo/assinaturas' },
+          { label: 'Conectar Google Drive', icon: HardDrive, to: '/robo/drive' },
           { label: 'Consulta documento', icon: FileText, to: '/robo/consulta' },
           { label: 'Revisao', icon: ClipboardList, to: '/robo/revisao' },
-          { label: 'Baixar agente (Windows)', icon: Download, baixarAgente: true },
         ],
       },
       {

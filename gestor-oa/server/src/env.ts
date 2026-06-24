@@ -54,6 +54,16 @@ export const env = {
     model: process.env.IA_MODEL ?? ((process.env.IA_PROVIDER ?? 'gemini') === 'anthropic' ? 'claude-haiku-4-5-20251001' : 'gemini-2.5-flash'),
   },
 
+  drive: {
+    // Integracao Google Drive (substitui o agente desktop). Cliente OAuth tipo "Desktop".
+    clientId: process.env.GOOGLE_CLIENT_ID ?? '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+    // Desktop app usa loopback; o usuario cola o codigo manualmente na 1a conexao.
+    redirectUri: process.env.GOOGLE_REDIRECT_URI ?? 'http://localhost',
+    // intervalo do polling da pasta de entrada (ms)
+    pollMs: Number(process.env.DRIVE_POLL_MS ?? 120000),
+  },
+
   whatsapp: {
     provider: process.env.WHATSAPP_PROVIDER ?? 'wa_me', // wa_me | meta_cloud
     cloudToken: process.env.WHATSAPP_CLOUD_TOKEN ?? '',

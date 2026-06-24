@@ -3,6 +3,7 @@ import { env } from './env.js';
 import { prisma } from './prisma.js';
 import { iniciarWatcher } from './modules/robo/watcher.js';
 import { iniciarScheduler } from './lib/scheduler.js';
+import { iniciarDriveWorker } from './modules/drive/drive.worker.js';
 
 const app = createApp();
 
@@ -18,6 +19,11 @@ const server = app.listen(env.port, () => {
     iniciarScheduler();
   } catch (e) {
     console.error('[GestorOA] Falha ao iniciar scheduler:', e);
+  }
+  try {
+    iniciarDriveWorker();
+  } catch (e) {
+    console.error('[GestorOA] Falha ao iniciar Drive worker:', e);
   }
 });
 
