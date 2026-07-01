@@ -1447,6 +1447,7 @@ VIEWS['relatorio-despesas'] = async () => {
   let _mes = mesISO();
   let _saidas = [];
   let _chart = null;
+  const bancosDesp = await getJSON('bancos');
 
   app.innerHTML = `
     <div class="strip-wrap">
@@ -1465,6 +1466,7 @@ VIEWS['relatorio-despesas'] = async () => {
       <h2>Despesas detalhadas</h2>
       <div class="toolbar">
         <select id="filtro-cat"><option value="">Todos os centros de custo</option></select>
+        <select id="filtro-banco"><option value="">Todos os bancos</option>${bancosDesp.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select>
       </div>
       <div id="lista"></div>
     </div>`;
@@ -1474,6 +1476,7 @@ VIEWS['relatorio-despesas'] = async () => {
   document.getElementById('strip-next').addEventListener('click', () =>
     document.getElementById('strip').scrollBy({ left: 260, behavior: 'smooth' }));
   document.getElementById('filtro-cat').addEventListener('change', renderLista);
+  document.getElementById('filtro-banco').addEventListener('change', renderLista);
 
   // Bloco 1: régua de meses (só despesas ↓)
   async function carregarStrip() {
@@ -1543,8 +1546,10 @@ VIEWS['relatorio-despesas'] = async () => {
   // Bloco 3: lista de despesas (filtro por centro de custo)
   function renderLista() {
     const cat = document.getElementById('filtro-cat').value;
+    const banco = document.getElementById('filtro-banco').value;
     let itens = _saidas.slice();
     if (cat) itens = itens.filter((s) => (s.centro_custo_nome || 'Sem centro de custo') === cat);
+    if (banco) itens = itens.filter((s) => String(s.banco_id) === banco);
     itens.sort((a, b) => a.data.localeCompare(b.data));
     const total = itens.reduce((s, i) => s + Number(i.valor), 0);
     const footer = itens.length
@@ -1569,6 +1574,7 @@ VIEWS['relatorio-dizimos'] = async () => {
   const [ay, am] = hojeM.split('-').map(Number);
   const primeiroDia = `${hojeM}-01`;
   const ultimoDia = new Date(Date.UTC(ay, am, 0)).toISOString().slice(0, 10);
+  const bancos = await getJSON('bancos');
 
   app.innerHTML = `<div class="painel">
     <h2>Dízimos / Ofertas</h2>
@@ -1576,7 +1582,8 @@ VIEWS['relatorio-dizimos'] = async () => {
     <div class="toolbar">
       <label class="check-linha" style="margin:0">De <input type="date" id="inicio" value="${primeiroDia}" style="width:auto"></label>
       <label class="check-linha" style="margin:0">Até <input type="date" id="fim" value="${ultimoDia}" style="width:auto"></label>
-      <select id="tipo"><option value="">Todos</option><option value="DIZIMO">Dízimos</option><option value="OFERTA">Ofertas</option></select>
+      <select id="tipo"><option value="">Todos os tipos</option><option value="DIZIMO">Dízimos</option><option value="OFERTA">Ofertas</option></select>
+      <select id="banco"><option value="">Todos os bancos</option>${bancos.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select>
       <input class="cresce" id="busca" placeholder="Buscar membro...">
     </div>
     <div id="resumo"></div>
@@ -1598,8 +1605,10 @@ VIEWS['relatorio-dizimos'] = async () => {
   function render() {
     const busca = document.getElementById('busca').value.toLowerCase();
     const tipo = document.getElementById('tipo').value;
+    const banco = document.getElementById('banco').value;
     let fl = dados;
     if (tipo) fl = fl.filter((e) => String(e.tipo_gasto).toUpperCase() === tipo);
+    if (banco) fl = fl.filter((e) => String(e.banco_id) === banco);
     if (busca) fl = fl.filter((e) => quem(e).toLowerCase().includes(busca));
 
     const tDiz = fl.filter((e) => String(e.tipo_gasto).toUpperCase() === 'DIZIMO').reduce((s, e) => s + Number(e.valor), 0);
@@ -1623,6 +1632,7 @@ VIEWS['relatorio-dizimos'] = async () => {
   document.getElementById('inicio').addEventListener('change', carregar);
   document.getElementById('fim').addEventListener('change', carregar);
   document.getElementById('tipo').addEventListener('change', render);
+  document.getElementById('banco').addEventListener('change', render);
   document.getElementById('busca').addEventListener('input', render);
   carregar();
 };
