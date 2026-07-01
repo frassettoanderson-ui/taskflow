@@ -1570,80 +1570,58 @@ VIEWS['relatorio-dizimos'] = async () => {
   const ultimoDia = new Date(Date.UTC(ay, am, 0)).toISOString().slice(0, 10);
 
   app.innerHTML = `<div class="painel">
-    <h2>Dízimos / Ofertas por membro</h2>
-    <p class="desc">Total de cada membro no período. Clique em um membro para ver os lançamentos dele.</p>
+    <h2>Dízimos / Ofertas</h2>
+    <p class="desc">Cada lançamento no período, um por linha (detalhado). Sem agrupamento.</p>
     <div class="toolbar">
       <label class="check-linha" style="margin:0">De <input type="date" id="inicio" value="${primeiroDia}" style="width:auto"></label>
       <label class="check-linha" style="margin:0">Até <input type="date" id="fim" value="${ultimoDia}" style="width:auto"></label>
+      <select id="tipo"><option value="">Todos</option><option value="DIZIMO">Dízimos</option><option value="OFERTA">Ofertas</option></select>
       <input class="cresce" id="busca" placeholder="Buscar membro...">
     </div>
     <div id="resumo"></div>
     <div id="lista"></div>
   </div>`;
 
-  let linhas = [];
+  let dados = [];
+  const quem = (e) => (e.visitante ? 'Visitante' : (e.membro_nome || '—'));
 
   async function carregar() {
     const ini = document.getElementById('inicio').value;
     const fim = document.getElementById('fim').value;
     if (!ini || !fim) return;
-    const entradas = await getJSON(`lancamentos?tipo=entrada&inicio=${ini}&fim=${fim}`);
-
-    const mapa = {};
-    entradas.forEach((e) => {
-      const key = e.visitante ? 'visitante' : (e.membro_id || 'sem');
-      if (!mapa[key]) mapa[key] = { nome: e.visitante ? 'Visitante' : (e.membro_nome || '—'), dizimo: 0, oferta: 0, total: 0, itens: [] };
-      const v = Number(e.valor);
-      if (String(e.tipo_gasto).toUpperCase() === 'DIZIMO') mapa[key].dizimo += v; else mapa[key].oferta += v;
-      mapa[key].total += v;
-      mapa[key].itens.push(e);
-    });
-    linhas = Object.values(mapa).sort((a, b) => b.total - a.total);
+    dados = await getJSON(`lancamentos?tipo=entrada&inicio=${ini}&fim=${fim}`);
+    dados.sort((a, b) => a.data.localeCompare(b.data) || (a.id - b.id));
     render();
   }
 
   function render() {
     const busca = document.getElementById('busca').value.toLowerCase();
-    const fl = busca ? linhas.filter((l) => l.nome.toLowerCase().includes(busca)) : linhas;
+    const tipo = document.getElementById('tipo').value;
+    let fl = dados;
+    if (tipo) fl = fl.filter((e) => String(e.tipo_gasto).toUpperCase() === tipo);
+    if (busca) fl = fl.filter((e) => quem(e).toLowerCase().includes(busca));
 
-    const tDiz = fl.reduce((s, l) => s + l.dizimo, 0);
-    const tOf = fl.reduce((s, l) => s + l.oferta, 0);
+    const tDiz = fl.filter((e) => String(e.tipo_gasto).toUpperCase() === 'DIZIMO').reduce((s, e) => s + Number(e.valor), 0);
+    const tOf = fl.filter((e) => String(e.tipo_gasto).toUpperCase() === 'OFERTA').reduce((s, e) => s + Number(e.valor), 0);
     document.getElementById('resumo').innerHTML = `<div class="extrato-resumo">
       <div class="er-box"><span>Total dízimos</span><strong class="val-entrada">${brl(tDiz)}</strong></div>
       <div class="er-box"><span>Total ofertas</span><strong class="val-entrada">${brl(tOf)}</strong></div>
       <div class="er-box"><span>Total geral</span><strong>${brl(tDiz + tOf)}</strong></div>
+      <div class="er-box"><span>Lançamentos</span><strong>${fl.length}</strong></div>
     </div>`;
 
-    const dataCol = (l) => {
-      const ds = l.itens.map((i) => String(i.data).slice(0, 10)).sort();
-      if (!ds.length) return '—';
-      return ds.length === 1 ? dataBR(ds[0]) : `${dataBR(ds[0])} – ${dataBR(ds[ds.length - 1])}`;
-    };
     document.getElementById('lista').innerHTML = tabela(fl, [
-      ['Membro', (l) => `<button class="acao-link" data-ver="${linhas.indexOf(l)}" style="font-weight:600">${esc(l.nome)}</button>`],
-      ['Data', dataCol],
-      ['Dízimos', (l) => `<span class="val-entrada">${brl(l.dizimo)}</span>`],
-      ['Ofertas', (l) => `<span class="val-entrada">${brl(l.oferta)}</span>`],
-      ['Total', (l) => `<b>${brl(l.total)}</b>`],
-      ['Lanç.', (l) => l.itens.length],
-    ], 'Nenhuma entrada no período.');
-
-    document.querySelectorAll('[data-ver]').forEach((b) =>
-      b.addEventListener('click', () => verMembro(linhas[Number(b.dataset.ver)])));
-  }
-
-  function verMembro(l) {
-    const itens = [...l.itens].sort((a, b) => b.data.localeCompare(a.data));
-    abrirModal(`${l.nome} — ${brl(l.total)}`, `<div style="max-height:60vh;overflow:auto">${tabela(itens, [
-      ['Data', (i) => dataBR(i.data)],
-      ['Tipo', (i) => i.tipo_gasto],
-      ['Banco', (i) => esc(i.banco_nome)],
-      ['Valor', (i) => `<span class="val-entrada">${brl(i.valor)}</span>`],
-    ], 'Sem lançamentos.')}</div>`);
+      ['Data', (e) => dataBR(e.data)],
+      ['Membro', (e) => esc(quem(e))],
+      ['Tipo', (e) => (String(e.tipo_gasto).toUpperCase() === 'DIZIMO' ? 'Dízimo' : 'Oferta')],
+      ['Banco', (e) => esc(e.banco_nome)],
+      ['Valor', (e) => `<span class="val-entrada">${brl(e.valor)}</span>`],
+    ], 'Nenhum lançamento no período.');
   }
 
   document.getElementById('inicio').addEventListener('change', carregar);
   document.getElementById('fim').addEventListener('change', carregar);
+  document.getElementById('tipo').addEventListener('change', render);
   document.getElementById('busca').addEventListener('input', render);
   carregar();
 };
