@@ -1614,8 +1614,14 @@ VIEWS['relatorio-dizimos'] = async () => {
       <div class="er-box"><span>Total geral</span><strong>${brl(tDiz + tOf)}</strong></div>
     </div>`;
 
+    const dataCol = (l) => {
+      const ds = l.itens.map((i) => String(i.data).slice(0, 10)).sort();
+      if (!ds.length) return '—';
+      return ds.length === 1 ? dataBR(ds[0]) : `${dataBR(ds[0])} – ${dataBR(ds[ds.length - 1])}`;
+    };
     document.getElementById('lista').innerHTML = tabela(fl, [
       ['Membro', (l) => `<button class="acao-link" data-ver="${linhas.indexOf(l)}" style="font-weight:600">${esc(l.nome)}</button>`],
+      ['Data', dataCol],
       ['Dízimos', (l) => `<span class="val-entrada">${brl(l.dizimo)}</span>`],
       ['Ofertas', (l) => `<span class="val-entrada">${brl(l.oferta)}</span>`],
       ['Total', (l) => `<b>${brl(l.total)}</b>`],
