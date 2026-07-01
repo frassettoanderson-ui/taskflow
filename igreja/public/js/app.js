@@ -935,6 +935,60 @@ async function buildFornecedores(host) {
 }
 
 // Modal de edição de despesa (reusado em Contas a Pagar e Contas Pagas)
+// Modal de edição de ENTRADA (reusado na tela de lançar e no relatório). refs = { bancos, membros }
+function abrirEditarEntrada(l, refs, aoConcluir) {
+  const { bancos, membros } = refs;
+  const m = abrirModal('Editar entrada', `
+    <form id="fee" class="form-grid" style="max-width:none">
+      <label class="check-linha"><input type="checkbox" id="ee-visit"> Visitante (somente oferta)</label>
+      <label id="ee-wrap-membro">Membro
+        <select id="ee-membro"><option value=""></option>${membros.map((x) => `<option value="${x.id}">${esc(x.nome)}</option>`).join('')}</select>
+      </label>
+      <div class="linha">
+        <label id="ee-wrap-tipo">Tipo<select id="ee-tipo"><option value="DIZIMO">Dízimo</option><option value="OFERTA">Oferta</option></select></label>
+        <label>Valor<input type="text" id="ee-valor"></label>
+      </div>
+      <div class="linha">
+        <label>Banco<select id="ee-banco">${optById(bancos)}</select></label>
+        <label>Data<input type="date" id="ee-data"></label>
+      </div>
+      <label>Observação<input type="text" id="ee-detalhes" maxlength="255"></label>
+      <button type="submit">Salvar</button>
+      <p id="ee-msg" class="erro"></p>
+    </form>`);
+  const q = (id) => m.el.querySelector(id);
+  q('#ee-membro').value = l.membro_id || '';
+  q('#ee-tipo').value = l.tipo_gasto || 'DIZIMO';
+  q('#ee-banco').value = l.banco_id || '';
+  q('#ee-data').value = l.data.slice(0, 10);
+  q('#ee-detalhes').value = l.detalhes || '';
+  q('#ee-visit').checked = !!l.visitante;
+  maskMoeda(q('#ee-valor'), Number(l.valor));
+  const aplicarVisit = () => {
+    const v = q('#ee-visit').checked;
+    q('#ee-wrap-membro').style.display = v ? 'none' : 'flex';
+    q('#ee-wrap-tipo').style.display = v ? 'none' : 'flex';
+    if (v) q('#ee-tipo').value = 'OFERTA';
+  };
+  q('#ee-visit').addEventListener('change', aplicarVisit);
+  aplicarVisit();
+  q('#fee').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const r = await api('lancamentos/entrada/' + l.id, { method: 'PUT', body: JSON.stringify({
+      visitante: q('#ee-visit').checked,
+      membro_id: q('#ee-visit').checked ? null : q('#ee-membro').value,
+      tipo_gasto: q('#ee-tipo').value,
+      valor: parseMoeda(q('#ee-valor').value),
+      banco_id: q('#ee-banco').value,
+      data: q('#ee-data').value,
+      detalhes: q('#ee-detalhes').value,
+    }) });
+    const d = await r.json();
+    if (!r.ok) { q('#ee-msg').textContent = d.erro; return; }
+    m.fechar(); aoConcluir();
+  });
+}
+
 function abrirEditarDespesa(l, refs, aoConcluir) {
   const { fornecedores, centros, bancos, formas } = refs;
   const m = abrirModal('Editar despesa', `
@@ -1447,7 +1501,13 @@ VIEWS['relatorio-despesas'] = async () => {
   let _mes = mesISO();
   let _saidas = [];
   let _chart = null;
-  const bancosDesp = await getJSON('bancos');
+  const refsDesp = {
+    bancos: await getJSON('bancos'),
+    fornecedores: await getJSON('fornecedores'),
+    centros: await getJSON('centros-custo'),
+    formas: await getJSON('formas-pagamento'),
+  };
+  const bancosDesp = refsDesp.bancos;
 
   app.innerHTML = `
     <div class="strip-wrap">
@@ -1562,7 +1622,15 @@ VIEWS['relatorio-despesas'] = async () => {
       ['Banco', (s) => esc(s.banco_nome || '—')],
       ['Situação', (s) => s.situacao === 'pago' ? '<span class="badge pago">Paga</span>' : '<span class="badge pendente">Pendente</span>'],
       ['Valor', (s) => `<span class="val-saida">${brl(s.valor)}</span>`],
+      ['Ações', (s) => `<div class="acoes">
+        <button class="btn-ico" data-edit="${s.id}" title="Editar">${ICON.pencil}</button>
+        <button class="btn-ico excluir" data-del="${s.id}" title="Excluir">${ICON.trash}</button>
+      </div>`],
     ], 'Nenhuma despesa neste mês.') + footer;
+
+    document.querySelectorAll('[data-edit]').forEach((b) =>
+      b.addEventListener('click', () => abrirEditarDespesa(itens.find((x) => String(x.id) === b.dataset.edit), refsDesp, recarregar)));
+    ligarDelete('lancamentos', recarregar);
   }
 
   recarregar();
@@ -1575,6 +1643,7 @@ VIEWS['relatorio-dizimos'] = async () => {
   const primeiroDia = `${hojeM}-01`;
   const ultimoDia = new Date(Date.UTC(ay, am, 0)).toISOString().slice(0, 10);
   const bancos = await getJSON('bancos');
+  const membrosDiz = await getJSON('membros');
 
   app.innerHTML = `<div class="painel">
     <h2>Dízimos / Ofertas</h2>
@@ -1626,7 +1695,15 @@ VIEWS['relatorio-dizimos'] = async () => {
       ['Tipo', (e) => (String(e.tipo_gasto).toUpperCase() === 'DIZIMO' ? 'Dízimo' : 'Oferta')],
       ['Banco', (e) => esc(e.banco_nome)],
       ['Valor', (e) => `<span class="val-entrada">${brl(e.valor)}</span>`],
+      ['Ações', (e) => `<div class="acoes">
+        <button class="btn-ico" data-edit="${e.id}" title="Editar">${ICON.pencil}</button>
+        <button class="btn-ico excluir" data-del="${e.id}" title="Excluir">${ICON.trash}</button>
+      </div>`],
     ], 'Nenhum lançamento no período.');
+
+    document.querySelectorAll('[data-edit]').forEach((b) =>
+      b.addEventListener('click', () => abrirEditarEntrada(dados.find((x) => String(x.id) === b.dataset.edit), { bancos, membros: membrosDiz }, carregar)));
+    ligarDelete('lancamentos', carregar);
   }
 
   document.getElementById('inicio').addEventListener('change', carregar);
