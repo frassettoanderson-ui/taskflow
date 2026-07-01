@@ -1554,6 +1554,7 @@ VIEWS['relatorio-despesas'] = async () => {
       ['Data', (s) => dataBR(s.data)],
       ['Despesa', (s) => esc(s.fornecedor_nome || '—')],
       ['Centro de custo', (s) => esc(s.centro_custo_nome || '—')],
+      ['Banco', (s) => esc(s.banco_nome || '—')],
       ['Situação', (s) => s.situacao === 'pago' ? '<span class="badge pago">Paga</span>' : '<span class="badge pendente">Pendente</span>'],
       ['Valor', (s) => `<span class="val-saida">${brl(s.valor)}</span>`],
     ], 'Nenhuma despesa neste mês.') + footer;
