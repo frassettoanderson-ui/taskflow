@@ -64,6 +64,62 @@ function abrirModal(titulo, corpoHTML) {
   return { el: ov, fechar };
 }
 
+// ─── Depósito na caixinha (transferência entre contas) ───
+async function abrirDeposito(bancos, aoConcluir) {
+  const caixinha = bancos.find((b) => b.caixinha);
+  const origens = bancos.filter((b) => !b.caixinha);
+  const { fechar } = abrirModal('Depositar na caixinha', `
+    <form id="fdep" class="form-grid">
+      <label>Retirar da conta *
+        <select id="dep-origem" required><option value=""></option>
+          ${origens.map((b) => `<option value="${b.id}">${esc(b.nome)} — ${brl(b.saldo)}</option>`).join('')}
+        </select></label>
+      <label>Valor *<input type="text" id="dep-valor" required></label>
+      <label>Data<input type="date" id="dep-data" value="${new Date().toISOString().slice(0, 10)}"></label>
+      <div class="linha"><button type="submit">Depositar</button></div>
+      <p id="dep-msg" class="erro"></p>
+    </form>`);
+  maskMoeda(document.getElementById('dep-valor'));
+  document.getElementById('fdep').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('dep-msg');
+    const r = await api('lancamentos/transferencia', { method: 'POST', body: JSON.stringify({
+      origem_banco_id: document.getElementById('dep-origem').value,
+      destino_banco_id: caixinha.id,
+      valor: parseMoeda(document.getElementById('dep-valor').value),
+      data: document.getElementById('dep-data').value,
+    }) });
+    const dd = await r.json();
+    if (!r.ok) { msg.textContent = dd.erro || 'Erro ao depositar'; return; }
+    fechar(); if (aoConcluir) aoConcluir();
+  });
+}
+
+// ─── Atualizar saldo de uma conta (gera lançamento de "ajuste de saldo") ───
+async function abrirAjusteSaldo(bancoId, nome, saldoAtual, aoConcluir) {
+  const { fechar } = abrirModal('Atualizar saldo — ' + nome, `
+    <form id="faj" class="form-grid">
+      <p class="desc">Saldo atual: <b>${brl(saldoAtual)}</b>. Informe o saldo correto — a diferença entra no relatório como ajuste de saldo.</p>
+      <label>Novo saldo *<input type="text" id="aj-valor" required></label>
+      <label>Data<input type="date" id="aj-data" value="${new Date().toISOString().slice(0, 10)}"></label>
+      <div class="linha"><button type="submit">Salvar saldo</button></div>
+      <p id="aj-msg" class="erro"></p>
+    </form>`);
+  const inp = document.getElementById('aj-valor');
+  maskMoeda(inp, saldoAtual);
+  document.getElementById('faj').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const msg = document.getElementById('aj-msg');
+    const r = await api('bancos/' + bancoId + '/ajuste', { method: 'POST', body: JSON.stringify({
+      novo_saldo: parseMoeda(inp.value),
+      data: document.getElementById('aj-data').value,
+    }) });
+    const dd = await r.json();
+    if (!r.ok) { msg.textContent = dd.erro || 'Erro ao ajustar'; return; }
+    fechar(); if (aoConcluir) aoConcluir();
+  });
+}
+
 const app = document.getElementById('app');
 const titulo = document.getElementById('titulo-pagina');
 let USUARIO = null; // usuário logado (preenchido no init)
@@ -233,10 +289,27 @@ async function carregarDashboard() {
   document.getElementById('d-apagar').innerHTML = listaMini(d.a_pagar, 'Nada futuro. 🎉');
   document.getElementById('d-pendentes').innerHTML = listaMini(d.pendentes, 'Nada atrasado. 🎉');
 
-  // KPIs da igreja (membros + bancos)
+  // KPIs da igreja (membros + bancos) — cada conta tem botão de atualizar saldo
   document.getElementById('d-kpis').innerHTML =
     `<div class="kpi"><span>👥 Membros ativos</span><strong>${d.membros_ativos}</strong></div>` +
-    d.bancos.map((b) => `<div class="kpi"><span>🏦 ${esc(b.nome)}</span><strong>${brl(b.saldo)}</strong></div>`).join('');
+    d.bancos.map((b) => `<div class="kpi kpi-banco">
+        <div class="kpi-topo"><span>${b.caixinha ? '🐷' : '🏦'} ${esc(b.nome)}</span>
+          <button class="kpi-ajuste" data-ajuste="${b.id}" data-nome="${esc(b.nome)}" data-saldo="${b.saldo}" title="Atualizar saldo">✎</button></div>
+        <strong>${brl(b.saldo)}</strong>
+      </div>`).join('') +
+    `<div class="kpi kpi-acao">${d.tem_caixinha
+        ? '<button class="btn-caixinha" id="btn-depositar">🐷 Depositar na caixinha</button>'
+        : '<button class="btn-caixinha" id="btn-criar-caixinha">🐷 Criar caixinha</button>'}</div>`;
+
+  document.querySelectorAll('[data-ajuste]').forEach((btn) => btn.addEventListener('click', () =>
+    abrirAjusteSaldo(btn.dataset.ajuste, btn.dataset.nome, Number(btn.dataset.saldo), carregarDashboard)));
+  const btnDep = document.getElementById('btn-depositar');
+  if (btnDep) btnDep.addEventListener('click', () => abrirDeposito(d.bancos, carregarDashboard));
+  const btnCx = document.getElementById('btn-criar-caixinha');
+  if (btnCx) btnCx.addEventListener('click', async () => {
+    const r = await api('bancos/caixinha', { method: 'POST', body: '{}' });
+    if (r.ok) carregarDashboard();
+  });
 
   // Donut
   _charts.push(new Chart(document.getElementById('g-donut'), {

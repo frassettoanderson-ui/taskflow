@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS bancos (
 ALTER TABLE bancos ADD COLUMN IF NOT EXISTS agencia   VARCHAR(20)  DEFAULT '';
 ALTER TABLE bancos ADD COLUMN IF NOT EXISTS conta     VARCHAR(30)  DEFAULT '';
 ALTER TABLE bancos ADD COLUMN IF NOT EXISTS chave_pix VARCHAR(150) DEFAULT '';
+-- Conta "caixinha"/poupança: recebe depósitos (transferências) de outras contas
+ALTER TABLE bancos ADD COLUMN IF NOT EXISTS caixinha BOOLEAN DEFAULT FALSE;
 
 -- Centros de custo (só para despesas)
 CREATE TABLE IF NOT EXISTS centros_custo (
@@ -134,6 +136,9 @@ CREATE TABLE IF NOT EXISTS lancamentos (
   usuario_id      INT REFERENCES usuarios(id),
   criado_em       TIMESTAMP DEFAULT NOW()
 );
+-- Classifica o lançamento: 'normal' (dízimo/oferta/despesa) | 'transferencia' (entre contas) | 'ajuste' (correção de saldo).
+-- Movimentos != 'normal' afetam o saldo das contas mas NÃO entram nas receitas/despesas dos relatórios.
+ALTER TABLE lancamentos ADD COLUMN IF NOT EXISTS movimento VARCHAR(20) DEFAULT 'normal';
 
 CREATE INDEX IF NOT EXISTS idx_lanc_igreja_data ON lancamentos(igreja_id, data);
 CREATE INDEX IF NOT EXISTS idx_lanc_situacao    ON lancamentos(igreja_id, situacao);

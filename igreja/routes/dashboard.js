@@ -10,7 +10,8 @@ async function totaisMes(igreja_id, ano, mes) {
        COALESCE(SUM(CASE WHEN tipo='entrada' AND situacao='recebido' THEN valor END),0) AS entradas,
        COALESCE(SUM(CASE WHEN tipo='saida'   AND situacao='pago'     THEN valor END),0) AS saidas
      FROM lancamentos
-     WHERE igreja_id=$1 AND date_trunc('month', data)=date_trunc('month', $2::date)`,
+     WHERE igreja_id=$1 AND date_trunc('month', data)=date_trunc('month', $2::date)
+       AND COALESCE(movimento,'normal')='normal'`,
     [igreja_id, ini]
   );
   return { entradas: Number(rows[0].entradas), saidas: Number(rows[0].saidas) };
@@ -51,7 +52,7 @@ router.get('/', async (req, res) => {
 
   // Saldo por banco
   const { rows: bancos } = await db.query(
-    `SELECT b.nome,
+    `SELECT b.id, b.nome, b.caixinha,
        b.saldo_inicial
        + COALESCE(SUM(CASE WHEN l.tipo='entrada' AND l.situacao='recebido' THEN l.valor ELSE 0 END),0)
        - COALESCE(SUM(CASE WHEN l.tipo='saida'   AND l.situacao='pago'     THEN l.valor ELSE 0 END),0) AS saldo
@@ -81,7 +82,8 @@ router.get('/', async (req, res) => {
     anterior,
     fluxo,
     membros_ativos: mb[0].n,
-    bancos: bancos.map((b) => ({ nome: b.nome, saldo: Number(b.saldo) })),
+    bancos: bancos.map((b) => ({ id: b.id, nome: b.nome, caixinha: !!b.caixinha, saldo: Number(b.saldo) })),
+    tem_caixinha: bancos.some((b) => b.caixinha),
     saldo_total: saldoTotal,
     a_pagar: num(aPagar),
     pendentes: num(atrasados),

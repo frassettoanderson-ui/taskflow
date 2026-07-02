@@ -30,6 +30,51 @@ router.post('/', async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
+// Cria (ou reaproveita) a conta caixinha da igreja
+router.post('/caixinha', async (req, res) => {
+  const { igreja_id } = req.session.usuario;
+  const ja = await db.query(
+    'SELECT * FROM bancos WHERE igreja_id=$1 AND caixinha=TRUE AND ativo=TRUE LIMIT 1', [igreja_id]);
+  if (ja.rows.length) return res.json({ ok: true, ja_existe: true, banco: ja.rows[0] });
+  const nome = (req.body && req.body.nome && req.body.nome.trim()) || 'Caixinha';
+  const { rows } = await db.query(
+    'INSERT INTO bancos (igreja_id, nome, saldo_inicial, caixinha) VALUES ($1,$2,0,TRUE) RETURNING *',
+    [igreja_id, nome]);
+  res.status(201).json({ ok: true, banco: rows[0] });
+});
+
+// Saldo atual de uma conta (saldo_inicial + entradas recebidas - saídas pagas)
+async function saldoAtual(igreja_id, banco_id) {
+  const { rows } = await db.query(
+    `SELECT b.saldo_inicial
+       + COALESCE(SUM(CASE WHEN l.tipo='entrada' AND l.situacao='recebido' THEN l.valor ELSE 0 END),0)
+       - COALESCE(SUM(CASE WHEN l.tipo='saida'   AND l.situacao='pago'     THEN l.valor ELSE 0 END),0) AS saldo
+     FROM bancos b LEFT JOIN lancamentos l ON l.banco_id=b.id
+     WHERE b.id=$1 AND b.igreja_id=$2 GROUP BY b.id`,
+    [banco_id, igreja_id]);
+  return rows.length ? Number(rows[0].saldo) : null;
+}
+
+// Ajuste de saldo: define o saldo atual da conta; a diferença vira um lançamento de ajuste
+router.post('/:id/ajuste', async (req, res) => {
+  const { igreja_id, id: usuario_id } = req.session.usuario;
+  const novo = Number(req.body.novo_saldo);
+  const data = req.body.data || new Date().toISOString().slice(0, 10);
+  if (Number.isNaN(novo)) return res.status(400).json({ erro: 'Informe o novo saldo' });
+  const atual = await saldoAtual(igreja_id, req.params.id);
+  if (atual === null) return res.status(404).json({ erro: 'Banco não encontrado' });
+  const delta = Math.round((novo - atual) * 100) / 100;
+  if (delta === 0) return res.json({ ok: true, sem_alteracao: true });
+  const tipo = delta > 0 ? 'entrada' : 'saida';
+  const situacao = delta > 0 ? 'recebido' : 'pago';
+  await db.query(
+    `INSERT INTO lancamentos (igreja_id, tipo, situacao, data, banco_id, valor, descricao,
+       forma_pagamento, parcelamento, tipo_gasto, movimento, usuario_id)
+     VALUES ($1,$2,$3,$4,$5,$6,'AJUSTE DE SALDO','Ajuste','À vista','AJUSTE','ajuste',$7)`,
+    [igreja_id, tipo, situacao, data, req.params.id, Math.abs(delta), usuario_id]);
+  res.json({ ok: true, saldo_anterior: atual, saldo_novo: novo, ajuste: delta });
+});
+
 // Extrato bancário: movimentações realizadas (entradas recebidas + saídas pagas) de um banco no mês
 router.get('/:id/extrato', async (req, res) => {
   const { igreja_id } = req.session.usuario;
@@ -53,7 +98,7 @@ router.get('/:id/extrato', async (req, res) => {
   const saldoAnterior = Number(banco.saldo_inicial) + Number(ar[0].saldo);
 
   const { rows: mov } = await db.query(
-    `SELECT l.id, l.tipo, l.data, l.valor, l.descricao, l.detalhes, l.tipo_gasto, l.parcela_label,
+    `SELECT l.id, l.tipo, l.data, l.valor, l.descricao, l.detalhes, l.tipo_gasto, l.parcela_label, l.movimento,
             m.nome AS membro_nome, l.visitante, f.nome AS fornecedor_nome, cc.nome AS centro_nome
      FROM lancamentos l
      LEFT JOIN membros m ON m.id = l.membro_id
@@ -70,7 +115,10 @@ router.get('/:id/extrato', async (req, res) => {
   const movimentos = mov.map((l) => {
     const valor = l.tipo === 'entrada' ? Number(l.valor) : -Number(l.valor);
     saldo += valor;
-    const desc = l.tipo === 'entrada'
+    let desc;
+    if (l.movimento === 'transferencia') desc = l.tipo === 'entrada' ? 'Depósito recebido (transferência)' : 'Transferência para outra conta';
+    else if (l.movimento === 'ajuste') desc = 'Ajuste de saldo';
+    else desc = l.tipo === 'entrada'
       ? `${l.tipo_gasto} — ${l.visitante ? 'Visitante' : (l.membro_nome || '')}`
       : `${l.fornecedor_nome || 'Despesa'}${l.centro_nome ? ' — ' + l.centro_nome : ''}${l.parcela_label ? ' (' + l.parcela_label + ')' : ''}`;
     return { id: l.id, data: l.data, tipo: l.tipo, descricao: desc.trim(), valor, saldo };

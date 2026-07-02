@@ -18,6 +18,8 @@ router.get('/', async (req, res) => {
   if (fim) { params.push(fim); where.push(`l.data <= $${params.length}`); }
   if (tipo === 'entrada' || tipo === 'saida') { params.push(tipo); where.push(`l.tipo=$${params.length}`); }
   if (situacao) { params.push(situacao); where.push(`l.situacao=$${params.length}`); }
+  // Por padrão, transferências e ajustes de saldo ficam fora das listas/relatórios (só entram no extrato)
+  if (!req.query.incluir_movimentos) where.push(`COALESCE(l.movimento,'normal')='normal'`);
 
   const { rows } = await db.query(
     `SELECT l.*, b.nome AS banco_nome, m.nome AS membro_nome,
@@ -81,6 +83,48 @@ router.put('/entrada/:id', async (req, res) => {
      req.params.id, igreja_id]
   );
   res.json({ ok: true });
+});
+
+// ─── TRANSFERÊNCIA entre contas (ex.: depósito na caixinha) ───
+router.post('/transferencia', async (req, res) => {
+  const { igreja_id, id: usuario_id } = req.session.usuario;
+  const { origem_banco_id, destino_banco_id, valor, data } = req.body;
+  const dt = data || new Date().toISOString().slice(0, 10);
+  if (!origem_banco_id || !destino_banco_id || !valor)
+    return res.status(400).json({ erro: 'Origem, destino e valor são obrigatórios' });
+  if (String(origem_banco_id) === String(destino_banco_id))
+    return res.status(400).json({ erro: 'Origem e destino devem ser contas diferentes' });
+  if (Number(valor) <= 0) return res.status(400).json({ erro: 'Valor deve ser maior que zero' });
+
+  // valida que as duas contas são da igreja
+  const bs = await db.query('SELECT id FROM bancos WHERE igreja_id=$1 AND id = ANY($2::int[])',
+    [igreja_id, [Number(origem_banco_id), Number(destino_banco_id)]]);
+  if (bs.rows.length !== 2) return res.status(400).json({ erro: 'Conta inválida' });
+
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    // saída da conta de origem
+    await client.query(
+      `INSERT INTO lancamentos (igreja_id, tipo, situacao, data, banco_id, valor, descricao,
+         forma_pagamento, parcelamento, tipo_gasto, movimento, usuario_id)
+       VALUES ($1,'saida','pago',$2,$3,$4,'TRANSFERENCIA','Transferência','À vista','TRANSFERENCIA','transferencia',$5)`,
+      [igreja_id, dt, origem_banco_id, valor, usuario_id]);
+    // entrada na conta de destino
+    await client.query(
+      `INSERT INTO lancamentos (igreja_id, tipo, situacao, data, banco_id, valor, descricao,
+         forma_pagamento, parcelamento, tipo_gasto, movimento, usuario_id)
+       VALUES ($1,'entrada','recebido',$2,$3,$4,'TRANSFERENCIA','Transferência','À vista','TRANSFERENCIA','transferencia',$5)`,
+      [igreja_id, dt, destino_banco_id, valor, usuario_id]);
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    console.error(e);
+    return res.status(500).json({ erro: 'Erro ao transferir' });
+  } finally {
+    client.release();
+  }
+  res.status(201).json({ ok: true });
 });
 
 // ─── SAÍDA: despesa (à vista ou parcelada) ──────────
