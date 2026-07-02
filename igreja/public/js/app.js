@@ -293,9 +293,9 @@ async function carregarDashboard() {
   document.getElementById('d-kpis').innerHTML =
     `<div class="kpi"><span>👥 Membros ativos</span><strong>${d.membros_ativos}</strong></div>` +
     d.bancos.map((b) => `<div class="kpi kpi-banco">
-        <div class="kpi-topo"><span>${b.caixinha ? '🐷' : '🏦'} ${esc(b.nome)}</span>
-          <button class="kpi-ajuste" data-ajuste="${b.id}" data-nome="${esc(b.nome)}" data-saldo="${b.saldo}" title="Atualizar saldo">✎</button></div>
+        <div class="kpi-topo"><span>${b.caixinha ? '🐷' : '🏦'} ${esc(b.nome)}</span></div>
         <strong>${brl(b.saldo)}</strong>
+        <button class="kpi-ajuste" data-ajuste="${b.id}" data-nome="${esc(b.nome)}" data-saldo="${b.saldo}">✎ Editar Saldo</button>
       </div>`).join('') +
     `<div class="kpi kpi-acao">${d.tem_caixinha
         ? '<button class="btn-caixinha" id="btn-depositar">🐷 Depositar na caixinha</button>'
