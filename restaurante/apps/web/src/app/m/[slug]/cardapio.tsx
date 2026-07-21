@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 // ---------------------------------------------------------------------------
 // Formatos que vêm do backend
@@ -39,6 +40,8 @@ export type MenuPublico = {
   categories: CategoriaCardapio[];
 };
 
+type Sugestao = { id: string; name: string; priceCents: number; imageUrl: string | null };
+
 // ---------------------------------------------------------------------------
 // Carrinho (fica só no navegador do cliente — sem cadastro, sem conta)
 // ---------------------------------------------------------------------------
@@ -66,12 +69,15 @@ export function dinheiro(cents: number) {
 // ---------------------------------------------------------------------------
 
 export function Cardapio({ menu }: { menu: MenuPublico }) {
+  const router = useRouter();
   const chaveCarrinho = `carrinho:${menu.brand.slug}`;
 
   const [carrinho, setCarrinho] = useState<LinhaCarrinho[]>([]);
   const [itemAberto, setItemAberto] = useState<ItemCardapio | null>(null);
   const [verCarrinho, setVerCarrinho] = useState(false);
+  const [verCheckout, setVerCheckout] = useState(false);
   const [categoriaAtiva, setCategoriaAtiva] = useState(menu.categories[0]?.id ?? '');
+  const [sugestoes, setSugestoes] = useState<Sugestao[]>([]);
 
   // Recupera o carrinho salvo (só depois que a página montou, para não brigar
   // com o HTML que veio do servidor).
@@ -94,6 +100,24 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
   );
   const qtdTotal = useMemo(() => carrinho.reduce((s, l) => s + l.quantidade, 0), [carrinho]);
 
+  /** Cross-sell: pede ao backend o que costuma sair junto com o que já está no carrinho. */
+  const buscarSugestoes = useCallback(async () => {
+    const ids = [...new Set(carrinho.map((l) => l.itemId))];
+    if (ids.length === 0) return setSugestoes([]);
+    try {
+      const res = await fetch(
+        `/api/public/menu/${menu.brand.slug}/sugestoes?itemIds=${ids.join(',')}`,
+      );
+      if (res.ok) setSugestoes(await res.json());
+    } catch {
+      setSugestoes([]); // sugestão é enfeite: se falhar, o pedido segue
+    }
+  }, [carrinho, menu.brand.slug]);
+
+  useEffect(() => {
+    if (verCarrinho) buscarSugestoes();
+  }, [verCarrinho, buscarSugestoes]);
+
   function adicionar(linha: LinhaCarrinho) {
     setCarrinho((atual) => [...atual, linha]);
     setItemAberto(null);
@@ -103,9 +127,28 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
     setCarrinho((atual) => atual.filter((l) => l.linhaId !== linhaId));
   }
 
+  /** Abre a janela do item sugerido (para o cliente escolher complementos). */
+  function abrirSugestao(id: string) {
+    for (const c of menu.categories) {
+      const item = c.items.find((i) => i.id === id);
+      if (item) {
+        setVerCarrinho(false);
+        setItemAberto(item);
+        return;
+      }
+    }
+  }
+
   function irPara(categoriaId: string) {
     setCategoriaAtiva(categoriaId);
     document.getElementById(`cat-${categoriaId}`)?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  /** Deu certo o pedido: limpa o carrinho e vai para o acompanhamento. */
+  function pedidoCriado(code: string) {
+    localStorage.removeItem(chaveCarrinho);
+    setCarrinho([]);
+    router.push(`/pedido/${code}`);
   }
 
   return (
@@ -149,19 +192,39 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
       ))}
 
       {itemAberto && (
-        <JanelaDoItem item={itemAberto} onFechar={() => setItemAberto(null)} onAdicionar={adicionar} />
+        <JanelaDoItem
+          item={itemAberto}
+          onFechar={() => setItemAberto(null)}
+          onAdicionar={adicionar}
+        />
       )}
 
       {verCarrinho && (
         <JanelaDoCarrinho
           linhas={carrinho}
           total={totalCarrinho}
+          sugestoes={sugestoes}
           onFechar={() => setVerCarrinho(false)}
           onRemover={remover}
+          onSugestao={abrirSugestao}
+          onFinalizar={() => {
+            setVerCarrinho(false);
+            setVerCheckout(true);
+          }}
         />
       )}
 
-      {qtdTotal > 0 && !verCarrinho && !itemAberto && (
+      {verCheckout && (
+        <JanelaCheckout
+          slug={menu.brand.slug}
+          linhas={carrinho}
+          total={totalCarrinho}
+          onFechar={() => setVerCheckout(false)}
+          onCriado={pedidoCriado}
+        />
+      )}
+
+      {qtdTotal > 0 && !verCarrinho && !itemAberto && !verCheckout && (
         <div className="barra-carrinho">
           <div className="interno">
             <button onClick={() => setVerCarrinho(true)}>
@@ -190,7 +253,6 @@ function JanelaDoItem({
   onFechar: () => void;
   onAdicionar: (linha: LinhaCarrinho) => void;
 }) {
-  // Guarda os ids escolhidos por grupo.
   const [escolhas, setEscolhas] = useState<Record<string, string[]>>({});
   const [quantidade, setQuantidade] = useState(1);
   const [aviso, setAviso] = useState<string | null>(null);
@@ -232,7 +294,6 @@ function JanelaDoItem({
   const total = (item.priceCents + extras) * quantidade;
 
   function confirmar() {
-    // Falta escolher algo obrigatório?
     const faltando = item.modifierGroups.find(
       (g) => g.minSelect > 0 && (escolhas[g.id]?.length ?? 0) < g.minSelect,
     );
@@ -333,19 +394,25 @@ function JanelaDoItem({
 }
 
 // ---------------------------------------------------------------------------
-// Janela do carrinho
+// Janela do carrinho (com cross-sell)
 // ---------------------------------------------------------------------------
 
 function JanelaDoCarrinho({
   linhas,
   total,
+  sugestoes,
   onFechar,
   onRemover,
+  onSugestao,
+  onFinalizar,
 }: {
   linhas: LinhaCarrinho[];
   total: number;
+  sugestoes: Sugestao[];
   onFechar: () => void;
   onRemover: (linhaId: string) => void;
+  onSugestao: (itemId: string) => void;
+  onFinalizar: () => void;
 }) {
   return (
     <div className="modal-fundo" onClick={onFechar}>
@@ -382,30 +449,213 @@ function JanelaDoCarrinho({
 
           {linhas.length > 0 && (
             <>
+              {sugestoes.length > 0 && (
+                <div className="sugestoes">
+                  <strong style={{ fontSize: 15 }}>Quem pediu isto também levou…</strong>
+                  {sugestoes.map((s) => (
+                    <button className="sugestao" key={s.id} onClick={() => onSugestao(s.id)}>
+                      {s.imageUrl && (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={s.imageUrl} alt={s.name} />
+                      )}
+                      <span>{s.name}</span>
+                      <span className="preco-sug">+ {dinheiro(s.priceCents)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <div className="totais" style={{ marginTop: 14 }}>
                 <span>Subtotal</span>
                 <span>{dinheiro(total)}</span>
               </div>
               <div className="totais">
                 <span>Entrega</span>
-                <span>a calcular</span>
-              </div>
-              <div className="totais grande">
-                <span>Total</span>
-                <span>{dinheiro(total)}</span>
+                <span>calculada no próximo passo</span>
               </div>
 
-              <button style={{ marginTop: 18 }} disabled title="Chega na próxima parte da Etapa 1">
-                Finalizar pedido (em construção)
+              <button style={{ marginTop: 18 }} onClick={onFinalizar}>
+                Continuar · {dinheiro(total)}
               </button>
-              <p className="hint" style={{ marginTop: 12 }}>
-                O fechamento do pedido — nome, telefone, endereço, agendamento e pagamento — é a
-                próxima parte da Etapa 1.
-              </p>
             </>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fechamento do pedido: dados de entrega, agendamento e envio
+// ---------------------------------------------------------------------------
+
+function JanelaCheckout({
+  slug,
+  linhas,
+  total,
+  onFechar,
+  onCriado,
+}: {
+  slug: string;
+  linhas: LinhaCarrinho[];
+  total: number;
+  onFechar: () => void;
+  onCriado: (code: string) => void;
+}) {
+  const [form, setForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    addressStreet: '',
+    addressNumber: '',
+    addressDistrict: '',
+    addressCity: '',
+    addressNote: '',
+    notes: '',
+  });
+  const [agendar, setAgendar] = useState(false);
+  const [quando, setQuando] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  function campo(nome: keyof typeof form) {
+    return {
+      value: form[nome],
+      onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+        setForm((f) => ({ ...f, [nome]: e.target.value })),
+    };
+  }
+
+  async function enviar(e: React.FormEvent) {
+    e.preventDefault();
+    setErro(null);
+
+    if (agendar && !quando) {
+      setErro('Escolha a data e a hora da entrega.');
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      const res = await fetch(`/api/public/orders/${slug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          paymentMethod: 'PIX',
+          scheduledFor: agendar && quando ? new Date(quando).toISOString() : undefined,
+          // Mandamos apenas O QUE foi escolhido. O preço é recalculado no servidor.
+          items: linhas.map((l) => ({
+            itemId: l.itemId,
+            quantity: l.quantidade,
+            modifierIds: l.complementos.map((c) => c.id),
+          })),
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        setErro(Array.isArray(data.message) ? data.message[0] : (data.message ?? 'Não consegui registrar o pedido.'));
+        return;
+      }
+
+      onCriado(data.code);
+    } catch {
+      setErro('O servidor não respondeu. Tente de novo.');
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  // Sugere "daqui a uma hora" como padrão do agendamento.
+  const minimo = new Date(Date.now() + 30 * 60 * 1000).toISOString().slice(0, 16);
+
+  return (
+    <div className="modal-fundo" onClick={onFechar}>
+      <form className="modal" onClick={(e) => e.stopPropagation()} onSubmit={enviar}>
+        <div className="modal-corpo" style={{ paddingTop: 22 }}>
+          <div className="grupo-cabecalho">
+            <h2 className="title" style={{ fontSize: 19, margin: 0 }}>
+              Seus dados
+            </h2>
+            <button
+              type="button"
+              className="modal-fechar"
+              style={{ position: 'static' }}
+              onClick={onFechar}
+            >
+              ×
+            </button>
+          </div>
+          <p className="subtitle">Sem cadastro. Só o necessário para entregar.</p>
+
+          {erro && <div className="error">{erro}</div>}
+
+          <label htmlFor="nome">Nome</label>
+          <input id="nome" required minLength={2} {...campo('customerName')} />
+
+          <label htmlFor="fone">Telefone (com DDD)</label>
+          <input id="fone" required minLength={8} placeholder="48 99999-0000" {...campo('customerPhone')} />
+
+          <label htmlFor="rua">Rua</label>
+          <input id="rua" required {...campo('addressStreet')} />
+
+          <div className="form-linha">
+            <div>
+              <label htmlFor="num">Número</label>
+              <input id="num" required {...campo('addressNumber')} />
+            </div>
+            <div>
+              <label htmlFor="bairro">Bairro</label>
+              <input id="bairro" required {...campo('addressDistrict')} />
+            </div>
+          </div>
+
+          <label htmlFor="cidade">Cidade</label>
+          <input id="cidade" required {...campo('addressCity')} />
+
+          <label htmlFor="compl">Complemento / ponto de referência</label>
+          <input id="compl" placeholder="Apto 302, portão azul…" {...campo('addressNote')} />
+
+          <label>Quando você quer receber?</label>
+          <div className="escolha-quando">
+            <button type="button" data-ativo={!agendar} onClick={() => setAgendar(false)}>
+              Assim que ficar pronto
+            </button>
+            <button type="button" data-ativo={agendar} onClick={() => setAgendar(true)}>
+              Agendar
+            </button>
+          </div>
+
+          {agendar && (
+            <>
+              <label htmlFor="quando">Data e hora</label>
+              <input
+                id="quando"
+                type="datetime-local"
+                min={minimo}
+                value={quando}
+                onChange={(e) => setQuando(e.target.value)}
+              />
+            </>
+          )}
+
+          <label htmlFor="obs">Observação do pedido</label>
+          <input id="obs" placeholder="Sem cebola, por favor…" {...campo('notes')} />
+
+          <div className="totais grande" style={{ marginTop: 10 }}>
+            <span>Itens</span>
+            <span>{dinheiro(total)}</span>
+          </div>
+          <p className="hint" style={{ marginTop: 4 }}>
+            A taxa de entrega é somada no próximo passo, junto com o Pix.
+          </p>
+
+          <button type="submit" disabled={enviando} style={{ marginTop: 8 }}>
+            {enviando ? 'Registrando…' : 'Ir para o pagamento'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { BrandModule } from './modules/brand/brand.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
+import { OrderModule } from './modules/order/order.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
@@ -39,6 +40,7 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     BrandModule,
     CatalogModule,
     HealthModule,
+    OrderModule,
   ],
   providers: [
     // Login exigido por padrão em TODAS as rotas.

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { apiServer } from '@/lib/api';
 import { LogoutButton } from './logout-button';
 
@@ -54,7 +55,12 @@ export default async function PainelPage() {
             Olá, {user.name}
           </p>
         </div>
-        <LogoutButton />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/kds">
+            <button className="ghost">Cozinha (KDS)</button>
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
 
       <section className="grid">
@@ -85,7 +91,9 @@ export default async function PainelPage() {
           <div className="brand-row" key={b.id}>
             <span className="dot" style={{ background: b.primaryColor }} />
             <strong>{b.name}</strong>
-            <span style={{ color: 'var(--muted)', fontSize: 13 }}>/m/{b.slug}</span>
+            <Link href={`/m/${b.slug}`} style={{ fontSize: 13 }}>
+              abrir cardápio (/m/{b.slug})
+            </Link>
           </div>
         ))}
       </section>

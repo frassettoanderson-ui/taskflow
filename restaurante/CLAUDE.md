@@ -1,7 +1,9 @@
 # Sistema para Restaurantes — Contexto do Projeto
 
 > Este arquivo é a **fonte de verdade** do projeto. Consultar em TODAS as etapas, antes de qualquer decisão de código.
-> Status atual: **Etapa 0 (Fundação) concluída e testada**. Próxima: Etapa 1 (cardápio → pedido → cozinha → pagamento fake).
+> Status atual: **Etapas 0 e 1 concluídas e testadas.**
+> — Etapa 0: fundação (Docker, multi-tenant, login/papéis, adaptadores fake).
+> — Etapa 1: cardápio público → pedido → pagamento fake (Pix) → KDS → acompanhamento ao vivo.
 > Como rodar e testar: ver [README.md](./README.md).
 
 ## Sobre o fundador (como me comunicar)
