@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.next/
+*.log
+
+# arquivo com senhas locais — não vai para o git
+.env
+
+# o modelo (.env.example) VAI para o git, esse fica de fora

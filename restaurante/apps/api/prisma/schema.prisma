@@ -1,0 +1,80 @@
+// Desenho do banco de dados.
+//
+// REGRA DE OURO DESTE PROJETO (multi-tenant):
+// todo dado pertence a um TENANT (a empresa cliente). Toda tabela — menos a
+// própria Tenant — carrega "tenantId". A MARCA (Brand) é entidade de primeira
+// classe: um tenant pode ter várias marcas.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Papéis de acesso dentro de um tenant.
+enum Role {
+  OWNER // dono
+  MANAGER // gerente
+  OPERATOR // operador
+}
+
+/// A empresa cliente do SaaS. É a raiz do isolamento de dados.
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users  User[]
+  brands Brand[]
+
+  @@map("tenants")
+}
+
+/// Usuário do painel (dono, gerente ou operador de UM tenant).
+model User {
+  id String @id @default(cuid())
+
+  // ---- isolamento por tenant ----
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name         String
+  email        String @unique // ver "pontas soltas": por ora o e-mail é único no sistema inteiro
+  passwordHash String
+  role         Role   @default(OPERATOR)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+/// A marca (ex.: "Cantina da Nona"). Um tenant pode ter várias.
+/// O cardápio, na Etapa 1, vai pendurar aqui.
+model Brand {
+  id String @id @default(cuid())
+
+  // ---- isolamento por tenant ----
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  name String
+  slug String // endereço público do cardápio: /m/<slug>
+
+  // white-label básico (usado de verdade na Etapa 1)
+  primaryColor String  @default("#E11D48")
+  logoUrl      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("brands")
+}

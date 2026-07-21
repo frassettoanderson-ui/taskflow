@@ -1,0 +1,21 @@
+# Imagem de DESENVOLVIMENTO do backend.
+# Instala as bibliotecas dentro do container; o código-fonte vem "montado"
+# da sua pasta pelo docker-compose, então editar um arquivo recarrega o app.
+
+FROM node:24-alpine
+
+WORKDIR /app
+
+# 1) instala as bibliotecas (esta camada só refaz quando o package.json muda)
+COPY package.json ./
+RUN npm install
+
+# 2) copia o resto (na hora de rodar, o docker-compose sobrescreve com a sua pasta)
+COPY . .
+
+# 3) gera o cliente do Prisma a partir do desenho do banco
+RUN npx prisma generate
+
+EXPOSE 3011
+
+CMD ["npm", "run", "start:dev"]

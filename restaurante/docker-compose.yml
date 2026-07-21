@@ -1,0 +1,100 @@
+# Sobe TODO o sistema com um comando: docker compose up
+#
+# São 4 serviços:
+#   db    -> banco PostgreSQL (guarda os dados)
+#   cache -> Redis (fila e tempo real, usado de verdade a partir da Etapa 1)
+#   api   -> backend NestJS (o cérebro)
+#   web   -> frontend Next.js (as telas)
+#
+# As portas do "lado de fora" são fora do padrão de propósito,
+# para não brigar com os outros projetos que já rodam nesta máquina.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: restaurante_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5442:5432" # no seu PC é a porta 5442
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      # o "api" só sobe depois que este teste passar
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  cache:
+    image: redis:7-alpine
+    container_name: restaurante_cache
+    restart: unless-stopped
+    ports:
+      - "6389:6379" # no seu PC é a porta 6389
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.dev
+    container_name: restaurante_api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: "3011"
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://cache:6379
+      JWT_SECRET: ${JWT_SECRET}
+      WEB_ORIGIN: http://localhost:3010
+      # faz o "recarregar sozinho" funcionar dentro do Docker no Windows
+      CHOKIDAR_USEPOLLING: "true"
+    ports:
+      - "3011:3011"
+    volumes:
+      - ./apps/api:/app # seu código entra no container
+      - api_node_modules:/app/node_modules # as bibliotecas ficam só no container
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    # 1) cria/atualiza as tabelas  2) põe os dados de exemplo  3) liga o backend
+    command: >
+      sh -c "npx prisma db push &&
+             npx prisma db seed &&
+             npm run start:dev"
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile.dev
+    container_name: restaurante_web
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: "3010"
+      # endereço do backend DENTRO da rede do Docker
+      API_INTERNAL_URL: http://api:3011
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3010:3010"
+    volumes:
+      - ./apps/web:/app
+      - web_node_modules:/app/node_modules
+      - web_next:/app/.next
+    depends_on:
+      - api
+
+volumes:
+  db_data:
+  api_node_modules:
+  web_node_modules:
+  web_next:

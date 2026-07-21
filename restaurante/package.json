@@ -1,0 +1,15 @@
+{
+  "name": "restaurante",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Sistema para restaurantes — SaaS de canal próprio + portal/marketplace",
+  "scripts": {
+    "up": "docker compose up",
+    "up:build": "docker compose up --build",
+    "down": "docker compose down",
+    "reset": "docker compose down -v && docker compose up --build",
+    "logs": "docker compose logs -f",
+    "seed": "docker compose exec api npx prisma db seed",
+    "studio": "docker compose exec api npx prisma studio --port 5555"
+  }
+}
