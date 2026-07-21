@@ -65,16 +65,348 @@ model Brand {
   tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   name String
-  slug String // endereço público do cardápio: /m/<slug>
+  /// endereço público do cardápio: /m/<slug>
+  /// Único no sistema INTEIRO (não só dentro da empresa), porque é um link
+  /// que qualquer pessoa acessa sem login.
+  slug String @unique
 
-  // white-label básico (usado de verdade na Etapa 1)
+  // white-label básico: a página do cardápio se pinta com isto
   primaryColor String  @default("#E11D48")
   logoUrl      String?
+  description  String? // frase curta que aparece no topo do cardápio
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([tenantId, slug])
+  menus  Menu[]
+  orders Order[]
+
   @@index([tenantId])
   @@map("brands")
+}
+
+// ===========================================================================
+//  CATÁLOGO  (Etapa 1)
+//  O cardápio pertence à MARCA e a um CANAL — a mesma marca pode ter preços
+//  e itens diferentes no delivery, no salão e no balcão.
+// ===========================================================================
+
+/// Canal de venda.
+enum SalesChannel {
+  DELIVERY // entrega
+  DINE_IN // salão
+  COUNTER // balcão / retirada
+}
+
+/// O cardápio de uma marca em um canal.
+model Menu {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  channel  SalesChannel
+
+  name   String
+  active Boolean @default(true)
+
+  categories Category[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, channel])
+  @@index([tenantId])
+  @@map("menus")
+}
+
+/// Seção do cardápio: "Entradas", "Massas", "Bebidas"...
+model Category {
+  id String @id @default(cuid())
+
+  tenantId String
+  menuId   String
+  menu     Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  name      String
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  items Item[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([menuId])
+  @@map("categories")
+}
+
+/// Um produto do cardápio.
+model Item {
+  id String @id @default(cuid())
+
+  tenantId   String
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  /// SEMPRE em centavos. Nunca usamos número com vírgula para dinheiro.
+  priceCents  Int
+  imageUrl    String?
+  sortOrder   Int     @default(0)
+  /// "pausar item" — some do cardápio sem ser apagado
+  active      Boolean @default(true)
+
+  modifierGroups ModifierGroup[]
+  orderItems     OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([categoryId])
+  @@map("items")
+}
+
+/// Grupo de complementos de um item: "Ponto da carne", "Adicionais"...
+model ModifierGroup {
+  id String @id @default(cuid())
+
+  tenantId String
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  name String
+  /// quantas opções o cliente PRECISA escolher (0 = opcional)
+  minSelect Int @default(0)
+  /// quantas ele PODE escolher no máximo
+  maxSelect Int @default(1)
+  sortOrder Int @default(0)
+
+  modifiers Modifier[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([itemId])
+  @@map("modifier_groups")
+}
+
+/// Uma opção dentro do grupo: "Bem passado", "Bacon extra +R$ 6,00"...
+model Modifier {
+  id String @id @default(cuid())
+
+  tenantId String
+  groupId  String
+  group    ModifierGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  name String
+  /// quanto SOMA ao preço do item (em centavos; pode ser 0)
+  priceDeltaCents Int     @default(0)
+  sortOrder       Int     @default(0)
+  active          Boolean @default(true)
+
+  orderItemModifiers OrderItemModifier[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([groupId])
+  @@map("modifiers")
+}
+
+// ===========================================================================
+//  PEDIDO  (Etapa 1)
+// ===========================================================================
+
+/// De onde o pedido veio. É isto que decide se há comissão do portal.
+enum OrderSource {
+  DIRECT // canal próprio do restaurante — SEM comissão
+  PORTAL // veio do nosso marketplace — COM comissão embutida
+  IFOOD // importado do iFood
+}
+
+/// Os estados por que um pedido passa.
+enum OrderStatus {
+  AWAITING_PAYMENT // aguardando pagamento
+  RECEIVED // recebido (caiu na cozinha)
+  ACCEPTED // aceito
+  IN_PREPARATION // em preparo
+  READY // pronto
+  OUT_FOR_DELIVERY // saiu para entrega
+  DELIVERED // entregue
+  CANCELED // cancelado
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PIX
+  CARD
+  CASH
+}
+
+model Order {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand        @relation(fields: [brandId], references: [id])
+  channel  SalesChannel @default(DELIVERY)
+  source   OrderSource  @default(DIRECT)
+
+  /// código curto que o cliente usa para acompanhar (ex.: "A7K2QD")
+  code String @unique
+
+  status OrderStatus @default(AWAITING_PAYMENT)
+
+  // ---- cliente (sem cadastro: só o necessário para entregar) ----
+  customerName    String
+  customerPhone   String
+  addressStreet   String?
+  addressNumber   String?
+  addressDistrict String?
+  addressCity     String?
+  addressNote     String?
+
+  /// pedido agendado para depois (null = "para agora")
+  scheduledFor DateTime?
+
+  // ---- dinheiro, sempre em centavos ----
+  subtotalCents    Int @default(0)
+  deliveryFeeCents Int @default(0)
+  totalCents       Int @default(0)
+
+  notes String?
+
+  items   OrderItem[]
+  events  OrderEvent[]
+  payment Payment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([brandId, status])
+  @@index([tenantId, createdAt])
+  @@map("orders")
+}
+
+/// Uma linha do pedido.
+/// Guardamos CÓPIA do nome e do preço: se o cardápio mudar amanhã,
+/// o pedido de hoje continua contando a história certa.
+model OrderItem {
+  id String @id @default(cuid())
+
+  tenantId String
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  itemId String?
+  item   Item?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  nameSnapshot   String
+  unitPriceCents Int
+  quantity       Int @default(1)
+  /// (preço do item + complementos) x quantidade
+  totalCents     Int
+
+  notes String?
+
+  modifiers OrderItemModifier[]
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderItemModifier {
+  id String @id @default(cuid())
+
+  tenantId    String
+  orderItemId String
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  modifierId String?
+  modifier   Modifier? @relation(fields: [modifierId], references: [id], onDelete: SetNull)
+
+  nameSnapshot    String
+  priceDeltaCents Int
+
+  @@index([tenantId])
+  @@index([orderItemId])
+  @@map("order_item_modifiers")
+}
+
+/// Histórico de eventos de domínio do pedido.
+/// Cada mudança de estado grava uma linha aqui — é a "certidão de nascimento"
+/// do pedido e a base para o KDS, o rastreio e, mais pra frente, o BI.
+model OrderEvent {
+  id String @id @default(cuid())
+
+  tenantId String
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// ex.: "order.created", "order.status_changed", "order.paid"
+  type String
+  /// detalhes livres (status anterior, quem mudou, etc.)
+  payload Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([orderId, createdAt])
+  @@map("order_events")
+}
+
+/// A cobrança do pedido, criada pelo PaymentProvider.
+model Payment {
+  id String @id @default(cuid())
+
+  tenantId String
+  orderId  String @unique
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// qual adaptador gerou (hoje: "fake-pix")
+  provider   String
+  externalId String        @unique
+  method     PaymentMethod @default(PIX)
+  status     PaymentStatus @default(PENDING)
+  amountCents Int
+
+  /// Pix: o "copia e cola" e a imagem do QR
+  qrCode      String?
+  qrCodeImage String?
+
+  paidAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("payments")
+}
+
+/// Avisos de gateway já processados — garante IDEMPOTÊNCIA.
+/// Se o mesmo aviso chegar duas vezes, a segunda é ignorada.
+model ProcessedWebhook {
+  id         String   @id @default(cuid())
+  provider   String
+  eventId    String
+  processedAt DateTime @default(now())
+
+  @@unique([provider, eventId])
+  @@map("processed_webhooks")
 }

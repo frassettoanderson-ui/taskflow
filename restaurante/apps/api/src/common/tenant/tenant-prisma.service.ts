@@ -9,7 +9,24 @@ import { TenantContextService } from './tenant-context.service';
  *
  * (Na Etapa 1 entram Menu, Category, Item, Order etc.)
  */
-export const TENANT_SCOPED_MODELS = new Set(['User', 'Brand']);
+export const TENANT_SCOPED_MODELS = new Set([
+  // Etapa 0
+  'User',
+  'Brand',
+  // Etapa 1 — catálogo
+  'Menu',
+  'Category',
+  'Item',
+  'ModifierGroup',
+  'Modifier',
+  // Etapa 1 — pedido
+  'Order',
+  'OrderItem',
+  'OrderItemModifier',
+  'OrderEvent',
+  'Payment',
+  // (ProcessedWebhook fica de fora de propósito: é tabela de sistema)
+]);
 
 /** Operações que filtram registros — nelas injetamos o tenantId no "where". */
 const WHERE_OPERATIONS = new Set([

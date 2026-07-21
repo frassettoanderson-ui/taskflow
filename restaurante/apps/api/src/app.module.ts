@@ -9,6 +9,7 @@ import { AdaptersModule } from './adapters/adapters.module';
 
 import { AuthModule } from './modules/auth/auth.module';
 import { BrandModule } from './modules/brand/brand.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
@@ -36,6 +37,7 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     // Um módulo por área de negócio (vão crescer a cada etapa).
     AuthModule,
     BrandModule,
+    CatalogModule,
     HealthModule,
   ],
   providers: [

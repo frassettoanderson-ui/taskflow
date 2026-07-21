@@ -34,4 +34,19 @@ export class TenantContextService {
   getTenantId(): string | null {
     return this.get()?.tenantId ?? null;
   }
+
+  /**
+   * Entra no contexto de um tenant SEM usuário logado.
+   *
+   * Para que serve: a página pública do cardápio não tem login, mas precisa ler
+   * dados que pertencem a um restaurante. O caminho seguro é: descobrir de qual
+   * marca é aquele endereço (/m/cantina-da-nona), pegar o tenant DELA, e só
+   * então abrir o acesso — limitado a esse tenant.
+   *
+   * ⚠️ O tenantId aqui NUNCA pode vir do que o visitante digitou. Ele tem que
+   * ser descoberto pelo backend a partir do slug da marca.
+   */
+  runAsTenant<T>(tenantId: string, fn: () => T): T {
+    return this.run({ tenantId, userId: 'public', role: 'PUBLIC' as any }, fn);
+  }
 }

@@ -204,3 +204,374 @@ code {
   border-color: rgba(239, 68, 68, 0.4);
   background: rgba(239, 68, 68, 0.08);
 }
+
+/* ======================================================================
+   CARDÁPIO PÚBLICO (o que o cliente vê)
+   A cor da marca entra pela variável --marca, definida no próprio HTML.
+   ====================================================================== */
+
+.cardapio {
+  --marca: #c2410c;
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 120px;
+}
+
+.capa {
+  background: linear-gradient(160deg, var(--marca), rgba(0, 0, 0, 0.75));
+  padding: 40px 24px 32px;
+}
+
+.capa h1 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+}
+
+.capa p {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 14px;
+}
+
+.capa .selo {
+  display: inline-block;
+  margin-bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.abas {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 24px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.abas::-webkit-scrollbar {
+  display: none;
+}
+
+.aba {
+  flex: none;
+  width: auto;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.aba[data-ativa='true'] {
+  background: var(--marca);
+  border-color: var(--marca);
+  color: #fff;
+}
+
+.secao {
+  padding: 26px 24px 4px;
+}
+
+.secao h2 {
+  margin: 0 0 14px;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.produto {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 14px;
+  margin-bottom: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-weight: 400;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.produto:hover {
+  border-color: var(--marca);
+}
+
+.produto .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.produto .nome {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.produto .desc {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.produto .preco {
+  font-weight: 650;
+  color: var(--marca);
+  font-size: 15px;
+}
+
+.produto img {
+  width: 92px;
+  height: 92px;
+  object-fit: cover;
+  border-radius: 10px;
+  flex: none;
+  background: var(--surface-2);
+}
+
+/* ---- janela de escolha de complementos ---- */
+
+.modal-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px 16px 0 0;
+  padding: 0 0 20px;
+}
+
+.modal-topo {
+  position: relative;
+}
+
+.modal-topo img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+  background: var(--surface-2);
+}
+
+.modal-fechar {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.modal-corpo {
+  padding: 20px 22px 0;
+}
+
+.grupo {
+  margin-top: 22px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.grupo-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.grupo-cabecalho strong {
+  font-size: 15px;
+}
+
+.etiqueta {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.etiqueta.obrigatorio {
+  background: rgba(249, 115, 22, 0.16);
+  color: var(--brand);
+}
+
+.opcao {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 2px;
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(38, 50, 65, 0.5);
+}
+
+.opcao:last-child {
+  border-bottom: 0;
+}
+
+.opcao input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--marca);
+}
+
+.opcao .mais {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.contador {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.contador button {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  font-size: 20px;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.modal-rodape {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px 0;
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.modal-rodape .adicionar {
+  flex: 1;
+  background: var(--marca);
+  color: #fff;
+}
+
+/* ---- barra do carrinho ---- */
+
+.barra-carrinho {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  padding: 14px 24px calc(14px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+
+.barra-carrinho .interno {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.barra-carrinho button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--marca);
+  color: #fff;
+}
+
+.vazio {
+  text-align: center;
+  color: var(--muted);
+  padding: 40px 20px;
+  font-size: 14px;
+}
+
+.linha-carrinho {
+  display: flex;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.linha-carrinho .qtd {
+  flex: none;
+  font-weight: 700;
+  color: var(--marca);
+}
+
+.linha-carrinho .complementos {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  margin-top: 3px;
+}
+
+.linha-carrinho .valor {
+  margin-left: auto;
+  flex: none;
+  font-weight: 600;
+}
+
+.remover {
+  width: auto;
+  padding: 2px 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.totais {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.totais.grande {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  padding-top: 14px;
+}
