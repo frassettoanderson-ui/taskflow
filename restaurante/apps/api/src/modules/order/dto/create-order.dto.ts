@@ -76,6 +76,16 @@ export class CreateOrderDto {
   @Min(0)
   useCashbackCents?: number;
 
+  /**
+   * A senha temporária devolvida pela confirmação do código de cashback.
+   * Obrigatória quando useCashbackCents > 0 — sem ela, saber o telefone de
+   * alguém não basta para gastar o saldo dessa pessoa.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  cashbackToken?: string;
+
   /** identificação do navegador, para casar com o carrinho abandonado */
   @IsOptional()
   @IsString()

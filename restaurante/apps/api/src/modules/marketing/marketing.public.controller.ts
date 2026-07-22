@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { LoyaltyService } from './loyalty.service';
+import { CashbackCodeService } from './cashback-code.service';
 import { CouponService } from './coupon.service';
 import { RetentionService } from './retention.service';
 import { Public } from '../../common/auth/public.decorator';
@@ -13,6 +14,7 @@ export class MarketingPublicController {
   constructor(
     private readonly loyalty: LoyaltyService,
     private readonly cupons: CouponService,
+    private readonly codigos: CashbackCodeService,
     private readonly retencao: RetentionService,
   ) {}
 
@@ -25,6 +27,28 @@ export class MarketingPublicController {
     @Query('subtotal') subtotal?: string,
   ) {
     return this.loyalty.consultarPorTelefone(brandSlug, telefone ?? '', Number(subtotal ?? 0));
+  }
+
+  /**
+   * "Me manda o código para eu usar meu cashback."
+   *
+   * Responde igual para telefone com e sem cadastro — de propósito: senão a
+   * tela vira uma forma de descobrir quem é cliente da casa.
+   */
+  @Public()
+  @Post('cashback/:brandSlug/codigo')
+  pedirCodigo(@Param('brandSlug') brandSlug: string, @Body() dto: { telefone: string }) {
+    return this.codigos.pedir(brandSlug, dto?.telefone ?? '');
+  }
+
+  /** "Aqui está o código." Devolve a senha temporária do resgate. */
+  @Public()
+  @Post('cashback/:brandSlug/confirmar')
+  confirmarCodigo(
+    @Param('brandSlug') brandSlug: string,
+    @Body() dto: { telefone: string; codigo: string },
+  ) {
+    return this.codigos.confirmar(brandSlug, dto?.telefone ?? '', dto?.codigo ?? '');
   }
 
   /** "Este cupom vale para mim?" */

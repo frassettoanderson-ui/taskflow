@@ -15,6 +15,7 @@ import { OperationService } from '../operation/operation.service';
 import { NOME_DO_CANAL } from '../operation/channel';
 import { CouponService } from '../marketing/coupon.service';
 import { LoyaltyService } from '../marketing/loyalty.service';
+import { CashbackCodeService } from '../marketing/cashback-code.service';
 import { RetentionService } from '../marketing/retention.service';
 import { StockService } from '../gestao/stock.service';
 import { FinanceService } from '../gestao/finance.service';
@@ -34,6 +35,7 @@ export class OrderService {
     private readonly operacao: OperationService,
     private readonly cupons: CouponService,
     private readonly loyalty: LoyaltyService,
+    private readonly codigos: CashbackCodeService,
     private readonly retencao: RetentionService,
     private readonly estoque: StockService,
     private readonly financeiro: FinanceService,
@@ -110,6 +112,10 @@ export class OrderService {
       //      pode ser usado é o servidor (saldo real + teto do programa).
       let cashbackRedeemedCents = 0;
       if (dto.useCashbackCents && dto.useCashbackCents > 0) {
+        // A trava: gastar cashback exige o código confirmado. Telefone sozinho
+        // não autoriza mais nada — ele identifica, não prova quem é.
+        await this.codigos.consumirToken(brand.id, dto.customerPhone, dto.cashbackToken);
+
         const podeUsar = await this.loyalty.quantoPodeUsar(
           brand.id,
           cliente.id,

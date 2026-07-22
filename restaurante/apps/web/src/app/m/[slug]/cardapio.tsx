@@ -735,8 +735,55 @@ function JanelaCheckout({
   const [cupomOk, setCupomOk] = useState<{ desconto: number; texto: string } | null>(null);
   const [cupomErro, setCupomErro] = useState<string | null>(null);
   const [conferindoCupom, setConferindoCupom] = useState(false);
-  const [carteira, setCarteira] = useState<{ saldo: number; maxUsavel: number; nome: string | null } | null>(null);
+  const [carteira, setCarteira] = useState<{ saldo: number; maxUsavel: number } | null>(null);
   const [usarCashback, setUsarCashback] = useState(false);
+
+  // ---- confirmação do cashback por código ----
+  // Marcar "usar" não basta mais: o cliente precisa provar que o telefone é
+  // dele digitando um código de 6 dígitos.
+  const [codigo, setCodigo] = useState('');
+  const [tokenCashback, setTokenCashback] = useState<string | null>(null);
+  const [codigoPedido, setCodigoPedido] = useState<{ para: string; teste?: string } | null>(null);
+  const [codigoErro, setCodigoErro] = useState<string | null>(null);
+  const [ocupadoCodigo, setOcupadoCodigo] = useState(false);
+
+  async function pedirCodigoCashback() {
+    setOcupadoCodigo(true);
+    setCodigoErro(null);
+    try {
+      const res = await fetch(`/api/public/cashback/${slug}/codigo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone: form.customerPhone }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message ?? 'Não consegui enviar o código.');
+      setCodigoPedido({ para: d.para, teste: d.codigoDeTeste });
+    } catch (e: any) {
+      setCodigoErro(e.message);
+    } finally {
+      setOcupadoCodigo(false);
+    }
+  }
+
+  async function confirmarCodigoCashback() {
+    setOcupadoCodigo(true);
+    setCodigoErro(null);
+    try {
+      const res = await fetch(`/api/public/cashback/${slug}/confirmar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone: form.customerPhone, codigo }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message ?? 'Código inválido.');
+      setTokenCashback(d.token);
+    } catch (e: any) {
+      setCodigoErro(e.message);
+    } finally {
+      setOcupadoCodigo(false);
+    }
+  }
 
   /** Ao digitar o telefone, buscamos o saldo de cashback daquele cliente. */
   async function consultarCashback(telefone: string) {
@@ -765,7 +812,7 @@ function JanelaCheckout({
       if (!res.ok) return;
       const d = await res.json();
       if (d.temPrograma && d.saldoCents > 0) {
-        setCarteira({ saldo: d.saldoCents, maxUsavel: d.maxUsavelCents, nome: d.nome });
+        setCarteira({ saldo: d.saldoCents, maxUsavel: d.maxUsavelCents });
       } else {
         setCarteira(null);
       }
@@ -808,7 +855,9 @@ function JanelaCheckout({
     }
   }
 
-  const cashbackUsado = usarCashback && carteira ? carteira.maxUsavel : 0;
+  // Sem o código confirmado, o desconto nem entra na conta — assim o total na
+  // tela é sempre o total que vai ser cobrado.
+  const cashbackUsado = usarCashback && carteira && tokenCashback ? carteira.maxUsavel : 0;
   const descontoCupom = cupomOk?.desconto ?? 0;
   const totalEstimado = Math.max(0, total - descontoCupom - cashbackUsado);
 
@@ -839,6 +888,7 @@ function JanelaCheckout({
           paymentMethod: 'PIX',
           couponCode: cupomOk ? cupom.trim() : undefined,
           useCashbackCents: cashbackUsado > 0 ? cashbackUsado : undefined,
+          cashbackToken: cashbackUsado > 0 ? tokenCashback : undefined,
           clientKey: chaveDoNavegador(),
           scheduledFor: agendar && quando ? new Date(quando).toISOString() : undefined,
           // Mandamos apenas O QUE foi escolhido. O preço é recalculado no servidor.
@@ -908,8 +958,7 @@ function JanelaCheckout({
           {/* Cashback deste cliente nesta marca */}
           {carteira && (
             <div className="oferta">
-              💰 {carteira.nome ? `${carteira.nome.split(' ')[0]}, você` : 'Você'} tem{' '}
-              <strong>{dinheiro(carteira.saldo)}</strong> de cashback aqui.
+              💰 Você tem <strong>{dinheiro(carteira.saldo)}</strong> de cashback aqui.
               <label className="opcao" style={{ borderBottom: 0, paddingBottom: 0 }}>
                 <input
                   type="checkbox"
@@ -918,6 +967,68 @@ function JanelaCheckout({
                 />
                 <span>Usar {dinheiro(carteira.maxUsavel)} neste pedido</span>
               </label>
+
+              {/* Confirmação: o telefone identifica, o código é quem prova. */}
+              {usarCashback && !tokenCashback && (
+                <div style={{ marginTop: 10 }}>
+                  {!codigoPedido ? (
+                    <>
+                      <p style={{ margin: '0 0 8px', fontSize: 13 }}>
+                        Para usar o saldo, confirme que este telefone é seu.
+                      </p>
+                      <button
+                        type="button"
+                        className="ghost"
+                        disabled={ocupadoCodigo}
+                        onClick={pedirCodigoCashback}
+                      >
+                        {ocupadoCodigo ? 'Enviando…' : 'Enviar código'}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ margin: '0 0 8px', fontSize: 13 }}>
+                        Enviamos um código para <strong>{codigoPedido.para}</strong>. Digite
+                        abaixo:
+                      </p>
+                      {codigoPedido.teste && (
+                        <p style={{ margin: '0 0 8px', fontSize: 12, opacity: 0.8 }}>
+                          (modo de teste — o WhatsApp ainda não está ligado. Seu código é{' '}
+                          <strong>{codigoPedido.teste}</strong>)
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          value={codigo}
+                          onChange={(e) => setCodigo(e.target.value)}
+                          placeholder="000000"
+                          inputMode="numeric"
+                          maxLength={6}
+                          style={{ letterSpacing: 4, textAlign: 'center', marginBottom: 0 }}
+                        />
+                        <button
+                          type="button"
+                          disabled={ocupadoCodigo || codigo.replace(/\D/g, '').length !== 6}
+                          onClick={confirmarCodigoCashback}
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {codigoErro && (
+                    <p style={{ margin: '8px 0 0', fontSize: 13, color: '#fca5a5' }}>
+                      {codigoErro}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {usarCashback && tokenCashback && (
+                <p style={{ margin: '8px 0 0', fontSize: 13 }}>
+                  ✅ Confirmado. {dinheiro(carteira.maxUsavel)} vão sair do total.
+                </p>
+              )}
             </div>
           )}
 

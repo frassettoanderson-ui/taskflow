@@ -459,6 +459,60 @@ Em http://localhost:3010/clientes, abra um cliente e desça até
 
 ---
 
+## Como testar a trava do cashback (código de confirmação)
+
+### O problema que isto resolve
+
+Até aqui, o **telefone era a única identificação** do cliente no resgate do
+cashback. Telefone não é segredo: quem soubesse o número de outra pessoa
+gastava o saldo dela. Era a única pendência da lista que eu chamaria de
+perigosa.
+
+### Como funciona agora
+
+Ver o saldo continua fácil (senão ninguém se daria ao trabalho de confirmar).
+**Gastar** exige um código de 6 dígitos.
+
+O código sai pela **mesma porta de mensagens** das campanhas. Hoje o adaptador
+é fake e o código aparece na própria tela, marcado como *modo de teste*; quando
+o WhatsApp for ligado na Etapa 7, o mesmo código passa a chegar no celular —
+sem mudar uma linha.
+
+### Passo a passo
+
+1. Faça um pedido em http://localhost:3010/m/cantina-da-nona e leve até
+   **Entregue**, para o cliente ganhar cashback. (Ou credite à mão em
+   **Clientes → abrir o cliente → cashback**.)
+2. Comece um pedido novo com o **mesmo telefone**. Ao digitar o número, aparece
+   *"Você tem R$ X de cashback aqui"*.
+3. Marque **Usar**. Agora surge **Enviar código**.
+4. Clique. A tela mostra para onde foi (`•••••••2222`) e, em modo de teste, o
+   próprio código.
+5. Digite o código e **Confirme**. Só então o desconto entra na conta.
+
+### As travas (pode tentar quebrar)
+
+| O que você tenta | O que acontece |
+|---|---|
+| Fechar o pedido com cashback **sem** confirmar | Recusa: "confirme o código que enviamos" |
+| Inventar um código de autorização | Recusa: "a confirmação venceu ou já foi usada" |
+| Errar o código | Recusa. Ao 5º erro o código morre e é preciso pedir outro |
+| Usar o **mesmo** código em dois pedidos | Recusa: um código, um pedido |
+| Pedir código sem parar (para incomodar alguém) | Recusa a partir do 4º na mesma hora |
+| Descobrir se um telefone é cliente da casa | Impossível: a resposta é **idêntica** para número com e sem cadastro |
+| Descobrir o **nome** de quem tem aquele telefone | Não sai mais — a consulta pública devolve só o saldo |
+
+> Teste real feito aqui: o "estranho" foi barrado duas vezes (sem código e com
+> código inventado); a dona do telefone pediu o código `709198`, confirmou e
+> fechou o pedido de R$ 24,90 pagando **R$ 19,45** (R$ 12,45 de cashback, que é
+> o teto de 50%); e o mesmo código, reutilizado, foi recusado. ✅
+
+**O que ainda não protege:** o código chega pelo canal do telefone. Quem tiver
+acesso ao **celular** da pessoa continua conseguindo — é o mesmo limite de
+qualquer confirmação por SMS/WhatsApp, e é aceitável para o tamanho do valor.
+
+---
+
 ## Como testar o PDV (o caixa do balcão)
 
 ### A ideia em uma frase
@@ -748,7 +802,7 @@ portal e split de 3 lados.
 | Item | Situação | Quando resolve |
 |---|---|---|
 | **WhatsApp** | `FakeMessagingProvider`: registra a mensagem, escreve no log e nada sai da máquina. Toda a mecânica (fila, tentativas, relatório) é real | Etapa 7 |
-| **⚠️ Resgate do cashback** | Identificamos o cliente **só pelo telefone, sem confirmação** — como você escolheu. Quem souber o telefone de outra pessoa consegue gastar o cashback dela. **Não subir assim para produção** | Código por WhatsApp na Etapa 7 |
+| **Resgate do cashback** | ✅ Resolvido — agora exige **código de 6 dígitos** para gastar o saldo. A mensagem sai pela porta de mensagens (fake hoje, WhatsApp na Etapa 7) | — |
 | **Carteira da rede** (`NetworkCustomer`) | Tabela criada e ligada ao cliente da marca, mas **ainda não é alimentada** — é a base do cashback do portal | Etapa 6 |
 | **Trabalhadores da fila** | Rodam dentro da própria API. Com muito volume, viram um processo separado | Quando o volume pedir |
 | **Campanhas** | Dispara na hora. **Não há agendamento** ("mandar sábado às 10h"), nem limite de velocidade por operadora | Etapa 7 |

@@ -101,6 +101,7 @@ model Brand {
   // Etapa 4 — CRM e marketing
   loyalty        LoyaltyProgram?
   coupons        Coupon[]
+  cashbackCodes  CashbackCode[]
   campaigns      Campaign[]
   abandonedCarts AbandonedCart[]
   npsResponses   NpsResponse[]
@@ -974,6 +975,44 @@ model CashbackEntry {
   @@index([customerId, createdAt])
   @@index([expiresAt])
   @@map("cashback_entries")
+}
+
+/// Código de confirmação para GASTAR cashback.
+///
+/// Sem isto, quem soubesse o telefone de outra pessoa gastava o cashback dela:
+/// o telefone identificava o cliente e mais nada era pedido. Agora, para usar o
+/// saldo, o cliente confirma um código de 6 dígitos enviado no canal dele.
+///
+/// O código nunca é guardado em texto: fica só o resumo (hash). Se o banco
+/// vazar, os códigos não servem para nada — e eles expiram em minutos.
+model CashbackCode {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  /// só dígitos, do mesmo jeito que o cliente é procurado
+  phone String
+
+  /// resumo do código, nunca o código
+  codeHash  String
+  expiresAt DateTime
+
+  /// quantas vezes erraram: passou do limite, o código morre
+  attempts Int @default(0)
+
+  /// quando foi confirmado (a partir daí vale o token)
+  confirmedAt DateTime?
+  /// a senha temporária que autoriza o resgate no fechamento do pedido
+  redeemToken String?   @unique
+  tokenUsedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([brandId, phone, createdAt])
+  @@map("cashback_codes")
 }
 
 // ===========================================================================

@@ -76,7 +76,10 @@ export class LoyaltyService {
 
       return {
         temPrograma: true,
-        nome: cliente?.name ?? null,
+        // O NOME não sai daqui. Esta rota é pública e responde a qualquer
+        // telefone digitado: devolver o nome transformaria o checkout numa
+        // agenda de "quem é esse número". O saldo fica, porque sem ele o
+        // cliente não teria motivo para pedir o código de confirmação.
         saldoCents: saldo,
         /** o teto de uso: nunca mais do que X% do pedido */
         maxUsavelCents: Math.min(

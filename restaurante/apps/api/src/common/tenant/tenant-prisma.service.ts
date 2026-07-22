@@ -23,6 +23,7 @@ export const TENANT_SCOPED_MODELS = new Set([
   'TenantCustomer',
   'LoyaltyProgram',
   'CashbackEntry',
+  'CashbackCode',
   'Coupon',
   'CouponRedemption',
   'Campaign',
