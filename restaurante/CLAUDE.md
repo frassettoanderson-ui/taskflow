@@ -23,6 +23,9 @@
 > — Trava do cashback: gastar saldo exige código de 6 dígitos (hash + expiração + token
 >   de uso único), enviado pela porta de mensagens. A consulta pública deixou de devolver
 >   o nome do cliente. Era a única pendência perigosa da lista.
+> — PWA + contingência offline: instalável (manifest + service worker) e o PDV vende sem
+>   internet, guardando no aparelho e subindo sozinho. `Order.clientRef` é a trava contra
+>   venda dobrada; `soldAt` mantém a hora do balcão no fechamento de caixa.
 > — PDV (`/pdv`): o caixa do balcão. Venda nasce paga e já na cozinha, com troco calculado,
 >   cliente opcional (vira CRM) e fechamento do dia por forma de pagamento. Dono/gerente/caixa.
 >   Maquininha e impressora térmica continuam fora (Etapa 7).

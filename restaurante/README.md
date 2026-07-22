@@ -513,6 +513,65 @@ qualquer confirmação por SMS/WhatsApp, e é aceitável para o tamanho do valor
 
 ---
 
+## Como testar o aplicativo instalável e a venda sem internet
+
+### As duas coisas que isto resolve
+
+1. **Instalar como aplicativo** (PWA): o sistema vira um ícone no celular ou no
+   computador, abre sem barra de navegador e sem digitar endereço.
+2. **O caixa não parar quando a internet cai**: a venda é guardada no aparelho
+   e sobe sozinha quando a conexão volta.
+
+### Instalar
+
+Abra http://localhost:3010 no Chrome ou Edge. Aparece um ícone de **instalar**
+na barra de endereço (ou em *⋮ → Instalar*). No celular: *Adicionar à tela de
+início*. Instalado, ele ainda ganha atalhos diretos para **PDV**, **Cozinha** e
+**Pedidos**.
+
+> Fora do `localhost`, os navegadores só aceitam isso em **HTTPS** — no dia do
+> deploy, o certificado deixa de ser opcional.
+
+### Vender sem internet (o teste que vale)
+
+1. Abra http://localhost:3010/pdv e deixe carregar (é quando o cardápio fica
+   guardado no aparelho).
+2. **Desligue o Wi-Fi** — ou, no navegador, `F12 → Network → Offline`.
+3. Aparece a faixa **📴 Sem internet**, explicando o que fazer.
+4. **Venda normalmente.** Monte, escolha dinheiro, digite o valor recebido: o
+   **troco é calculado no próprio aparelho**.
+5. O comprovante sai com um código **`OFF-1212`** e o aviso de **avisar a
+   cozinha** — ela só recebe o pedido quando a internet voltar.
+6. Faça mais uma venda. A faixa amarela mostra **2 vendas esperando para subir**.
+7. **Religue a internet.** Em segundos a faixa some sozinha: as vendas subiram,
+   na ordem, e já estão no `/kds`.
+
+### Por que não vira venda dobrada
+
+Cada venda leva um **apelido único** gerado no aparelho. Se a resposta do
+servidor se perder no caminho, o aparelho reenvia — e o servidor, ao ver o mesmo
+apelido, **devolve o pedido que já existe** em vez de criar outro.
+
+> Teste real feito aqui: a mesma venda foi enviada **3 vezes** e virou **um só**
+> pedido (`EBBQDJ`), com a resposta avisando *"já tinha subido"* na 2ª e na 3ª.
+> Duas vendas feitas offline (`OFF-1212` e `OFF-3190`) subiram sozinhas quando a
+> conexão voltou, **com a hora do balcão** (19:13 e 19:14), não a da
+> sincronização — senão a venda das 23h50 cairia no caixa do dia seguinte. ✅
+
+### O que ficou como "fake / ponta solta"
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **A cozinha offline** | O KDS **não** funciona sem internet — ele vive no servidor. Sem conexão, o caixa vende e a cozinha produz **pelo papel**. É assim que funciona qualquer PDV com contingência, mas é bom você saber | Só um servidor dentro da loja resolveria |
+| **Cardápio velho** | Offline, o aparelho usa o cardápio da última vez que abriu online. Preço mudado nesse meio-tempo **não** aparece | Aceitável: o servidor reconfere o preço quando a venda sobe |
+| **Estoque offline** | A baixa de estoque só acontece quando a venda sobe. Dá para vender o que já acabou | Inerente ao modo offline |
+| **Cashback e cupom offline** | Não funcionam sem internet — dependem de consultar o servidor | Se você quiser depois |
+| **Venda recusada na volta** | Se o servidor recusar (item apagado, marca pausada), a tela avisa mas **quem resolve é o gerente, na mão** | Precisa de uma tela de conferência |
+| **Ícones do aplicativo** | São quadrados de cor sólida, gerados por código. Trocar pela sua arte é só substituir dois PNGs | Quando tiver a arte |
+| **Outras telas offline** | Só `/pdv` e `/painel` abrem sem internet. As demais mostram a tela *Sem internet* | Por escolha: só o caixa precisa mesmo |
+
+---
+
 ## Como testar o PDV (o caixa do balcão)
 
 ### A ideia em uma frase

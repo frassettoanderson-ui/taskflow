@@ -322,6 +322,12 @@ model Order {
   /// código curto que o cliente usa para acompanhar (ex.: "A7K2QD")
   code String @unique
 
+  /// Apelido que o CAIXA gerou no aparelho dele, antes de o servidor saber
+  /// do pedido. É o que impede a venda feita sem internet de virar duas quando
+  /// a conexão volta e o aparelho reenvia: se o apelido já existe, devolvemos
+  /// o pedido que já está gravado em vez de criar outro.
+  clientRef String? @unique
+
   status OrderStatus @default(AWAITING_PAYMENT)
 
   // ---- cliente (sem cadastro: só o necessário para entregar) ----

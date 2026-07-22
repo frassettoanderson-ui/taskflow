@@ -5,6 +5,14 @@ import Link from 'next/link';
 import { SeletorDeItens } from '@/components/seletor-de-itens';
 import { chamarApi, paraCentavos } from '@/lib/chamar-api';
 import {
+  codigoProvisorio,
+  fila,
+  guardar,
+  novoApelido,
+  sincronizar,
+  type VendaNaFila,
+} from './fila-offline';
+import {
   dinheiro,
   totalDaLinha,
   type CategoriaCardapio,
@@ -69,6 +77,11 @@ export function Caixa({ operador }: { operador: string }) {
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  // ---- contingência: vender sem internet ----
+  const [online, setOnline] = useState(true);
+  const [pendentes, setPendentes] = useState<VendaNaFila[]>([]);
+  const [sincronizando, setSincronizando] = useState(false);
+
   const marca = marcas.find((m) => m.id === marcaId);
   const total = useMemo(() => carrinho.reduce((s, l) => s + totalDaLinha(l), 0), [carrinho]);
 
@@ -79,20 +92,40 @@ export function Caixa({ operador }: { operador: string }) {
     return dado >= total ? dado - total : null;
   }, [forma, recebido, total]);
 
+  // Marcas e cardápio ficam guardados no aparelho. Sem isto, o caixa até
+  // abriria offline, mas com a tela vazia — e tela vazia não vende nada.
   useEffect(() => {
     chamarApi<Marca[]>('/pdv/marcas').then((r) => {
-      if (!r.ok) return setErro(r.erro);
-      setMarcas(r.dados);
-      setMarcaId((atual) => atual || r.dados[0]?.id || '');
+      if (r.ok) {
+        setMarcas(r.dados);
+        localStorage.setItem('pdv:marcas', JSON.stringify(r.dados));
+        setMarcaId((atual) => atual || r.dados[0]?.id || '');
+        return;
+      }
+      const guardadas = localStorage.getItem('pdv:marcas');
+      if (guardadas) {
+        const lista = JSON.parse(guardadas) as Marca[];
+        setMarcas(lista);
+        setMarcaId((atual) => atual || lista[0]?.id || '');
+      } else {
+        setErro(r.erro);
+      }
     });
   }, []);
 
   useEffect(() => {
     if (!marcaId) return;
     setCardapio(null);
-    chamarApi<Cardapio>(`/pdv/cardapio/${marcaId}`).then((r) =>
-      r.ok ? setCardapio(r.dados) : setErro(r.erro),
-    );
+    chamarApi<Cardapio>(`/pdv/cardapio/${marcaId}`).then((r) => {
+      if (r.ok) {
+        setCardapio(r.dados);
+        localStorage.setItem(`pdv:cardapio:${marcaId}`, JSON.stringify(r.dados));
+        return;
+      }
+      const guardado = localStorage.getItem(`pdv:cardapio:${marcaId}`);
+      if (guardado) setCardapio(JSON.parse(guardado));
+      else setErro(r.erro);
+    });
   }, [marcaId]);
 
   const carregarCaixa = useCallback(async () => {
@@ -103,6 +136,41 @@ export function Caixa({ operador }: { operador: string }) {
   useEffect(() => {
     carregarCaixa();
   }, [carregarCaixa]);
+
+  /** Sobe as vendas guardadas. Chamada sozinha e pelo botão. */
+  const subirFila = useCallback(async () => {
+    if (fila().length === 0) return;
+    setSincronizando(true);
+    const r = await sincronizar();
+    setSincronizando(false);
+    setPendentes(fila());
+    if (r.subiram > 0) carregarCaixa();
+  }, [carregarCaixa]);
+
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    setPendentes(fila());
+
+    const voltou = () => {
+      setOnline(true);
+      subirFila();
+    };
+    const caiu = () => setOnline(false);
+
+    window.addEventListener('online', voltou);
+    window.addEventListener('offline', caiu);
+
+    // O navegador só avisa quando o CABO cai. Se a internet existe mas o
+    // servidor está fora, ninguém avisa — por isso tentamos de tempo em tempo.
+    const relogio = setInterval(subirFila, 30_000);
+    subirFila();
+
+    return () => {
+      window.removeEventListener('online', voltou);
+      window.removeEventListener('offline', caiu);
+      clearInterval(relogio);
+    };
+  }, [subirFila]);
 
   /** O seletor devolve a rodada montada; aqui ela vira o carrinho da venda. */
   function irParaPagamento(linhas: LinhaCarrinho[]) {
@@ -115,24 +183,70 @@ export function Caixa({ operador }: { operador: string }) {
     setOcupado(true);
     setErro(null);
 
+    const corpo = {
+      brandId: marcaId,
+      customerName: nome.trim() || undefined,
+      customerPhone: telefone.trim() || undefined,
+      paymentMethod: forma,
+      receivedCents: forma === 'CASH' && recebido.trim() ? paraCentavos(recebido) : undefined,
+      items: carrinho.map((l) => ({
+        itemId: l.itemId,
+        quantity: l.quantidade,
+        modifierIds: l.complementos.map((c) => c.id),
+      })),
+    };
+
+    const trocoLocal = troco ?? 0;
+
+    /**
+     * Guarda a venda no aparelho e devolve o comprovante provisório.
+     *
+     * O caixa NÃO pode ficar parado esperando internet com o cliente na
+     * frente: o dinheiro já está na mão dele. Então a venda é dada como feita
+     * aqui, com um código "OFF-xxxx", e sobe quando a conexão voltar.
+     */
+    const guardarParaDepois = () => {
+      const clientRef = novoApelido();
+      const codigo = codigoProvisorio();
+
+      guardar({
+        clientRef,
+        soldAt: new Date().toISOString(),
+        codigoProvisorio: codigo,
+        corpo,
+        tentativas: 0,
+      });
+
+      setPendentes(fila());
+      setVenda({
+        pedido: { code: codigo, totalCents: total, items: [] },
+        changeCents: trocoLocal,
+        paymentMethod: forma,
+      });
+      setEtapa('pronto');
+    };
+
+    // Sem internet nem tentamos: vai direto para a fila.
+    if (!navigator.onLine) {
+      setOcupado(false);
+      return guardarParaDepois();
+    }
+
+    const clientRef = novoApelido();
     const r = await chamarApi<Venda>('/pdv/vendas', {
       metodo: 'POST',
-      corpo: {
-        brandId: marcaId,
-        customerName: nome.trim() || undefined,
-        customerPhone: telefone.trim() || undefined,
-        paymentMethod: forma,
-        receivedCents: forma === 'CASH' && recebido.trim() ? paraCentavos(recebido) : undefined,
-        items: carrinho.map((l) => ({
-          itemId: l.itemId,
-          quantity: l.quantidade,
-          modifierIds: l.complementos.map((c) => c.id),
-        })),
-      },
+      corpo: { ...corpo, clientRef, soldAt: new Date().toISOString() },
     });
 
     setOcupado(false);
-    if (!r.ok) return setErro(r.erro);
+
+    if (!r.ok) {
+      // "O servidor não respondeu" é queda de conexão: a venda vale e vai para
+      // a fila. Qualquer outro erro é recusa de verdade (item apagado, marca
+      // pausada) e precisa aparecer para o caixa corrigir.
+      if (r.erro === 'O servidor não respondeu.') return guardarParaDepois();
+      return setErro(r.erro);
+    }
 
     setVenda(r.dados);
     setEtapa('pronto');
@@ -172,6 +286,50 @@ export function Caixa({ operador }: { operador: string }) {
 
       {erro && <div className="erro">{erro}</div>}
 
+      {/* Estado da conexão: o caixa precisa saber, sem susto, o que está havendo. */}
+      {!online && (
+        <div className="fechado" style={{ margin: '0 0 16px' }}>
+          📴 <strong>Sem internet.</strong> Pode continuar vendendo normalmente — as vendas ficam
+          guardadas neste aparelho e sobem sozinhas quando a conexão voltar. A cozinha só recebe
+          os pedidos nessa hora; até lá, produza pelo papel.
+        </div>
+      )}
+
+      {pendentes.length > 0 && (
+        <div
+          className="fechado"
+          style={{
+            margin: '0 0 16px',
+            background: 'rgba(234,179,8,.12)',
+            borderColor: 'rgba(234,179,8,.35)',
+            color: '#fde68a',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <span>
+              ⏳ <strong>{pendentes.length}</strong> venda(s) esperando para subir
+              {pendentes.some((p) => p.ultimoErro) && ' — alguma foi recusada, veja abaixo'}
+            </span>
+            <button
+              className="ghost"
+              style={{ width: 'auto', padding: '4px 12px', fontSize: 12.5 }}
+              disabled={sincronizando}
+              onClick={subirFila}
+            >
+              {sincronizando ? 'Enviando…' : 'Tentar agora'}
+            </button>
+          </div>
+
+          {pendentes
+            .filter((p) => p.ultimoErro)
+            .map((p) => (
+              <div className="sub" key={p.clientRef} style={{ marginTop: 6 }}>
+                {p.codigoProvisorio}: {p.ultimoErro}
+              </div>
+            ))}
+        </div>
+      )}
+
       {/* ---------------- FECHAMENTO DE CAIXA ---------------- */}
       {verCaixa ? (
         <>
@@ -183,6 +341,11 @@ export function Caixa({ operador }: { operador: string }) {
             <div className="card">
               <div className="stat-label">Total do dia</div>
               <div className="stat-value">{dinheiro(caixa?.totalCents ?? 0)}</div>
+              {pendentes.length > 0 && (
+                <div className="sub" style={{ marginTop: 6 }}>
+                  + {pendentes.length} venda(s) ainda no aparelho, fora desta conta
+                </div>
+              )}
             </div>
           </section>
 
@@ -234,7 +397,9 @@ export function Caixa({ operador }: { operador: string }) {
                 {venda.pedido.code}
               </div>
               <p className="subtitle" style={{ margin: 0 }}>
-                Chame o cliente por este código quando ficar pronto. O pedido já está na cozinha.
+                {venda.pedido.code.startsWith('OFF-')
+                  ? 'Venda registrada neste aparelho. Chame o cliente por este código e AVISE A COZINHA — ela só vai receber o pedido quando a internet voltar.'
+                  : 'Chame o cliente por este código quando ficar pronto. O pedido já está na cozinha.'}
               </p>
 
               <div className="regra-linha" style={{ marginTop: 16 }}>

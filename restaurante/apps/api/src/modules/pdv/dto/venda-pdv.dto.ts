@@ -4,6 +4,7 @@ import {
   IsArray,
   IsEnum,
   IsInt,
+  IsISO8601,
   IsOptional,
   IsString,
   MaxLength,
@@ -59,6 +60,25 @@ export class VendaPdvDto {
   @IsInt()
   @Min(0)
   receivedCents?: number;
+
+  /**
+   * Apelido gerado no aparelho do caixa. Serve para a venda feita SEM internet
+   * não virar duas quando a conexão volta: se este apelido já foi gravado,
+   * devolvemos o pedido de antes em vez de criar outro.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  clientRef?: string;
+
+  /**
+   * Quando a venda aconteceu de verdade (venda offline chega depois).
+   * Vazio = agora. Sem isto, a venda das 23h50 que só sobe às 00h10 cairia no
+   * fechamento do dia seguinte e a gaveta não bateria.
+   */
+  @IsOptional()
+  @IsISO8601({}, { message: 'Data da venda inválida.' })
+  soldAt?: string;
 
   @IsArray()
   @ArrayMinSize(1, { message: 'A venda está vazia.' })

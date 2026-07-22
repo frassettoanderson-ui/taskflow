@@ -133,6 +133,25 @@ export class PdvService {
       throw new BadRequestException(`A marca está pausada: ${brand.pausedReason ?? 'sem motivo'}.`);
     }
 
+    // ---- Venda que já subiu antes? ----
+    // O aparelho do caixa reenvia a fila até ter certeza de que chegou. Se a
+    // resposta se perdeu no caminho na primeira vez, o pedido JÁ EXISTE aqui —
+    // devolvemos ele igualzinho em vez de cobrar o cliente duas vezes.
+    if (dto.clientRef) {
+      const jaExiste = await this.tenantPrisma.db.order.findFirst({
+        where: { clientRef: dto.clientRef },
+        include: { items: { include: { modifiers: true } } },
+      });
+      if (jaExiste) {
+        return {
+          pedido: this.orders.formatarPedido(jaExiste),
+          changeCents: 0,
+          paymentMethod: dto.paymentMethod,
+          jaTinhaSubido: true,
+        };
+      }
+    }
+
     // Confere itens e recalcula os preços lendo do BANCO — o caixa manda os ids,
     // nunca os valores. É a mesma trava do delivery e da mesa.
     const { linhas, subtotalCents } = await this.orders.montarLinhas(
@@ -170,12 +189,24 @@ export class PdvService {
     const unitId = await this.orders.unidadeDaMarca(brand.id);
     const code = await this.orders.gerarCodigoUnico();
 
+    // A hora da venda é a do BALCÃO, não a da sincronização. Aceitamos até 24h
+    // de atraso — mais que isso é sinal de aparelho com relógio errado, e aí
+    // preferimos a hora de agora a estragar o fechamento de um dia antigo.
+    let vendidoEm = new Date();
+    if (dto.soldAt) {
+      const informado = new Date(dto.soldAt);
+      const atrasoMs = Date.now() - informado.getTime();
+      if (atrasoMs > 0 && atrasoMs < 24 * 60 * 60 * 1000) vendidoEm = informado;
+    }
+
     const pedido = await this.tenantPrisma.db.order.create({
       data: {
         tenantId: brand.tenantId,
         brandId: brand.id,
         channel: SalesChannel.COUNTER,
         source: OrderSource.DIRECT, // balcão é canal próprio: sem comissão
+        clientRef: dto.clientRef ?? null,
+        createdAt: vendidoEm,
         unitId,
         customerId,
         code,
@@ -227,7 +258,7 @@ export class PdvService {
         method: dto.paymentMethod,
         status: PaymentStatus.PAID,
         amountCents: totalCents,
-        paidAt: new Date(),
+        paidAt: vendidoEm,
       },
     });
 
