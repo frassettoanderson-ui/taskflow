@@ -498,7 +498,10 @@ const CANTINA: SeedBrand = {
   ],
 
   horarios: [
-    { channel: SalesChannel.DELIVERY, weekdays: TODOS_OS_DIAS, abre: '10:00', fecha: '23:59' },
+    // 24 horas DE PROPÓSITO: esta é a marca que você usa para testar o fluxo
+    // do pedido a qualquer hora do dia. As outras têm horário realista, para
+    // você ver a regra de "fechado agora" funcionando.
+    { channel: SalesChannel.DELIVERY, weekdays: TODOS_OS_DIAS, abre: '00:00', fecha: '23:59' },
     { channel: SalesChannel.DINE_IN, weekdays: TODOS_OS_DIAS, abre: '11:00', fecha: '23:00' },
   ],
 };
@@ -745,9 +748,12 @@ const BURGER: SeedBrand = {
     },
   ],
 
-  // Fecha aos domingos no delivery — é um exemplo real de regra por canal.
+  // O delivery fica sempre aberto (para você testar a qualquer hora), mas
+  // FECHA AOS DOMINGOS — é um exemplo real de regra por dia da semana.
+  // Já o balcão tem horário de loja (10:00 às 22:00): fora disso, você vê a
+  // marca aparecer como "fechada" na prática.
   horarios: [
-    { channel: SalesChannel.DELIVERY, weekdays: SEGUNDA_A_SABADO, abre: '11:00', fecha: '23:00' },
+    { channel: SalesChannel.DELIVERY, weekdays: SEGUNDA_A_SABADO, abre: '00:00', fecha: '23:59' },
     { channel: SalesChannel.COUNTER, weekdays: TODOS_OS_DIAS, abre: '10:00', fecha: '22:00' },
   ],
 };

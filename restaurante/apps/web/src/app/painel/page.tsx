@@ -112,8 +112,8 @@ export default async function PainelPage() {
       </section>
 
       <p className="hint">
-        Esta tela existe só para provar que login, papéis e isolamento por empresa funcionam. As
-        funcionalidades começam na Etapa 1 (cardápio → pedido → cozinha → pagamento).
+        Atalhos: <Link href="/pedidos">todos os pedidos</Link> (de todas as marcas, com filtros) e{' '}
+        <Link href="/kds">cozinha</Link> (por estação e por marca).
       </p>
     </main>
   );

@@ -214,7 +214,10 @@ export function Cardapio({
           <strong>Não estamos aceitando pedidos agora.</strong>
           <br />
           {menu.situacao.motivo}
-          {menu.situacao.horarioDeHoje && ` · ${menu.situacao.horarioDeHoje}`}
+          {/* Só repete o horário quando o motivo não o mencionou (ex.: marca pausada). */}
+          {menu.situacao.horarioDeHoje &&
+            !menu.situacao.motivo?.includes('das ') &&
+            ` · ${menu.situacao.horarioDeHoje}`}
           <br />
           Você pode ver o cardápio à vontade — só não dá para finalizar o pedido.
         </div>
