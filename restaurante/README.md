@@ -459,6 +459,92 @@ Em http://localhost:3010/clientes, abra um cliente e desça até
 
 ---
 
+## Como testar as Telas de Cadastro (`/admin`)
+
+### A ideia em uma frase
+
+Até aqui, marca, cardápio, mesas e equipe vinham do **seed** (dados de exemplo
+criados por script). Agora **você mesmo cadastra tudo pela tela**, sem programador.
+
+### Onde fica
+
+Entre em http://localhost:3010/painel e clique em **⚙ Cadastro** (canto superior
+direito). Ou vá direto em http://localhost:3010/admin.
+
+Quem entra: **dono** e **gerente**. Só o **dono** cria, edita e apaga usuários.
+
+### Passo a passo (monte um restaurante do zero)
+
+**1. Criar a marca**
+Clique em **+ Nova marca**, dê um nome (ex.: *Padaria da Esquina*) e uma descrição.
+O endereço público sai pronto: `/m/padaria-da-esquina`. O cardápio de **Delivery**
+é criado junto, vazio.
+
+**2. Montar o cardápio** (aba *Cardápio*)
+- Escolha o canal em cima (**Delivery / Salão / Balcão**). Se o canal ainda não
+  existe, aparece o botão **+ Salão** / **+ Balcão** para criá-lo.
+- Digite o nome da categoria e clique **+ Categoria** (ex.: *Pães*).
+- Clique **+ Item em Pães**, preencha nome, descrição e preço, e **Criar item**.
+- Nas setas **↑ ↓** você reordena; no **👁** esconde sem apagar; no **✎** edita.
+- Dentro do item você **envia a foto do seu computador** e cria **complementos**
+  (ex.: grupo *Escolha o ponto*, mínimo 1, máximo 1).
+- **Copiar cardápio** traz tudo de um canal para outro **com ajuste de preço**
+  (ex.: salão +20%). Só funciona em canal ainda vazio, para não bagunçar.
+
+**3. Horários e entrega** (aba *Horários e entrega*)
+- Marque os dias e horas, ou clique **Abrir 24h todo dia** para testar rápido.
+- Cadastre onde entrega: **por bairro** (você lista cada um com frete e pedido
+  mínimo) **ou por distância** (faixas de km).
+- Configure o **cashback** desta marca: quanto volta, validade e teto de uso.
+
+**4. Unidades e mesas** (aba *Unidades e mesas*)
+- **Ligue a marca na cozinha** (uma dark kitchen tem várias marcas na mesma cozinha).
+- Crie **estações** (forno, chapa, bebidas) — é para onde o prato vai no KDS.
+- Crie **mesas em lote** (ex.: da 1 à 20). Cada mesa ganha seu endereço de QR.
+
+**5. Equipe** (aba *Usuários*)
+Crie a pessoa com e-mail, senha inicial e perfil. A tela explica **o que cada
+perfil enxerga**. Trocar o perfil é um clique no seletor.
+
+### A prova de que funcionou
+
+Depois dos 5 passos, abra `http://localhost:3010/m/<sua-marca>` numa aba
+anônima e **faça um pedido**. Ele cai no `/pedidos` e no `/kds` como qualquer
+outro — o sistema não sabe (nem se importa) se o cardápio veio do seed ou da tela.
+
+> Teste real feito aqui: marca *Padaria da Esquina* criada pela tela, item
+> *Pão francês (kg)* a R$ 22,90, bairro *Centro* com frete R$ 7,00.
+> Pedido de 2 unidades fechou em **R$ 52,80** (45,80 + 7,00). ✅
+
+### As travas de segurança (pode tentar quebrar)
+
+| O que você tenta | O que acontece |
+|---|---|
+| Criar duas marcas com o mesmo nome | Recusa: o endereço público ficaria duplicado |
+| Complemento com mínimo 2 e máximo 1 | Recusa: regra impossível |
+| Fechar às 10h e abrir às 18h | Recusa: o fechamento tem que ser depois da abertura |
+| Copiar cardápio para um canal que já tem itens | Recusa, para não misturar |
+| Apagar uma mesa com comanda aberta | Recusa: primeiro feche a conta |
+| Apagar você mesmo, ou o último dono | Recusa: alguém precisa ficar com a chave |
+| Gerente tentando criar usuário | Recusa: só o dono |
+| Mexer no cadastro de outro restaurante | 404 — do seu ponto de vista aquilo não existe |
+
+---
+
+## O que ficou como "fake / ponta solta" nas Telas de Cadastro
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **Foto do item** | Salva **no disco do servidor** (`/app/uploads`). Funciona num servidor só; com dois, cada um teria fotos diferentes | Quando escalar: S3 ou similar |
+| **E-mail do usuário** | É único **no sistema inteiro**, não por restaurante. Dois restaurantes não podem usar o mesmo e-mail | Antes de abrir para vários clientes |
+| **Troca de senha pelo próprio usuário** | Não existe: quem redefine é o dono, pela tela | Etapa de qualidade e confiança |
+| **Apagar marca** | Não existe — só criar e editar. Apagar levaria junto pedidos e histórico | Precisa virar "arquivar", não apagar |
+| **Imagem do QR da mesa** | O endereço da mesa é gerado, mas não a **figura** para imprimir | Continua pendente |
+| **Cadastro de insumos e fichas técnicas** | Continua só pela tela de Estoque, não aqui | — |
+| **Marca *Padaria da Esquina*** | Ficou no banco como resíduo do teste acima. Some ao rodar o seed de novo | — |
+
+---
+
 ## Como testar a Etapa 6 (o Portal)
 
 ### A ideia em uma frase
@@ -674,6 +760,6 @@ Coisas propositalmente incompletas, para resolver nas próximas etapas:
 | **E-mail do usuário** | Único no sistema inteiro. O certo é ser único **por tenant** (dois restaurantes poderiam ter o mesmo e-mail) | Quando houver cadastro de novos clientes |
 | **Migrations do banco** | Usamos `prisma db push` (rápido para desenvolver, mas sem histórico de mudanças) | Antes de ir para produção |
 | **Isolamento por tenant** | Garantido **em código** (o Prisma injeta o `tenantId` e recusa consulta sem tenant) | Row-Level Security no banco pode ser somado depois, como 2ª camada |
-| **Cadastro de usuários/marcas pela tela** | Não existe; tudo vem do seed | Etapa própria de configurações |
+| **Cadastro de usuários/marcas pela tela** | ✅ Resolvido — existe em `/admin` | — |
 | **Segurança do cookie** | `secure: false` porque desenvolvimento é `http` | Vira `true` no deploy |
 | **Recuperação de senha, 2FA, LGPD** | Não existem | Etapa de qualidade e confiança |

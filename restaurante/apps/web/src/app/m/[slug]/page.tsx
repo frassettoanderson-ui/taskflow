@@ -4,6 +4,9 @@ import { Cardapio, type MenuPublico, type RegrasPublicas } from './cardapio';
 
 const API = process.env.API_INTERNAL_URL || 'http://localhost:3011';
 
+// As fotos dos pratos são servidas pelo backend em /uploads — o Next repassa
+// esse endereço junto com /api (ver next.config.js).
+
 /**
  * Busca o cardápio no backend, no canal pedido.
  * Roda no SERVIDOR — por isso a página chega pronta e rápida para o cliente,

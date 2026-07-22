@@ -17,6 +17,15 @@
 > — Etapa 6: portal (vitrine cross-tenant com opt-in, comissão embutida no preço, funil de
 >   graduação, carteira da rede, split de 3 lados gravado, pool de motoboys entre tenants,
 >   assinatura do SaaS). Pagamento, cobrança e despacho seguem fake.
+> — Telas de cadastro (`/admin`): o restaurante monta sozinho marca, cardápio por canal
+>   (com foto enviada do PC e complementos), horários, área de entrega, cashback, unidades,
+>   estações, mesas em lote e equipe. Não depende mais do seed.
+>
+> ⚠️ ETAPA 7 EM ESPERA por decisão do fundador: nada que exija conta em serviço externo
+> (pagamento real, WhatsApp, mapa, NF-e, iFood, despacho) deve ser iniciado sem ele pedir.
+>
+> ⚠️ NUNCA pedir que o fundador cole senha ou chave no chat. O combinado é: eu digo qual
+> chave e onde pegar, ELE põe no `.env` da máquina dele, e eu escrevo o código que lê de lá.
 >
 > ⚠️ ISOLAMENTO: só DOIS lugares leem vários tenants — `PortalService.vitrine` (marcas com
 > opt-in, campos públicos) e `DeliveryService.despacharPeloPool` (entregadores com opt-in).

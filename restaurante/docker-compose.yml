@@ -70,6 +70,7 @@ services:
     volumes:
       - ./apps/api:/app # seu código entra no container
       - api_node_modules:/app/node_modules # as bibliotecas ficam só no container
+      - api_uploads:/app/uploads # as fotos dos pratos, guardadas fora do código
     depends_on:
       db:
         condition: service_healthy
@@ -106,5 +107,6 @@ services:
 volumes:
   db_data:
   api_node_modules:
+  api_uploads:
   web_node_modules:
   web_next:

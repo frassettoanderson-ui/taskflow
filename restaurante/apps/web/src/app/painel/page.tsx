@@ -61,6 +61,9 @@ export default async function PainelPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link href="/admin">
+            <button className="ghost">⚙ Cadastro</button>
+          </Link>
           <Link href="/relatorios">
             <button className="ghost">Relatórios</button>
           </Link>

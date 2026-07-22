@@ -19,6 +19,11 @@ const nextConfig = {
         source: '/api/:path*',
         destination: `${API_INTERNAL_URL}/api/:path*`,
       },
+      {
+        // As fotos dos pratos, servidas pelo backend a partir do disco.
+        source: '/uploads/:path*',
+        destination: `${API_INTERNAL_URL}/uploads/:path*`,
+      },
     ];
   },
 };

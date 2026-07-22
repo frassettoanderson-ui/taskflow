@@ -1,15 +1,25 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { TenantContextMiddleware } from './common/tenant/tenant-context.middleware';
+import { PASTA_DE_UPLOADS } from './modules/admin/upload.service';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bodyParser: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: true });
 
   // Todas as rotas começam com /api
   app.setGlobalPrefix('api');
+
+  // As fotos dos pratos, servidas direto do disco.
+  // Ficam FORA do prefixo /api de propósito: são arquivos, não API.
+  app.useStaticAssets(PASTA_DE_UPLOADS, {
+    prefix: '/uploads/',
+    // Imagem com nome sorteado nunca muda de conteúdo: pode ficar em cache.
+    maxAge: '7d',
+  });
 
   // Ler cookies (é onde fica o crachá de login)
   app.use(cookieParser());

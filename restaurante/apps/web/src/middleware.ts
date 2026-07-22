@@ -23,7 +23,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/relatorios') ||
     pathname.startsWith('/estoque') ||
     pathname.startsWith('/financeiro') ||
-    pathname.startsWith('/entregadores');
+    pathname.startsWith('/entregadores') ||
+    pathname.startsWith('/admin');
 
   if (!logado && precisaLogin) {
     const url = request.nextUrl.clone();
@@ -52,6 +53,7 @@ export const config = {
     '/estoque/:path*',
     '/financeiro/:path*',
     '/entregadores/:path*',
+    '/admin/:path*',
     '/login',
   ],
 };
