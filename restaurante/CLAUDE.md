@@ -20,6 +20,9 @@
 > — Telas de cadastro (`/admin`): o restaurante monta sozinho marca, cardápio por canal
 >   (com foto enviada do PC e complementos), horários, área de entrega, cashback, unidades,
 >   estações, mesas em lote e equipe. Não depende mais do seed.
+> — Trava do cashback: gastar saldo exige código de 6 dígitos (hash + expiração + token
+>   de uso único), enviado pela porta de mensagens. A consulta pública deixou de devolver
+>   o nome do cliente. Era a única pendência perigosa da lista.
 > — PDV (`/pdv`): o caixa do balcão. Venda nasce paga e já na cozinha, com troco calculado,
 >   cliente opcional (vira CRM) e fechamento do dia por forma de pagamento. Dono/gerente/caixa.
 >   Maquininha e impressora térmica continuam fora (Etapa 7).
