@@ -1,15 +1,19 @@
 import { redirect } from 'next/navigation';
 import { apiServer } from '@/lib/api';
-import { TelaDaCozinha, type PedidoKds } from './tela-da-cozinha';
+import { TelaDaCozinha, type PedidoKds, type Estacao, type MarcaKds } from './tela-da-cozinha';
 
 export const metadata = { title: 'Cozinha (KDS)' };
 
 export default async function PaginaKds() {
-  const resposta = await apiServer<PedidoKds[]>('/orders/kds');
+  const [pedidos, estacoes, marcas] = await Promise.all([
+    apiServer<PedidoKds[]>('/orders/kds'),
+    apiServer<Estacao[]>('/orders/estacoes'),
+    apiServer<MarcaKds[]>('/brands'),
+  ]);
 
-  if (resposta.status === 401) redirect('/login');
+  if (pedidos.status === 401) redirect('/login');
 
-  if (!resposta.ok || !resposta.data) {
+  if (!pedidos.ok || !pedidos.data) {
     return (
       <main className="center-screen">
         <div className="card card--login">
@@ -20,5 +24,11 @@ export default async function PaginaKds() {
     );
   }
 
-  return <TelaDaCozinha iniciais={resposta.data} />;
+  return (
+    <TelaDaCozinha
+      iniciais={pedidos.data}
+      estacoes={estacoes.data ?? []}
+      marcas={marcas.data ?? []}
+    />
+  );
 }

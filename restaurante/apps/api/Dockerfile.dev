@@ -4,6 +4,10 @@
 
 FROM node:24-alpine
 
+# Tabela de fusos horários. Sem isto o container ignora o TZ e roda em UTC —
+# e o "está aberto agora?" erraria das 21h à meia-noite.
+RUN apk add --no-cache tzdata
+
 WORKDIR /app
 
 # 1) instala as bibliotecas (esta camada só refaz quando o package.json muda)

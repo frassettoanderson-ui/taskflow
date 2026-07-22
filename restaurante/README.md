@@ -3,7 +3,7 @@
 SaaS de canal próprio (gestor de pedidos + cardápio digital sem comissão) e portal/marketplace.
 O contexto completo do produto está em [CLAUDE.md](./CLAUDE.md).
 
-**Etapa atual: 1 — Cardápio → pedido → cozinha → pagamento (concluída).**
+**Etapa atual: 2 — Multimarca e multicanal (concluída).**
 
 ---
 
@@ -27,9 +27,13 @@ Para desligar: `Ctrl + C` no terminal, ou `docker compose down`.
 | O quê | Endereço |
 |---|---|
 | Site (login e Painel) | http://localhost:3010 |
-| **Cardápio do cliente** (sem login) | http://localhost:3010/m/cantina-da-nona |
+| **Painel único de pedidos** (todas as marcas) | http://localhost:3010/pedidos |
 | **Cozinha (KDS)** — precisa login | http://localhost:3010/kds |
 | **Acompanhar pedido** | http://localhost:3010/pedido/`CÓDIGO` |
+| Cardápio — Cantina, delivery | http://localhost:3010/m/cantina-da-nona |
+| Cardápio — Cantina, **salão** | http://localhost:3010/m/cantina-da-nona?canal=salao |
+| Cardápio — Burger, delivery | http://localhost:3010/m/burger-do-ze |
+| Cardápio — Burger, **balcão** | http://localhost:3010/m/burger-do-ze?canal=balcao |
 | API (backend) | http://localhost:3011/api |
 | "Está tudo de pé?" | http://localhost:3011/api/health |
 | Banco PostgreSQL | `localhost:5442` |
@@ -139,14 +143,111 @@ O melhor teste usa **duas abas** do navegador lado a lado.
 12. **Tente furar a fila.** Leve o pedido até *Entregue*. Depois disso, ele some da
     cozinha e não aceita mais mudança.
 
+---
+
+## Como testar a Etapa 2 (multimarca e multicanal)
+
+### O que o exemplo monta
+
+**Uma cozinha** ("Cozinha Centro", com CNPJ e endereço) com **4 estações** —
+Forno, Chapa, Montagem e Bebidas — e **duas marcas dentro dela**:
+
+| Marca | Canais | Entrega |
+|---|---|---|
+| **Cantina da Nona** | Delivery e **Salão** | por **bairro** |
+| **Burger do Zé** | Delivery e **Balcão** | por **raio (km)** |
+
+### Passo a passo
+
+**1. As duas marcas num painel só**
+Entre em http://localhost:3010/painel. O cartão *Marcas* mostra as duas, com
+cada canal e se está aberto ou fechado agora.
+
+**2. Mesmo prato, canal diferente, preço diferente**
+Abra os dois e compare:
+- Delivery: http://localhost:3010/m/cantina-da-nona → Spaghetti **R$ 46,90**
+- Salão: http://localhost:3010/m/cantina-da-nona?canal=salao → Spaghetti **R$ 54,90**
+
+No salão existem itens que **não existem** no delivery (Couvert da Casa, Taça de
+Vinho). Use as abas no topo para trocar de canal.
+
+O mesmo vale para a Burger: **R$ 32,90** no delivery e **R$ 29,90** no balcão.
+
+**3. Frete por bairro (Cantina)**
+Faça um pedido e experimente bairros diferentes:
+
+| Bairro | O que acontece |
+|---|---|
+| Centro | frete **R$ 7,00** |
+| Praia da Vila | frete **R$ 9,00** |
+| Vila Nova | frete R$ 12,00, mas **exige R$ 40 de pedido mínimo** |
+| Mirim | frete **R$ 15,00** |
+| Ibiraquera | **recusado** — fora da área |
+
+**4. Frete por raio (Burger)**
+A mesma coisa, mas por distância da cozinha:
+
+| Bairro | Distância | O que acontece |
+|---|---|---|
+| Praia da Vila | ~1,6 km | frete **R$ 6,00** |
+| Mirim | ~3,9 km | frete **R$ 10,00** |
+| Ibiraquera | ~10,7 km | **recusado** — entrega até 10 km |
+| Bairro inventado | — | **recusado** — não localizou o endereço |
+
+**5. Pausar uma marca em segundos**
+No Painel, clique em **Pausar** na Burger do Zé. Abra
+http://localhost:3010/m/burger-do-ze noutra aba: aparece a tarja vermelha
+*"Não estamos aceitando pedidos agora"* e o botão de finalizar fica desligado.
+Clique em **Reabrir** e recarregue: voltou ao normal.
+
+**6. Pausar um item**
+Mesmo efeito, mas só num prato: ele continua no cardápio, marcado como
+**Indisponível hoje**, e não dá para clicar.
+
+**7. Painel único de pedidos**
+Abra http://localhost:3010/pedidos. Ali estão os pedidos **das duas marcas
+misturados**, com o resumo por marca no topo e filtros de **marca**, **canal** e
+**situação**. Ele atualiza ao vivo.
+
+**8. KDS com roteamento por estação**
+Abra http://localhost:3010/kds. No topo, escolha **Forno**, **Chapa**,
+**Montagem** ou **Bebidas** — cada tela mostra só as linhas daquela estação
+(a pizza vai para o Forno, a massa para a Chapa, o refrigerante para Bebidas).
+O seletor de marca ao lado separa as filas por marca.
+
+**9. Base de clientes é de cada marca**
+Peça na Cantina e na Burger **com o mesmo telefone**. São criados **dois
+cadastros separados** — a base é de cada marca, nunca compartilhada.
+É o princípio "seus clientes, seus dados".
+
+**10. Horário de funcionamento**
+No rodapé de qualquer cardápio há a tabela de horários da semana, com o dia de
+hoje em destaque. A Burger **fecha aos domingos no delivery** e o balcão dela
+fecha às 22:00 — se você testar depois disso, vai ver a marca como *fechada*.
+
 ### Teste rápido pela API (opcional)
 
 ```bash
 docker compose exec api npx jest
 ```
 
-Devem passar **21 testes** — máquina de estados, divisão do dinheiro, papéis de
-acesso e isolamento por empresa.
+Devem passar **30 testes** — máquina de estados, divisão do dinheiro, papéis de
+acesso, isolamento por empresa, canais de venda e cálculo de distância.
+
+---
+
+## O que ficou como "fake / ponta solta" na Etapa 2
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **Mapa / distância** | `FakeMapProvider` com uma tabelinha de bairros de Imbituba embutida e distância em **linha reta**. Um mapa de verdade dá 20-30% a mais e conhece qualquer endereço | Etapa 7 |
+| **Cadastro de marcas, cardápios, bairros e horários** | Tudo vem do seed. Pela tela dá para **pausar** marca e item, e **ler** as regras — não para cadastrar | Etapa própria de administração |
+| **Múltiplas unidades** | Modelado e funcionando por baixo (pedido guarda a unidade, estações pertencem à unidade, existe a tabela de exceção local por unidade), mas o exemplo roda com **uma** cozinha e não há tela de gestão de unidades | Quando você tiver a 2ª loja |
+| **Exceção local do cardápio** (`UnitItemOverride`) | Tabela criada, mas ainda **não é lida** no cálculo de preço — hoje o preço é sempre o da marca | Junto com a 2ª unidade |
+| **Escolha da unidade** | O pedido vai sempre para a primeira cozinha da marca. Com várias, precisará escolher a mais perto | Quando houver a 2ª loja |
+| **Salão e balcão** | Já têm cardápio e preço próprios e aceitam pedido, mas **sem mesa, comanda nem QR na mesa** | Etapa do presencial |
+| **Cliente da marca** | Guarda nome, telefone, último endereço e o resumo (nº de pedidos e total gasto). Ainda **não há tela** de CRM | Etapa de CRM/fidelidade |
+| **Agendamento** | Continua sem organizar a fila por horário | Etapa de gestão de produção |
 
 ---
 

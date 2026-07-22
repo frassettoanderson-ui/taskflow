@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { apiServer } from '@/lib/api';
 import { LogoutButton } from './logout-button';
+import { Marcas } from './marcas';
+import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
 
 /** Id da marca do "restaurante rival" — criado pelo seed só para este teste. */
 const ID_MARCA_DE_OUTRA_EMPRESA = 'brd_rival_forno';
@@ -37,7 +39,7 @@ export default async function PainelPage() {
     );
   }
 
-  const { user, tenant, brands } = me.data;
+  const { user, tenant } = me.data;
 
   // ---- Prova viva do isolamento -------------------------------------------
   // Tentamos, logados como você, buscar uma marca que pertence a OUTRA empresa.
@@ -45,6 +47,9 @@ export default async function PainelPage() {
   // existir do seu ponto de vista.
   const tentativa = await apiServer(`/brands/${ID_MARCA_DE_OUTRA_EMPRESA}`);
   const isolamentoOk = tentativa.status === 404;
+
+  // Marcas com a situação de cada canal agora (aberto/fechado/pausado).
+  const marcas = await apiServer<MarcaResumo[]>('/brands');
 
   return (
     <main className="shell">
@@ -55,7 +60,10 @@ export default async function PainelPage() {
             Olá, {user.name}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link href="/pedidos">
+            <button className="ghost">Pedidos</button>
+          </Link>
           <Link href="/kds">
             <button className="ghost">Cozinha (KDS)</button>
           </Link>
@@ -84,19 +92,7 @@ export default async function PainelPage() {
         </div>
       </section>
 
-      <section className="card" style={{ marginTop: 16 }}>
-        <div className="stat-label">Marcas desta empresa</div>
-        {brands.length === 0 && <p className="subtitle">Nenhuma marca cadastrada.</p>}
-        {brands.map((b) => (
-          <div className="brand-row" key={b.id}>
-            <span className="dot" style={{ background: b.primaryColor }} />
-            <strong>{b.name}</strong>
-            <Link href={`/m/${b.slug}`} style={{ fontSize: 13 }}>
-              abrir cardápio (/m/{b.slug})
-            </Link>
-          </div>
-        ))}
-      </section>
+      <Marcas iniciais={marcas.data ?? []} />
 
       <section className={`card proof ${isolamentoOk ? '' : 'fail'}`}>
         <div className="stat-label">Teste de isolamento entre empresas</div>

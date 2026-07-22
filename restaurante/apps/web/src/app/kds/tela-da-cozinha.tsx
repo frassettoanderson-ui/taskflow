@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 
+export type Estacao = { id: string; name: string; unitId: string };
+export type MarcaKds = { id: string; name: string; primaryColor: string };
+
 export type PedidoKds = {
   id: string;
   code: string;
@@ -10,17 +13,20 @@ export type PedidoKds = {
   statusLabel: string;
   proximoStatus: string | null;
   proximoStatusLabel: string | null;
+  channelLabel: string;
   customerName: string;
   scheduledFor: string | null;
   notes: string | null;
   totalCents: number;
   createdAt: string;
-  brand?: { name: string; primaryColor: string };
+  brand?: { id: string; name: string; primaryColor: string };
   items: Array<{
     id: string;
     name: string;
     quantity: number;
     notes: string | null;
+    stationId: string | null;
+    stationName: string | null;
     modifiers: Array<{ name: string }>;
   }>;
 };
@@ -38,18 +44,34 @@ function hora(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function TelaDaCozinha({ iniciais }: { iniciais: PedidoKds[] }) {
+export function TelaDaCozinha({
+  iniciais,
+  estacoes,
+  marcas,
+}: {
+  iniciais: PedidoKds[];
+  estacoes: Estacao[];
+  marcas: MarcaKds[];
+}) {
   const [pedidos, setPedidos] = useState(iniciais);
   const [aoVivo, setAoVivo] = useState(false);
   const [ocupado, setOcupado] = useState<string | null>(null);
+
+  /** Filtros: "" = tudo. */
+  const [estacao, setEstacao] = useState('');
+  const [marca, setMarca] = useState('');
 
   /** Códigos que chegaram agora — ganham destaque por alguns segundos. */
   const [novos, setNovos] = useState<Set<string>>(new Set());
   const conhecidos = useRef(new Set(iniciais.map((p) => p.code)));
 
   const recarregar = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (estacao) params.set('estacao', estacao);
+    if (marca) params.set('marca', marca);
+
     try {
-      const res = await fetch('/api/orders/kds', { cache: 'no-store' });
+      const res = await fetch(`/api/orders/kds?${params}`, { cache: 'no-store' });
       if (!res.ok) return;
       const lista: PedidoKds[] = await res.json();
 
@@ -71,7 +93,11 @@ export function TelaDaCozinha({ iniciais }: { iniciais: PedidoKds[] }) {
     } catch {
       /* rede oscilou: mantém a tela como está */
     }
-  }, []);
+  }, [estacao, marca]);
+
+  useEffect(() => {
+    recarregar();
+  }, [recarregar]);
 
   /**
    * Escuta o servidor. Pedido novo ou mudança de situação chega aqui e a tela
@@ -84,8 +110,7 @@ export function TelaDaCozinha({ iniciais }: { iniciais: PedidoKds[] }) {
     fonte.onerror = () => setAoVivo(false);
     fonte.onmessage = (evento) => {
       try {
-        const aviso = JSON.parse(evento.data);
-        if (aviso.type === 'ping') return;
+        if (JSON.parse(evento.data).type === 'ping') return;
         recarregar();
       } catch {
         /* ignora */
@@ -109,25 +134,72 @@ export function TelaDaCozinha({ iniciais }: { iniciais: PedidoKds[] }) {
     }
   }
 
+  const nomeDaEstacao = estacoes.find((e) => e.id === estacao)?.name;
+
   return (
     <main className="kds">
       <header className="topbar">
         <div>
-          <h1 className="title">Cozinha</h1>
+          <h1 className="title">
+            Cozinha{nomeDaEstacao ? ` · ${nomeDaEstacao}` : ''}
+          </h1>
           <span className="ao-vivo">
             <span className="pulso" style={{ background: aoVivo ? 'var(--ok)' : 'var(--muted)' }} />
             {aoVivo ? 'Ao vivo' : 'Reconectando…'} · {pedidos.length}{' '}
             {pedidos.length === 1 ? 'pedido' : 'pedidos'} em andamento
           </span>
         </div>
-        <Link href="/painel">
-          <button className="ghost">Voltar ao painel</button>
-        </Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link href="/pedidos">
+            <button className="ghost">Todos os pedidos</button>
+          </Link>
+          <Link href="/painel">
+            <button className="ghost">Painel</button>
+          </Link>
+        </div>
       </header>
+
+      {/* Estações: cada tela da cozinha vê só o que é dela */}
+      <div className="canais" style={{ padding: '0 0 12px' }}>
+        <button
+          className="canal-aba"
+          data-ativo={estacao === ''}
+          onClick={() => setEstacao('')}
+          style={{ cursor: 'pointer' }}
+        >
+          Todas as estações
+        </button>
+        {estacoes.map((e) => (
+          <button
+            key={e.id}
+            className="canal-aba"
+            data-ativo={estacao === e.id}
+            onClick={() => setEstacao(e.id)}
+            style={{ cursor: 'pointer' }}
+          >
+            {e.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Marcas: filas separadas por marca */}
+      {marcas.length > 1 && (
+        <div className="filtros" style={{ marginBottom: 18 }}>
+          <select value={marca} onChange={(e) => setMarca(e.target.value)}>
+            <option value="">Todas as marcas</option>
+            {marcas.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {pedidos.length === 0 && (
         <p className="vazio">
-          Nenhum pedido em andamento. Faça um pedido pelo cardápio e ele aparece aqui sozinho.
+          Nenhum pedido em andamento{nomeDaEstacao ? ` na estação ${nomeDaEstacao}` : ''}. Faça um
+          pedido pelo cardápio e ele aparece aqui sozinho.
         </p>
       )}
 
@@ -145,10 +217,20 @@ export function TelaDaCozinha({ iniciais }: { iniciais: PedidoKds[] }) {
                 <article
                   className={`comanda ${novos.has(pedido.code) ? 'novo' : ''}`}
                   key={pedido.id}
+                  style={{ borderLeft: `3px solid ${pedido.brand?.primaryColor ?? 'transparent'}` }}
                 >
                   <div className="comanda-topo">
                     <span className="comanda-codigo">{pedido.code}</span>
                     <span className="comanda-hora">{hora(pedido.createdAt)}</span>
+                  </div>
+
+                  <div className="marca-tag" style={{ fontSize: 12, marginBottom: 8 }}>
+                    <span
+                      className="dot"
+                      style={{ background: pedido.brand?.primaryColor ?? 'var(--muted)' }}
+                    />
+                    <strong>{pedido.brand?.name}</strong>
+                    <span style={{ color: 'var(--muted)' }}>· {pedido.channelLabel}</span>
                   </div>
 
                   {pedido.scheduledFor && (
@@ -171,6 +253,10 @@ export function TelaDaCozinha({ iniciais }: { iniciais: PedidoKds[] }) {
                     {pedido.items.map((i) => (
                       <li key={i.id}>
                         <strong>{i.quantity}×</strong> {i.name}
+                        {/* Sem filtro de estação, mostramos para onde cada linha vai */}
+                        {!estacao && i.stationName && (
+                          <span className="estacao-tag">{i.stationName}</span>
+                        )}
                         {i.modifiers.length > 0 && (
                           <em>{i.modifiers.map((m) => m.name).join(' · ')}</em>
                         )}

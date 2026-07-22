@@ -348,6 +348,73 @@ code {
   background: var(--surface-2);
 }
 
+/* ---- abas de canal (delivery / salão / balcão) ---- */
+
+.canais {
+  display: flex;
+  gap: 8px;
+  padding: 14px 24px 0;
+  flex-wrap: wrap;
+}
+
+.canal-aba {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.canal-aba[data-ativo='true'] {
+  background: var(--marca);
+  border-color: var(--marca);
+  color: #fff;
+}
+
+/* ---- aviso de loja fechada ---- */
+
+.fechado {
+  margin: 16px 24px 0;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.fechado strong {
+  color: #fecaca;
+}
+
+/* ---- item indisponível ---- */
+
+.produto[data-indisponivel='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.produto[data-indisponivel='true']:hover {
+  border-color: var(--border);
+}
+
+.esgotado {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* ---- janela de escolha de complementos ---- */
 
 .modal-fundo {
@@ -489,6 +556,39 @@ code {
   flex: 1;
   background: var(--marca);
   color: #fff;
+}
+
+/* ---- rodapé de regras (horários e área de entrega) ---- */
+
+.regras {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  padding: 30px 24px 10px;
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.regras-bloco h3 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.regra-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.regra-linha[data-hoje='true'] {
+  color: var(--text);
+  font-weight: 600;
 }
 
 /* ---- barra do carrinho ---- */
@@ -756,6 +856,169 @@ code {
 }
 
 /* ======================================================================
+   PAINEL ÚNICO DE PEDIDOS
+   ====================================================================== */
+
+.filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+select {
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: 2px solid var(--brand);
+  outline-offset: -1px;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.tabela th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.tabela td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(38, 50, 65, 0.55);
+  vertical-align: top;
+}
+
+.tabela tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabela .sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
+.codigo {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.marca-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.marca-tag .dot {
+  width: 10px;
+  height: 10px;
+}
+
+.situacao {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.situacao[data-status='AWAITING_PAYMENT'] {
+  background: rgba(234, 179, 8, 0.16);
+  color: #fde047;
+}
+
+.situacao[data-status='RECEIVED'],
+.situacao[data-status='ACCEPTED'],
+.situacao[data-status='IN_PREPARATION'] {
+  background: rgba(59, 130, 246, 0.16);
+  color: #93c5fd;
+}
+
+.situacao[data-status='READY'],
+.situacao[data-status='OUT_FOR_DELIVERY'] {
+  background: rgba(249, 115, 22, 0.16);
+  color: #fdba74;
+}
+
+.situacao[data-status='DELIVERED'] {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+
+.situacao[data-status='CANCELED'] {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fca5a5;
+}
+
+/* ---- cartão de marca no painel ---- */
+
+.marca-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.marca-card .corpo {
+  flex: 1;
+  min-width: 0;
+}
+
+.marca-card .canal-linha {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 3px 0;
+}
+
+.marca-card .canal-linha b {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.aberto-sim {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.aberto-nao {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.botao-pausa {
+  width: auto;
+  flex: none;
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+.botao-pausa[data-pausada='true'] {
+  background: var(--ok);
+  color: #06240f;
+}
+
+/* ======================================================================
    KDS — TELA DA COZINHA
    ====================================================================== */
 
@@ -829,6 +1092,21 @@ code {
 
 .comanda li {
   padding: 4px 0;
+}
+
+.estacao-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
 }
 
 .comanda li em {

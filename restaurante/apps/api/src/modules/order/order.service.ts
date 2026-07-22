@@ -11,7 +11,8 @@ import { TenantContextService } from '../../common/tenant/tenant-context.service
 import { RealtimeService } from '../../common/realtime/realtime.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { estaFinalizado, NOME_DO_STATUS, podeIr, proximoStatus } from './order.state-machine';
-import { lerRegras } from './pricing';
+import { OperationService } from '../operation/operation.service';
+import { NOME_DO_CANAL } from '../operation/channel';
 
 /** Letras e números sem os que se confundem (0/O, 1/I). */
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -25,6 +26,7 @@ export class OrderService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly context: TenantContextService,
     private readonly realtime: RealtimeService,
+    private readonly operacao: OperationService,
   ) {}
 
   // =========================================================================
@@ -38,19 +40,37 @@ export class OrderService {
    * (ids e quantidades). QUANTO CUSTA é sempre recalculado aqui, lendo o preço
    * do banco. Assim ninguém consegue "editar o preço" pelo navegador.
    */
-  async criarPedidoPublico(brandSlug: string, dto: CreateOrderDto) {
+  async criarPedidoPublico(
+    brandSlug: string,
+    dto: CreateOrderDto,
+    channel: SalesChannel = SalesChannel.DELIVERY,
+  ) {
     const brand = await this.prisma.brand.findUnique({
       where: { slug: brandSlug },
-      select: { id: true, tenantId: true, name: true },
+      select: { id: true, tenantId: true, name: true, paused: true, pausedReason: true },
     });
     if (!brand) throw new NotFoundException('Restaurante não encontrado.');
 
     return this.context.runAsTenant(brand.tenantId, async () => {
+      // 0) A marca está aceitando pedidos agora? (pausa + horário do canal)
+      await this.operacao.exigirAberto(brand, channel);
+
       // 1) Buscar no banco os itens que o cliente pediu (com seus complementos).
+      //
+      //    Repare no filtro: o item precisa ser DESTA marca e DESTE canal.
+      //    Sem isso, alguém poderia pedir o prato do salão (mais caro) pagando
+      //    o preço do delivery, ou pedir um item de outra marca.
       const idsPedidos = [...new Set(dto.items.map((i) => i.itemId))];
       const itens = await this.tenantPrisma.db.item.findMany({
-        where: { id: { in: idsPedidos }, active: true },
-        include: { modifierGroups: { include: { modifiers: true } } },
+        where: {
+          id: { in: idsPedidos },
+          active: true,
+          category: { menu: { brandId: brand.id, channel, active: true } },
+        },
+        include: {
+          modifierGroups: { include: { modifiers: true } },
+          station: { select: { id: true, name: true } },
+        },
       });
 
       const porId = new Map(itens.map((i) => [i.id, i]));
@@ -63,6 +83,8 @@ export class OrderService {
         quantity: number;
         totalCents: number;
         notes?: string;
+        stationId: string | null;
+        stationNameSnapshot: string | null;
         modifiers: Array<{ modifierId: string; nameSnapshot: string; priceDeltaCents: number }>;
       }> = [];
 
@@ -127,13 +149,26 @@ export class OrderService {
           quantity: linha.quantity,
           totalCents: totalLinha,
           notes: linha.notes,
+          stationId: item.station?.id ?? null,
+          stationNameSnapshot: item.station?.name ?? null,
           modifiers: complementos,
         });
       }
 
-      // 3) Frete e total.
-      const regras = lerRegras();
-      const deliveryFeeCents = regras.taxaEntregaCents;
+      // 3) Frete: sai das regras de área da marca (por bairro ou por raio).
+      //    É aqui que um endereço fora da área é recusado.
+      const frete = await this.operacao.calcularFrete(
+        brand.id,
+        channel,
+        {
+          street: dto.addressStreet,
+          number: dto.addressNumber,
+          district: dto.addressDistrict,
+          city: dto.addressCity,
+        },
+        subtotalCents,
+      );
+      const deliveryFeeCents = frete.feeCents;
       const totalCents = subtotalCents + deliveryFeeCents;
 
       // 4) Agendamento: não aceitamos data no passado.
@@ -146,7 +181,11 @@ export class OrderService {
         scheduledFor = quando;
       }
 
-      // 5) Gravar.
+      // 5) Cliente da marca e cozinha que vai produzir.
+      const cliente = await this.acharOuCriarCliente(brand.id, dto);
+      const unitId = await this.unidadeDaMarca(brand.id);
+
+      // 6) Gravar.
       const code = await this.gerarCodigoUnico();
 
       const pedido = await this.tenantPrisma.db.order.create({
@@ -156,8 +195,10 @@ export class OrderService {
           // este campo com o tenant do contexto. Valor errado aqui não passa.
           tenantId: brand.tenantId,
           brandId: brand.id,
-          channel: SalesChannel.DELIVERY,
+          channel,
           source: OrderSource.DIRECT, // veio do canal próprio: SEM comissão
+          unitId,
+          customerId: cliente.id,
           code,
           status: OrderStatus.AWAITING_PAYMENT,
           customerName: dto.customerName.trim(),
@@ -181,6 +222,8 @@ export class OrderService {
               quantity: l.quantity,
               totalCents: l.totalCents,
               notes: l.notes,
+              stationId: l.stationId,
+              stationNameSnapshot: l.stationNameSnapshot,
               modifiers: {
                 create: l.modifiers.map((m) => ({
                   tenantId: brand.tenantId,
@@ -195,9 +238,26 @@ export class OrderService {
         include: { items: { include: { modifiers: true } } },
       });
 
+      // Atualiza o resumo do cliente DAQUELA marca (base do CRM).
+      await this.tenantPrisma.db.customer.update({
+        where: { id: cliente.id },
+        data: {
+          ordersCount: { increment: 1 },
+          totalSpentCents: { increment: totalCents },
+          lastOrderAt: new Date(),
+          addressStreet: dto.addressStreet,
+          addressNumber: dto.addressNumber,
+          addressDistrict: dto.addressDistrict,
+          addressCity: dto.addressCity,
+          addressNote: dto.addressNote,
+        },
+      });
+
       await this.registrarEvento(pedido.tenantId, pedido.brandId, pedido.id, pedido.code, 'order.created', {
         totalCents,
         itens: linhas.length,
+        canal: channel,
+        frete: frete.descricao,
       });
 
       return this.formatarPedido(pedido);
@@ -242,8 +302,13 @@ export class OrderService {
     return pedido.id;
   }
 
-  /** Pedidos em andamento — a tela da cozinha. */
-  async listarParaCozinha() {
+  /**
+   * Pedidos em andamento — a tela da cozinha.
+   *
+   * Aceita filtro por MARCA e por ESTAÇÃO. Filtrar por estação mostra só as
+   * linhas daquela estação (a Chapa não precisa ver a sobremesa).
+   */
+  async listarParaCozinha(filtro: { brandId?: string; stationId?: string } = {}) {
     const pedidos = await this.tenantPrisma.db.order.findMany({
       where: {
         status: {
@@ -255,15 +320,80 @@ export class OrderService {
             OrderStatus.OUT_FOR_DELIVERY,
           ],
         },
+        ...(filtro.brandId ? { brandId: filtro.brandId } : {}),
+        ...(filtro.stationId ? { items: { some: { stationId: filtro.stationId } } } : {}),
       },
       include: {
         items: { include: { modifiers: true } },
-        brand: { select: { name: true, primaryColor: true } },
+        brand: { select: { id: true, name: true, primaryColor: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
 
+    return pedidos.map((p) => {
+      const formatado = this.formatarPedido(p);
+
+      // Filtrando por estação, a comanda mostra só o que é daquela estação.
+      if (filtro.stationId) {
+        formatado.items = formatado.items.filter((i: any) => i.stationId === filtro.stationId);
+      }
+      return formatado;
+    });
+  }
+
+  /**
+   * PAINEL ÚNICO: todos os pedidos de TODAS as marcas do tenant, com filtros.
+   * É a tela que resolve "opero 4 marcas e não quero 4 sistemas abertos".
+   */
+  async listarPedidos(filtro: {
+    brandId?: string;
+    channel?: SalesChannel;
+    status?: OrderStatus;
+    limite?: number;
+  }) {
+    const pedidos = await this.tenantPrisma.db.order.findMany({
+      where: {
+        ...(filtro.brandId ? { brandId: filtro.brandId } : {}),
+        ...(filtro.channel ? { channel: filtro.channel } : {}),
+        ...(filtro.status ? { status: filtro.status } : {}),
+      },
+      include: {
+        items: { include: { modifiers: true } },
+        brand: { select: { id: true, name: true, primaryColor: true } },
+        payment: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(filtro.limite ?? 50, 200),
+    });
+
     return pedidos.map((p) => this.formatarPedido(p));
+  }
+
+  /** Estações de produção do tenant — as "abas" do KDS. */
+  async listarEstacoes() {
+    return this.tenantPrisma.db.station.findMany({
+      where: { active: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, name: true, unitId: true },
+    });
+  }
+
+  /** Clientes de uma marca (base própria de cada marca). */
+  async listarClientes(brandId: string) {
+    return this.tenantPrisma.db.customer.findMany({
+      where: { brandId },
+      orderBy: { lastOrderAt: 'desc' },
+      take: 200,
+      select: {
+        id: true,
+        name: true,
+        phone: true,
+        ordersCount: true,
+        totalSpentCents: true,
+        lastOrderAt: true,
+        addressDistrict: true,
+      },
+    });
   }
 
   // =========================================================================
@@ -431,6 +561,36 @@ export class OrderService {
     });
   }
 
+  /**
+   * Acha o cliente pelo telefone DENTRO DA MARCA, ou cria.
+   *
+   * O princípio "seus clientes, seus dados": a base é de cada marca. O mesmo
+   * telefone pedindo na Cantina e na Burger vira dois cadastros — são negócios
+   * diferentes, e o dia que uma marca sair, ela leva a base dela.
+   */
+  private async acharOuCriarCliente(brandId: string, dto: CreateOrderDto) {
+    const phone = dto.customerPhone.replace(/\D/g, '');
+
+    const existente = await this.tenantPrisma.db.customer.findFirst({
+      where: { brandId, phone },
+    });
+    if (existente) return existente;
+
+    return this.tenantPrisma.db.customer.create({
+      data: { brandId, phone, name: dto.customerName.trim() } as any,
+    });
+  }
+
+  /** Em qual cozinha esta marca produz. Hoje é uma; amanhã, a mais perto. */
+  private async unidadeDaMarca(brandId: string): Promise<string | null> {
+    const vinculo = await this.tenantPrisma.db.brandUnit.findFirst({
+      where: { brandId, active: true },
+      orderBy: { createdAt: 'asc' },
+      select: { unitId: true },
+    });
+    return vinculo?.unitId ?? null;
+  }
+
   /** Sorteia um código curto que ainda não exista. */
   private async gerarCodigoUnico(tentativas = 8): Promise<string> {
     for (let i = 0; i < tentativas; i++) {
@@ -459,7 +619,10 @@ export class OrderService {
         ? NOME_DO_STATUS[proximoStatus(p.status as OrderStatus) as OrderStatus]
         : null,
       channel: p.channel,
+      channelLabel: NOME_DO_CANAL[p.channel as SalesChannel],
       source: p.source,
+      unitId: p.unitId,
+      customerId: p.customerId,
       customerName: p.customerName,
       customerPhone: p.customerPhone,
       address: {
@@ -492,6 +655,8 @@ export class OrderService {
         unitPriceCents: i.unitPriceCents,
         totalCents: i.totalCents,
         notes: i.notes,
+        stationId: i.stationId ?? null,
+        stationName: i.stationNameSnapshot ?? null,
         modifiers: (i.modifiers ?? []).map((m: any) => ({
           name: m.nameSnapshot,
           priceDeltaCents: m.priceDeltaCents,

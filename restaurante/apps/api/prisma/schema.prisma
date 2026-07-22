@@ -75,11 +75,19 @@ model Brand {
   logoUrl      String?
   description  String? // frase curta que aparece no topo do cardápio
 
+  /// Pausar a marca inteira: o cardápio sai do ar na hora e nenhum pedido entra.
+  paused       Boolean @default(false)
+  pausedReason String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  menus  Menu[]
-  orders Order[]
+  menus        Menu[]
+  orders       Order[]
+  units        BrandUnit[]
+  customers    Customer[]
+  deliveryArea DeliveryArea[]
+  openingHours OpeningHour[]
 
   @@index([tenantId])
   @@map("brands")
@@ -159,8 +167,14 @@ model Item {
   /// "pausar item" — some do cardápio sem ser apagado
   active      Boolean @default(true)
 
+  /// Para qual estação da cozinha este item vai (chapa, montagem, bebidas...).
+  /// Vazio = cai na estação padrão.
+  stationId String?
+  station   Station? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
   modifierGroups ModifierGroup[]
   orderItems     OrderItem[]
+  unitOverrides  UnitItemOverride[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -264,6 +278,14 @@ model Order {
   channel  SalesChannel @default(DELIVERY)
   source   OrderSource  @default(DIRECT)
 
+  /// Em qual loja/cozinha este pedido é produzido.
+  unitId String?
+  unit   Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  /// Cliente da MARCA (a base é de cada marca, nunca compartilhada).
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
   /// código curto que o cliente usa para acompanhar (ex.: "A7K2QD")
   code String @unique
 
@@ -313,6 +335,13 @@ model OrderItem {
 
   itemId String?
   item   Item?   @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  /// Para qual estação da cozinha esta linha vai.
+  /// Guardamos CÓPIA do nome: se a estação for renomeada ou apagada amanhã,
+  /// a comanda de hoje continua legível.
+  stationId           String?
+  station             Station? @relation(fields: [stationId], references: [id], onDelete: SetNull)
+  stationNameSnapshot String?
 
   nameSnapshot   String
   unitPriceCents Int
@@ -397,6 +426,208 @@ model Payment {
 
   @@index([tenantId])
   @@map("payments")
+}
+
+// ===========================================================================
+//  MULTIMARCA, MULTICANAL E MULTIUNIDADE  (Etapa 2)
+// ===========================================================================
+
+/// A loja física: onde a comida é produzida. Tem CNPJ próprio.
+/// Uma dark kitchen é UMA unidade com VÁRIAS marcas dentro.
+model Unit {
+  id String @id @default(cuid())
+
+  tenantId String
+
+  name String
+  cnpj String?
+
+  addressStreet   String?
+  addressNumber   String?
+  addressDistrict String?
+  addressCity     String?
+
+  /// Coordenadas — é daqui que sai a conta de distância para o frete por raio.
+  latitude  Float?
+  longitude Float?
+
+  active Boolean @default(true)
+
+  brands    BrandUnit[]
+  stations  Station[]
+  orders    Order[]
+  overrides UnitItemOverride[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("units")
+}
+
+/// Quais marcas operam em quais unidades.
+model BrandUnit {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  active Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@unique([brandId, unitId])
+  @@index([tenantId])
+  @@map("brand_units")
+}
+
+/// Estação de produção dentro de uma unidade: Chapa, Montagem, Forno, Bebidas.
+/// É o que faz o KDS mandar cada item para a tela certa.
+model Station {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  name      String
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  items      Item[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([unitId])
+  @@map("stations")
+}
+
+/// A EXCEÇÃO LOCAL do cardápio central.
+///
+/// O cardápio é da marca — você edita uma vez e vale para todas as unidades.
+/// Esta tabela existe só para o caso "nesta loja acabou o camarão hoje" ou
+/// "nesta loja o preço é outro". É exceção, não regra.
+model UnitItemOverride {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  /// pausado só nesta unidade
+  paused Boolean @default(false)
+  /// preço diferente só nesta unidade (vazio = usa o preço da marca)
+  priceCents Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([unitId, itemId])
+  @@index([tenantId])
+  @@map("unit_item_overrides")
+}
+
+/// Cliente de uma MARCA.
+///
+/// Princípio "seus clientes, seus dados": a base é por marca. O mesmo telefone
+/// pedindo na Cantina e na Burger vira dois cadastros — são negócios distintos.
+model Customer {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  name  String
+  phone String
+
+  /// resumo, para o CRM não precisar somar pedido por pedido
+  ordersCount     Int       @default(0)
+  totalSpentCents Int       @default(0)
+  lastOrderAt     DateTime?
+
+  /// último endereço usado — poupa o cliente de redigitar
+  addressStreet   String?
+  addressNumber   String?
+  addressDistrict String?
+  addressCity     String?
+  addressNote     String?
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, phone])
+  @@index([tenantId])
+  @@map("customers")
+}
+
+/// De que jeito a marca define para onde entrega.
+enum DeliveryAreaKind {
+  DISTRICT // por bairro: cada bairro tem seu frete
+  RADIUS // por distância: faixas de km
+}
+
+/// Uma regra de área de entrega. A marca usa um dos dois jeitos.
+model DeliveryArea {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String       @map("brandId")
+  brand    Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  channel  SalesChannel @default(DELIVERY)
+
+  kind DeliveryAreaKind
+
+  /// quando kind = DISTRICT
+  districtName String?
+  /// quando kind = RADIUS: vale até esta distância (em km)
+  maxDistanceKm Float?
+
+  feeCents      Int
+  /// pedido mínimo para esta área (0 = sem mínimo)
+  minOrderCents Int     @default(0)
+  active        Boolean @default(true)
+  sortOrder     Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([brandId, channel])
+  @@map("delivery_areas")
+}
+
+/// Horário de funcionamento por marca e canal.
+/// Uma marca pode abrir só à noite no delivery e o dia todo no balcão.
+model OpeningHour {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  channel  SalesChannel @default(DELIVERY)
+
+  /// 0 = domingo, 1 = segunda, ... 6 = sábado
+  weekday Int
+  /// minutos desde a meia-noite (ex.: 11h30 = 690). Evita fuso e formato de hora.
+  opensAtMinutes  Int
+  closesAtMinutes Int
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([brandId, channel, weekday])
+  @@map("opening_hours")
 }
 
 /// Avisos de gateway já processados — garante IDEMPOTÊNCIA.

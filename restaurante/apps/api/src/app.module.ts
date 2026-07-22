@@ -12,6 +12,7 @@ import { BrandModule } from './modules/brand/brand.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrderModule } from './modules/order/order.module';
+import { OperationModule } from './modules/operation/operation.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
@@ -34,6 +35,7 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     CoreModule,
     RedisModule,
     AdaptersModule,
+    OperationModule,
 
     // Um módulo por área de negócio (vão crescer a cada etapa).
     AuthModule,

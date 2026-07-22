@@ -25,6 +25,14 @@ export const TENANT_SCOPED_MODELS = new Set([
   'OrderItemModifier',
   'OrderEvent',
   'Payment',
+  // Etapa 2 — multimarca, multicanal e multiunidade
+  'Unit',
+  'BrandUnit',
+  'Station',
+  'UnitItemOverride',
+  'Customer',
+  'DeliveryArea',
+  'OpeningHour',
   // (ProcessedWebhook fica de fora de propósito: é tabela de sistema)
 ]);
 

@@ -6,6 +6,7 @@ import { PaymentService } from './payment.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Public } from '../../common/auth/public.decorator';
 import { RealtimeService } from '../../common/realtime/realtime.service';
+import { lerCanal } from '../operation/channel';
 
 /**
  * Rotas que o CLIENTE usa — todas sem login e sem cadastro.
@@ -18,11 +19,19 @@ export class OrderPublicController {
     private readonly realtime: RealtimeService,
   ) {}
 
-  /** Fecha o pedido. POST /api/public/orders/cantina-da-nona */
+  /**
+   * Fecha o pedido.
+   * POST /api/public/orders/cantina-da-nona
+   * POST /api/public/orders/cantina-da-nona?canal=salao
+   */
   @Public()
   @Post('orders/:brandSlug')
-  criar(@Param('brandSlug') brandSlug: string, @Body() dto: CreateOrderDto) {
-    return this.orders.criarPedidoPublico(brandSlug, dto);
+  criar(
+    @Param('brandSlug') brandSlug: string,
+    @Body() dto: CreateOrderDto,
+    @Query('canal') canal?: string,
+  ) {
+    return this.orders.criarPedidoPublico(brandSlug, dto, lerCanal(canal));
   }
 
   /** Acompanhamento. GET /api/public/orders/A7K2QD */

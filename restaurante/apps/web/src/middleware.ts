@@ -13,7 +13,10 @@ export function middleware(request: NextRequest) {
   const logado = Boolean(request.cookies.get(AUTH_COOKIE)?.value);
   const { pathname } = request.nextUrl;
 
-  const precisaLogin = pathname.startsWith('/painel') || pathname.startsWith('/kds');
+  const precisaLogin =
+    pathname.startsWith('/painel') ||
+    pathname.startsWith('/kds') ||
+    pathname.startsWith('/pedidos');
 
   if (!logado && precisaLogin) {
     const url = request.nextUrl.clone();
@@ -31,5 +34,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/painel/:path*', '/kds/:path*', '/login'],
+  matcher: ['/painel/:path*', '/kds/:path*', '/pedidos/:path*', '/login'],
 };

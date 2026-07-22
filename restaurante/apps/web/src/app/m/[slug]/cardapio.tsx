@@ -23,10 +23,14 @@ export type ItemCardapio = {
   description: string | null;
   priceCents: number;
   imageUrl: string | null;
+  /** item pausado continua aparecendo, mas não pode ser pedido */
+  disponivel: boolean;
   modifierGroups: GrupoComplemento[];
 };
 
 export type CategoriaCardapio = { id: string; name: string; items: ItemCardapio[] };
+
+export type CanalDisponivel = { channel: string; apelido: string; label: string };
 
 export type MenuPublico = {
   brand: {
@@ -37,10 +41,27 @@ export type MenuPublico = {
     description: string | null;
   };
   channel: string;
+  channelLabel: string;
+  /** os canais em que esta marca tem cardápio (viram as abas do topo) */
+  canais: CanalDisponivel[];
+  /** está aceitando pedidos agora? */
+  situacao: { aberto: boolean; motivo: string | null; horarioDeHoje: string | null };
   categories: CategoriaCardapio[];
 };
 
 type Sugestao = { id: string; name: string; priceCents: number; imageUrl: string | null };
+
+export type RegrasPublicas = {
+  horarios: Array<{ weekday: number; dia: string; fechado: boolean; faixas: string[] }>;
+  areas: Array<{
+    id: string;
+    kind: 'DISTRICT' | 'RADIUS';
+    districtName: string | null;
+    maxDistanceKm: number | null;
+    feeCents: number;
+    minOrderCents: number;
+  }>;
+};
 
 // ---------------------------------------------------------------------------
 // Carrinho (fica só no navegador do cliente — sem cadastro, sem conta)
@@ -68,9 +89,22 @@ export function dinheiro(cents: number) {
 
 // ---------------------------------------------------------------------------
 
-export function Cardapio({ menu }: { menu: MenuPublico }) {
+export function Cardapio({
+  menu,
+  canalAtual,
+  regras,
+}: {
+  menu: MenuPublico;
+  canalAtual: string;
+  regras: RegrasPublicas | null;
+}) {
   const router = useRouter();
-  const chaveCarrinho = `carrinho:${menu.brand.slug}`;
+
+  // O carrinho é POR MARCA E POR CANAL: o que você montou no salão não pode
+  // vazar para o delivery, porque os preços e os itens são outros.
+  const chaveCarrinho = `carrinho:${menu.brand.slug}:${canalAtual}`;
+
+  const aceitandoPedidos = menu.situacao.aberto;
 
   const [carrinho, setCarrinho] = useState<LinhaCarrinho[]>([]);
   const [itemAberto, setItemAberto] = useState<ItemCardapio | null>(null);
@@ -159,6 +193,33 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
         {menu.brand.description && <p>{menu.brand.description}</p>}
       </header>
 
+      {/* Abas de canal: a mesma marca com cardápios diferentes */}
+      {menu.canais.length > 1 && (
+        <nav className="canais">
+          {menu.canais.map((c) => (
+            <a
+              key={c.channel}
+              className="canal-aba"
+              data-ativo={c.apelido === canalAtual}
+              href={`/m/${menu.brand.slug}?canal=${c.apelido}`}
+            >
+              {c.label}
+            </a>
+          ))}
+        </nav>
+      )}
+
+      {!aceitandoPedidos && (
+        <div className="fechado">
+          <strong>Não estamos aceitando pedidos agora.</strong>
+          <br />
+          {menu.situacao.motivo}
+          {menu.situacao.horarioDeHoje && ` · ${menu.situacao.horarioDeHoje}`}
+          <br />
+          Você pode ver o cardápio à vontade — só não dá para finalizar o pedido.
+        </div>
+      )}
+
       <nav className="abas">
         {menu.categories.map((c) => (
           <button
@@ -176,11 +237,18 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
         <section className="secao" id={`cat-${categoria.id}`} key={categoria.id}>
           <h2>{categoria.name}</h2>
           {categoria.items.map((item) => (
-            <button className="produto" key={item.id} onClick={() => setItemAberto(item)}>
+            <button
+              className="produto"
+              key={item.id}
+              data-indisponivel={!item.disponivel}
+              disabled={!item.disponivel}
+              onClick={() => item.disponivel && setItemAberto(item)}
+            >
               <span className="info">
                 <span className="nome">{item.name}</span>
                 {item.description && <span className="desc">{item.description}</span>}
                 <span className="preco">{dinheiro(item.priceCents)}</span>
+                {!item.disponivel && <span className="esgotado">Indisponível hoje</span>}
               </span>
               {item.imageUrl && (
                 /* eslint-disable-next-line @next/next/no-img-element */
@@ -190,6 +258,8 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
           ))}
         </section>
       ))}
+
+      {regras && <RodapeDeRegras regras={regras} entrega={menu.channel === 'DELIVERY'} />}
 
       {itemAberto && (
         <JanelaDoItem
@@ -204,6 +274,8 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
           linhas={carrinho}
           total={totalCarrinho}
           sugestoes={sugestoes}
+          aceitandoPedidos={aceitandoPedidos}
+          motivoFechado={menu.situacao.motivo}
           onFechar={() => setVerCarrinho(false)}
           onRemover={remover}
           onSugestao={abrirSugestao}
@@ -217,6 +289,8 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
       {verCheckout && (
         <JanelaCheckout
           slug={menu.brand.slug}
+          canal={canalAtual}
+          precisaEndereco={menu.channel === 'DELIVERY'}
           linhas={carrinho}
           total={totalCarrinho}
           onFechar={() => setVerCheckout(false)}
@@ -237,6 +311,68 @@ export function Cardapio({ menu }: { menu: MenuPublico }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Rodapé: horários e onde a marca entrega
+// ---------------------------------------------------------------------------
+
+function RodapeDeRegras({ regras, entrega }: { regras: RegrasPublicas; entrega: boolean }) {
+  const hoje = new Date().getDay();
+  const porBairro = regras.areas.filter((a) => a.kind === 'DISTRICT');
+  const porRaio = regras.areas
+    .filter((a) => a.kind === 'RADIUS')
+    .sort((a, b) => (a.maxDistanceKm ?? 0) - (b.maxDistanceKm ?? 0));
+
+  return (
+    <section className="regras">
+      <div className="regras-bloco">
+        <h3>Horário de funcionamento</h3>
+        {regras.horarios.map((h) => (
+          <div className="regra-linha" key={h.weekday} data-hoje={h.weekday === hoje}>
+            <span style={{ textTransform: 'capitalize' }}>{h.dia}</span>
+            <span>{h.fechado ? 'fechado' : h.faixas.join(' e ')}</span>
+          </div>
+        ))}
+      </div>
+
+      {entrega && regras.areas.length > 0 && (
+        <div className="regras-bloco">
+          <h3>Onde entregamos</h3>
+
+          {porBairro.map((a) => (
+            <div className="regra-linha" key={a.id}>
+              <span>{a.districtName}</span>
+              <span>
+                {dinheiro(a.feeCents)}
+                {a.minOrderCents > 0 && (
+                  <em style={{ color: 'var(--muted)', fontStyle: 'normal' }}>
+                    {' '}
+                    · mín. {dinheiro(a.minOrderCents)}
+                  </em>
+                )}
+              </span>
+            </div>
+          ))}
+
+          {porRaio.map((a) => (
+            <div className="regra-linha" key={a.id}>
+              <span>até {a.maxDistanceKm} km</span>
+              <span>
+                {dinheiro(a.feeCents)}
+                {a.minOrderCents > 0 && (
+                  <em style={{ color: 'var(--muted)', fontStyle: 'normal' }}>
+                    {' '}
+                    · mín. {dinheiro(a.minOrderCents)}
+                  </em>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -401,6 +537,8 @@ function JanelaDoCarrinho({
   linhas,
   total,
   sugestoes,
+  aceitandoPedidos,
+  motivoFechado,
   onFechar,
   onRemover,
   onSugestao,
@@ -409,6 +547,8 @@ function JanelaDoCarrinho({
   linhas: LinhaCarrinho[];
   total: number;
   sugestoes: Sugestao[];
+  aceitandoPedidos: boolean;
+  motivoFechado: string | null;
   onFechar: () => void;
   onRemover: (linhaId: string) => void;
   onSugestao: (itemId: string) => void;
@@ -474,9 +614,20 @@ function JanelaDoCarrinho({
                 <span>calculada no próximo passo</span>
               </div>
 
-              <button style={{ marginTop: 18 }} onClick={onFinalizar}>
-                Continuar · {dinheiro(total)}
-              </button>
+              {aceitandoPedidos ? (
+                <button style={{ marginTop: 18 }} onClick={onFinalizar}>
+                  Continuar · {dinheiro(total)}
+                </button>
+              ) : (
+                <>
+                  <button style={{ marginTop: 18 }} disabled>
+                    Fechado no momento
+                  </button>
+                  <p className="hint" style={{ marginTop: 10 }}>
+                    {motivoFechado}. Seu carrinho fica guardado — é só voltar quando abrirmos.
+                  </p>
+                </>
+              )}
             </>
           )}
         </div>
@@ -491,12 +642,17 @@ function JanelaDoCarrinho({
 
 function JanelaCheckout({
   slug,
+  canal,
+  precisaEndereco,
   linhas,
   total,
   onFechar,
   onCriado,
 }: {
   slug: string;
+  canal: string;
+  /** salão e balcão não têm entrega — não faz sentido pedir endereço */
+  precisaEndereco: boolean;
   linhas: LinhaCarrinho[];
   total: number;
   onFechar: () => void;
@@ -536,7 +692,7 @@ function JanelaCheckout({
 
     setEnviando(true);
     try {
-      const res = await fetch(`/api/public/orders/${slug}`, {
+      const res = await fetch(`/api/public/orders/${slug}?canal=${encodeURIComponent(canal)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -597,25 +753,29 @@ function JanelaCheckout({
           <label htmlFor="fone">Telefone (com DDD)</label>
           <input id="fone" required minLength={8} placeholder="48 99999-0000" {...campo('customerPhone')} />
 
-          <label htmlFor="rua">Rua</label>
-          <input id="rua" required {...campo('addressStreet')} />
+          {precisaEndereco && (
+            <>
+              <label htmlFor="rua">Rua</label>
+              <input id="rua" required {...campo('addressStreet')} />
 
-          <div className="form-linha">
-            <div>
-              <label htmlFor="num">Número</label>
-              <input id="num" required {...campo('addressNumber')} />
-            </div>
-            <div>
-              <label htmlFor="bairro">Bairro</label>
-              <input id="bairro" required {...campo('addressDistrict')} />
-            </div>
-          </div>
+              <div className="form-linha">
+                <div>
+                  <label htmlFor="num">Número</label>
+                  <input id="num" required {...campo('addressNumber')} />
+                </div>
+                <div>
+                  <label htmlFor="bairro">Bairro</label>
+                  <input id="bairro" required {...campo('addressDistrict')} />
+                </div>
+              </div>
 
-          <label htmlFor="cidade">Cidade</label>
-          <input id="cidade" required {...campo('addressCity')} />
+              <label htmlFor="cidade">Cidade</label>
+              <input id="cidade" required {...campo('addressCity')} />
 
-          <label htmlFor="compl">Complemento / ponto de referência</label>
-          <input id="compl" placeholder="Apto 302, portão azul…" {...campo('addressNote')} />
+              <label htmlFor="compl">Complemento / ponto de referência</label>
+              <input id="compl" placeholder="Apto 302, portão azul…" {...campo('addressNote')} />
+            </>
+          )}
 
           <label>Quando você quer receber?</label>
           <div className="escolha-quando">
@@ -648,7 +808,9 @@ function JanelaCheckout({
             <span>{dinheiro(total)}</span>
           </div>
           <p className="hint" style={{ marginTop: 4 }}>
-            A taxa de entrega é somada no próximo passo, junto com o Pix.
+            {precisaEndereco
+              ? 'A taxa de entrega é calculada pelo seu bairro no próximo passo, junto com o Pix.'
+              : 'Sem taxa de entrega neste canal.'}
           </p>
 
           <button type="submit" disabled={enviando} style={{ marginTop: 8 }}>
