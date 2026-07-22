@@ -98,6 +98,9 @@ export class BillingService implements OnModuleInit {
       faturas: a.invoices.map((f) => ({
         id: f.id,
         numero: f.number,
+        mensalidadeCents: f.planCents,
+        excedenteCents: f.overageCents,
+        pedidosExcedentes: f.overageOrders,
         periodo: { de: f.periodFrom, ate: f.periodTo },
         valorCents: f.amountCents,
         status: f.status,
@@ -220,9 +223,28 @@ export class BillingService implements OnModuleInit {
     const vencimento = new Date();
     vencimento.setDate(vencimento.getDate() + DIAS_ATE_VENCER);
 
+    // ---- excedente do período ----
+    // Decisão do fundador: pedido que passa do limite NÃO é bloqueado — é
+    // cobrado. Contamos aqui, na virada do período, para a fatura já sair com
+    // as duas linhas separadas e conseguir se explicar sozinha.
+    const pedidosNoPeriodo = await this.prisma.order.count({
+      where: {
+        tenantId,
+        createdAt: { gte: a.currentPeriodStart, lte: a.currentPeriodEnd },
+        status: { not: 'CANCELED' },
+      },
+    });
+
+    const excedentes =
+      a.plan.maxOrdersPerMonth > 0
+        ? Math.max(0, pedidosNoPeriodo - a.plan.maxOrdersPerMonth)
+        : 0;
+    const excedenteCents = excedentes * a.plan.overagePriceCents;
+    const totalCents = a.plan.monthlyPriceCents + excedenteCents;
+
     const externa = await this.cobrador.emitirFatura({
       subscriptionExternalId: a.externalId ?? 'sem-id',
-      amountCents: a.plan.monthlyPriceCents,
+      amountCents: totalCents,
       periodFrom: a.currentPeriodStart,
       periodTo: a.currentPeriodEnd,
       dueDate: vencimento,
@@ -237,7 +259,10 @@ export class BillingService implements OnModuleInit {
         number: numero,
         periodFrom: a.currentPeriodStart,
         periodTo: a.currentPeriodEnd,
-        amountCents: a.plan.monthlyPriceCents,
+        amountCents: totalCents,
+        planCents: a.plan.monthlyPriceCents,
+        overageCents: excedenteCents,
+        overageOrders: excedentes,
         dueDate: vencimento,
         externalId: externa.id,
       },

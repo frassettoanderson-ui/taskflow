@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { PortalService } from './portal.service';
 import { BillingService } from './billing.service';
+import { LimitesService } from './limites.service';
 import { Roles } from '../../common/auth/roles.decorator';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { RequestContext } from '../../common/tenant/tenant-context.service';
@@ -18,6 +19,7 @@ export class PortalController {
   constructor(
     private readonly portal: PortalService,
     private readonly billing: BillingService,
+    private readonly limites: LimitesService,
   ) {}
 
   // ------------------------------------------------ opt-in no portal ------
@@ -57,6 +59,17 @@ export class PortalController {
   @Roles(...GESTAO)
   assinatura(@CurrentUser() user: RequestContext) {
     return this.billing.minhaAssinatura(user.tenantId);
+  }
+
+  /**
+   * Quanto do plano já foi usado e se a conta está em dia.
+   *
+   * Sem @Roles de propósito: é o que alimenta a faixa de aviso do Painel, e
+   * o gerente também precisa ver que o limite está perto de estourar.
+   */
+  @Get('consumo')
+  consumo(@CurrentUser() user: RequestContext) {
+    return this.limites.consumo(user.tenantId);
   }
 
   @Post('assinatura')

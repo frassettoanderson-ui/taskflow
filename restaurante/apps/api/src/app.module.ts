@@ -23,6 +23,7 @@ import { QueueModule } from './queue/queue.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
+import { AssinaturaGuard } from './common/auth/assinatura.guard';
 import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
 
 @Module({
@@ -64,6 +65,10 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     // Depois do login, confere o papel quando a rota pedir @Roles(...).
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Por último: a conta está em dia? Bloqueio total após 15 dias de atraso,
+    // menos no login e na própria tela de assinatura — senão o devedor não
+    // teria como pagar o que deve.
+    { provide: APP_GUARD, useClass: AssinaturaGuard },
   ],
 })
 export class AppModule {}

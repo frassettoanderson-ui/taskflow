@@ -1409,6 +1409,8 @@ async function seedPlanos() {
       monthlyPriceCents: 9900,
       maxBrands: 1,
       maxOrdersPerMonth: 300,
+      // Pedido que passa do limite NÃO é bloqueado: é cobrado (R$ 0,30/pedido).
+      overagePriceCents: 30,
       features: ['Cardápio digital', 'Pedidos e KDS', 'Pagamento online', 'Relatórios básicos'],
       sortOrder: 0,
     },
@@ -1419,6 +1421,7 @@ async function seedPlanos() {
       monthlyPriceCents: 24900,
       maxBrands: 5,
       maxOrdersPerMonth: 3000,
+      overagePriceCents: 20,
       features: [
         'Tudo do Start',
         'Até 5 marcas',
@@ -1434,7 +1437,8 @@ async function seedPlanos() {
       description: 'Para dark kitchen e rede, com portal e logística compartilhada.',
       monthlyPriceCents: 49900,
       maxBrands: 0, // sem limite
-      maxOrdersPerMonth: 0,
+      maxOrdersPerMonth: 0, // sem limite: nunca há excedente
+      overagePriceCents: 0,
       features: [
         'Tudo do Pro',
         'Marcas ilimitadas',

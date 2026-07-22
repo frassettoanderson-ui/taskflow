@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { apiServer } from '@/lib/api';
 import { LogoutButton } from './logout-button';
 import { Marcas } from './marcas';
+import { AvisoDoPlano } from './aviso-do-plano';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
 
 /** Id da marca do "restaurante rival" — criado pelo seed só para este teste. */
@@ -97,6 +98,8 @@ export default async function PainelPage() {
           <LogoutButton />
         </div>
       </header>
+
+      <AvisoDoPlano />
 
       <section className="grid">
         <div className="card">

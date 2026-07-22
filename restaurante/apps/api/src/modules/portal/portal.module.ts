@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { PortalController } from './portal.controller';
 import { PortalPublicController } from './portal.public.controller';
 import { PortalService } from './portal.service';
@@ -6,6 +6,7 @@ import { PortalOrderService } from './portal-order.service';
 import { NetworkWalletService } from './network-wallet.service';
 import { GraduationService } from './graduation.service';
 import { BillingService } from './billing.service';
+import { LimitesService } from './limites.service';
 import { OrderModule } from '../order/order.module';
 
 /**
@@ -15,6 +16,7 @@ import { OrderModule } from '../order/order.module';
  * do de marketing (mensagem do funil de graduação, que é @Global). Nada
  * depende do portal, então não há laço.
  */
+@Global()
 @Module({
   imports: [OrderModule],
   controllers: [PortalController, PortalPublicController],
@@ -24,7 +26,8 @@ import { OrderModule } from '../order/order.module';
     NetworkWalletService,
     GraduationService,
     BillingService,
+    LimitesService,
   ],
-  exports: [PortalService, NetworkWalletService, BillingService],
+  exports: [PortalService, NetworkWalletService, BillingService, LimitesService],
 })
 export class PortalModule {}

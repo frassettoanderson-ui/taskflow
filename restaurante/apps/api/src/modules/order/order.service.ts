@@ -16,6 +16,7 @@ import { NOME_DO_CANAL } from '../operation/channel';
 import { CouponService } from '../marketing/coupon.service';
 import { LoyaltyService } from '../marketing/loyalty.service';
 import { CashbackCodeService } from '../marketing/cashback-code.service';
+import { LimitesService } from '../portal/limites.service';
 import { RetentionService } from '../marketing/retention.service';
 import { StockService } from '../gestao/stock.service';
 import { FinanceService } from '../gestao/finance.service';
@@ -36,6 +37,7 @@ export class OrderService {
     private readonly cupons: CouponService,
     private readonly loyalty: LoyaltyService,
     private readonly codigos: CashbackCodeService,
+    private readonly limites: LimitesService,
     private readonly retencao: RetentionService,
     private readonly estoque: StockService,
     private readonly financeiro: FinanceService,
@@ -66,6 +68,11 @@ export class OrderService {
     return this.context.runAsTenant(brand.tenantId, async () => {
       // 0) A marca está aceitando pedidos agora? (pausa + horário do canal)
       await this.operacao.exigirAberto(brand, channel);
+
+      // 0.1) E a conta do restaurante está em dia? A checagem tem que estar
+      //      AQUI também, não só no cardápio: a página pode estar aberta há
+      //      meia hora na tela do cliente, ou vir do cache do navegador.
+      await this.limites.exigirEmDia(brand.tenantId);
 
       // 1 e 2) Conferir os itens e recalcular os valores.
       const { linhas, subtotalCents } = await this.montarLinhas(brand.id, channel, dto.items);

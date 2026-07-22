@@ -513,6 +513,70 @@ qualquer confirmação por SMS/WhatsApp, e é aceitável para o tamanho do valor
 
 ---
 
+## Como testar os limites de plano e a cobrança
+
+### As duas decisões que você tomou
+
+| Situação | O que o sistema faz |
+|---|---|
+| **Estourou os pedidos do plano** | **Nunca bloqueia.** Avisa em 80%, avisa ao passar, e cobra o excedente na fatura |
+| **Estourou as marcas do plano** | Bloqueia a criação da próxima marca (é ato de administração: nada para de vender) |
+| **Mensalidade atrasada** | Avisa com contagem regressiva e, **a partir do 15º dia, bloqueia tudo** — painel e cardápio |
+
+O porquê da primeira: travar a venda do restaurante no meio do almoço é o jeito
+mais rápido de perdê-lo — e a culpa, para ele, seria sua.
+
+### Passo a passo
+
+**1. Ver o consumo**
+Entre no Painel. Se estiver perto do limite, aparece a faixa de aviso. Para
+forçar o cenário, diminua o limite do plano no banco:
+
+```bash
+docker compose exec db psql -U restaurante -d restaurante -c "UPDATE plans SET \"maxOrdersPerMonth\"=5 WHERE code='PRO';"
+```
+
+Recarregue o Painel: aparece **"seus pedidos continuam entrando normalmente"**
+com o valor do excedente acumulado.
+
+**2. Provar que o pedido não é bloqueado**
+Com o limite estourado, faça um pedido em `/m/cantina-da-nona`. Ele entra.
+
+**3. Limite de marcas**
+Rebaixe para o plano Start (1 marca) e tente criar uma marca em `/admin`:
+recusa dizendo quantas você tem e onde subir de plano.
+
+**4. Atraso de pagamento**
+Crie uma fatura vencida há 10 dias — aparece a faixa vermelha com *"bloqueado
+em 5 dias"*, mas tudo funciona. Mude para 16 dias: painel e PDV passam a
+responder **403**, e o cardápio público mostra *"temporariamente
+indisponível"* — sem citar fatura, porque o cliente do restaurante não tem
+nada a ver com isso.
+
+### O detalhe que faz o bloqueio cobrar em vez de só irritar
+
+Três coisas **continuam abertas** mesmo bloqueado: o **login**, a tela de
+**assinatura** e o **aviso que explica o bloqueio**. Sem elas, o devedor veria
+telas quebradas, não entenderia o motivo e não teria como pagar.
+
+> Teste real feito aqui: com plano Start e 4 marcas, a criação foi recusada; com
+> limite forçado em 5 pedidos e 15 feitos, o sistema apontou **10 de excedente
+> (R$ 3,00)** e o pedido seguinte **entrou normalmente**; com 10 dias de atraso
+> nada travou; com 16 dias, KDS e PDV deram **403**, o cardápio fechou, mas
+> login, assinatura e o aviso continuaram abrindo. ✅
+
+### O que ficou como "fake / ponta solta"
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **A cobrança em si** | `FakeBillingProvider`: a fatura é emitida e o excedente é calculado, mas nada é cobrado de verdade | Etapa 7 |
+| **Aviso por e-mail/WhatsApp** | O aviso de vencimento só aparece **dentro do painel**. Quem não entrar, não vê | Etapa 7 |
+| **Excedente do mês corrente** | Só vira dinheiro na virada do período. No meio do mês é uma estimativa | — |
+| **Reativação** | Pagando, o bloqueio some na hora. Mas quem marca a fatura como paga hoje é o botão de teste | Etapa 7 |
+| **Limites por recurso** | Só marcas e pedidos são contados. "Salão", "portal" e afins aparecem no plano mas não são checados | Se você quiser depois |
+
+---
+
 ## Como testar o aplicativo instalável e a venda sem internet
 
 ### As duas coisas que isto resolve
@@ -833,7 +897,7 @@ portal e split de 3 lados.
 | **Domínio** | A vitrine roda em `/portal` no mesmo site, como você escolheu. Virar domínio próprio é configuração, não código | Quando tiver o domínio |
 | **Descoberta por proximidade** | Usa o mapa fake (linha reta, bairros de Imbituba). Sem raio de entrega real por marca na vitrine | Etapa 7 |
 | **Avaliações no portal** | A vitrine não mostra nota nem comentários — o NPS existe, mas é interno de cada marca | Se você quiser depois |
-| **Bloqueio por limite de plano** | Os limites (marcas, pedidos/mês) são **exibidos**, mas ainda **não bloqueiam** nada | Antes de cobrar de verdade |
+| **Bloqueio por limite de plano** | ✅ Resolvido — marcas bloqueiam, pedidos cobram excedente, atraso corta em 15 dias | — |
 | **Cupom de graduação** | É de uso único e vale 30 dias. Não há regra contra o cliente ficar alternando portal/direto para sempre ganhar cupom | Observar no uso real |
 | **iFood** | `MarketplaceImport` continua vazio — o portal é nosso, não importa de terceiros | Etapa 7 |
 

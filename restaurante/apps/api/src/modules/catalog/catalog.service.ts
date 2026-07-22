@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TenantPrismaService } from '../../common/tenant/tenant-prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { OperationService } from '../operation/operation.service';
+import { LimitesService } from '../portal/limites.service';
 import { APELIDO_DO_CANAL, NOME_DO_CANAL } from '../operation/channel';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class CatalogService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly context: TenantContextService,
     private readonly operacao: OperationService,
+    private readonly limites: LimitesService,
   ) {}
 
   /**
@@ -79,7 +81,20 @@ export class CatalogService {
       }
 
       // Está aceitando pedidos agora? (pausa + horário de funcionamento)
-      const situacao = await this.operacao.situacao(brand, channel);
+      let situacao = await this.operacao.situacao(brand, channel);
+
+      // Assinatura muito atrasada derruba o cardápio junto (decisão do
+      // fundador: corte total após 15 dias). O recado é neutro de propósito:
+      // o cliente do restaurante não tem nada a ver com a conta dele, e
+      // "fatura vencida" na cara do consumidor seria vexame gratuito.
+      const conta = await this.limites.consumo(brand.tenantId);
+      if (conta.cobranca.bloqueado) {
+        situacao = {
+          ...situacao,
+          aberto: false,
+          motivo: 'Este cardápio está temporariamente indisponível.',
+        };
+      }
 
       return {
         brand: {

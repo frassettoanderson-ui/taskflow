@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { SalesChannel } from '@prisma/client';
 import { TenantPrismaService } from '../../common/tenant/tenant-prisma.service';
+import { TenantContextService } from '../../common/tenant/tenant-context.service';
+import { LimitesService } from '../portal/limites.service';
 import { NOME_DO_CANAL } from '../operation/channel';
 
 /** Transforma "Cantina da Nona" em "cantina-da-nona". */
@@ -23,7 +25,11 @@ export function paraSlug(texto: string) {
  */
 @Injectable()
 export class CatalogAdminService {
-  constructor(private readonly tenantPrisma: TenantPrismaService) {}
+  constructor(
+    private readonly tenantPrisma: TenantPrismaService,
+    private readonly context: TenantContextService,
+    private readonly limites: LimitesService,
+  ) {}
 
   // =========================================================================
   //  MARCA
@@ -36,6 +42,11 @@ export class CatalogAdminService {
     description?: string;
     logoUrl?: string;
   }) {
+    // O plano permite mais uma marca? Bloquear AQUI é seguro: criar marca é
+    // ato de administração, feito com calma. Nada para de vender por isto.
+    const tenantId = this.context.getTenantId();
+    if (tenantId) await this.limites.exigirPodeCriarMarca(tenantId);
+
     const slug = paraSlug(dados.slug || dados.name);
     if (!slug) throw new BadRequestException('Informe um nome válido para a marca.');
 
