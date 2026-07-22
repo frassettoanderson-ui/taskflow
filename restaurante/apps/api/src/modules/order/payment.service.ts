@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { OrderStatus, PaymentStatus, SessionStatus } from '@prisma/client';
 import { SalaoService } from '../salao/salao.service';
+import { FinanceService } from '../gestao/finance.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantPrismaService } from '../../common/tenant/tenant-prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -29,6 +30,7 @@ export class PaymentService {
     // uma parte da conta é quitada. O forwardRef é o jeito do NestJS de deixar
     // dois módulos se conhecerem sem entrar num laço infinito na inicialização.
     @Inject(forwardRef(() => SalaoService)) private readonly salao: SalaoService,
+    private readonly financeiro: FinanceService,
   ) {}
 
   /**
@@ -255,6 +257,13 @@ export class PaymentService {
             : `Comanda ${pagamento.tableSessionId}: ainda faltam ${r.faltaCents} centavos.`,
         );
         return { ok: true, repetido: false, status: 'PAID', ...r };
+      }
+
+      // O dinheiro entrou: vira lançamento no financeiro.
+      try {
+        if (pagamento.orderId) await this.financeiro.registrarVenda(pagamento.orderId);
+      } catch (e) {
+        this.logger.error(`Falhei ao lançar a venda no financeiro: ${e}`);
       }
 
       // ---- pagamento de PEDIDO (delivery): cai na cozinha ----

@@ -3,7 +3,7 @@
 SaaS de canal próprio (gestor de pedidos + cardápio digital sem comissão) e portal/marketplace.
 O contexto completo do produto está em [CLAUDE.md](./CLAUDE.md).
 
-**Etapa atual: 4 — CRM, fidelidade e marketing (concluída).**
+**Etapa atual: 5 — Gestão e bastidores (concluída).**
 
 ---
 
@@ -28,6 +28,10 @@ Para desligar: `Ctrl + C` no terminal, ou `docker compose down`.
 |---|---|
 | Site (login e Painel) | http://localhost:3010 |
 | **Painel único de pedidos** (todas as marcas) | http://localhost:3010/pedidos |
+| **Relatórios** — vendas, itens e horários de pico | http://localhost:3010/relatorios |
+| **Financeiro** — DRE, contas e acertos | http://localhost:3010/financeiro |
+| **Estoque** — insumos, ficha técnica e CMV | http://localhost:3010/estoque |
+| **Entregas** — motoboys, corridas e acerto | http://localhost:3010/entregadores |
 | **Clientes (CRM)** — base, segmentos e ficha | http://localhost:3010/clientes |
 | **Marketing** — cupons, campanhas e NPS | http://localhost:3010/marketing |
 | **Salão** — mapa de mesas, fila e reservas | http://localhost:3010/salao |
@@ -368,15 +372,116 @@ navegador. Dê uma nota de 0 a 10 e envie. O resultado aparece na aba
 Na tela de Clientes, os botões do topo filtram: *Todos*, *Ainda não pediram*,
 *Novos*, *Recorrentes (3+)* e *Inativos* — com a contagem de cada um.
 
+---
+
+## Como testar a Etapa 5 (gestão e bastidores)
+
+### O que o exemplo já traz
+
+- **10 insumos** cadastrados, com custo, estoque e mínimo
+- **Ficha técnica** completa do **Spaghetti à Bolonhesa** e da **Pizza Margherita**
+- **2 entregadores**: Rafael (fatia do frete) e Lucas (R$ 8,00 fixo por entrega)
+- A **Embalagem delivery** entra abaixo do mínimo de propósito, para você ver o alerta
+
+### Passo a passo
+
+**1. Relatório de vendas por marca**
+Abra http://localhost:3010/relatorios. Faturamento, nº de pedidos, ticket médio e
+**horário de pico** no topo; embaixo, a quebra **por marca**, por canal, os itens
+mais vendidos e o gráfico de horários. Dá para filtrar por período, marca e canal.
+
+**2. Ficha técnica e CMV**
+Em http://localhost:3010/estoque → aba **Fichas técnicas e margem**.
+A lista vem ordenada pela **pior margem primeiro** — é onde o dinheiro escapa.
+Clique no **Spaghetti à Bolonhesa**:
+
+| | |
+|---|---|
+| Preço de venda | R$ 46,90 |
+| **CMV** (custo real) | **R$ 13,43** — 28,6% do preço |
+| **Margem** | **R$ 33,47** — 71,4% |
+
+Cada linha mostra a quantidade, a **perda** e quanto ela custa. Repare na cebola:
+40 g no prato, mas com 20% de perda saem 48 g do estoque — porque a casca você
+paga do mesmo jeito.
+
+**3. Montar uma ficha do zero**
+Clique em qualquer prato sem ficha (ex.: *Fettuccine Alfredo*), escolha um insumo,
+informe a quantidade e a perda, e clique em **Adicionar à ficha**. O CMV e a
+margem aparecem na hora.
+
+**4. Baixa automática no estoque**
+Anote o estoque da *Massa de espaguete*. Faça um pedido de Spaghetti, pague, e no
+KDS clique em **Aceito**. Volte no estoque: baixou sozinho.
+Cancele o pedido: **volta sozinho** também.
+
+**5. Alerta de estoque mínimo**
+No topo da tela de Estoque, a tarja vermelha mostra o que está abaixo do mínimo.
+Use a coluna **Movimentar** para dar entrada de compra e ver o alerta sumir.
+
+**6. Atribuir um pedido a um motoboy**
+Abra http://localhost:3010/entregadores. Os pedidos prontos aparecem em
+**Esperando entregador**. Escolha o motoboy e clique em **Atribuir**.
+
+Compare as duas formas de pagamento com o mesmo frete de R$ 9,00:
+- **Rafael** (fatia do frete) recebe **R$ 8,10** — a plataforma retém 10%
+- **Lucas** (valor fixo) recebe **R$ 8,00**
+
+Depois avance: **Saiu para entrega** → **Entregou**.
+
+**7. Acerto do motoboy**
+Ainda em Entregas, clique em **Fechar acerto** no cartão do entregador, escolha o
+período e confirme. O acerto **vira automaticamente uma conta a pagar** —
+confira em http://localhost:3010/financeiro → aba **Contas**.
+
+**8. DRE do mês**
+Em Financeiro → aba **DRE**:
+
+```
+  Receita bruta
+− Deduções (comissões e frete)
+= Receita líquida
+− CMV (custo da comida, pela ficha técnica)
+= Lucro bruto
+− Despesas
+= Resultado
+```
+
+Lance uma despesa em **Contas → + Novo lançamento** (ex.: aluguel) e veja a DRE mudar.
+
+**9. LGPD: exportar e apagar**
+Em http://localhost:3010/clientes, abra um cliente e desça até
+**Dados pessoais (LGPD)**:
+- **Exportar dados** baixa um arquivo com tudo que o restaurante guarda
+- **Apagar dados pessoais** anonimiza: nome, telefone e endereço somem, mas os
+  valores dos pedidos ficam — a venda é obrigação fiscal
+
 ### Teste rápido pela API (opcional)
 
 ```bash
 docker compose exec api npx jest
 ```
 
-Devem passar **58 testes** — máquina de estados, divisão do dinheiro, papéis de
+Devem passar **64 testes** — máquina de estados, divisão do dinheiro, papéis de
 acesso, isolamento por empresa, canais de venda, cálculo de distância, divisão da
-conta, taxa de serviço, cashback, segmentos e NPS.
+conta, taxa de serviço, cashback, segmentos, NPS e datas no fuso local.
+
+---
+
+## O que ficou como "fake / ponta solta" na Etapa 5
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **Despacho de entrega** | `FakeDeliveryProvider`: aceita a corrida e devolve id e rastreio, mas **nenhum motoboy real é chamado**. Quem escolhe o entregador é você, no painel | Etapa 7 |
+| **Distância** | Continua em **linha reta** pelo mapa fake. Um mapa real dá 20-30% a mais e conhece qualquer endereço | Etapa 7 |
+| **Rastreio para o cliente** | A API pública `/api/public/entrega/<código>` funciona, mas **não há tela** — o cliente ainda acompanha pelo `/pedido/<código>` | Quando fizer sentido |
+| **CMV de pratos sem ficha** | Entra como **zero**, o que deixa o resultado da DRE otimista demais. A tela avisa isso | Conforme você cadastrar as fichas |
+| **Estoque por unidade** | O insumo tem campo de unidade, mas o saldo é **um só** — não há estoque separado por loja | Quando houver a 2ª loja |
+| **Compras** | Não há pedido de compra nem cadastro de fornecedor: a entrada é manual | Se você quiser depois |
+| **DRE** | É **de caixa simplificado**: não separa competência de caixa, não trata impostos nem depreciação. Serve para o dono decidir, não para a contabilidade oficial | Nunca substitui o contador |
+| **Acerto de garçom** | Calcula sobre a taxa de serviço dos pedidos que ele lançou. **Não há rateio** entre a equipe toda | Se você quiser depois |
+| **Nota fiscal** | `FiscalProvider` continua vazio — nenhuma NF-e é emitida | Etapa 7 |
+| **Exclusão LGPD** | É **anonimização**, como você escolheu. As mensagens enviadas viram "[removido]" e o telefone vira um apelido interno | — |
 
 ---
 

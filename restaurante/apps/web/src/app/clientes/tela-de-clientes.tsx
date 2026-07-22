@@ -112,6 +112,43 @@ export function TelaDeClientes({
     if (res.ok) setFicha(await res.json());
   }
 
+  /** LGPD — portabilidade: baixa um arquivo com tudo que guardamos. */
+  async function baixarDados(id: string, nome: string) {
+    const res = await fetch(`/api/gestao/lgpd/${id}/exportar`, { cache: 'no-store' });
+    if (!res.ok) return alert('Não consegui exportar agora.');
+
+    const dados = await res.json();
+    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dados-${nome.toLowerCase().replace(/\s+/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  /** LGPD — direito ao esquecimento. */
+  async function anonimizar(id: string) {
+    const ok = confirm(
+      'Apagar os dados pessoais deste cliente?\n\n' +
+        'Nome, telefone e endereço serão removidos e não há como desfazer.\n' +
+        'Os valores dos pedidos continuam, por obrigação fiscal.',
+    );
+    if (!ok) return;
+
+    const res = await fetch(`/api/gestao/lgpd/${id}/anonimizar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ motivo: 'Pedido do titular pelo painel' }),
+    });
+
+    if (res.ok) {
+      await abrirFicha(id);
+      await buscar();
+    }
+  }
+
   return (
     <main className="shell" style={{ maxWidth: 1100 }}>
       <header className="topbar">
@@ -308,6 +345,36 @@ export function TelaDeClientes({
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* LGPD */}
+              <div className="grupo">
+                <div className="grupo-cabecalho">
+                  <strong>Dados pessoais (LGPD)</strong>
+                </div>
+                <p className="hint" style={{ marginTop: 0 }}>
+                  O cliente tem direito de levar seus dados embora e de pedir que sejam apagados.
+                </p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    className="ghost"
+                    style={{ width: 'auto' }}
+                    onClick={() => baixarDados(ficha.id, ficha.nome)}
+                  >
+                    ⬇ Exportar dados
+                  </button>
+                  <button
+                    className="ghost"
+                    style={{ width: 'auto', color: 'var(--danger)' }}
+                    onClick={() => anonimizar(ficha.id)}
+                  >
+                    🚫 Apagar dados pessoais
+                  </button>
+                </div>
+                <p className="hint">
+                  Apagar <strong>anonimiza</strong>: nome, telefone e endereço somem, mas os valores
+                  dos pedidos ficam — a venda é obrigação fiscal e precisa ser guardada.
+                </p>
               </div>
 
               <div className="grupo">

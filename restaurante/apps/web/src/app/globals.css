@@ -461,6 +461,96 @@ code {
 }
 
 /* ======================================================================
+   RELATÓRIOS
+   ====================================================================== */
+
+.barra-fundo {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.barra-valor {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.horas {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 130px;
+  margin-top: 10px;
+}
+
+.hora {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+
+.hora-barra {
+  width: 100%;
+  min-height: 2px;
+  background: var(--surface-2);
+  border-radius: 3px 3px 0 0;
+  transition: height 0.3s ease;
+}
+
+.hora-barra[data-pico='true'] {
+  background: var(--brand);
+}
+
+.hora-rotulo {
+  font-size: 9.5px;
+  color: var(--muted);
+  height: 12px;
+}
+
+/* ---- DRE ---- */
+
+.dre-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(38, 50, 65, 0.5);
+}
+
+.dre-linha[data-tipo='subtotal'] {
+  font-weight: 650;
+  border-bottom-color: var(--border);
+}
+
+.dre-linha[data-tipo='resultado'] {
+  font-weight: 800;
+  font-size: 17px;
+  border-bottom: 0;
+  border-top: 2px solid var(--border);
+  margin-top: 4px;
+  padding-top: 14px;
+}
+
+.dre-linha[data-tipo='saida'] span:last-child {
+  color: var(--danger);
+}
+
+.dre-linha .pct {
+  min-width: 62px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* ======================================================================
    CRM E MARKETING
    ====================================================================== */
 

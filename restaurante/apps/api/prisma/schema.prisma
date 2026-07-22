@@ -56,6 +56,7 @@ model User {
   pedidosLancados Order[]        @relation("PedidosDoGarcom")
   comandas        TableSession[] @relation("ComandasDoGarcom")
   chamadosAtendidos ServiceCall[] @relation("ChamadosAtendidos")
+  acertos           Payout[]
 
   @@index([tenantId])
   @@map("users")
@@ -190,6 +191,8 @@ model Item {
   modifierGroups ModifierGroup[]
   orderItems     OrderItem[]
   unitOverrides  UnitItemOverride[]
+  /// a ficha técnica deste prato (Etapa 5)
+  recipe         RecipeItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -350,11 +353,15 @@ model Order {
 
   notes String?
 
+  /// Quando o estoque deste pedido foi baixado (evita baixar duas vezes).
+  stockConsumedAt DateTime?
+
   items    OrderItem[]
   events   OrderEvent[]
   payment  Payment?
   cashback CashbackEntry[]
   nps      NpsResponse?
+  dispatch Dispatch?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -725,6 +732,8 @@ model Unit {
   calls     ServiceCall[]
   reservations Reservation[]
   waitlist  WaitlistEntry[]
+  supplies  Supply[]
+  couriers  Courier[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -843,11 +852,15 @@ model TenantCustomer {
   networkCustomerId String?
   networkCustomer   NetworkCustomer? @relation(fields: [networkCustomerId], references: [id], onDelete: SetNull)
 
+  /// LGPD: quando os dados pessoais foram anonimizados a pedido do cliente
+  anonymizedAt DateTime?
+
   orders      Order[]
   cashback    CashbackEntry[]
   redemptions CouponRedemption[]
   messages    OutboundMessage[]
   npsAnswers  NpsResponse[]
+  consents    ConsentRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1168,6 +1181,315 @@ model AbandonedCart {
 // ===========================================================================
 //  PESQUISA DE SATISFAÇÃO (NPS)  (Etapa 4)
 // ===========================================================================
+
+// ===========================================================================
+//  ESTOQUE E FICHA TÉCNICA  (Etapa 5)
+// ===========================================================================
+
+/// Unidade de medida do insumo.
+enum SupplyUnit {
+  KG
+  G
+  L
+  ML
+  UN
+}
+
+/// O insumo: farinha, queijo, embalagem, gás.
+model Supply {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String?
+  unit     Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  name     String
+  /// em que medida ele é comprado e consumido
+  measure  SupplyUnit @default(UN)
+  /// quanto custa UMA unidade de medida (1 kg, 1 L, 1 unidade), em centavos
+  costPerUnitCents Int @default(0)
+
+  /// quanto tem em estoque agora
+  stockQty    Float @default(0)
+  /// abaixo disto, o sistema avisa
+  minStockQty Float @default(0)
+
+  active Boolean @default(true)
+
+  recipeItems RecipeItem[]
+  movements   StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("supplies")
+}
+
+/// A FICHA TÉCNICA: quanto de cada insumo entra num prato.
+///
+/// A perda (%) é o que se descarta no preparo — casca, aparas, evaporação.
+/// Ela entra no custo porque o restaurante paga por ela do mesmo jeito.
+model RecipeItem {
+  id String @id @default(cuid())
+
+  tenantId String
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  supplyId String
+  supply   Supply @relation(fields: [supplyId], references: [id], onDelete: Cascade)
+
+  /// quantidade LÍQUIDA usada no prato, na medida do insumo
+  quantity     Float
+  /// percentual de perda (10 = 10%)
+  wastePercent Float @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([itemId, supplyId])
+  @@index([tenantId])
+  @@map("recipe_items")
+}
+
+enum StockMovementType {
+  IN // compra / entrada
+  OUT // saída por venda
+  RETURN // devolução (pedido cancelado)
+  LOSS // perda, quebra, vencimento
+  ADJUST // acerto de inventário
+}
+
+/// Todo movimento de estoque. É o extrato do almoxarifado.
+model StockMovement {
+  id String @id @default(cuid())
+
+  tenantId String
+  supplyId String
+  supply   Supply @relation(fields: [supplyId], references: [id], onDelete: Cascade)
+
+  type     StockMovementType
+  /// positivo entra, negativo sai
+  quantity Float
+  /// custo unitário no momento do movimento (para o CMV histórico)
+  unitCostCents Int?
+
+  orderId String?
+  note    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([supplyId, createdAt])
+  @@map("stock_movements")
+}
+
+// ===========================================================================
+//  ENTREGADORES  (Etapa 5)
+// ===========================================================================
+
+/// Como o entregador é pago.
+enum CourierPayModel {
+  PERCENT_OF_FEE // fatia do frete (a regra da Etapa 1: 90% do frete)
+  FIXED_PER_DELIVERY // valor fixo por corrida (frota própria)
+}
+
+model Courier {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String?
+  unit     Unit?   @relation(fields: [unitId], references: [id], onDelete: SetNull)
+
+  name    String
+  phone   String
+  vehicle String @default("Moto")
+
+  payModel      CourierPayModel @default(PERCENT_OF_FEE)
+  /// quando é valor fixo, quanto ele recebe por entrega
+  fixedPayCents Int             @default(0)
+
+  active Boolean @default(true)
+
+  dispatches Dispatch[]
+  payouts    Payout[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("couriers")
+}
+
+enum DispatchStatus {
+  SEARCHING // procurando entregador
+  ASSIGNED // atribuído
+  PICKED_UP // saiu com o pedido
+  DELIVERED // entregou
+  CANCELED
+}
+
+/// A corrida: um pedido nas mãos de um entregador.
+model Dispatch {
+  id String @id @default(cuid())
+
+  tenantId String
+  orderId  String @unique
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  courierId String?
+  courier   Courier? @relation(fields: [courierId], references: [id], onDelete: SetNull)
+
+  status DispatchStatus @default(SEARCHING)
+  /// id da corrida no serviço externo (hoje, no fake)
+  externalId String?
+  /// código curto de rastreio para o cliente
+  trackingCode String @unique
+
+  distanceKm Float?
+  /// quanto o entregador recebe por esta corrida
+  courierPayoutCents Int @default(0)
+
+  assignedAt  DateTime?
+  pickedUpAt  DateTime?
+  deliveredAt DateTime?
+  canceledAt  DateTime?
+
+  /// em qual acerto esta corrida entrou
+  payoutId String?
+  payout   Payout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, status])
+  @@index([courierId, createdAt])
+  @@map("dispatches")
+}
+
+// ===========================================================================
+//  FINANCEIRO  (Etapa 5)
+// ===========================================================================
+
+enum EntryType {
+  RECEIVABLE // a receber
+  PAYABLE // a pagar
+}
+
+enum EntryStatus {
+  OPEN // em aberto
+  PAID // quitado
+  CANCELED
+}
+
+/// Um lançamento financeiro: a receber ou a pagar.
+///
+/// As vendas viram lançamentos sozinhas; as despesas são lançadas à mão.
+model AccountEntry {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String?
+  unitId   String?
+
+  type   EntryType
+  status EntryStatus @default(OPEN)
+
+  /// "Vendas", "Insumos", "Aluguel", "Acerto de motoboy"...
+  category    String
+  description String
+  amountCents Int
+
+  dueDate DateTime
+  paidAt  DateTime?
+
+  /// de onde veio (venda ou acerto)
+  orderId  String?
+  payoutId String?
+  payout   Payout? @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  /// para quem se paga
+  party String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, dueDate])
+  @@index([tenantId, type, status])
+  @@map("account_entries")
+}
+
+enum PayoutKind {
+  COURIER // acerto de motoboy
+  WAITER // acerto de garçom
+}
+
+enum PayoutStatus {
+  OPEN
+  PAID
+}
+
+/// O acerto fechado de um período: "o que devo ao Tiago nesta semana".
+model Payout {
+  id String @id @default(cuid())
+
+  tenantId String
+  kind     PayoutKind
+
+  courierId String?
+  courier   Courier? @relation(fields: [courierId], references: [id], onDelete: SetNull)
+  /// quando é garçom, aponta para o usuário
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  periodFrom DateTime
+  periodTo   DateTime
+
+  /// quantas entregas (ou pedidos) entraram
+  itemsCount  Int          @default(0)
+  amountCents Int          @default(0)
+  status      PayoutStatus @default(OPEN)
+  paidAt      DateTime?
+  notes       String?
+
+  dispatches Dispatch[]
+  entries    AccountEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, kind])
+  @@map("payouts")
+}
+
+// ===========================================================================
+//  LGPD  (Etapa 5)
+// ===========================================================================
+
+enum ConsentType {
+  MARKETING // receber promoções
+  DATA_PROCESSING // uso dos dados
+}
+
+/// Registro de consentimento — quando o cliente autorizou (ou revogou).
+model ConsentRecord {
+  id String @id @default(cuid())
+
+  tenantId   String
+  customerId String
+  customer   TenantCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  type    ConsentType
+  granted Boolean
+  /// de onde veio: "checkout", "painel", "whatsapp"
+  source  String
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([customerId, type])
+  @@map("consent_records")
+}
 
 model NpsResponse {
   id String @id @default(cuid())

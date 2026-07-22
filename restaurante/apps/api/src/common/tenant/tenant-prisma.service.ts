@@ -29,6 +29,15 @@ export const TENANT_SCOPED_MODELS = new Set([
   'OutboundMessage',
   'AbandonedCart',
   'NpsResponse',
+  // Etapa 5 — gestão e bastidores
+  'Supply',
+  'RecipeItem',
+  'StockMovement',
+  'Courier',
+  'Dispatch',
+  'AccountEntry',
+  'Payout',
+  'ConsentRecord',
   // (NetworkCustomer fica de fora: é a carteira da REDE, não de um tenant)
   // Etapa 1 — pedido
   'Order',

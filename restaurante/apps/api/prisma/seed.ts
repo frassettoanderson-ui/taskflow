@@ -926,6 +926,10 @@ async function main() {
   await seedFidelidade(grupoSabor.id);
   await seedCupons(grupoSabor.id);
 
+  // Bastidores: insumos, fichas técnicas e entregadores.
+  await seedEstoque(grupoSabor.id, IDS.unidade);
+  await seedEntregadores(grupoSabor.id, IDS.unidade);
+
   // ---------------------------------------------------------------
   // 4) Tenant "rival" — serve APENAS para provar o isolamento.
   // ---------------------------------------------------------------
@@ -1238,6 +1242,119 @@ async function seedCupons(tenantId: string) {
   }
 
   console.log('  🎟️  Cupons: PRIMEIRA10, VOLTASEMPRE, TERCADEMASSA, BURGER5');
+}
+
+/**
+ * Insumos e fichas técnicas.
+ *
+ * Só o Spaghetti e a Pizza Margherita ganham ficha completa — de propósito:
+ * assim você vê na tela a diferença entre um prato com ficha (com CMV e margem
+ * calculados) e um sem ficha.
+ */
+async function seedEstoque(tenantId: string, unitId: string) {
+  const insumos = [
+    // id, nome, medida, custo por unidade (centavos), estoque, mínimo
+    { id: 'sup_massa', name: 'Massa de espaguete', measure: 'KG' as const, custo: 1200, estoque: 25, minimo: 5 },
+    { id: 'sup_carne', name: 'Carne moída', measure: 'KG' as const, custo: 3800, estoque: 12, minimo: 4 },
+    { id: 'sup_tomate', name: 'Tomate pelado', measure: 'KG' as const, custo: 1800, estoque: 18, minimo: 5 },
+    { id: 'sup_cebola', name: 'Cebola', measure: 'KG' as const, custo: 600, estoque: 8, minimo: 3 },
+    { id: 'sup_queijo', name: 'Queijo parmesão', measure: 'KG' as const, custo: 6500, estoque: 3, minimo: 2 },
+    { id: 'sup_mucarela', name: 'Muçarela de búfala', measure: 'KG' as const, custo: 7200, estoque: 4, minimo: 2 },
+    { id: 'sup_farinha', name: 'Farinha de trigo', measure: 'KG' as const, custo: 700, estoque: 40, minimo: 10 },
+    { id: 'sup_manjericao', name: 'Manjericão fresco', measure: 'G' as const, custo: 8, estoque: 400, minimo: 200 },
+    { id: 'sup_azeite', name: 'Azeite de oliva', measure: 'L' as const, custo: 4500, estoque: 6, minimo: 2 },
+    // este já entra ABAIXO do mínimo, para você ver o alerta funcionando
+    { id: 'sup_embalagem', name: 'Embalagem delivery', measure: 'UN' as const, custo: 120, estoque: 15, minimo: 50 },
+  ];
+
+  for (const i of insumos) {
+    await prisma.supply.upsert({
+      where: { id: i.id },
+      update: { costPerUnitCents: i.custo, minStockQty: i.minimo },
+      create: {
+        id: i.id,
+        tenantId,
+        unitId,
+        name: i.name,
+        measure: i.measure,
+        costPerUnitCents: i.custo,
+        stockQty: i.estoque,
+        minStockQty: i.minimo,
+      },
+    });
+  }
+
+  // ---- ficha técnica do Spaghetti à Bolonhesa ----
+  const fichaSpaghetti = [
+    { supplyId: 'sup_massa', quantity: 0.18, wastePercent: 2 }, // 180 g de massa
+    { supplyId: 'sup_carne', quantity: 0.12, wastePercent: 8 }, // 120 g de carne
+    { supplyId: 'sup_tomate', quantity: 0.15, wastePercent: 5 },
+    { supplyId: 'sup_cebola', quantity: 0.04, wastePercent: 20 }, // casca vai fora
+    { supplyId: 'sup_queijo', quantity: 0.02, wastePercent: 0 },
+    { supplyId: 'sup_azeite', quantity: 0.015, wastePercent: 0 },
+    { supplyId: 'sup_embalagem', quantity: 1, wastePercent: 0 },
+  ];
+
+  for (const f of fichaSpaghetti) {
+    await prisma.recipeItem.upsert({
+      where: { itemId_supplyId: { itemId: 'itm_bolonhesa', supplyId: f.supplyId } },
+      update: { quantity: f.quantity, wastePercent: f.wastePercent },
+      create: { tenantId, itemId: 'itm_bolonhesa', ...f },
+    });
+  }
+
+  // ---- ficha técnica da Pizza Margherita ----
+  const fichaPizza = [
+    { supplyId: 'sup_farinha', quantity: 0.25, wastePercent: 3 },
+    { supplyId: 'sup_tomate', quantity: 0.12, wastePercent: 5 },
+    { supplyId: 'sup_mucarela', quantity: 0.18, wastePercent: 2 },
+    { supplyId: 'sup_manjericao', quantity: 8, wastePercent: 15 }, // 8 g
+    { supplyId: 'sup_azeite', quantity: 0.01, wastePercent: 0 },
+    { supplyId: 'sup_embalagem', quantity: 1, wastePercent: 0 },
+  ];
+
+  for (const f of fichaPizza) {
+    await prisma.recipeItem.upsert({
+      where: { itemId_supplyId: { itemId: 'itm_margherita', supplyId: f.supplyId } },
+      update: { quantity: f.quantity, wastePercent: f.wastePercent },
+      create: { tenantId, itemId: 'itm_margherita', ...f },
+    });
+  }
+
+  console.log(`  📦 Estoque: ${insumos.length} insumos | fichas técnicas: Spaghetti e Pizza Margherita`);
+}
+
+/** Dois entregadores, um de cada forma de pagamento. */
+async function seedEntregadores(tenantId: string, unitId: string) {
+  const entregadores = [
+    {
+      id: 'cur_rafael',
+      name: 'Rafael (moto)',
+      phone: '48988880001',
+      vehicle: 'Moto',
+      payModel: 'PERCENT_OF_FEE' as const,
+      fixedPayCents: 0,
+    },
+    {
+      id: 'cur_lucas',
+      name: 'Lucas (frota própria)',
+      phone: '48988880002',
+      vehicle: 'Moto',
+      payModel: 'FIXED_PER_DELIVERY' as const,
+      fixedPayCents: 800, // R$ 8,00 por corrida
+    },
+  ];
+
+  for (const e of entregadores) {
+    const { id, ...dados } = e;
+    await prisma.courier.upsert({
+      where: { id },
+      update: dados,
+      create: { id, tenantId, unitId, ...dados },
+    });
+  }
+
+  console.log('  🛵 Entregadores: Rafael (% do frete) e Lucas (R$ 8,00 por entrega)');
 }
 
 function resumo() {

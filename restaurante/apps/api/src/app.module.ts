@@ -15,6 +15,7 @@ import { OrderModule } from './modules/order/order.module';
 import { OperationModule } from './modules/operation/operation.module';
 import { SalaoModule } from './modules/salao/salao.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
+import { GestaoModule } from './modules/gestao/gestao.module';
 import { QueueModule } from './queue/queue.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
@@ -41,6 +42,7 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     AdaptersModule,
     OperationModule,
     MarketingModule,
+    GestaoModule,
 
     // Um módulo por área de negócio (vão crescer a cada etapa).
     AuthModule,

@@ -16,6 +16,8 @@ import { NOME_DO_CANAL } from '../operation/channel';
 import { CouponService } from '../marketing/coupon.service';
 import { LoyaltyService } from '../marketing/loyalty.service';
 import { RetentionService } from '../marketing/retention.service';
+import { StockService } from '../gestao/stock.service';
+import { FinanceService } from '../gestao/finance.service';
 
 /** Letras e números sem os que se confundem (0/O, 1/I). */
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -33,6 +35,8 @@ export class OrderService {
     private readonly cupons: CouponService,
     private readonly loyalty: LoyaltyService,
     private readonly retencao: RetentionService,
+    private readonly estoque: StockService,
+    private readonly financeiro: FinanceService,
   ) {}
 
   // =========================================================================
@@ -586,6 +590,25 @@ export class OrderService {
       { de: pedido.status, para: novo, por: quem },
       { tableId: atualizado.tableId, sessionId: atualizado.tableSessionId },
     );
+
+    // ---- COZINHA ACEITOU: sai da prateleira ----
+    // Cada assinante é protegido: se o estoque falhar, o pedido continua aceito.
+    if (novo === OrderStatus.ACCEPTED) {
+      try {
+        await this.estoque.baixarPorPedido(atualizado.id);
+      } catch (e) {
+        this.logger.error(`Falhei ao baixar o estoque do pedido ${atualizado.code}: ${e}`);
+      }
+    }
+
+    // ---- PEDIDO CANCELADO: devolve o que já tinha saído ----
+    if (novo === OrderStatus.CANCELED) {
+      try {
+        await this.estoque.devolverPorPedido(atualizado.id);
+      } catch (e) {
+        this.logger.error(`Falhei ao devolver o estoque do pedido ${atualizado.code}: ${e}`);
+      }
+    }
 
     // ---- PEDIDO ENTREGUE: é aqui que o relacionamento começa ----
     // Os dois são "assinantes" do evento: se um falhar, o pedido continua

@@ -19,7 +19,11 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/pedidos') ||
     pathname.startsWith('/salao') ||
     pathname.startsWith('/clientes') ||
-    pathname.startsWith('/marketing');
+    pathname.startsWith('/marketing') ||
+    pathname.startsWith('/relatorios') ||
+    pathname.startsWith('/estoque') ||
+    pathname.startsWith('/financeiro') ||
+    pathname.startsWith('/entregadores');
 
   if (!logado && precisaLogin) {
     const url = request.nextUrl.clone();
@@ -44,6 +48,10 @@ export const config = {
     '/salao/:path*',
     '/clientes/:path*',
     '/marketing/:path*',
+    '/relatorios/:path*',
+    '/estoque/:path*',
+    '/financeiro/:path*',
+    '/entregadores/:path*',
     '/login',
   ],
 };
