@@ -173,6 +173,62 @@ function CheckoutDoPortal({
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
+  // ---- carteira da rede ----
+  // O saldo é do consumidor e vale em QUALQUER restaurante do portal. Para
+  // gastar, ele confirma um código: o telefone identifica, não prova.
+  const [saldo, setSaldo] = useState(0);
+  const [usar, setUsar] = useState(false);
+  const [codigo, setCodigo] = useState('');
+  const [enviado, setEnviado] = useState<{ para: string; teste?: string } | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [erroCodigo, setErroCodigo] = useState<string | null>(null);
+
+  const usadoDaCarteira = usar && token ? Math.min(saldo, total) : 0;
+
+  async function consultarCarteira(telefone: string) {
+    const so = telefone.replace(/\D/g, '');
+    if (so.length < 10) return setSaldo(0);
+    try {
+      const res = await fetch(`/api/portal/carteira?telefone=${so}`, { cache: 'no-store' });
+      const d = await res.json();
+      setSaldo(d.saldoCents ?? 0);
+    } catch {
+      setSaldo(0);
+    }
+  }
+
+  async function pedirCodigo() {
+    setErroCodigo(null);
+    try {
+      const res = await fetch('/api/portal/carteira/codigo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandSlug: slug, telefone: form.customerPhone }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message ?? 'Não consegui enviar o código.');
+      setEnviado({ para: d.para, teste: d.codigoDeTeste });
+    } catch (e: any) {
+      setErroCodigo(e.message);
+    }
+  }
+
+  async function confirmarCodigo() {
+    setErroCodigo(null);
+    try {
+      const res = await fetch('/api/portal/carteira/confirmar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandSlug: slug, telefone: form.customerPhone, codigo }),
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.message ?? 'Código inválido.');
+      setToken(d.token);
+    } catch (e: any) {
+      setErroCodigo(e.message);
+    }
+  }
+
   function campo(nome: keyof typeof form) {
     return {
       value: form[nome],
@@ -192,6 +248,8 @@ function CheckoutDoPortal({
         body: JSON.stringify({
           ...form,
           paymentMethod: 'PIX',
+          useNetworkWalletCents: usadoDaCarteira > 0 ? usadoDaCarteira : undefined,
+          cashbackToken: usadoDaCarteira > 0 ? token : undefined,
           items: linhas.map((l) => ({
             itemId: l.itemId,
             quantity: l.quantidade,
@@ -231,7 +289,80 @@ function CheckoutDoPortal({
           <input id="nome" required minLength={2} {...campo('customerName')} />
 
           <label htmlFor="fone">Telefone (com DDD)</label>
-          <input id="fone" required minLength={8} placeholder="48 99999-0000" {...campo('customerPhone')} />
+          <input
+            id="fone"
+            required
+            minLength={8}
+            placeholder="48 99999-0000"
+            value={form.customerPhone}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, customerPhone: e.target.value }));
+              consultarCarteira(e.target.value);
+            }}
+          />
+
+          {/* Carteira da rede: o saldo que o portal deu de volta */}
+          {saldo > 0 && (
+            <div className="oferta">
+              👛 Você tem <strong>{dinheiro(saldo)}</strong> na sua carteira da rede.
+              <label className="opcao" style={{ borderBottom: 0, paddingBottom: 0 }}>
+                <input type="checkbox" checked={usar} onChange={(e) => setUsar(e.target.checked)} />
+                <span>Usar {dinheiro(Math.min(saldo, total))} neste pedido</span>
+              </label>
+
+              {usar && !token && (
+                <div style={{ marginTop: 10 }}>
+                  {!enviado ? (
+                    <>
+                      <p style={{ margin: '0 0 8px', fontSize: 13 }}>
+                        Confirme que este telefone é seu.
+                      </p>
+                      <button type="button" className="ghost" onClick={pedirCodigo}>
+                        Enviar código
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ margin: '0 0 8px', fontSize: 13 }}>
+                        Código enviado para <strong>{enviado.para}</strong>.
+                      </p>
+                      {enviado.teste && (
+                        <p style={{ margin: '0 0 8px', fontSize: 12, opacity: 0.8 }}>
+                          (modo de teste — seu código é <strong>{enviado.teste}</strong>)
+                        </p>
+                      )}
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          value={codigo}
+                          onChange={(e) => setCodigo(e.target.value)}
+                          placeholder="000000"
+                          inputMode="numeric"
+                          maxLength={6}
+                          style={{ letterSpacing: 4, textAlign: 'center', marginBottom: 0 }}
+                        />
+                        <button
+                          type="button"
+                          disabled={codigo.replace(/\D/g, '').length !== 6}
+                          onClick={confirmarCodigo}
+                        >
+                          Confirmar
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {erroCodigo && (
+                    <p style={{ margin: '8px 0 0', fontSize: 13, color: '#fca5a5' }}>{erroCodigo}</p>
+                  )}
+                </div>
+              )}
+
+              {usar && token && (
+                <p style={{ margin: '8px 0 0', fontSize: 13 }}>
+                  ✅ Confirmado. {dinheiro(usadoDaCarteira)} saem do total.
+                </p>
+              )}
+            </div>
+          )}
 
           <label htmlFor="rua">Rua</label>
           <input id="rua" required {...campo('addressStreet')} />

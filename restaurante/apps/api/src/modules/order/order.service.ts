@@ -371,6 +371,8 @@ export class OrderService {
     brandSlug: string,
     dto: CreateOrderDto,
     comissaoBps: number,
+    /** quanto da carteira da rede já foi autorizado a sair deste pedido */
+    carteiraDaRedeCents = 0,
   ) {
     const brand = await this.prisma.brand.findUnique({
       where: { slug: brandSlug },
@@ -416,7 +418,14 @@ export class OrderService {
       const unitId = await this.unidadeDaMarca(brand.id);
       const code = await this.gerarCodigoUnico();
 
-      const totalCents = subtotalPortal + frete.feeCents;
+      // A carteira da rede abate no fim, como desconto. Nunca deixamos o total
+      // ficar negativo — e o restaurante continua recebendo o preço cheio do
+      // cardápio: quem banca esse desconto é o portal, não ele.
+      const usadoDaCarteira = Math.max(
+        0,
+        Math.min(carteiraDaRedeCents, subtotalPortal + frete.feeCents),
+      );
+      const totalCents = subtotalPortal + frete.feeCents - usadoDaCarteira;
 
       const pedido = await this.tenantPrisma.db.order.create({
         data: {
@@ -439,6 +448,7 @@ export class OrderService {
           notes: dto.notes,
           subtotalCents: subtotalPortal,
           deliveryFeeCents: frete.feeCents,
+          discountCents: usadoDaCarteira,
           totalCents,
           portalMarkupCents,
           items: {

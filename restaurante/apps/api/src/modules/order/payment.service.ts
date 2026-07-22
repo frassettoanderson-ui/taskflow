@@ -6,7 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, PaymentStatus, SessionStatus } from '@prisma/client';
+import { OrderSource, OrderStatus, PaymentStatus, SessionStatus } from '@prisma/client';
 import { SalaoService } from '../salao/salao.service';
 import { FinanceService } from '../gestao/finance.service';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -78,6 +78,10 @@ export class PaymentService {
         deliveryFeeCents: pedido.deliveryFeeCents,
         // No pedido do portal a comissão já foi embutida item a item.
         portalCommissionCents: pedido.portalMarkupCents || undefined,
+        // Desconto da carteira da rede: sai da fatia da plataforma, nunca da
+        // do restaurante — ele recebe o preço cheio do cardápio dele.
+        descontoDaPlataformaCents:
+          pedido.source === OrderSource.PORTAL ? pedido.discountCents : 0,
         regras,
         restauranteExternalId: recebedores.restaurante,
         plataformaExternalId: recebedores.plataforma,

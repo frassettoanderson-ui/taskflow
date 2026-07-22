@@ -23,6 +23,9 @@
 > — Trava do cashback: gastar saldo exige código de 6 dígitos (hash + expiração + token
 >   de uso único), enviado pela porta de mensagens. A consulta pública deixou de devolver
 >   o nome do cliente. Era a única pendência perigosa da lista.
+> — Carteira da rede gastável: resgate no portal com o mesmo código de confirmação do
+>   cashback. ⚠️ O desconto sai da fatia da PLATAFORMA (`descontoDaPlataformaCents` no
+>   split, que pode ficar negativa) — o restaurante recebe o preço cheio do cardápio.
 > — Limites de plano (decisões do fundador): pedido que passa do limite NUNCA bloqueia —
 >   vira excedente na fatura (`Plan.overagePriceCents`); marca extra bloqueia; fatura vencida
 >   há 15+ dias bloqueia TUDO (painel e cardápio), menos login, assinatura e o aviso que

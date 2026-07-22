@@ -133,6 +133,19 @@ export class NetworkWalletService {
   }
 
   /** Usa saldo da rede num pedido. */
+  /**
+   * Quanto deste pedido a carteira pode cobrir.
+   *
+   * O teto existe para a carteira ser desconto, não moeda: pedido pago 100%
+   * com saldo não gera receita para ninguém e vira porta para fraude.
+   */
+  async quantoPodeUsar(telefone: string, pedidoCents: number) {
+    const phone = limparTelefone(telefone);
+    const rede = await this.prisma.networkCustomer.findUnique({ where: { phone } });
+    if (!rede) return 0;
+    return Math.max(0, Math.min(rede.walletCents, pedidoCents));
+  }
+
   async resgatar(telefone: string, amountCents: number, orderCode: string, brandName: string) {
     const phone = limparTelefone(telefone);
     const rede = await this.prisma.networkCustomer.findUnique({ where: { phone } });

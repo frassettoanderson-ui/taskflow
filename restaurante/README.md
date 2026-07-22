@@ -513,6 +513,60 @@ qualquer confirmação por SMS/WhatsApp, e é aceitável para o tamanho do valor
 
 ---
 
+## Como testar o resgate da carteira da rede
+
+### O que mudou
+
+A carteira do portal acumulava, aparecia... e não dava para gastar. Agora dá — e
+com a **mesma confirmação por código** do cashback da marca, porque ela tinha o
+mesmo furo: o telefone identificava, mas não provava nada.
+
+### Passo a passo
+
+1. Faça um pedido pelo **portal** (`/portal`) e conclua. Você ganha cashback da
+   rede (2% do pedido).
+2. Faça um pedido novo, no portal, **com o mesmo telefone**. Ao digitá-lo,
+   aparece *"Você tem R$ X na sua carteira da rede"*.
+3. Marque **Usar** → **Enviar código** → digite os 6 dígitos → **Confirmar**.
+4. Feche o pedido: o valor sai do total e o extrato da carteira registra a saída.
+
+### A parte que protege o restaurante
+
+Este é o ponto mais delicado do produto, então vale ler devagar:
+
+**O desconto sai do bolso do PORTAL, nunca do restaurante.**
+
+No teste real: pedido de R$ 45,09 no portal (R$ 39,09 de comida, já com R$ 4,19
+de comissão embutida, + R$ 6,00 de frete), com R$ 20,00 pagos da carteira.
+
+| Quem | Recebe |
+|---|---|
+| **Restaurante** | **R$ 34,90** — o preço cheio do cardápio dele, intacto |
+| Motoboy | R$ 5,40 |
+| **Plataforma** | **− R$ 15,21** (ficou negativa: bancou o desconto) |
+| Soma | R$ 25,09 = exatamente o que o cliente pagou ✅ |
+
+Se o desconto do portal encolhesse a parte do restaurante, o portal estaria
+fazendo promoção com o dinheiro dos outros — e a promessa do produto ("o
+restaurante recebe cheio") viraria mentira. Há **5 testes automáticos** só
+protegendo essa conta.
+
+> Teste real: o "estranho" que só sabia o telefone foi barrado; a dona confirmou
+> o código `216113` e o pedido `NV3S3C` saiu por **R$ 25,09** com **−R$ 20,00**
+> da carteira; o saldo caiu de R$ 24,26 para R$ 5,43 e o extrato mostrou as duas
+> linhas. ✅
+
+### O que ficou como "fake / ponta solta"
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **Teto de uso** | A carteira pode cobrir o pedido **inteiro**, diferente do cashback da marca (limitado a 50%). Se virar porta para abuso, é uma linha para mudar | Observar no uso real |
+| **Validade do saldo** | O campo existe, mas nada expira a carteira da rede ainda (o cashback da marca já expira) | Quando o saldo acumular |
+| **Estorno** | Cancelando o pedido, o saldo usado **não volta** sozinho | Precisa de tratamento no cancelamento |
+| **Só no portal** | A carteira da rede não vale no canal direto do restaurante — de propósito: é o incentivo do portal | Por escolha |
+
+---
+
 ## Como testar os limites de plano e a cobrança
 
 ### As duas decisões que você tomou
@@ -893,7 +947,7 @@ portal e split de 3 lados.
 |---|---|---|
 | **Split no gateway** | A divisão é **calculada e gravada** por pedido, com os recebedores modelados. Mas quem executaria a transferência é o gateway — e ele ainda é fake | Etapa 7 |
 | **Cobrança da assinatura** | `FakeBillingProvider`: cria assinatura, emite fatura e devolve link de mentira. Nada é cobrado de verdade | Etapa 7 |
-| **Carteira da rede** | Acumula e mostra o saldo, mas **ainda não dá para gastar** no checkout do portal — falta a tela de resgate | Próxima etapa de portal |
+| **Carteira da rede** | ✅ Resolvido — dá para gastar no portal, com código de confirmação; o desconto sai da fatia da plataforma | — |
 | **Domínio** | A vitrine roda em `/portal` no mesmo site, como você escolheu. Virar domínio próprio é configuração, não código | Quando tiver o domínio |
 | **Descoberta por proximidade** | Usa o mapa fake (linha reta, bairros de Imbituba). Sem raio de entrega real por marca na vitrine | Etapa 7 |
 | **Avaliações no portal** | A vitrine não mostra nota nem comentários — o NPS existe, mas é interno de cada marca | Se você quiser depois |

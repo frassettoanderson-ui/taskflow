@@ -70,3 +70,56 @@ describe('Divisão do dinheiro (split)', () => {
     expect(r.splits.find((s) => s.kind === 'courier')).toBeUndefined();
   });
 });
+
+
+describe('Carteira da rede: quem banca o desconto é o PORTAL', () => {
+  /**
+   * O caso real: pedido de R$ 45,09 no portal (R$ 39,09 de comida com R$ 4,19
+   * de comissão embutida + R$ 6,00 de frete), com R$ 20,00 pagos da carteira.
+   *
+   * O que TEM que acontecer: o restaurante receber os R$ 34,90 do cardápio
+   * dele, inteiros. Se o desconto do portal encolhesse a parte do restaurante,
+   * o portal estaria fazendo promoção com o dinheiro dos outros — e a promessa
+   * do produto ("o restaurante recebe cheio") viraria mentira.
+   */
+  const base = {
+    source: OrderSource.PORTAL,
+    method: PaymentMethod.PIX,
+    subtotalCents: 3909,
+    deliveryFeeCents: 600,
+    portalCommissionCents: 419,
+    regras: lerRegras({} as NodeJS.ProcessEnv),
+    restauranteExternalId: 'restaurant:x',
+    plataformaExternalId: 'platform',
+  };
+
+  it('sem carteira: a plataforma fica com a comissão e a fatia do frete', () => {
+    const r = calcularSplit(base);
+    expect(r.detalhe.restauranteCents).toBe(3490); // preço cheio do cardápio
+    expect(r.detalhe.plataformaCents).toBe(419 + 60);
+    expect(r.detalhe.motoboyCents).toBe(540);
+  });
+
+  it('com R$ 20 da carteira, o restaurante continua recebendo os R$ 34,90', () => {
+    const r = calcularSplit({ ...base, descontoDaPlataformaCents: 2000 });
+    expect(r.detalhe.restauranteCents).toBe(3490);
+  });
+
+  it('a plataforma fica NEGATIVA — ela pagou para trazer o cliente', () => {
+    const r = calcularSplit({ ...base, descontoDaPlataformaCents: 2000 });
+    expect(r.detalhe.plataformaCents).toBe(419 + 60 - 2000);
+    expect(r.detalhe.plataformaCents).toBeLessThan(0);
+  });
+
+  it('a soma das partes é exatamente o que o cliente pagou', () => {
+    const r = calcularSplit({ ...base, descontoDaPlataformaCents: 2000 });
+    const soma = r.splits.reduce((s, p) => s + p.amountCents, 0);
+    expect(soma).toBe(4509 - 2000); // R$ 25,09
+  });
+
+  it('no canal direto não há desconto de portal para bancar', () => {
+    const r = calcularSplit({ ...base, source: OrderSource.DIRECT, portalCommissionCents: undefined });
+    expect(r.detalhe.comissaoPortalCents).toBe(0);
+    expect(r.detalhe.descontoDaPlataformaCents).toBe(0);
+  });
+});

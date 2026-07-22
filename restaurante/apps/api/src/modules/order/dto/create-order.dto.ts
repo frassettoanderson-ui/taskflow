@@ -86,6 +86,15 @@ export class CreateOrderDto {
   @MaxLength(80)
   cashbackToken?: string;
 
+  /**
+   * Quanto da CARTEIRA DA REDE o cliente quer usar (só no portal), em centavos.
+   * Exige o mesmo token de confirmação do cashback.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  useNetworkWalletCents?: number;
+
   /** identificação do navegador, para casar com o carrinho abandonado */
   @IsOptional()
   @IsString()

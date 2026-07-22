@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { PortalService } from './portal.service';
 import { PortalOrderService } from './portal-order.service';
 import { NetworkWalletService } from './network-wallet.service';
+import { CashbackCodeService } from '../marketing/cashback-code.service';
 import { CreateOrderDto } from '../order/dto/create-order.dto';
 import { Public } from '../../common/auth/public.decorator';
 
@@ -15,6 +16,7 @@ export class PortalPublicController {
     private readonly portal: PortalService,
     private readonly pedidos: PortalOrderService,
     private readonly carteira: NetworkWalletService,
+    private readonly codigos: CashbackCodeService,
   ) {}
 
   /** A vitrine. */
@@ -59,6 +61,27 @@ export class PortalPublicController {
   @Get('pedido/:code')
   acompanhar(@Param('code') code: string) {
     return this.pedidos.acompanhar(code);
+  }
+
+  /**
+   * "Me manda o código para eu gastar o saldo da carteira."
+   *
+   * Mesmo mecanismo do cashback da marca: o telefone identifica, o código é
+   * quem prova. Sem isto, saber o número de alguém daria acesso ao saldo dela.
+   */
+  @Public()
+  @Post('carteira/codigo')
+  pedirCodigoDaCarteira(@Body() dto: { brandSlug: string; telefone: string }) {
+    return this.codigos.pedir(dto?.brandSlug ?? '', dto?.telefone ?? '', 'rede');
+  }
+
+  /** "Aqui está o código." Devolve a senha temporária do resgate. */
+  @Public()
+  @Post('carteira/confirmar')
+  confirmarCodigoDaCarteira(
+    @Body() dto: { brandSlug: string; telefone: string; codigo: string },
+  ) {
+    return this.codigos.confirmar(dto?.brandSlug ?? '', dto?.telefone ?? '', dto?.codigo ?? '');
   }
 
   /** A carteira da rede do consumidor. */

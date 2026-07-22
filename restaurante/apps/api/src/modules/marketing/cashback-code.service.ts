@@ -66,7 +66,7 @@ export class CashbackCodeService {
    * que não existe. Se disséssemos "esse número não tem cadastro", a tela
    * viraria uma máquina de descobrir quem é cliente da casa.
    */
-  async pedir(brandSlug: string, telefone: string) {
+  async pedir(brandSlug: string, telefone: string, ondeOlharSaldo: 'marca' | 'rede' = 'marca') {
     const brand = await this.acharMarca(brandSlug);
     const phone = limparTelefone(telefone);
 
@@ -92,6 +92,23 @@ export class CashbackCodeService {
         select: { id: true, cashbackBalanceCents: true },
       });
 
+      /**
+       * De qual saldo estamos falando?
+       *
+       * O cashback da MARCA vive no cliente daquela marca. A carteira da REDE
+       * é do portal e mora fora do tenant — por isso a leitura é pelo prisma
+       * cru, e é um dos poucos lugares assim. O código de confirmação, esse, é
+       * o mesmo mecanismo: um telefone, um código, um resgate.
+       */
+      let temSaldo = (cliente?.cashbackBalanceCents ?? 0) > 0;
+      if (ondeOlharSaldo === 'rede') {
+        const naRede = await this.prisma.networkCustomer.findUnique({
+          where: { phone },
+          select: { walletCents: true },
+        });
+        temSaldo = (naRede?.walletCents ?? 0) > 0;
+      }
+
       const resposta = {
         enviado: true,
         para: mascarar(phone),
@@ -106,7 +123,7 @@ export class CashbackCodeService {
 
       // Telefone sem cadastro ou sem saldo: respondemos igualzinho, mas não
       // gastamos mensagem nem criamos código.
-      if (!cliente || cliente.cashbackBalanceCents <= 0) return resposta;
+      if (!temSaldo) return resposta;
 
       const codigo = String(randomInt(0, 1_000_000)).padStart(6, '0');
 
@@ -123,11 +140,12 @@ export class CashbackCodeService {
       await this.mensagens.enfileirar({
         tenantId: brand.tenantId,
         brandId: brand.id,
-        customerId: cliente.id,
+        customerId: cliente?.id,
         kind: MessageKind.ORDER_UPDATE,
         to: phone,
         body:
-          `Seu código para usar o cashback na ${brand.name} é ${codigo}. ` +
+          `Seu código para usar o ${ondeOlharSaldo === 'rede' ? 'saldo da carteira' : 'cashback'} ` +
+          `na ${brand.name} é ${codigo}. ` +
           `Vale por ${MINUTOS_DO_CODIGO} minutos. Se não foi você que pediu, ignore.`,
       });
 

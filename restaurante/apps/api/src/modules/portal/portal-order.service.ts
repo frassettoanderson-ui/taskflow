@@ -7,6 +7,7 @@ import { CreateOrderDto } from '../order/dto/create-order.dto';
 import { lerRegras } from '../order/pricing';
 import { NetworkWalletService } from './network-wallet.service';
 import { GraduationService } from './graduation.service';
+import { CashbackCodeService } from '../marketing/cashback-code.service';
 
 /**
  * Orquestra o pedido feito pela VITRINE.
@@ -30,6 +31,7 @@ export class PortalOrderService {
     private readonly orders: OrderService,
     private readonly carteira: NetworkWalletService,
     private readonly graduacao: GraduationService,
+    private readonly codigos: CashbackCodeService,
   ) {}
 
   async criarPedido(brandSlug: string, dto: CreateOrderDto) {
@@ -47,8 +49,46 @@ export class PortalOrderService {
 
     const comissaoBps = listagem.commissionBps ?? lerRegras().comissaoPortalBps;
 
+    // 0) Vai usar a carteira da rede? Então prove que o telefone é seu.
+    //    A carteira tem o mesmo risco do cashback da marca: o telefone
+    //    identifica, não prova. Reaproveitamos o MESMO código de 6 dígitos.
+    let usarDaCarteiraCents = 0;
+    if (dto.useNetworkWalletCents && dto.useNetworkWalletCents > 0) {
+      // O token vive dentro do tenant dono da marca, e o portal roda fora de
+      // qualquer tenant. Entramos no contexto dele só para esta conferência —
+      // a camada de isolamento recusa a consulta se não fizermos isso, e é
+      // exatamente assim que ela deve se comportar.
+      await this.context.runAsTenant(listagem.tenantId, () =>
+        this.codigos.consumirToken(listagem.brand.id, dto.customerPhone, dto.cashbackToken),
+      );
+      usarDaCarteiraCents = await this.carteira.quantoPodeUsar(
+        dto.customerPhone,
+        dto.useNetworkWalletCents,
+      );
+    }
+
     // 1) O pedido nasce dentro do tenant, como qualquer outro.
-    const r = await this.orders.criarPedidoDoPortal(brandSlug, dto, comissaoBps);
+    const r = await this.orders.criarPedidoDoPortal(
+      brandSlug,
+      dto,
+      comissaoBps,
+      usarDaCarteiraCents,
+    );
+
+    // 1.1) Baixa na carteira só DEPOIS de o pedido existir: se a criação
+    //      falhasse, o cliente teria perdido saldo sem receber nada.
+    if (usarDaCarteiraCents > 0) {
+      try {
+        await this.carteira.resgatar(
+          dto.customerPhone,
+          usarDaCarteiraCents,
+          r.pedido.code,
+          listagem.brand.name,
+        );
+      } catch (e) {
+        this.logger.error(`Não consegui baixar a carteira do pedido ${r.pedido.code}: ${e}`);
+      }
+    }
 
     // Conta quantos pedidos o portal já trouxe (o argumento de venda da vitrine).
     await this.prisma.portalListing.update({
@@ -107,6 +147,8 @@ export class PortalOrderService {
       comissaoEmbutidaCents: r.portalMarkupCents,
       /** quanto custaria pedindo direto */
       totalNoCanalDiretoCents: r.subtotalDiretoCents + r.pedido.deliveryFeeCents,
+      /** quanto saiu da carteira da rede neste pedido */
+      usadoDaCarteiraCents: usarDaCarteiraCents,
       cashbackDaRedeCents: cashbackDaRede,
       incentivo,
     };

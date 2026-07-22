@@ -50,6 +50,11 @@ export interface EntradaDoSplit {
   deliveryFeeCents: number;
   regras: RegrasDeCobranca;
   /**
+   * Desconto bancado pela plataforma (hoje: carteira da rede do portal).
+   * Sai da fatia dela, nunca da do restaurante.
+   */
+  descontoDaPlataformaCents?: number;
+  /**
    * A comissão do portal JÁ CALCULADA, quando o preço foi marcado item a item.
    * Preferimos este valor ao cálculo por porcentagem porque o arredondamento
    * de cada item já aconteceu — usar a porcentagem de novo daria diferença de
@@ -72,7 +77,9 @@ export interface ResultadoDoSplit {
     taxaSobreEntregaCents: number;
     restauranteCents: number;
     motoboyCents: number;
+    /** pode ser NEGATIVO quando a plataforma bancou desconto maior que a fatia dela */
     plataformaCents: number;
+    descontoDaPlataformaCents: number;
   };
 }
 
@@ -111,11 +118,24 @@ export function calcularSplit(entrada: EntradaDoSplit): ResultadoDoSplit {
   const taxaSobreEntregaCents = aplicarBps(deliveryFeeCents, regras.taxaSobreEntregaBps);
   const motoboyCents = deliveryFeeCents - taxaSobreEntregaCents;
 
-  const plataformaCents = comissaoPortalCents + taxaPagamentoCents + taxaSobreEntregaCents;
+  /**
+   * 4) Desconto que a PLATAFORMA bancou (carteira da rede).
+   *
+   * O restaurante recebe o preço cheio do cardápio: quem deu o desconto foi o
+   * portal, e é do bolso dele que sai. Por isso ele entra subtraindo a fatia da
+   * plataforma — que pode até ficar negativa, e isso está certo: naquele pedido
+   * o portal pagou para trazer o cliente.
+   */
+  const descontoDaPlataformaCents = entrada.descontoDaPlataformaCents ?? 0;
+
+  const plataformaCents =
+    comissaoPortalCents + taxaPagamentoCents + taxaSobreEntregaCents - descontoDaPlataformaCents;
 
   // O restaurante recebe o que sobra. Fazer por subtração garante que a soma
   // bate exatamente com o total, sem centavo perdido no arredondamento.
-  const restauranteCents = totalCents - plataformaCents - motoboyCents;
+  // (`totalCents` aqui é o valor CHEIO do pedido; o cliente pagou menos, e a
+  // diferença é justamente o desconto que a plataforma bancou acima.)
+  const restauranteCents = totalCents - plataformaCents - motoboyCents - descontoDaPlataformaCents;
 
   const splits: SplitRecipient[] = [
     {
@@ -144,6 +164,7 @@ export function calcularSplit(entrada: EntradaDoSplit): ResultadoDoSplit {
       restauranteCents,
       motoboyCents,
       plataformaCents,
+      descontoDaPlataformaCents,
     },
   };
 }
