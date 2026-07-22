@@ -55,105 +55,8 @@ export class OrderService {
       // 0) A marca está aceitando pedidos agora? (pausa + horário do canal)
       await this.operacao.exigirAberto(brand, channel);
 
-      // 1) Buscar no banco os itens que o cliente pediu (com seus complementos).
-      //
-      //    Repare no filtro: o item precisa ser DESTA marca e DESTE canal.
-      //    Sem isso, alguém poderia pedir o prato do salão (mais caro) pagando
-      //    o preço do delivery, ou pedir um item de outra marca.
-      const idsPedidos = [...new Set(dto.items.map((i) => i.itemId))];
-      const itens = await this.tenantPrisma.db.item.findMany({
-        where: {
-          id: { in: idsPedidos },
-          active: true,
-          category: { menu: { brandId: brand.id, channel, active: true } },
-        },
-        include: {
-          modifierGroups: { include: { modifiers: true } },
-          station: { select: { id: true, name: true } },
-        },
-      });
-
-      const porId = new Map(itens.map((i) => [i.id, i]));
-
-      // 2) Conferir cada linha e montar os valores.
-      const linhas: Array<{
-        itemId: string;
-        nameSnapshot: string;
-        unitPriceCents: number;
-        quantity: number;
-        totalCents: number;
-        notes?: string;
-        stationId: string | null;
-        stationNameSnapshot: string | null;
-        modifiers: Array<{ modifierId: string; nameSnapshot: string; priceDeltaCents: number }>;
-      }> = [];
-
-      let subtotalCents = 0;
-
-      for (const linha of dto.items) {
-        const item = porId.get(linha.itemId);
-        if (!item) {
-          throw new BadRequestException(
-            'Um dos itens do carrinho não está mais disponível. Atualize o cardápio.',
-          );
-        }
-
-        const escolhidos = new Set(linha.modifierIds ?? []);
-        const complementos: Array<{
-          modifierId: string;
-          nameSnapshot: string;
-          priceDeltaCents: number;
-        }> = [];
-        let extrasCents = 0;
-
-        // Conferir as regras de cada grupo de complementos.
-        for (const grupo of item.modifierGroups) {
-          const doGrupo = grupo.modifiers.filter((m) => escolhidos.has(m.id) && m.active);
-
-          if (doGrupo.length < grupo.minSelect) {
-            throw new BadRequestException(
-              `Em "${item.name}", escolha ${grupo.minSelect} opção em "${grupo.name}".`,
-            );
-          }
-          if (doGrupo.length > grupo.maxSelect) {
-            throw new BadRequestException(
-              `Em "${item.name}", "${grupo.name}" aceita no máximo ${grupo.maxSelect}.`,
-            );
-          }
-
-          for (const m of doGrupo) {
-            complementos.push({
-              modifierId: m.id,
-              nameSnapshot: m.name,
-              priceDeltaCents: m.priceDeltaCents,
-            });
-            extrasCents += m.priceDeltaCents;
-            escolhidos.delete(m.id);
-          }
-        }
-
-        // Sobrou algum complemento que não pertence a este item? Recusa.
-        if (escolhidos.size > 0) {
-          throw new BadRequestException(
-            `Um complemento escolhido não pertence ao item "${item.name}".`,
-          );
-        }
-
-        const totalLinha = (item.priceCents + extrasCents) * linha.quantity;
-        subtotalCents += totalLinha;
-
-        linhas.push({
-          itemId: item.id,
-          nameSnapshot: item.name,
-          unitPriceCents: item.priceCents,
-          quantity: linha.quantity,
-          totalCents: totalLinha,
-          notes: linha.notes,
-          stationId: item.station?.id ?? null,
-          stationNameSnapshot: item.station?.name ?? null,
-          modifiers: complementos,
-        });
-      }
+      // 1 e 2) Conferir os itens e recalcular os valores.
+      const { linhas, subtotalCents } = await this.montarLinhas(brand.id, channel, dto.items);
 
       // 3) Frete: sai das regras de área da marca (por bairro ou por raio).
       //    É aqui que um endereço fora da área é recusado.
@@ -262,6 +165,198 @@ export class OrderService {
 
       return this.formatarPedido(pedido);
     });
+  }
+
+  /**
+   * Confere os itens pedidos e recalcula os valores lendo o preço do BANCO.
+   *
+   * É o coração da segurança do pedido, e é o mesmo para delivery e para mesa:
+   *   - o item precisa ser DESTA marca e DESTE canal (senão daria para pedir o
+   *     prato do salão pagando o preço do delivery);
+   *   - os grupos de complementos precisam respeitar o mínimo e o máximo;
+   *   - complemento que não é do item é recusado.
+   */
+  private async montarLinhas(
+    brandId: string,
+    channel: SalesChannel,
+    itensPedidos: Array<{ itemId: string; quantity: number; modifierIds?: string[]; notes?: string }>,
+  ) {
+    const ids = [...new Set(itensPedidos.map((i) => i.itemId))];
+
+    const itens = await this.tenantPrisma.db.item.findMany({
+      where: {
+        id: { in: ids },
+        active: true,
+        category: { menu: { brandId, channel, active: true } },
+      },
+      include: {
+        modifierGroups: { include: { modifiers: true } },
+        station: { select: { id: true, name: true } },
+      },
+    });
+
+    const porId = new Map(itens.map((i) => [i.id, i]));
+
+    const linhas: Array<{
+      itemId: string;
+      nameSnapshot: string;
+      unitPriceCents: number;
+      quantity: number;
+      totalCents: number;
+      notes?: string;
+      stationId: string | null;
+      stationNameSnapshot: string | null;
+      modifiers: Array<{ modifierId: string; nameSnapshot: string; priceDeltaCents: number }>;
+    }> = [];
+
+    let subtotalCents = 0;
+
+    for (const linha of itensPedidos) {
+      const item = porId.get(linha.itemId);
+      if (!item) {
+        throw new BadRequestException(
+          'Um dos itens do carrinho não está mais disponível. Atualize o cardápio.',
+        );
+      }
+
+      const escolhidos = new Set(linha.modifierIds ?? []);
+      const complementos: Array<{
+        modifierId: string;
+        nameSnapshot: string;
+        priceDeltaCents: number;
+      }> = [];
+      let extrasCents = 0;
+
+      for (const grupo of item.modifierGroups) {
+        const doGrupo = grupo.modifiers.filter((m) => escolhidos.has(m.id) && m.active);
+
+        if (doGrupo.length < grupo.minSelect) {
+          throw new BadRequestException(
+            `Em "${item.name}", escolha ${grupo.minSelect} opção em "${grupo.name}".`,
+          );
+        }
+        if (doGrupo.length > grupo.maxSelect) {
+          throw new BadRequestException(
+            `Em "${item.name}", "${grupo.name}" aceita no máximo ${grupo.maxSelect}.`,
+          );
+        }
+
+        for (const m of doGrupo) {
+          complementos.push({
+            modifierId: m.id,
+            nameSnapshot: m.name,
+            priceDeltaCents: m.priceDeltaCents,
+          });
+          extrasCents += m.priceDeltaCents;
+          escolhidos.delete(m.id);
+        }
+      }
+
+      if (escolhidos.size > 0) {
+        throw new BadRequestException(
+          `Um complemento escolhido não pertence ao item "${item.name}".`,
+        );
+      }
+
+      const totalLinha = (item.priceCents + extrasCents) * linha.quantity;
+      subtotalCents += totalLinha;
+
+      linhas.push({
+        itemId: item.id,
+        nameSnapshot: item.name,
+        unitPriceCents: item.priceCents,
+        quantity: linha.quantity,
+        totalCents: totalLinha,
+        notes: linha.notes,
+        stationId: item.station?.id ?? null,
+        stationNameSnapshot: item.station?.name ?? null,
+        modifiers: complementos,
+      });
+    }
+
+    return { linhas, subtotalCents };
+  }
+
+  /**
+   * Cria um pedido de MESA (uma rodada da comanda).
+   *
+   * Diferenças para o delivery: não tem endereço nem frete, e o pedido nasce
+   * já como RECEBIDO — na mesa não se paga antes, paga-se no fim.
+   */
+  async criarPedidoDeMesa(entrada: {
+    tenantId: string;
+    brandId: string;
+    unitId: string;
+    tableId: string;
+    sessionId: string;
+    waiterId?: string | null;
+    customerName: string;
+    notes?: string;
+    itens: Array<{ itemId: string; quantity: number; modifierIds?: string[]; notes?: string }>;
+  }) {
+    const { linhas, subtotalCents } = await this.montarLinhas(
+      entrada.brandId,
+      SalesChannel.DINE_IN,
+      entrada.itens,
+    );
+
+    const code = await this.gerarCodigoUnico();
+
+    const pedido = await this.tenantPrisma.db.order.create({
+      data: {
+        tenantId: entrada.tenantId,
+        brandId: entrada.brandId,
+        channel: SalesChannel.DINE_IN,
+        source: OrderSource.DIRECT,
+        unitId: entrada.unitId,
+        tableId: entrada.tableId,
+        tableSessionId: entrada.sessionId,
+        waiterId: entrada.waiterId ?? null,
+        code,
+        // Na mesa o pedido já entra na cozinha; a conta vem depois.
+        status: OrderStatus.RECEIVED,
+        customerName: entrada.customerName,
+        customerPhone: '-',
+        notes: entrada.notes,
+        subtotalCents,
+        deliveryFeeCents: 0,
+        totalCents: subtotalCents,
+        items: {
+          create: linhas.map((l) => ({
+            tenantId: entrada.tenantId,
+            itemId: l.itemId,
+            nameSnapshot: l.nameSnapshot,
+            unitPriceCents: l.unitPriceCents,
+            quantity: l.quantity,
+            totalCents: l.totalCents,
+            notes: l.notes,
+            stationId: l.stationId,
+            stationNameSnapshot: l.stationNameSnapshot,
+            modifiers: {
+              create: l.modifiers.map((m) => ({
+                tenantId: entrada.tenantId,
+                modifierId: m.modifierId,
+                nameSnapshot: m.nameSnapshot,
+                priceDeltaCents: m.priceDeltaCents,
+              })),
+            },
+          })),
+        },
+      },
+      include: { items: { include: { modifiers: true } } },
+    });
+
+    await this.registrarEvento(
+      entrada.tenantId,
+      entrada.brandId,
+      pedido.id,
+      pedido.code,
+      'order.created',
+      { canal: 'DINE_IN', mesa: entrada.tableId, comanda: entrada.sessionId },
+      { tableId: entrada.tableId, sessionId: entrada.sessionId },
+    );
+
+    return this.formatarPedido(pedido);
   }
 
   // =========================================================================
@@ -429,6 +524,7 @@ export class OrderService {
       atualizado.code,
       'order.status_changed',
       { de: pedido.status, para: novo, por: quem },
+      { tableId: atualizado.tableId, sessionId: atualizado.tableSessionId },
     );
 
     return this.formatarPedido(atualizado);
@@ -541,6 +637,8 @@ export class OrderService {
     orderCode: string,
     type: string,
     payload?: Record<string, unknown>,
+    /** salão: para a tela da mesa também escutar */
+    salao?: { tableId?: string | null; sessionId?: string | null },
   ) {
     try {
       await this.tenantPrisma.db.orderEvent.create({
@@ -555,6 +653,8 @@ export class OrderService {
       brandId,
       orderId,
       orderCode,
+      tableId: salao?.tableId ?? undefined,
+      sessionId: salao?.sessionId ?? undefined,
       type,
       data: payload,
       at: new Date().toISOString(),

@@ -13,6 +13,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrderModule } from './modules/order/order.module';
 import { OperationModule } from './modules/operation/operation.module';
+import { SalaoModule } from './modules/salao/salao.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
@@ -43,6 +44,7 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     CatalogModule,
     HealthModule,
     OrderModule,
+    SalaoModule,
   ],
   providers: [
     // Login exigido por padrão em TODAS as rotas.

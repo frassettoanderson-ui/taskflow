@@ -8,10 +8,14 @@ const CANAL = 'pedidos';
 
 export interface AvisoDePedido {
   tenantId: string;
-  brandId: string;
-  orderId: string;
-  orderCode: string;
-  type: string; // ex.: "order.created", "order.status_changed", "order.paid"
+  brandId?: string;
+  orderId?: string;
+  orderCode?: string;
+  /** salão: para a tela da mesa e o mapa de mesas reagirem */
+  tableId?: string;
+  sessionId?: string;
+  /** ex.: "order.created", "order.status_changed", "table.call", "session.paid" */
+  type: string;
   data?: Record<string, unknown>;
   at: string;
 }
@@ -65,6 +69,11 @@ export class RealtimeService implements OnModuleInit {
   /** Fluxo de avisos de UM pedido — usado pela tela do cliente. */
   streamDoPedido(orderId: string): Observable<MessageEvent> {
     return this.comBatimento(this.avisos.pipe(filter((a) => a.orderId === orderId)));
+  }
+
+  /** Fluxo de avisos de UMA mesa — usado pela tela do cliente sentado. */
+  streamDaMesa(tableId: string): Observable<MessageEvent> {
+    return this.comBatimento(this.avisos.pipe(filter((a) => a.tableId === tableId)));
   }
 
   /**

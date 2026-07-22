@@ -16,7 +16,8 @@ export function middleware(request: NextRequest) {
   const precisaLogin =
     pathname.startsWith('/painel') ||
     pathname.startsWith('/kds') ||
-    pathname.startsWith('/pedidos');
+    pathname.startsWith('/pedidos') ||
+    pathname.startsWith('/salao');
 
   if (!logado && precisaLogin) {
     const url = request.nextUrl.clone();
@@ -34,5 +35,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/painel/:path*', '/kds/:path*', '/pedidos/:path*', '/login'],
+  matcher: ['/painel/:path*', '/kds/:path*', '/pedidos/:path*', '/salao/:path*', '/login'],
 };

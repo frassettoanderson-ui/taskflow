@@ -33,6 +33,12 @@ export const TENANT_SCOPED_MODELS = new Set([
   'Customer',
   'DeliveryArea',
   'OpeningHour',
+  // Etapa 3 — salão
+  'Table',
+  'TableSession',
+  'ServiceCall',
+  'Reservation',
+  'WaitlistEntry',
   // (ProcessedWebhook fica de fora de propósito: é tabela de sistema)
 ]);
 

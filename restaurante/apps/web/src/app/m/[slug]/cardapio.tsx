@@ -67,7 +67,7 @@ export type RegrasPublicas = {
 // Carrinho (fica só no navegador do cliente — sem cadastro, sem conta)
 // ---------------------------------------------------------------------------
 
-type LinhaCarrinho = {
+export type LinhaCarrinho = {
   /** identifica esta linha; o mesmo prato com complementos diferentes vira 2 linhas */
   linhaId: string;
   itemId: string;
@@ -78,7 +78,7 @@ type LinhaCarrinho = {
 };
 
 /** Preço de uma linha = (item + complementos) x quantidade. */
-function totalDaLinha(l: LinhaCarrinho) {
+export function totalDaLinha(l: LinhaCarrinho) {
   const extras = l.complementos.reduce((s, c) => s + c.priceDeltaCents, 0);
   return (l.precoUnitarioCents + extras) * l.quantidade;
 }
@@ -383,7 +383,7 @@ function RodapeDeRegras({ regras, entrega }: { regras: RegrasPublicas; entrega: 
 // Janela de um item: escolher complementos e quantidade
 // ---------------------------------------------------------------------------
 
-function JanelaDoItem({
+export function JanelaDoItem({
   item,
   onFechar,
   onAdicionar,

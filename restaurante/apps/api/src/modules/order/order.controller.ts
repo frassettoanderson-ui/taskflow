@@ -68,9 +68,9 @@ export class OrderController {
     return this.orders.listarClientes(brandId);
   }
 
-  /** Avança (ou cancela) o pedido. Operador também pode — é quem está na cozinha. */
+  /** Avança (ou cancela) o pedido. Quem está na operação pode — inclusive a cozinha. */
   @Patch(':id/status')
-  @Roles(Role.OWNER, Role.MANAGER, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.MANAGER, Role.CASHIER, Role.WAITER, Role.OPERATOR)
   mudarStatus(
     @Param('id') id: string,
     @Body() dto: MudarStatusDto,

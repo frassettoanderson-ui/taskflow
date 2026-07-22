@@ -1,5 +1,13 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  forwardRef,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import { OrderStatus, PaymentStatus, SessionStatus } from '@prisma/client';
+import { SalaoService } from '../salao/salao.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantPrismaService } from '../../common/tenant/tenant-prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
@@ -17,6 +25,10 @@ export class PaymentService {
     private readonly context: TenantContextService,
     private readonly orders: OrderService,
     @Inject(PAYMENT_PROVIDER) private readonly gateway: PaymentProvider,
+    // O salão precisa do pagamento e o pagamento precisa avisar o salão quando
+    // uma parte da conta é quitada. O forwardRef é o jeito do NestJS de deixar
+    // dois módulos se conhecerem sem entrar num laço infinito na inicialização.
+    @Inject(forwardRef(() => SalaoService)) private readonly salao: SalaoService,
   ) {}
 
   /**
@@ -97,6 +109,86 @@ export class PaymentService {
   }
 
   /**
+   * Cria uma cobrança de UMA PARTE da conta da mesa.
+   *
+   * É isto que permite dividir: cada pessoa gera o seu Pix, e a conta só quita
+   * quando a soma fecha. O valor pode ser "o total dividido por N" ou um valor
+   * livre ("eu pago só a minha cerveja").
+   */
+  async criarCobrancaDeSessao(sessionId: string, amountCents: number) {
+    const comanda = await this.tenantPrisma.db.tableSession.findUnique({
+      where: { id: sessionId },
+      include: { payments: true },
+    });
+    if (!comanda) throw new NotFoundException('Comanda não encontrada.');
+
+    if (comanda.status === SessionStatus.PAID) {
+      throw new BadRequestException('Esta conta já foi paga.');
+    }
+    if (!Number.isInteger(amountCents) || amountCents <= 0) {
+      throw new BadRequestException('Informe um valor válido.');
+    }
+
+    // Quanto ainda falta, contando o que já foi pago E o que está reservado
+    // em cobranças ainda pendentes (senão daria para gerar Pix demais).
+    const jaPago = comanda.payments
+      .filter((p) => p.status === PaymentStatus.PAID)
+      .reduce((s, p) => s + p.amountCents, 0);
+    const pendente = comanda.payments
+      .filter((p) => p.status === PaymentStatus.PENDING)
+      .reduce((s, p) => s + p.amountCents, 0);
+
+    const disponivel = comanda.totalCents - jaPago - pendente;
+    if (amountCents > disponivel) {
+      throw new BadRequestException(
+        `Só falta ${(Math.max(0, disponivel) / 100).toLocaleString('pt-BR', {
+          style: 'currency',
+          currency: 'BRL',
+        })} para fechar esta conta.`,
+      );
+    }
+
+    const regras = lerRegras();
+    const split = calcularSplit({
+      source: 'DIRECT', // mesa é canal próprio: sem comissão de consumidor
+      method: 'PIX',
+      subtotalCents: amountCents,
+      deliveryFeeCents: 0, // não há entrega no salão
+      regras,
+      restauranteExternalId: `restaurant:${comanda.brandId}`,
+      plataformaExternalId: 'platform',
+    });
+
+    const cobranca = await this.gateway.createCharge({
+      tenantId: comanda.tenantId,
+      orderId: comanda.code, // no salão a referência é a comanda
+      amountCents,
+      method: 'PIX',
+      splits: split.splits,
+    });
+
+    const registro = await this.tenantPrisma.db.payment.create({
+      data: {
+        tenantId: comanda.tenantId,
+        tableSessionId: comanda.id,
+        provider: 'fake-pix',
+        externalId: cobranca.id,
+        method: 'PIX',
+        status: PaymentStatus.PENDING,
+        amountCents,
+        qrCode: cobranca.qrCode,
+      },
+    });
+
+    return {
+      chargeId: registro.externalId,
+      status: registro.status,
+      amountCents: registro.amountCents,
+      qrCode: registro.qrCode,
+    };
+  }
+
+  /**
    * Processa o aviso de pagamento do gateway.
    *
    * IDEMPOTENTE: guardamos o id do aviso. Se o mesmo chegar de novo (o que
@@ -147,25 +239,43 @@ export class PaymentService {
       return { ok: true, repetido: false, status: resultado.status };
     }
 
-    // 4) Pagamento aprovado: marca como pago e o pedido CAI NA COZINHA.
+    // 4) Pagamento aprovado.
     return this.context.runAsTenant(pagamento.tenantId, async () => {
       await this.tenantPrisma.db.payment.update({
         where: { id: pagamento.id },
         data: { status: PaymentStatus.PAID, paidAt: new Date() },
       });
 
+      // ---- pagamento de MESA: abate na conta e, se quitou, libera a mesa ----
+      if (pagamento.tableSessionId) {
+        const r = await this.salao.registrarPagamento(pagamento.tableSessionId);
+        this.logger.log(
+          r.quitada
+            ? `Comanda ${pagamento.tableSessionId} quitada — mesa liberada.`
+            : `Comanda ${pagamento.tableSessionId}: ainda faltam ${r.faltaCents} centavos.`,
+        );
+        return { ok: true, repetido: false, status: 'PAID', ...r };
+      }
+
+      // ---- pagamento de PEDIDO (delivery): cai na cozinha ----
+      const pedido = pagamento.order;
+      if (!pedido || !pagamento.orderId) {
+        return { ok: true, repetido: false, status: 'PAID' };
+      }
+      const orderId = pagamento.orderId;
+
       await this.orders.registrarEvento(
         pagamento.tenantId,
-        pagamento.order.brandId,
-        pagamento.orderId,
-        pagamento.order.code,
+        pedido.brandId,
+        orderId,
+        pedido.code,
         'order.paid',
         { chargeId: resultado.chargeId, amountCents: pagamento.amountCents },
       );
 
       // Só agora o pedido vira "recebido" e aparece para a cozinha.
-      if (pagamento.order.status === OrderStatus.AWAITING_PAYMENT) {
-        await this.orders.mudarStatus(pagamento.orderId, OrderStatus.RECEIVED, 'pagamento');
+      if (pedido.status === OrderStatus.AWAITING_PAYMENT) {
+        await this.orders.mudarStatus(orderId, OrderStatus.RECEIVED, 'pagamento');
       }
 
       return { ok: true, repetido: false, status: 'PAID' };

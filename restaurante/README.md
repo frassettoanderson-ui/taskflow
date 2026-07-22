@@ -3,7 +3,7 @@
 SaaS de canal próprio (gestor de pedidos + cardápio digital sem comissão) e portal/marketplace.
 O contexto completo do produto está em [CLAUDE.md](./CLAUDE.md).
 
-**Etapa atual: 2 — Multimarca e multicanal (concluída).**
+**Etapa atual: 3 — Atendimento presencial / salão (concluída).**
 
 ---
 
@@ -28,6 +28,9 @@ Para desligar: `Ctrl + C` no terminal, ou `docker compose down`.
 |---|---|
 | Site (login e Painel) | http://localhost:3010 |
 | **Painel único de pedidos** (todas as marcas) | http://localhost:3010/pedidos |
+| **Salão** — mapa de mesas, fila e reservas | http://localhost:3010/salao |
+| **QR Code da mesa 5** (o que o cliente abre) | http://localhost:3010/mesa/mesa-5 |
+| **Totem de autoatendimento** | http://localhost:3010/mesa/mesa-5?modo=totem |
 | **Cozinha (KDS)** — precisa login | http://localhost:3010/kds |
 | **Acompanhar pedido** | http://localhost:3010/pedido/`CÓDIGO` |
 | Cardápio — Cantina, delivery | http://localhost:3010/m/cantina-da-nona |
@@ -49,7 +52,9 @@ Senha de todos: **`123456`**
 |---|---|
 | `dono@exemplo.com` | Dono (OWNER) |
 | `gerente@exemplo.com` | Gerente (MANAGER) |
-| `operador@exemplo.com` | Operador (OPERATOR) |
+| `caixa@exemplo.com` | Caixa (CASHIER) — fecha conta e recebe |
+| `garcom@exemplo.com` | Garçom (WAITER) — lança pedido, **não** mexe em dinheiro |
+| `operador@exemplo.com` | Operador de cozinha (OPERATOR) |
 
 ---
 
@@ -225,14 +230,97 @@ No rodapé de qualquer cardápio há a tabela de horários da semana, com o dia 
 hoje em destaque. A Burger **fecha aos domingos no delivery** e o balcão dela
 fecha às 22:00 — se você testar depois disso, vai ver a marca como *fechada*.
 
+---
+
+## Como testar a Etapa 3 (salão)
+
+O exemplo tem **12 mesas da Cantina da Nona**: 8 no Interno (1 a 8) e 4 na Varanda
+(V1 a V4). O endereço do QR de cada uma é `/mesa/mesa-<número>` — por exemplo
+`/mesa/mesa-5` ou `/mesa/mesa-v2`.
+
+Use **duas abas** lado a lado: uma como cliente, outra como equipe.
+
+**1. O cliente aponta a câmera para o QR**
+Abra http://localhost:3010/mesa/mesa-5 — **sem login**. Aparece *Mesa 5*, o
+cardápio do **salão** (preços de salão) e dois botões: *Chamar garçom* e
+*Pedir a conta*.
+
+**2. Pedir pela mesa**
+Escolha o **Spaghetti à Bolonhesa** (R$ 54,90 — repare que é o preço do salão,
+não o do delivery) e envie. Aparece *"Pedido enviado para a cozinha"*, e a aba
+**Minha conta** já mostra R$ 60,39 (o prato + 10% de serviço).
+
+**3. O pedido cai no KDS marcado com a mesa**
+Em http://localhost:3010/kds o pedido aparece com canal **Salão** e cliente
+**Mesa 5**, com cada item na sua estação.
+
+**4. Chamar garçom e pedir a conta**
+Clique nos dois botões. Clique de novo: o sistema avisa que *já avisamos* — não
+enche a tela do garçom com o mesmo chamado.
+
+**5. O salão vê tudo ao vivo**
+Abra http://localhost:3010/salao (como `caixa@exemplo.com`). Sem recarregar nada:
+- os **chamados** aparecem no topo
+- a **Mesa 5** fica laranja/amarela com o valor em aberto e um **sino vermelho**
+- o rodapé mostra **fila de espera** e **reservas**
+
+**6. O garçom lança uma rodada**
+Clique na mesa ocupada → aba **Lançar pedido** → escolha algo → *Lançar na
+cozinha*. A comanda passa a ter 2 rodadas, uma marcada como *cliente pelo QR* e
+outra como *garçom*.
+
+**7. O caixa fecha a conta**
+Na aba **Conta**: *Fechar a conta*. Dá para **tirar a taxa de 10%** com um clique
+(e recolocar).
+
+**8. Dividir a conta**
+Escolha em quantas partes e clique em *Dividir em N* — cada parte vira um Pix.
+A soma **sempre fecha exato**: a última parte leva o centavo da sobra.
+Também dá para *Gerar Pix* de um **valor livre** ("eu pago só R$ 50").
+
+**9. Pagar e liberar a mesa**
+Clique em *Simular Pix* em cada parte. A cada pagamento o "Falta" diminui.
+Quando zera: a comanda vira **PAGA**, a **mesa volta a livre sozinha** no mapa e
+a tela do cliente zera — tudo sem ninguém recarregar página.
+
+**10. O garçom não mexe em dinheiro**
+Entre como `garcom@exemplo.com` e abra a mesma mesa. Ele **vê** a conta, mas não
+existem os botões *Fechar*, *Dividir* nem *Gerar Pix* — só o recado explicando
+que quem recebe é o caixa.
+
+**11. Totem de autoatendimento**
+http://localhost:3010/mesa/mesa-5?modo=totem — mesma base, tela cheia, letras
+maiores, sem os botões de mesa. Ao finalizar, mostra o código para retirar.
+
+**12. A cozinha não entra no salão**
+Entre como `operador@exemplo.com` e tente abrir /salao: acesso negado.
+
 ### Teste rápido pela API (opcional)
 
 ```bash
 docker compose exec api npx jest
 ```
 
-Devem passar **30 testes** — máquina de estados, divisão do dinheiro, papéis de
-acesso, isolamento por empresa, canais de venda e cálculo de distância.
+Devem passar **38 testes** — máquina de estados, divisão do dinheiro, papéis de
+acesso, isolamento por empresa, canais de venda, cálculo de distância, divisão da
+conta e taxa de serviço.
+
+---
+
+## O que ficou como "fake / ponta solta" na Etapa 3
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **QR Code** | O endereço da mesa funciona, mas **não geramos a imagem do QR** para imprimir e colar | Etapa de administração |
+| **Pagamento na mesa** | Continua no `FakePixProvider` — o botão *Simular Pix* imita o aviso do banco. Nenhum dinheiro real | Etapa 7 |
+| **Dividir por item** | Só por **N partes iguais** e por **valor livre**, como combinado. Marcar "o que cada um consumiu" não existe | Se você quiser depois |
+| **Cadastro de mesas** | As 12 mesas vêm do seed. Não há tela para criar/renomear mesa nem arrastar no mapa | Etapa de administração |
+| **Mesa e marca** | Cada mesa pertence a **uma** marca, como combinado. Praça de alimentação (pedir de várias marcas na mesma conta) não está previsto | Se você quiser depois |
+| **Horário no salão** | O QR da mesa **não** confere horário de funcionamento de propósito — quem está sentado já foi recebido. Marca **pausada** bloqueia | — |
+| **Reservas** | Cria, marca mesa como reservada e registra a chegada. Sem lembrete por WhatsApp nem controle de no-show automático | Etapa de atendimento |
+| **Fila de espera** | Entra, chama e senta. **Não avisa o cliente** por mensagem | Etapa 7 (WhatsApp) |
+| **Comanda por garçom** | O pedido guarda quem lançou, mas não há **relatório de vendas por garçom** nem acerto de comissão | Etapa de bastidores |
+| **Impressão** | Não imprime comanda nem conta | Etapa de administração |
 
 ---
 

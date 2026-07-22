@@ -25,6 +25,8 @@ const IDS = {
   userDono: 'usr_demo_dono',
   userGerente: 'usr_demo_gerente',
   userOperador: 'usr_demo_operador',
+  userGarcom: 'usr_demo_garcom',
+  userCaixa: 'usr_demo_caixa',
 
   unidade: 'unt_cozinha_centro',
   stForno: 'stn_forno',
@@ -816,6 +818,32 @@ async function main() {
     },
   });
 
+  await prisma.user.upsert({
+    where: { id: IDS.userGarcom },
+    update: { role: Role.WAITER, passwordHash: senha },
+    create: {
+      id: IDS.userGarcom,
+      tenantId: grupoSabor.id,
+      name: 'Tiago (Garçom)',
+      email: 'garcom@exemplo.com',
+      passwordHash: senha,
+      role: Role.WAITER,
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { id: IDS.userCaixa },
+    update: { role: Role.CASHIER, passwordHash: senha },
+    create: {
+      id: IDS.userCaixa,
+      tenantId: grupoSabor.id,
+      name: 'Carla (Caixa)',
+      email: 'caixa@exemplo.com',
+      passwordHash: senha,
+      role: Role.CASHIER,
+    },
+  });
+
   // ---------------------------------------------------------------
   // 2) A cozinha (unidade) e suas estações de produção
   // ---------------------------------------------------------------
@@ -890,6 +918,9 @@ async function main() {
     await seedAreasDeEntrega(grupoSabor.id, marca);
     await seedHorarios(grupoSabor.id, marca);
   }
+
+  // O salão é da Cantina — é ela que tem cardápio de mesa.
+  await seedSalao(grupoSabor.id, IDS.unidade, IDS.brandCantina);
 
   // ---------------------------------------------------------------
   // 4) Tenant "rival" — serve APENAS para provar o isolamento.
@@ -1061,6 +1092,56 @@ async function seedHorarios(tenantId: string, marca: SeedBrand) {
   }
 }
 
+/**
+ * Mesas do salão.
+ *
+ * O `qrToken` é o que vai dentro do QR Code colado na mesa. Aqui eles são
+ * legíveis de propósito ("mesa-01") para o passo a passo de teste poder citá-los;
+ * num restaurante de verdade seriam códigos sorteados.
+ */
+async function seedSalao(tenantId: string, unitId: string, brandId: string) {
+  const mesas: Array<{ numero: string; area: string; lugares: number; x: number; y: number }> = [
+    // Salão interno — grade de 4 colunas
+    { numero: '1', area: 'Interno', lugares: 2, x: 0, y: 0 },
+    { numero: '2', area: 'Interno', lugares: 2, x: 1, y: 0 },
+    { numero: '3', area: 'Interno', lugares: 4, x: 2, y: 0 },
+    { numero: '4', area: 'Interno', lugares: 4, x: 3, y: 0 },
+    { numero: '5', area: 'Interno', lugares: 4, x: 0, y: 1 },
+    { numero: '6', area: 'Interno', lugares: 4, x: 1, y: 1 },
+    { numero: '7', area: 'Interno', lugares: 6, x: 2, y: 1 },
+    { numero: '8', area: 'Interno', lugares: 6, x: 3, y: 1 },
+    // Varanda
+    { numero: 'V1', area: 'Varanda', lugares: 2, x: 0, y: 0 },
+    { numero: 'V2', area: 'Varanda', lugares: 2, x: 1, y: 0 },
+    { numero: 'V3', area: 'Varanda', lugares: 4, x: 2, y: 0 },
+    { numero: 'V4', area: 'Varanda', lugares: 8, x: 3, y: 0 },
+  ];
+
+  for (const m of mesas) {
+    const id = `tbl_${m.numero.toLowerCase()}`;
+    const token = `mesa-${m.numero.toLowerCase()}`;
+
+    await prisma.table.upsert({
+      where: { id },
+      update: { area: m.area, seats: m.lugares, posX: m.x, posY: m.y, brandId },
+      create: {
+        id,
+        tenantId,
+        unitId,
+        brandId,
+        number: m.numero,
+        area: m.area,
+        seats: m.lugares,
+        posX: m.x,
+        posY: m.y,
+        qrToken: token,
+      },
+    });
+  }
+
+  console.log(`  🍽️  Salão: ${mesas.length} mesas (Interno e Varanda)`);
+}
+
 function resumo() {
   const totalItens = MARCAS.reduce(
     (acc, m) =>
@@ -1074,7 +1155,14 @@ function resumo() {
   console.log('  Login (senha de todos: 123456)');
   console.log('    dono@exemplo.com      -> Dono      (OWNER)');
   console.log('    gerente@exemplo.com   -> Gerente   (MANAGER)');
+  console.log('    caixa@exemplo.com     -> Caixa     (CASHIER)');
+  console.log('    garcom@exemplo.com    -> Garçom    (WAITER)');
   console.log('    operador@exemplo.com  -> Operador  (OPERATOR)');
+  console.log('');
+  console.log('  Salão (o que o QR Code da mesa abre):');
+  console.log('    http://localhost:3010/mesa/mesa-5');
+  console.log('    http://localhost:3010/mesa/mesa-5?modo=totem');
+  console.log('    http://localhost:3010/salao   (mapa de mesas, precisa login)');
   console.log('');
   console.log('  Unidade: Cozinha Centro  |  Estações: Forno, Chapa, Montagem, Bebidas');
   console.log(`  ${MARCAS.length} marcas, ${totalItens} itens no total:`);

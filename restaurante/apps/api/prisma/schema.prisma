@@ -18,7 +18,9 @@ datasource db {
 enum Role {
   OWNER // dono
   MANAGER // gerente
-  OPERATOR // operador
+  CASHIER // caixa — fecha conta e recebe pagamento
+  WAITER // garçom — lança pedido e atende chamados, NÃO mexe em dinheiro
+  OPERATOR // operador de cozinha
 }
 
 /// A empresa cliente do SaaS. É a raiz do isolamento de dados.
@@ -50,6 +52,10 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  pedidosLancados Order[]        @relation("PedidosDoGarcom")
+  comandas        TableSession[] @relation("ComandasDoGarcom")
+  chamadosAtendidos ServiceCall[] @relation("ChamadosAtendidos")
 
   @@index([tenantId])
   @@map("users")
@@ -88,6 +94,8 @@ model Brand {
   customers    Customer[]
   deliveryArea DeliveryArea[]
   openingHours OpeningHour[]
+  tables       Table[]
+  sessions     TableSession[]
 
   @@index([tenantId])
   @@map("brands")
@@ -286,6 +294,17 @@ model Order {
   customerId String?
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
+  // ---- salão (Etapa 3) ----
+  /// Em qual mesa este pedido foi feito.
+  tableId String?
+  table   Table?  @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  /// A comanda da mesa — junta as várias rodadas de pedido numa conta só.
+  tableSessionId String?
+  tableSession   TableSession? @relation(fields: [tableSessionId], references: [id], onDelete: SetNull)
+  /// Qual garçom lançou (vazio = o próprio cliente pediu pelo QR ou totem).
+  waiterId String?
+  waiter   User?   @relation("PedidosDoGarcom", fields: [waiterId], references: [id], onDelete: SetNull)
+
   /// código curto que o cliente usa para acompanhar (ex.: "A7K2QD")
   code String @unique
 
@@ -405,8 +424,14 @@ model Payment {
   id String @id @default(cuid())
 
   tenantId String
-  orderId  String @unique
-  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  /// Um pagamento pertence a UM pedido (delivery) OU a UMA comanda de mesa.
+  /// Na mesa pode haver vários — é assim que a conta é dividida.
+  orderId String? @unique
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  tableSessionId String?
+  tableSession   TableSession? @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
 
   /// qual adaptador gerou (hoje: "fake-pix")
   provider   String
@@ -425,7 +450,219 @@ model Payment {
   updatedAt DateTime @updatedAt
 
   @@index([tenantId])
+  @@index([tableSessionId])
   @@map("payments")
+}
+
+// ===========================================================================
+//  SALÃO  (Etapa 3)
+// ===========================================================================
+
+enum TableStatus {
+  FREE // livre
+  OCCUPIED // ocupada
+  BILL_REQUESTED // pediu a conta
+  RESERVED // reservada
+  BLOCKED // bloqueada (manutenção)
+}
+
+enum SessionStatus {
+  OPEN // comanda aberta, ainda pedindo
+  CLOSING // conta fechada, aguardando pagamento
+  PAID // quitada
+  CANCELED
+}
+
+enum ServiceCallType {
+  WAITER // chamar garçom
+  BILL // pedir a conta
+}
+
+enum ServiceCallStatus {
+  PENDING
+  DONE
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  SEATED
+  CANCELED
+  NO_SHOW
+}
+
+enum WaitlistStatus {
+  WAITING
+  CALLED
+  SEATED
+  GAVE_UP
+}
+
+/// Uma mesa do salão.
+/// Pertence a UMA marca — é assim que o QR sabe qual cardápio abrir.
+model Table {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  /// o que está escrito na mesa: "5", "V2"
+  number String
+  area   String @default("Salão")
+  seats  Int    @default(4)
+
+  /// posição no mapa de mesas (grade simples)
+  posX Int @default(0)
+  posY Int @default(0)
+
+  /// o que vai dentro do QR Code: /mesa/<qrToken>
+  qrToken String      @unique
+  status  TableStatus @default(FREE)
+  active  Boolean     @default(true)
+
+  sessions     TableSession[]
+  orders       Order[]
+  calls        ServiceCall[]
+  reservations Reservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([unitId, number])
+  @@index([tenantId])
+  @@map("tables")
+}
+
+/// A COMANDA DA MESA — o coração do salão.
+///
+/// Abre quando alguém senta e fecha quando a conta é paga. Junta as várias
+/// rodadas de pedido (entrada, prato, sobremesa) numa conta só.
+model TableSession {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tableId  String
+  table    Table  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  /// código curto que o cliente vê na tela do celular
+  code   String        @unique
+  status SessionStatus @default(OPEN)
+  guests Int           @default(1)
+
+  /// garçom responsável (vazio quando o cliente pediu sozinho pelo QR)
+  waiterId String?
+  waiter   User?   @relation("ComandasDoGarcom", fields: [waiterId], references: [id], onDelete: SetNull)
+
+  /// taxa de serviço: 1000 = 10%. Pode ser desligada pelo cliente.
+  serviceFeeBps     Int     @default(1000)
+  serviceFeeEnabled Boolean @default(true)
+
+  // ---- valores, sempre em centavos ----
+  subtotalCents   Int @default(0)
+  serviceFeeCents Int @default(0)
+  totalCents      Int @default(0)
+  /// quanto já entrou (a conta pode ser paga em partes)
+  paidCents       Int @default(0)
+
+  notes String?
+
+  openedAt DateTime  @default(now())
+  closedAt DateTime?
+
+  orders   Order[]
+  payments Payment[]
+  calls    ServiceCall[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([tableId, status])
+  @@map("table_sessions")
+}
+
+/// "Chamar garçom" e "pedir a conta".
+model ServiceCall {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tableId  String
+  table    Table  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  sessionId String?
+  session   TableSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  type   ServiceCallType
+  status ServiceCallStatus @default(PENDING)
+  note   String?
+
+  resolvedAt   DateTime?
+  resolvedById String?
+  resolvedBy   User?     @relation("ChamadosAtendidos", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([unitId, status])
+  @@map("service_calls")
+}
+
+/// Reserva de mesa.
+model Reservation {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  tableId  String?
+  table    Table? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  name   String
+  phone  String
+  guests Int    @default(2)
+  /// quando o cliente chega
+  when   DateTime
+  status ReservationStatus @default(CONFIRMED)
+  notes  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([unitId, when])
+  @@map("reservations")
+}
+
+/// Fila de espera (quando não há mesa livre).
+model WaitlistEntry {
+  id String @id @default(cuid())
+
+  tenantId String
+  unitId   String
+  unit     Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  name   String
+  phone  String
+  guests Int            @default(2)
+  status WaitlistStatus @default(WAITING)
+
+  calledAt DateTime?
+  seatedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([unitId, status])
+  @@map("waitlist")
 }
 
 // ===========================================================================
@@ -453,10 +690,18 @@ model Unit {
 
   active Boolean @default(true)
 
+  /// Taxa de serviço padrão do salão, em pontos-base (1000 = 10%).
+  serviceFeeBps Int @default(1000)
+
   brands    BrandUnit[]
   stations  Station[]
   orders    Order[]
   overrides UnitItemOverride[]
+  tables    Table[]
+  sessions  TableSession[]
+  calls     ServiceCall[]
+  reservations Reservation[]
+  waitlist  WaitlistEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

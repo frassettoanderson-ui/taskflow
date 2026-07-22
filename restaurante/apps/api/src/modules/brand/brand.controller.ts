@@ -59,7 +59,7 @@ export class BrandController {
    * Tira o cardápio do ar na hora e recusa pedidos novos.
    */
   @Patch(':id/pausa')
-  @Roles(Role.OWNER, Role.MANAGER, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.MANAGER, Role.CASHIER, Role.OPERATOR)
   async pausar(@Param('id') id: string, @Body() dto: PausarDto) {
     await this.brands.findOne(id); // confirma que a marca é deste tenant
     return this.operacao.pausarMarca(id, dto.paused, dto.reason);
@@ -67,7 +67,7 @@ export class BrandController {
 
   /** Pausar um item do cardápio (ex.: acabou o camarão). */
   @Patch('itens/:itemId/pausa')
-  @Roles(Role.OWNER, Role.MANAGER, Role.OPERATOR)
+  @Roles(Role.OWNER, Role.MANAGER, Role.CASHIER, Role.OPERATOR)
   pausarItem(@Param('itemId') itemId: string, @Body() dto: PausarItemDto) {
     return this.operacao.pausarItem(itemId, dto.paused);
   }
