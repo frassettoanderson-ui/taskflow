@@ -3,7 +3,7 @@
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
-import { chamarApi } from './api';
+import { chamarApi } from '@/lib/chamar-api';
 import { EditorDeCardapio } from './editor-cardapio';
 import { RegrasDaMarca } from './regras-marca';
 import { Estrutura } from './estrutura';

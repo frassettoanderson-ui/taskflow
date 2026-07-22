@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
-import { chamarApi, paraCampo, paraCentavos } from './api';
+import { chamarApi, paraCampo, paraCentavos } from '@/lib/chamar-api';
 
 type Dia = { weekday: number; dia: string; fechado: boolean; faixas: Array<{ id: string; abre: string; fecha: string }> };
 type Area = {

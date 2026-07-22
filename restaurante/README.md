@@ -459,6 +459,67 @@ Em http://localhost:3010/clientes, abra um cliente e desça até
 
 ---
 
+## Como testar o PDV (o caixa do balcão)
+
+### A ideia em uma frase
+
+O balcão é o único canal onde o cliente **pede e paga no mesmo instante** — por
+isso a venda nasce já paga e já na cozinha, num clique só.
+
+### Onde fica
+
+http://localhost:3010/pdv — ou o botão **🧾 PDV (balcão)** no Painel.
+Quem opera: **dono, gerente e caixa**. O garçom é bloqueado de propósito: ele
+lança na comanda da mesa, não mexe em dinheiro.
+
+### Passo a passo
+
+**1. Escolha a marca** (se houver mais de uma com cardápio de balcão).
+Marca sem cardápio de balcão nem aparece — crie um em
+**Cadastro → Cardápio → + Balcão**.
+
+**2. Clique nos itens.** É o mesmo montador do totem e da comanda, em letra
+grande. Complemento obrigatório (o ponto da carne, o sabor do refrigerante)
+continua sendo exigido — o caixa não consegue mandar um pedido incompleto para
+a cozinha.
+
+**3. Ir para o pagamento.** Confira a lista, escolha **Dinheiro / Cartão / Pix**.
+No dinheiro, digite quanto o cliente entregou e o **troco aparece na hora**, em
+destaque. Se o valor não cobrir a conta, a tela avisa e o botão recusa.
+
+**4. Identificar o cliente é opcional.** Com o telefone, a pessoa entra na base
+da marca e ganha cashback quando o pedido for concluído — é como o balcão vira
+CRM. Sem telefone a venda sai igual, só não dá para reconhecê-la depois.
+
+**5. Receber.** Aparece o **código para chamar o cliente** em letra grande, o
+total e o troco. O pedido já está no `/kds`. Clique **Próximo cliente** e a tela
+zera para o próximo da fila.
+
+**6. Fechamento do dia.** O botão **🧾 Fechamento do dia** mostra quanto passou
+no balcão hoje, **separado por forma de pagamento** — é pela linha *Dinheiro*
+que se confere a gaveta, não pelo total (cartão e Pix não estão lá).
+
+### A prova de que funcionou
+
+> Teste real feito aqui: venda de 1 Zé Clássico (ao ponto) + 2 refrigerantes
+> (cola) = **R$ 43,70**, cliente entregou R$ 50,00 → **troco R$ 6,30**. O pedido
+> `ES8T8Y` apareceu no KDS como canal `COUNTER` com 2 linhas. Uma segunda venda
+> no cartão (R$ 20,70) gravou o split com **R$ 0,72 de taxa (3,5%)** para a
+> plataforma e **R$ 19,98** para o restaurante — no dinheiro, o restaurante
+> ficou com os R$ 43,70 inteiros. ✅
+
+### As travas (pode tentar quebrar)
+
+| O que você tenta | O que acontece |
+|---|---|
+| Mandar um item sem o complemento obrigatório | Recusa, dizendo qual escolha falta |
+| Dizer que recebeu menos que o total | Recusa: "o valor recebido é menor que o total" |
+| Vender numa marca pausada | Recusa e mostra o motivo da pausa |
+| Entrar no `/pdv` como garçom | 403 — o caixa não é dele |
+| Mandar o preço junto com o pedido | Ignorado: o preço é sempre relido do banco |
+
+---
+
 ## Como testar as Telas de Cadastro (`/admin`)
 
 ### A ideia em uma frase
@@ -528,6 +589,20 @@ outro — o sistema não sabe (nem se importa) se o cardápio veio do seed ou da
 | Apagar você mesmo, ou o último dono | Recusa: alguém precisa ficar com a chave |
 | Gerente tentando criar usuário | Recusa: só o dono |
 | Mexer no cadastro de outro restaurante | 404 — do seu ponto de vista aquilo não existe |
+
+---
+
+## O que ficou como "fake / ponta solta" no PDV
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **Maquininha (TEF)** | O caixa aperta "Cartão" e o sistema confia. A maquininha é separada — não há integração que confirme a aprovação | Etapa 7 |
+| **Impressão** | O botão *Imprimir* usa a impressão do navegador. Impressora térmica de verdade (ESC/POS) e gaveta que abre sozinha não existem | Quando tiver a impressora |
+| **Sangria e suprimento** | O fechamento mostra o que **vendeu**, não o caixa físico: não há "tirei R$ 200 da gaveta" nem fundo de troco | Se você quiser depois |
+| **Cancelar venda** | Feita a venda, o estorno é pelo painel de pedidos (cancelar o pedido). Não há botão de estorno no próprio PDV | Se acontecer no uso real |
+| **Cupom e cashback no balcão** | Não dá para aplicar cupom nem gastar cashback na venda de balcão — só ganhar | Junto com o resgate seguro |
+| **Fechamento por turno** | O resumo é do **dia**, não do turno de cada operador | Se você tiver mais de um turno |
+| **Funciona sem internet** | Não. Se a internet cair, o PDV para — é a mesma pendência do modo de contingência | Continua pendente |
 
 ---
 

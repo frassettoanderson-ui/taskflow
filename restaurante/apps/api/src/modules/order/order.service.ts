@@ -240,7 +240,10 @@ export class OrderService {
    *   - os grupos de complementos precisam respeitar o mínimo e o máximo;
    *   - complemento que não é do item é recusado.
    */
-  private async montarLinhas(
+  //  O PDV (balcão) também usa estes ajudantes: a regra de montar e conferir
+  //  uma venda tem que ser UMA só nos três canais. Por isso deixaram de ser
+  //  privados — mas continuam sendo detalhe interno, não rota de API.
+  async montarLinhas(
     brandId: string,
     channel: SalesChannel,
     itensPedidos: Array<{ itemId: string; quantity: number; modifierIds?: string[]; notes?: string }>,
@@ -916,7 +919,10 @@ export class OrderService {
    * telefone pedindo na Cantina e na Burger vira dois cadastros — são negócios
    * diferentes, e o dia que uma marca sair, ela leva a base dela.
    */
-  private async acharOuCriarCliente(brandId: string, dto: CreateOrderDto) {
+  async acharOuCriarCliente(
+    brandId: string,
+    dto: Pick<CreateOrderDto, 'customerName' | 'customerPhone'>,
+  ) {
     const phone = dto.customerPhone.replace(/\D/g, '');
 
     const existente = await this.tenantPrisma.db.tenantCustomer.findFirst({
@@ -930,7 +936,7 @@ export class OrderService {
   }
 
   /** Em qual cozinha esta marca produz. Hoje é uma; amanhã, a mais perto. */
-  private async unidadeDaMarca(brandId: string): Promise<string | null> {
+  async unidadeDaMarca(brandId: string): Promise<string | null> {
     const vinculo = await this.tenantPrisma.db.brandUnit.findFirst({
       where: { brandId, active: true },
       orderBy: { createdAt: 'asc' },
@@ -940,7 +946,7 @@ export class OrderService {
   }
 
   /** Sorteia um código curto que ainda não exista. */
-  private async gerarCodigoUnico(tentativas = 8): Promise<string> {
+  async gerarCodigoUnico(tentativas = 8): Promise<string> {
     for (let i = 0; i < tentativas; i++) {
       let code = '';
       for (let c = 0; c < 6; c++) {
@@ -953,7 +959,7 @@ export class OrderService {
   }
 
   /** Deixa o pedido no formato que as telas esperam. */
-  private formatarPedido(p: any) {
+  formatarPedido(p: any) {
     return {
       id: p.id,
       code: p.code,

@@ -20,6 +20,9 @@
 > — Telas de cadastro (`/admin`): o restaurante monta sozinho marca, cardápio por canal
 >   (com foto enviada do PC e complementos), horários, área de entrega, cashback, unidades,
 >   estações, mesas em lote e equipe. Não depende mais do seed.
+> — PDV (`/pdv`): o caixa do balcão. Venda nasce paga e já na cozinha, com troco calculado,
+>   cliente opcional (vira CRM) e fechamento do dia por forma de pagamento. Dono/gerente/caixa.
+>   Maquininha e impressora térmica continuam fora (Etapa 7).
 >
 > ⚠️ ETAPA 7 EM ESPERA por decisão do fundador: nada que exija conta em serviço externo
 > (pagamento real, WhatsApp, mapa, NF-e, iFood, despacho) deve ser iniciado sem ele pedir.

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
-import { chamarApi } from './api';
+import { chamarApi } from '@/lib/chamar-api';
 
 type Unidade = {
   id: string;

@@ -24,7 +24,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/estoque') ||
     pathname.startsWith('/financeiro') ||
     pathname.startsWith('/entregadores') ||
-    pathname.startsWith('/admin');
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/pdv');
 
   if (!logado && precisaLogin) {
     const url = request.nextUrl.clone();
@@ -54,6 +55,7 @@ export const config = {
     '/financeiro/:path*',
     '/entregadores/:path*',
     '/admin/:path*',
+    '/pdv/:path*',
     '/login',
   ],
 };

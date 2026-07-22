@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
-import { chamarApi, enviarFoto, paraCampo, paraCentavos } from './api';
+import { chamarApi, enviarFoto, paraCampo, paraCentavos } from '@/lib/chamar-api';
 
 type Cardapio = { id: string; channel: string; channelLabel: string; name: string; categorias: number };
 

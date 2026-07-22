@@ -18,6 +18,7 @@ import { MarketingModule } from './modules/marketing/marketing.module';
 import { GestaoModule } from './modules/gestao/gestao.module';
 import { PortalModule } from './modules/portal/portal.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { PdvModule } from './modules/pdv/pdv.module';
 import { QueueModule } from './queue/queue.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
@@ -55,6 +56,7 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     SalaoModule,
     PortalModule,
     AdminModule,
+    PdvModule,
   ],
   providers: [
     // Login exigido por padrão em TODAS as rotas.

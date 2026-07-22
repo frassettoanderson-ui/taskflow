@@ -64,6 +64,9 @@ export default async function PainelPage() {
           <Link href="/admin">
             <button className="ghost">⚙ Cadastro</button>
           </Link>
+          <Link href="/pdv">
+            <button className="ghost">🧾 PDV (balcão)</button>
+          </Link>
           <Link href="/relatorios">
             <button className="ghost">Relatórios</button>
           </Link>
