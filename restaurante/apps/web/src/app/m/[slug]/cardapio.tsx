@@ -234,8 +234,17 @@ export function Cardapio({
     <div className="cardapio" style={{ ['--marca' as any]: menu.brand.primaryColor }}>
       <header className="capa">
         <span className="selo">Peça direto — sem app, sem cadastro</span>
-        <h1>{menu.brand.name}</h1>
-        {menu.brand.description && <p>{menu.brand.description}</p>}
+        <div className="capa-marca">
+          {/* A logo é o que faz a página parecer do restaurante, e não nossa. */}
+          {menu.brand.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="capa-logo" src={menu.brand.logoUrl} alt={menu.brand.name} />
+          )}
+          <div>
+            <h1>{menu.brand.name}</h1>
+            {menu.brand.description && <p>{menu.brand.description}</p>}
+          </div>
+        </div>
       </header>
 
       {/* Abas de canal: a mesma marca com cardápios diferentes */}

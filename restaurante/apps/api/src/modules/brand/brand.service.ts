@@ -55,6 +55,7 @@ export class BrandService {
           name: m.name,
           slug: m.slug,
           primaryColor: m.primaryColor,
+          logoUrl: m.logoUrl,
           description: m.description,
           paused: m.paused,
           pausedReason: m.pausedReason,

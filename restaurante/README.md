@@ -541,6 +541,12 @@ Clique em **+ Nova marca**, dê um nome (ex.: *Padaria da Esquina*) e uma descri
 O endereço público sai pronto: `/m/padaria-da-esquina`. O cardápio de **Delivery**
 é criado junto, vazio.
 
+**1.1. A cara da marca** (aba *A cara da marca*)
+Envie a **logo** do computador, escolha a **cor** (com uma amostra ao vivo de
+como os botões vão ficar) e ajuste o nome e a frase. É o white-label: quem abre
+`/m/sua-marca` vê o restaurante, não o nosso sistema. O endereço público
+continua o mesmo — só a aparência muda.
+
 **2. Montar o cardápio** (aba *Cardápio*)
 - Escolha o canal em cima (**Delivery / Salão / Balcão**). Se o canal ainda não
   existe, aparece o botão **+ Salão** / **+ Balcão** para criá-lo.
@@ -610,7 +616,7 @@ outro — o sistema não sabe (nem se importa) se o cardápio veio do seed ou da
 
 | Item | Situação | Quando resolve |
 |---|---|---|
-| **Foto do item** | Salva **no disco do servidor** (`/app/uploads`). Funciona num servidor só; com dois, cada um teria fotos diferentes | Quando escalar: S3 ou similar |
+| **Foto do item e logo** | Salvam **no disco do servidor** (`/app/uploads`). Funciona num servidor só; com dois, cada um teria fotos diferentes | Quando escalar: S3 ou similar |
 | **E-mail do usuário** | É único **no sistema inteiro**, não por restaurante. Dois restaurantes não podem usar o mesmo e-mail | Antes de abrir para vários clientes |
 | **Troca de senha pelo próprio usuário** | Não existe: quem redefine é o dono, pela tela | Etapa de qualidade e confiança |
 | **Apagar marca** | Não existe — só criar e editar. Apagar levaria junto pedidos e histórico | Precisa virar "arquivar", não apagar |

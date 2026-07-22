@@ -5,11 +5,12 @@ import Link from 'next/link';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
 import { chamarApi } from '@/lib/chamar-api';
 import { EditorDeCardapio } from './editor-cardapio';
+import { IdentidadeDaMarca } from './identidade-marca';
 import { RegrasDaMarca } from './regras-marca';
 import { Estrutura } from './estrutura';
 import { Usuarios } from './usuarios';
 
-type Aba = 'cardapio' | 'regras' | 'estrutura' | 'usuarios';
+type Aba = 'identidade' | 'cardapio' | 'regras' | 'estrutura' | 'usuarios';
 
 export function TelaDeCadastro({
   marcasIniciais,
@@ -113,6 +114,7 @@ export function TelaDeCadastro({
       <nav className="canais" style={{ padding: '0 0 18px' }}>
         {(
           [
+            ['identidade', 'A cara da marca'],
             ['cardapio', 'Cardápio'],
             ['regras', 'Horários e entrega'],
             ['estrutura', 'Unidades e mesas'],
@@ -129,6 +131,14 @@ export function TelaDeCadastro({
         <p className="vazio">Crie uma marca para começar.</p>
       ) : (
         <>
+          {aba === 'identidade' && (
+            <IdentidadeDaMarca
+              marca={marca}
+              onErro={setErro}
+              onAviso={mostrar}
+              onMudou={recarregarMarcas}
+            />
+          )}
           {aba === 'cardapio' && (
             <EditorDeCardapio marca={marca} onErro={setErro} onAviso={mostrar} />
           )}

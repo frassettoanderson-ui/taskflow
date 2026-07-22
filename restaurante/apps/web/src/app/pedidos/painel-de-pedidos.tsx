@@ -9,6 +9,8 @@ export type MarcaResumo = {
   name: string;
   slug: string;
   primaryColor: string;
+  logoUrl?: string | null;
+  description?: string | null;
   paused: boolean;
   pausedReason: string | null;
   canais: Array<{

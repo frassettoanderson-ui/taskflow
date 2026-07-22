@@ -222,6 +222,23 @@ code {
   padding: 40px 24px 32px;
 }
 
+/* logo + nome lado a lado; sem logo, o nome ocupa tudo como antes */
+.capa-marca {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.capa-logo {
+  width: 62px;
+  height: 62px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
 .capa h1 {
   margin: 0;
   font-size: 26px;
