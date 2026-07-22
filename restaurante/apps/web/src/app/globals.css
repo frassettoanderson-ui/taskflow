@@ -392,6 +392,151 @@ code {
 }
 
 /* ======================================================================
+   PESQUISA DE SATISFAÇÃO (NPS)
+   ====================================================================== */
+
+.notas {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 4px;
+  margin: 6px 0 6px;
+}
+
+.nota {
+  width: auto;
+  padding: 10px 0;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.nota[data-faixa='baixa'][data-ativa='true'] {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.nota[data-faixa='media'][data-ativa='true'] {
+  background: #eab308;
+  border-color: #eab308;
+  color: #2a2000;
+}
+
+.nota[data-faixa='alta'][data-ativa='true'] {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: #06240f;
+}
+
+.notas-legenda {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-bottom: 20px;
+}
+
+/* ---- painel de NPS ---- */
+
+.nps-numero {
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.barra-nps {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 12px 0 8px;
+  background: var(--surface-2);
+}
+
+.barra-nps i {
+  display: block;
+  height: 100%;
+}
+
+/* ======================================================================
+   CRM E MARKETING
+   ====================================================================== */
+
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.chip {
+  width: auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chip[data-ativo='true'] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #1a1005;
+}
+
+.chip b {
+  margin-left: 6px;
+  opacity: 0.75;
+}
+
+.cashback-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cupom-caixa {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cupom-caixa input {
+  margin-bottom: 0;
+  text-transform: uppercase;
+}
+
+.cupom-caixa button {
+  width: auto;
+  flex: none;
+  padding: 11px 16px;
+}
+
+.oferta {
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  font-size: 13.5px;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.oferta.ruim {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+/* ======================================================================
    SALÃO — MAPA DE MESAS
    ====================================================================== */
 

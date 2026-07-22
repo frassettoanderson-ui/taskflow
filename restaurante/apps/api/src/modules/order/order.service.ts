@@ -13,6 +13,9 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { estaFinalizado, NOME_DO_STATUS, podeIr, proximoStatus } from './order.state-machine';
 import { OperationService } from '../operation/operation.service';
 import { NOME_DO_CANAL } from '../operation/channel';
+import { CouponService } from '../marketing/coupon.service';
+import { LoyaltyService } from '../marketing/loyalty.service';
+import { RetentionService } from '../marketing/retention.service';
 
 /** Letras e números sem os que se confundem (0/O, 1/I). */
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -27,6 +30,9 @@ export class OrderService {
     private readonly context: TenantContextService,
     private readonly realtime: RealtimeService,
     private readonly operacao: OperationService,
+    private readonly cupons: CouponService,
+    private readonly loyalty: LoyaltyService,
+    private readonly retencao: RetentionService,
   ) {}
 
   // =========================================================================
@@ -71,8 +77,47 @@ export class OrderService {
         },
         subtotalCents,
       );
-      const deliveryFeeCents = frete.feeCents;
-      const totalCents = subtotalCents + deliveryFeeCents;
+      // 3.1) O cliente da marca precisa existir ANTES do cupom: as regras de
+      //      segmento ("primeiro pedido", "inativo") dependem do histórico dele.
+      const cliente = await this.acharOuCriarCliente(brand.id, dto);
+
+      // 3.2) Cupom, se veio um.
+      let discountCents = 0;
+      let freteGratis = false;
+      let cupom: { couponId: string; code: string } | null = null;
+
+      if (dto.couponCode?.trim()) {
+        const r = await this.cupons.validar({
+          brandId: brand.id,
+          code: dto.couponCode,
+          subtotalCents,
+          deliveryFeeCents: frete.feeCents,
+          customerId: cliente.id,
+          telefone: dto.customerPhone,
+        });
+        discountCents = r.discountCents;
+        freteGratis = r.freteGratis;
+        cupom = { couponId: r.couponId, code: r.code };
+      }
+
+      const deliveryFeeCents = freteGratis ? 0 : frete.feeCents;
+
+      // 3.3) Cashback: o cliente pode pedir para usar, mas quem decide quanto
+      //      pode ser usado é o servidor (saldo real + teto do programa).
+      let cashbackRedeemedCents = 0;
+      if (dto.useCashbackCents && dto.useCashbackCents > 0) {
+        const podeUsar = await this.loyalty.quantoPodeUsar(
+          brand.id,
+          cliente.id,
+          subtotalCents - discountCents,
+        );
+        cashbackRedeemedCents = Math.min(dto.useCashbackCents, podeUsar);
+      }
+
+      const totalCents = Math.max(
+        0,
+        subtotalCents - discountCents - cashbackRedeemedCents + deliveryFeeCents,
+      );
 
       // 4) Agendamento: não aceitamos data no passado.
       let scheduledFor: Date | null = null;
@@ -84,8 +129,7 @@ export class OrderService {
         scheduledFor = quando;
       }
 
-      // 5) Cliente da marca e cozinha que vai produzir.
-      const cliente = await this.acharOuCriarCliente(brand.id, dto);
+      // 5) Cozinha que vai produzir.
       const unitId = await this.unidadeDaMarca(brand.id);
 
       // 6) Gravar.
@@ -115,7 +159,11 @@ export class OrderService {
           notes: dto.notes,
           subtotalCents,
           deliveryFeeCents,
+          discountCents,
+          cashbackRedeemedCents,
           totalCents,
+          couponId: cupom?.couponId,
+          couponCodeSnapshot: cupom?.code,
           items: {
             create: linhas.map((l) => ({
               tenantId: brand.tenantId,
@@ -141,13 +189,25 @@ export class OrderService {
         include: { items: { include: { modifiers: true } } },
       });
 
+      // Cupom e cashback: registrar o uso agora que o pedido existe.
+      if (cupom) {
+        await this.cupons.registrarUso(cupom.couponId, cliente.id, pedido.id, discountCents);
+      }
+      if (cashbackRedeemedCents > 0) {
+        await this.loyalty.registrarResgate(cliente.id, pedido.id, cashbackRedeemedCents);
+      }
+
+      // O carrinho deixou de estar abandonado.
+      await this.retencao.marcarRecuperado(brand.id, dto.clientKey, dto.customerPhone);
+
       // Atualiza o resumo do cliente DAQUELA marca (base do CRM).
-      await this.tenantPrisma.db.customer.update({
+      await this.tenantPrisma.db.tenantCustomer.update({
         where: { id: cliente.id },
         data: {
           ordersCount: { increment: 1 },
           totalSpentCents: { increment: totalCents },
           lastOrderAt: new Date(),
+          firstOrderAt: cliente.firstOrderAt ?? new Date(),
           addressStreet: dto.addressStreet,
           addressNumber: dto.addressNumber,
           addressDistrict: dto.addressDistrict,
@@ -475,7 +535,7 @@ export class OrderService {
 
   /** Clientes de uma marca (base própria de cada marca). */
   async listarClientes(brandId: string) {
-    return this.tenantPrisma.db.customer.findMany({
+    return this.tenantPrisma.db.tenantCustomer.findMany({
       where: { brandId },
       orderBy: { lastOrderAt: 'desc' },
       take: 200,
@@ -526,6 +586,22 @@ export class OrderService {
       { de: pedido.status, para: novo, por: quem },
       { tableId: atualizado.tableId, sessionId: atualizado.tableSessionId },
     );
+
+    // ---- PEDIDO ENTREGUE: é aqui que o relacionamento começa ----
+    // Os dois são "assinantes" do evento: se um falhar, o pedido continua
+    // entregue do mesmo jeito.
+    if (novo === OrderStatus.DELIVERED) {
+      try {
+        await this.loyalty.creditarPorPedido(atualizado.id);
+      } catch (e) {
+        this.logger.error(`Falhei ao creditar cashback do pedido ${atualizado.code}: ${e}`);
+      }
+      try {
+        await this.retencao.agendarPesquisa(atualizado.id, atualizado.tenantId);
+      } catch (e) {
+        this.logger.error(`Falhei ao agendar a pesquisa do pedido ${atualizado.code}: ${e}`);
+      }
+    }
 
     return this.formatarPedido(atualizado);
   }
@@ -671,12 +747,12 @@ export class OrderService {
   private async acharOuCriarCliente(brandId: string, dto: CreateOrderDto) {
     const phone = dto.customerPhone.replace(/\D/g, '');
 
-    const existente = await this.tenantPrisma.db.customer.findFirst({
+    const existente = await this.tenantPrisma.db.tenantCustomer.findFirst({
       where: { brandId, phone },
     });
     if (existente) return existente;
 
-    return this.tenantPrisma.db.customer.create({
+    return this.tenantPrisma.db.tenantCustomer.create({
       data: { brandId, phone, name: dto.customerName.trim() } as any,
     });
   }
@@ -736,6 +812,10 @@ export class OrderService {
       notes: p.notes,
       subtotalCents: p.subtotalCents,
       deliveryFeeCents: p.deliveryFeeCents,
+      discountCents: p.discountCents ?? 0,
+      cashbackRedeemedCents: p.cashbackRedeemedCents ?? 0,
+      cashbackEarnedCents: p.cashbackEarnedCents ?? 0,
+      cupom: p.couponCodeSnapshot ?? null,
       totalCents: p.totalCents,
       createdAt: p.createdAt,
       brand: p.brand ?? undefined,

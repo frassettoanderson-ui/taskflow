@@ -91,11 +91,18 @@ model Brand {
   menus        Menu[]
   orders       Order[]
   units        BrandUnit[]
-  customers    Customer[]
+  customers    TenantCustomer[]
   deliveryArea DeliveryArea[]
   openingHours OpeningHour[]
   tables       Table[]
   sessions     TableSession[]
+
+  // Etapa 4 — CRM e marketing
+  loyalty        LoyaltyProgram?
+  coupons        Coupon[]
+  campaigns      Campaign[]
+  abandonedCarts AbandonedCart[]
+  npsResponses   NpsResponse[]
 
   @@index([tenantId])
   @@map("brands")
@@ -292,7 +299,7 @@ model Order {
 
   /// Cliente da MARCA (a base é de cada marca, nunca compartilhada).
   customerId String?
-  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customer   TenantCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
 
   // ---- salão (Etapa 3) ----
   /// Em qual mesa este pedido foi feito.
@@ -323,15 +330,31 @@ model Order {
   scheduledFor DateTime?
 
   // ---- dinheiro, sempre em centavos ----
+  //
+  // A conta do total:
+  //   total = subtotal − desconto do cupom − cashback usado + frete
   subtotalCents    Int @default(0)
   deliveryFeeCents Int @default(0)
+  /// desconto vindo do cupom
+  discountCents    Int @default(0)
+  /// quanto do pedido foi pago com cashback
+  cashbackRedeemedCents Int @default(0)
+  /// quanto de cashback ESTE pedido gerou (creditado ao ser entregue)
+  cashbackEarnedCents   Int @default(0)
   totalCents       Int @default(0)
+
+  /// cupom usado (guardamos o código também, caso o cupom seja apagado depois)
+  couponId           String?
+  coupon             Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponCodeSnapshot String?
 
   notes String?
 
-  items   OrderItem[]
-  events  OrderEvent[]
-  payment Payment?
+  items    OrderItem[]
+  events   OrderEvent[]
+  payment  Payment?
+  cashback CashbackEntry[]
+  nps      NpsResponse?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -783,8 +806,9 @@ model UnitItemOverride {
 /// Cliente de uma MARCA.
 ///
 /// Princípio "seus clientes, seus dados": a base é por marca. O mesmo telefone
-/// pedindo na Cantina e na Burger vira dois cadastros — são negócios distintos.
-model Customer {
+/// pedindo na Cantina e na Burger vira dois cadastros — são negócios distintos,
+/// e o dia que uma marca sair, ela leva a base dela.
+model TenantCustomer {
   id String @id @default(cuid())
 
   tenantId String
@@ -798,6 +822,11 @@ model Customer {
   ordersCount     Int       @default(0)
   totalSpentCents Int       @default(0)
   lastOrderAt     DateTime?
+  firstOrderAt    DateTime?
+
+  /// saldo de cashback DESTA marca (é a soma do extrato; guardado aqui só
+  /// para a tela não precisar somar tudo toda vez)
+  cashbackBalanceCents Int @default(0)
 
   /// último endereço usado — poupa o cliente de redigitar
   addressStreet   String?
@@ -806,14 +835,365 @@ model Customer {
   addressCity     String?
   addressNote     String?
 
-  orders Order[]
+  /// o cliente pediu para não receber campanha
+  optOut Boolean @default(false)
+
+  /// Ligação com a carteira da REDE (o portal, Etapa 6).
+  /// Existe desde já para o dia de ligar o portal não exigir mexer no passado.
+  networkCustomerId String?
+  networkCustomer   NetworkCustomer? @relation(fields: [networkCustomerId], references: [id], onDelete: SetNull)
+
+  orders      Order[]
+  cashback    CashbackEntry[]
+  redemptions CouponRedemption[]
+  messages    OutboundMessage[]
+  npsAnswers  NpsResponse[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([brandId, phone])
   @@index([tenantId])
-  @@map("customers")
+  @@index([tenantId, lastOrderAt])
+  @@map("tenant_customers")
+}
+
+/// A CARTEIRA DA REDE — preparada agora, ligada de verdade na Etapa 6 (Portal).
+///
+/// Aqui o telefone é único no sistema INTEIRO: é a mesma pessoa, vista pelo
+/// portal. Cada TenantCustomer aponta para ela, sem que as marcas passem a
+/// enxergar a base uma da outra.
+model NetworkCustomer {
+  id String @id @default(cuid())
+
+  phone String  @unique
+  name  String?
+
+  /// carteira de cashback da rede (Etapa 6)
+  walletCents Int @default(0)
+
+  tenantCustomers TenantCustomer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("network_customers")
+}
+
+// ===========================================================================
+//  FIDELIDADE E CASHBACK  (Etapa 4)
+// ===========================================================================
+
+/// As regras de cashback de uma marca. Tudo configurável.
+model LoyaltyProgram {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String @unique
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  active Boolean @default(true)
+
+  /// quanto o cliente ganha de volta, em pontos-base (500 = 5%)
+  cashbackBps Int @default(500)
+  /// só gera cashback a partir deste valor de pedido
+  minOrderCents Int @default(0)
+  /// quantos dias o crédito vale
+  expiresInDays Int @default(90)
+  /// no resgate, quanto do pedido pode ser pago com cashback (5000 = 50%)
+  maxRedeemBps Int @default(5000)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("loyalty_programs")
+}
+
+enum CashbackEntryType {
+  EARN // ganhou
+  REDEEM // usou
+  EXPIRE // venceu
+  ADJUST // ajuste manual
+}
+
+/// O EXTRATO do cashback.
+///
+/// Por que extrato e não um campo "saldo": com um número só, ninguém sabe de
+/// onde veio nem quando vence. Aqui o saldo é a soma das linhas — dá para
+/// auditar, expirar o que passou da validade e corrigir sem perder a história.
+model CashbackEntry {
+  id String @id @default(cuid())
+
+  tenantId   String
+  customerId String
+  customer   TenantCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  type CashbackEntryType
+  /// positivo quando entra, negativo quando sai
+  amountCents Int
+
+  /// de qual pedido veio (ou em qual foi usado)
+  orderId String?
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  description String?
+  /// quando este crédito vence (só para EARN)
+  expiresAt DateTime?
+  /// marcado quando o vencimento já foi processado
+  expiredAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([customerId, createdAt])
+  @@index([expiresAt])
+  @@map("cashback_entries")
+}
+
+// ===========================================================================
+//  CUPONS  (Etapa 4)
+// ===========================================================================
+
+enum CouponType {
+  PERCENT // desconto percentual
+  FIXED // desconto de valor fixo
+  FREE_DELIVERY // frete grátis
+}
+
+/// A quem a promoção se destina.
+enum CustomerSegment {
+  ALL // todos
+  FIRST_ORDER // quem nunca pediu nesta marca
+  INACTIVE // não pede há X dias
+  RECURRING // pediu 3 vezes ou mais
+  NEW // pediu pela primeira vez há pouco tempo
+}
+
+model Coupon {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  /// o que o cliente digita
+  code        String
+  description String?
+
+  type       CouponType
+  /// PERCENT: pontos-base (1000 = 10%). FIXED: centavos. FREE_DELIVERY: ignorado.
+  value      Int        @default(0)
+  /// teto do desconto em centavos (0 = sem teto), útil no percentual
+  maxDiscountCents Int  @default(0)
+  minOrderCents    Int  @default(0)
+
+  // ---- a quem e quando vale ----
+  segment CustomerSegment @default(ALL)
+  /// para o segmento INACTIVE: quantos dias sem pedir
+  inactiveDays Int @default(30)
+
+  /// dias da semana em que vale (0=domingo). Vazio = todos.
+  weekdays Int[] @default([])
+  /// faixa de horário em minutos desde a meia-noite. Vazio = o dia todo.
+  hourFromMinutes Int?
+  hourToMinutes   Int?
+
+  validFrom  DateTime?
+  validUntil DateTime?
+
+  /// 0 = sem limite
+  usageLimit            Int @default(0)
+  usageLimitPerCustomer Int @default(1)
+  usedCount             Int @default(0)
+
+  active Boolean @default(true)
+
+  redemptions CouponRedemption[]
+  orders      Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, code])
+  @@index([tenantId])
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id String @id @default(cuid())
+
+  tenantId   String
+  couponId   String
+  coupon     Coupon         @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   TenantCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  orderId       String?
+  discountCents Int
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([couponId, customerId])
+  @@map("coupon_redemptions")
+}
+
+// ===========================================================================
+//  CAMPANHAS, MENSAGENS E RECUPERAÇÃO  (Etapa 4)
+// ===========================================================================
+
+enum CampaignStatus {
+  DRAFT
+  QUEUED
+  SENDING
+  DONE
+  FAILED
+}
+
+model Campaign {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  name    String
+  message String
+
+  segment      CustomerSegment @default(ALL)
+  inactiveDays Int             @default(30)
+
+  status       CampaignStatus @default(DRAFT)
+  scheduledFor DateTime?
+
+  // ---- resultado ----
+  recipientCount Int @default(0)
+  sentCount      Int @default(0)
+  failedCount    Int @default(0)
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  messages OutboundMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@map("campaigns")
+}
+
+enum MessageKind {
+  CAMPAIGN
+  CART_RECOVERY
+  NPS
+  ORDER_UPDATE
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+/// TUDO que o sistema mandou (ou tentou mandar) para um cliente.
+/// Enquanto o WhatsApp é fake, é aqui que você confere o que "foi enviado".
+model OutboundMessage {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String?
+
+  customerId String?
+  customer   TenantCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  kind    MessageKind
+  channel String      @default("WHATSAPP")
+  to      String
+  body    String
+
+  status     MessageStatus @default(PENDING)
+  providerId String?
+  error      String?
+  sentAt     DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@index([campaignId])
+  @@map("outbound_messages")
+}
+
+enum AbandonedCartStatus {
+  OPEN // parado, ainda dentro do prazo
+  NOTIFIED // já mandamos o lembrete
+  RECOVERED // o cliente voltou e fechou
+  EXPIRED // desistiu
+}
+
+/// Carrinho que ficou parado sem virar pedido.
+model AbandonedCart {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  /// identificação do navegador, para o mesmo carrinho não duplicar
+  clientKey String
+
+  name  String?
+  phone String?
+
+  /// o que estava no carrinho, como o cliente montou
+  items         Json
+  subtotalCents Int  @default(0)
+
+  status     AbandonedCartStatus @default(OPEN)
+  notifiedAt DateTime?
+  recoveredAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([brandId, clientKey])
+  @@index([tenantId, status])
+  @@map("abandoned_carts")
+}
+
+// ===========================================================================
+//  PESQUISA DE SATISFAÇÃO (NPS)  (Etapa 4)
+// ===========================================================================
+
+model NpsResponse {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  orderId String  @unique
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   TenantCustomer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  /// link público de resposta: /avaliar/<token>
+  token String @unique
+
+  /// 0 a 10 (vazio enquanto não respondeu)
+  score   Int?
+  comment String?
+
+  answeredAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId, createdAt])
+  @@map("nps_responses")
 }
 
 /// De que jeito a marca define para onde entrega.

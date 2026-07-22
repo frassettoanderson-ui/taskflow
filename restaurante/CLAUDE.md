@@ -1,13 +1,16 @@
 # Sistema para Restaurantes — Contexto do Projeto
 
 > Este arquivo é a **fonte de verdade** do projeto. Consultar em TODAS as etapas, antes de qualquer decisão de código.
-> Status atual: **Etapas 0, 1, 2 e 3 concluídas.**
+> Status atual: **Etapas 0, 1, 2, 3 e 4 concluídas.**
 > — Etapa 0: fundação (Docker, multi-tenant, login/papéis, adaptadores fake).
 > — Etapa 1: cardápio público → pedido → pagamento fake (Pix) → KDS → acompanhamento ao vivo.
 > — Etapa 2: multimarca e multicanal (2 marcas, cardápio por canal, unidade + estações,
 >   área de entrega por bairro/raio, horários, pausar marca/item, painel único de pedidos).
 > — Etapa 3: salão (QR na mesa, comanda do garçom, totem, chamar garçom/pedir a conta,
 >   taxa de serviço, divisão da conta, mapa de mesas, fila, reservas, papéis Caixa e Garçom).
+> — Etapa 4: CRM (TenantCustomer + NetworkCustomer preparada), cashback com extrato e
+>   validade, cupons segmentados, campanhas em massa pela fila (BullMQ), recuperação de
+>   carrinho abandonado e NPS automático. WhatsApp segue fake.
 > Como rodar e testar: ver [README.md](./README.md).
 
 ## Sobre o fundador (como me comunicar)

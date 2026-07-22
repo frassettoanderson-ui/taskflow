@@ -19,6 +19,17 @@ export const TENANT_SCOPED_MODELS = new Set([
   'Item',
   'ModifierGroup',
   'Modifier',
+  // Etapa 4 — CRM, fidelidade e marketing
+  'TenantCustomer',
+  'LoyaltyProgram',
+  'CashbackEntry',
+  'Coupon',
+  'CouponRedemption',
+  'Campaign',
+  'OutboundMessage',
+  'AbandonedCart',
+  'NpsResponse',
+  // (NetworkCustomer fica de fora: é a carteira da REDE, não de um tenant)
   // Etapa 1 — pedido
   'Order',
   'OrderItem',
@@ -30,7 +41,6 @@ export const TENANT_SCOPED_MODELS = new Set([
   'BrandUnit',
   'Station',
   'UnitItemOverride',
-  'Customer',
   'DeliveryArea',
   'OpeningHour',
   // Etapa 3 — salão

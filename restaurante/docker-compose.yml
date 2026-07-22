@@ -58,6 +58,11 @@ services:
       REDIS_URL: redis://cache:6379
       JWT_SECRET: ${JWT_SECRET}
       WEB_ORIGIN: http://localhost:3010
+      # Prazos das tarefas agendadas. Curtos DE PROPÓSITO em desenvolvimento,
+      # para você ver acontecendo em vez de esperar uma hora.
+      # Em produção: recuperação de carrinho ~30 min e pesquisa ~60 min.
+      CART_RECOVERY_MINUTES: "2"
+      NPS_DELAY_MINUTES: "1"
       # faz o "recarregar sozinho" funcionar dentro do Docker no Windows
       CHOKIDAR_USEPOLLING: "true"
     ports:

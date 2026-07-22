@@ -61,6 +61,12 @@ export default async function PainelPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link href="/clientes">
+            <button className="ghost">Clientes</button>
+          </Link>
+          <Link href="/marketing">
+            <button className="ghost">Marketing</button>
+          </Link>
           <Link href="/salao">
             <button className="ghost">Salão</button>
           </Link>

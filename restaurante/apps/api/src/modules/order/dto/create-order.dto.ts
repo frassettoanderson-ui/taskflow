@@ -61,6 +61,27 @@ export class CreateOrderDto {
   @IsEnum(PaymentMethod, { message: 'Forma de pagamento inválida.' })
   paymentMethod: PaymentMethod;
 
+  /** cupom digitado pelo cliente */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  couponCode?: string;
+
+  /**
+   * Quanto de cashback o cliente quer usar, em centavos.
+   * O servidor confere se ele realmente tem esse saldo e respeita o teto.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  useCashbackCents?: number;
+
+  /** identificação do navegador, para casar com o carrinho abandonado */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  clientKey?: string;
+
   @IsArray()
   @ArrayMinSize(1, { message: 'O carrinho está vazio.' })
   @ValidateNested({ each: true })

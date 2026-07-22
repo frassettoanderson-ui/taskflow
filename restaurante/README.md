@@ -3,7 +3,7 @@
 SaaS de canal próprio (gestor de pedidos + cardápio digital sem comissão) e portal/marketplace.
 O contexto completo do produto está em [CLAUDE.md](./CLAUDE.md).
 
-**Etapa atual: 3 — Atendimento presencial / salão (concluída).**
+**Etapa atual: 4 — CRM, fidelidade e marketing (concluída).**
 
 ---
 
@@ -28,6 +28,8 @@ Para desligar: `Ctrl + C` no terminal, ou `docker compose down`.
 |---|---|
 | Site (login e Painel) | http://localhost:3010 |
 | **Painel único de pedidos** (todas as marcas) | http://localhost:3010/pedidos |
+| **Clientes (CRM)** — base, segmentos e ficha | http://localhost:3010/clientes |
+| **Marketing** — cupons, campanhas e NPS | http://localhost:3010/marketing |
 | **Salão** — mapa de mesas, fila e reservas | http://localhost:3010/salao |
 | **QR Code da mesa 5** (o que o cliente abre) | http://localhost:3010/mesa/mesa-5 |
 | **Totem de autoatendimento** | http://localhost:3010/mesa/mesa-5?modo=totem |
@@ -295,15 +297,102 @@ maiores, sem os botões de mesa. Ao finalizar, mostra o código para retirar.
 **12. A cozinha não entra no salão**
 Entre como `operador@exemplo.com` e tente abrir /salao: acesso negado.
 
+---
+
+## Como testar a Etapa 4 (CRM, fidelidade e marketing)
+
+### O que o exemplo já traz
+
+- **Cashback:** Cantina devolve **5%** (validade 90 dias, pedido mínimo R$ 30, dá para pagar
+  até 50% do pedido com ele). Burger devolve **3%** (60 dias).
+- **Cupons:** `PRIMEIRA10` (10% no primeiro pedido), `VOLTASEMPRE` (R$ 15 para quem sumiu
+  há 30 dias), `TERCADEMASSA` (frete grátis às terças, 18h–23h) e `BURGER5`.
+
+### Passo a passo
+
+**1. Um pedido cria o cliente no CRM**
+Faça um pedido em http://localhost:3010/m/cantina-da-nona e abra
+http://localhost:3010/clientes. O cliente está lá, com telefone, bairro, nº de
+pedidos e ticket médio.
+
+**2. Entregar o pedido credita o cashback**
+Leve o pedido até **Entregue** no KDS. Volte em Clientes, clique no cliente:
+o **extrato** mostra `ganhou +R$ X · 5% de volta`, com data de vencimento.
+
+**3. Usar o cashback no próximo pedido**
+Faça outro pedido e, no checkout, digite **o mesmo telefone**. Aparece:
+*"💰 Joana, você tem R$ 14,35 de cashback aqui — usar neste pedido"*.
+Marque a caixinha e veja o total cair.
+
+**4. Cupom**
+No mesmo checkout, digite `PRIMEIRA10` e clique em **Aplicar**. Se o cliente já
+pediu antes, ele **recusa** com a explicação. Experimente também `TERCADEMASSA`
+num dia que não seja terça — ele diz o motivo.
+
+**5. Criar um cupom pela tela**
+Em http://localhost:3010/marketing → aba **Cupons** → **+ Novo cupom**.
+Crie, por exemplo, `SEMPRE15` com 15%, e use no checkout.
+
+**6. Disparar uma campanha**
+Aba **Campanhas** → **+ Nova campanha**. Escolha o segmento (ex.: *Todos*),
+escreva a mensagem usando `{nome}` e crie. Depois clique em **Disparar agora**.
+
+A campanha vai para a **fila** e a tela atualiza sozinha mostrando
+*enviando… → concluída*, com o total de enviadas e falhas.
+
+**7. Ver as mensagens "enviadas"**
+Aba **Enviadas**: está tudo ali — campanha, recuperação de carrinho e pesquisa.
+Como o WhatsApp é fake, nada sai da sua máquina. Também dá para acompanhar no log:
+
+```bash
+docker compose logs -f api
+```
+
+**8. Carrinho abandonado**
+Monte um carrinho no cardápio, vá até o checkout, **digite nome e telefone** e
+feche a aba sem finalizar. Em **Marketing → Satisfação**, o carrinho aparece
+como *parado*. Passados **2 minutos** (em desenvolvimento), o lembrete é enviado
+e o status vira *lembrete enviado*.
+
+**9. Pesquisa de satisfação (NPS)**
+**1 minuto** depois de um pedido ser entregue, o convite é enviado. Vá em
+**Marketing → Enviadas**, copie o link `/avaliar/<código>` da mensagem e abra no
+navegador. Dê uma nota de 0 a 10 e envie. O resultado aparece na aba
+**Satisfação**, com o cálculo do NPS.
+
+> Os prazos de 2 e 1 minuto são curtos **de propósito em desenvolvimento**, para
+> você não esperar. Em produção seriam 30 e 60 minutos (`CART_RECOVERY_MINUTES`
+> e `NPS_DELAY_MINUTES` no `docker-compose.yml`).
+
+**10. Segmentos**
+Na tela de Clientes, os botões do topo filtram: *Todos*, *Ainda não pediram*,
+*Novos*, *Recorrentes (3+)* e *Inativos* — com a contagem de cada um.
+
 ### Teste rápido pela API (opcional)
 
 ```bash
 docker compose exec api npx jest
 ```
 
-Devem passar **38 testes** — máquina de estados, divisão do dinheiro, papéis de
+Devem passar **58 testes** — máquina de estados, divisão do dinheiro, papéis de
 acesso, isolamento por empresa, canais de venda, cálculo de distância, divisão da
-conta e taxa de serviço.
+conta, taxa de serviço, cashback, segmentos e NPS.
+
+---
+
+## O que ficou como "fake / ponta solta" na Etapa 4
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **WhatsApp** | `FakeMessagingProvider`: registra a mensagem, escreve no log e nada sai da máquina. Toda a mecânica (fila, tentativas, relatório) é real | Etapa 7 |
+| **⚠️ Resgate do cashback** | Identificamos o cliente **só pelo telefone, sem confirmação** — como você escolheu. Quem souber o telefone de outra pessoa consegue gastar o cashback dela. **Não subir assim para produção** | Código por WhatsApp na Etapa 7 |
+| **Carteira da rede** (`NetworkCustomer`) | Tabela criada e ligada ao cliente da marca, mas **ainda não é alimentada** — é a base do cashback do portal | Etapa 6 |
+| **Trabalhadores da fila** | Rodam dentro da própria API. Com muito volume, viram um processo separado | Quando o volume pedir |
+| **Campanhas** | Dispara na hora. **Não há agendamento** ("mandar sábado às 10h"), nem limite de velocidade por operadora | Etapa 7 |
+| **Opt-out** | O campo existe e as campanhas respeitam, mas **o cliente não tem como se descadastrar sozinho** (falta o link na mensagem) | Etapa 7 |
+| **Cupons** | Percentual, valor fixo e frete grátis, com regras de dia/horário/segmento. **Não há** cupom por item específico nem "compre 2 leve 3" | Se você quiser depois |
+| **Cashback no salão** | Só funciona no delivery — no salão o cliente não se identifica por telefone | Quando fizer sentido |
+| **LGPD** | Não há exportação nem exclusão de dados do cliente a pedido dele | Etapa de qualidade e confiança |
 
 ---
 
@@ -348,6 +437,18 @@ docker compose down -v       # desliga E APAGA o banco (recomeça do zero)
 docker compose logs -f api   # acompanha o backend
 docker compose exec api npx prisma db seed   # recria os dados de exemplo
 docker compose exec api npx prisma studio    # abre uma tela para ver o banco
+```
+
+### Quando eu acrescentar uma biblioteca nova
+
+As bibliotecas ficam num "volume" separado do Docker, que **não se atualiza
+sozinho** quando o `package.json` muda. Se o backend reclamar de um pacote que
+deveria existir:
+
+```bash
+docker compose rm -sf api
+docker volume rm restaurante_api_node_modules
+docker compose up -d api
 ```
 
 ---

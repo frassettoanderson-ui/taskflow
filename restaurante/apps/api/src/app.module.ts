@@ -14,6 +14,8 @@ import { HealthModule } from './modules/health/health.module';
 import { OrderModule } from './modules/order/order.module';
 import { OperationModule } from './modules/operation/operation.module';
 import { SalaoModule } from './modules/salao/salao.module';
+import { MarketingModule } from './modules/marketing/marketing.module';
+import { QueueModule } from './queue/queue.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
 import { RolesGuard } from './common/auth/roles.guard';
@@ -35,8 +37,10 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
 
     CoreModule,
     RedisModule,
+    QueueModule,
     AdaptersModule,
     OperationModule,
+    MarketingModule,
 
     // Um módulo por área de negócio (vão crescer a cada etapa).
     AuthModule,

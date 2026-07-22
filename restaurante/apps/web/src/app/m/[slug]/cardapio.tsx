@@ -87,6 +87,23 @@ export function dinheiro(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+/**
+ * Um apelido fixo para este navegador.
+ *
+ * Serve para reconhecer o MESMO carrinho quando o cliente volta — é o que
+ * permite a recuperação de carrinho abandonado sem exigir cadastro.
+ */
+export function chaveDoNavegador(): string {
+  if (typeof window === 'undefined') return 'servidor';
+  const CHAVE = 'restaurante:navegador';
+  let valor = localStorage.getItem(CHAVE);
+  if (!valor) {
+    valor = `nav-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    localStorage.setItem(CHAVE, valor);
+  }
+  return valor;
+}
+
 // ---------------------------------------------------------------------------
 
 export function Cardapio({
@@ -151,6 +168,34 @@ export function Cardapio({
   useEffect(() => {
     if (verCarrinho) buscarSugestoes();
   }, [verCarrinho, buscarSugestoes]);
+
+  /**
+   * Avisa o servidor sobre o carrinho, para a recuperação de carrinho
+   * abandonado. Esperamos 3 segundos parado para não mandar a cada clique.
+   */
+  useEffect(() => {
+    if (carrinho.length === 0) return;
+
+    const timer = setTimeout(() => {
+      fetch(`/api/public/carrinho/${menu.brand.slug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientKey: chaveDoNavegador(),
+          subtotalCents: totalCarrinho,
+          itens: carrinho.map((l) => ({
+            nome: l.nome,
+            quantidade: l.quantidade,
+            totalCents: totalDaLinha(l),
+          })),
+        }),
+      }).catch(() => {
+        /* recuperação de carrinho é um extra: se falhar, o pedido segue */
+      });
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [carrinho, totalCarrinho, menu.brand.slug]);
 
   function adicionar(linha: LinhaCarrinho) {
     setCarrinho((atual) => [...atual, linha]);
@@ -676,6 +721,88 @@ function JanelaCheckout({
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
+  // ---- cupom e cashback ----
+  const [cupom, setCupom] = useState('');
+  const [cupomOk, setCupomOk] = useState<{ desconto: number; texto: string } | null>(null);
+  const [cupomErro, setCupomErro] = useState<string | null>(null);
+  const [conferindoCupom, setConferindoCupom] = useState(false);
+  const [carteira, setCarteira] = useState<{ saldo: number; maxUsavel: number; nome: string | null } | null>(null);
+  const [usarCashback, setUsarCashback] = useState(false);
+
+  /** Ao digitar o telefone, buscamos o saldo de cashback daquele cliente. */
+  async function consultarCashback(telefone: string) {
+    const so = telefone.replace(/\D/g, '');
+    if (so.length < 10) return setCarteira(null);
+
+    // De quebra, o carrinho passa a ter dono: se a pessoa desistir agora,
+    // conseguimos mandar o lembrete.
+    fetch(`/api/public/carrinho/${slug}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientKey: chaveDoNavegador(),
+        subtotalCents: total,
+        nome: form.customerName,
+        telefone: so,
+        itens: linhas.map((l) => ({ nome: l.nome, quantidade: l.quantidade })),
+      }),
+    }).catch(() => {});
+
+    try {
+      const res = await fetch(
+        `/api/public/cashback/${slug}?telefone=${so}&subtotal=${total}`,
+        { cache: 'no-store' },
+      );
+      if (!res.ok) return;
+      const d = await res.json();
+      if (d.temPrograma && d.saldoCents > 0) {
+        setCarteira({ saldo: d.saldoCents, maxUsavel: d.maxUsavelCents, nome: d.nome });
+      } else {
+        setCarteira(null);
+      }
+    } catch {
+      setCarteira(null);
+    }
+  }
+
+  /** Confere o cupom no servidor — a tela só mostra o resultado. */
+  async function conferirCupom() {
+    if (!cupom.trim()) return;
+    setConferindoCupom(true);
+    setCupomErro(null);
+    setCupomOk(null);
+    try {
+      const res = await fetch(`/api/public/cupom/${slug}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: cupom.trim(),
+          subtotalCents: total,
+          telefone: form.customerPhone,
+        }),
+      });
+      const d = await res.json();
+      if (d.valido) {
+        setCupomOk({
+          desconto: d.discountCents,
+          texto: d.freteGratis
+            ? 'Frete grátis aplicado!'
+            : `Desconto de ${dinheiro(d.discountCents)} aplicado!`,
+        });
+      } else {
+        setCupomErro(d.motivo ?? 'Cupom inválido.');
+      }
+    } catch {
+      setCupomErro('Não consegui conferir o cupom agora.');
+    } finally {
+      setConferindoCupom(false);
+    }
+  }
+
+  const cashbackUsado = usarCashback && carteira ? carteira.maxUsavel : 0;
+  const descontoCupom = cupomOk?.desconto ?? 0;
+  const totalEstimado = Math.max(0, total - descontoCupom - cashbackUsado);
+
   function campo(nome: keyof typeof form) {
     return {
       value: form[nome],
@@ -701,6 +828,9 @@ function JanelaCheckout({
         body: JSON.stringify({
           ...form,
           paymentMethod: 'PIX',
+          couponCode: cupomOk ? cupom.trim() : undefined,
+          useCashbackCents: cashbackUsado > 0 ? cashbackUsado : undefined,
+          clientKey: chaveDoNavegador(),
           scheduledFor: agendar && quando ? new Date(quando).toISOString() : undefined,
           // Mandamos apenas O QUE foi escolhido. O preço é recalculado no servidor.
           items: linhas.map((l) => ({
@@ -754,7 +884,33 @@ function JanelaCheckout({
           <input id="nome" required minLength={2} {...campo('customerName')} />
 
           <label htmlFor="fone">Telefone (com DDD)</label>
-          <input id="fone" required minLength={8} placeholder="48 99999-0000" {...campo('customerPhone')} />
+          <input
+            id="fone"
+            required
+            minLength={8}
+            placeholder="48 99999-0000"
+            value={form.customerPhone}
+            onChange={(e) => {
+              setForm((f) => ({ ...f, customerPhone: e.target.value }));
+              consultarCashback(e.target.value);
+            }}
+          />
+
+          {/* Cashback deste cliente nesta marca */}
+          {carteira && (
+            <div className="oferta">
+              💰 {carteira.nome ? `${carteira.nome.split(' ')[0]}, você` : 'Você'} tem{' '}
+              <strong>{dinheiro(carteira.saldo)}</strong> de cashback aqui.
+              <label className="opcao" style={{ borderBottom: 0, paddingBottom: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={usarCashback}
+                  onChange={(e) => setUsarCashback(e.target.checked)}
+                />
+                <span>Usar {dinheiro(carteira.maxUsavel)} neste pedido</span>
+              </label>
+            </div>
+          )}
 
           {precisaEndereco && (
             <>
@@ -806,9 +962,44 @@ function JanelaCheckout({
           <label htmlFor="obs">Observação do pedido</label>
           <input id="obs" placeholder="Sem cebola, por favor…" {...campo('notes')} />
 
-          <div className="totais grande" style={{ marginTop: 10 }}>
+          <label htmlFor="cupom">Cupom de desconto</label>
+          <div className="cupom-caixa">
+            <input
+              id="cupom"
+              value={cupom}
+              onChange={(e) => {
+                setCupom(e.target.value);
+                setCupomOk(null);
+                setCupomErro(null);
+              }}
+              placeholder="PRIMEIRA10"
+            />
+            <button type="button" className="ghost" onClick={conferirCupom} disabled={conferindoCupom}>
+              {conferindoCupom ? '…' : 'Aplicar'}
+            </button>
+          </div>
+          {cupomOk && <div className="oferta">🎟️ {cupomOk.texto}</div>}
+          {cupomErro && <div className="oferta ruim">{cupomErro}</div>}
+
+          <div className="totais" style={{ marginTop: 10 }}>
             <span>Itens</span>
             <span>{dinheiro(total)}</span>
+          </div>
+          {descontoCupom > 0 && (
+            <div className="totais">
+              <span>Cupom {cupom.toUpperCase()}</span>
+              <span>− {dinheiro(descontoCupom)}</span>
+            </div>
+          )}
+          {cashbackUsado > 0 && (
+            <div className="totais">
+              <span>Cashback</span>
+              <span>− {dinheiro(cashbackUsado)}</span>
+            </div>
+          )}
+          <div className="totais grande">
+            <span>Subtotal</span>
+            <span>{dinheiro(totalEstimado)}</span>
           </div>
           <p className="hint" style={{ marginTop: 4 }}>
             {precisaEndereco

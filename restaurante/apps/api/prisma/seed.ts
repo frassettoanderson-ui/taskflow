@@ -922,6 +922,10 @@ async function main() {
   // O salão é da Cantina — é ela que tem cardápio de mesa.
   await seedSalao(grupoSabor.id, IDS.unidade, IDS.brandCantina);
 
+  // CRM: programa de cashback de cada marca e cupons de exemplo.
+  await seedFidelidade(grupoSabor.id);
+  await seedCupons(grupoSabor.id);
+
   // ---------------------------------------------------------------
   // 4) Tenant "rival" — serve APENAS para provar o isolamento.
   // ---------------------------------------------------------------
@@ -1140,6 +1144,100 @@ async function seedSalao(tenantId: string, unitId: string, brandId: string) {
   }
 
   console.log(`  🍽️  Salão: ${mesas.length} mesas (Interno e Varanda)`);
+}
+
+/**
+ * Programa de cashback de cada marca. Tudo configurável — estes são só os
+ * valores do exemplo.
+ */
+async function seedFidelidade(tenantId: string) {
+  const programas = [
+    {
+      brandId: IDS.brandCantina,
+      cashbackBps: 500, // 5% de volta
+      minOrderCents: 3000, // só a partir de R$ 30
+      expiresInDays: 90,
+      maxRedeemBps: 5000, // pode pagar até 50% do pedido com cashback
+    },
+    {
+      brandId: IDS.brandBurger,
+      cashbackBps: 300, // 3% de volta
+      minOrderCents: 0,
+      expiresInDays: 60,
+      maxRedeemBps: 3000,
+    },
+  ];
+
+  for (const p of programas) {
+    await prisma.loyaltyProgram.upsert({
+      where: { brandId: p.brandId },
+      update: p,
+      create: { tenantId, ...p },
+    });
+  }
+
+  console.log('  💳 Cashback: Cantina 5% (90 dias) | Burger 3% (60 dias)');
+}
+
+/** Cupons de exemplo, um de cada tipo de regra. */
+async function seedCupons(tenantId: string) {
+  const cupons = [
+    {
+      id: 'cpn_primeira10',
+      brandId: IDS.brandCantina,
+      code: 'PRIMEIRA10',
+      description: '10% de desconto no seu primeiro pedido',
+      type: 'PERCENT' as const,
+      value: 1000, // 10%
+      maxDiscountCents: 2000, // no máximo R$ 20
+      minOrderCents: 4000,
+      segment: 'FIRST_ORDER' as const,
+      usageLimitPerCustomer: 1,
+    },
+    {
+      id: 'cpn_voltasempre',
+      brandId: IDS.brandCantina,
+      code: 'VOLTASEMPRE',
+      description: 'R$ 15 off para quem não pede há 30 dias',
+      type: 'FIXED' as const,
+      value: 1500,
+      minOrderCents: 5000,
+      segment: 'INACTIVE' as const,
+      inactiveDays: 30,
+    },
+    {
+      id: 'cpn_terca',
+      brandId: IDS.brandCantina,
+      code: 'TERCADEMASSA',
+      description: 'Frete grátis às terças, das 18h às 23h',
+      type: 'FREE_DELIVERY' as const,
+      value: 0,
+      minOrderCents: 4000,
+      weekdays: [2], // terça
+      hourFromMinutes: 18 * 60,
+      hourToMinutes: 23 * 60,
+    },
+    {
+      id: 'cpn_burger5',
+      brandId: IDS.brandBurger,
+      code: 'BURGER5',
+      description: 'R$ 5 off em qualquer pedido',
+      type: 'FIXED' as const,
+      value: 500,
+      minOrderCents: 3000,
+    },
+  ];
+
+  for (const c of cupons) {
+    const { id, ...dados } = c;
+    await prisma.coupon.upsert({
+      where: { id },
+      update: dados,
+      create: { id, tenantId, ...dados },
+    });
+  }
+
+  console.log('  🎟️  Cupons: PRIMEIRA10, VOLTASEMPRE, TERCADEMASSA, BURGER5');
 }
 
 function resumo() {
