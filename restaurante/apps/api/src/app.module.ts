@@ -16,6 +16,7 @@ import { OperationModule } from './modules/operation/operation.module';
 import { SalaoModule } from './modules/salao/salao.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { GestaoModule } from './modules/gestao/gestao.module';
+import { PortalModule } from './modules/portal/portal.module';
 import { QueueModule } from './queue/queue.module';
 
 import { JwtAuthGuard } from './common/auth/jwt-auth.guard';
@@ -51,6 +52,7 @@ import { TOKEN_EXPIRES_IN } from './common/auth/auth.constants';
     HealthModule,
     OrderModule,
     SalaoModule,
+    PortalModule,
   ],
   providers: [
     // Login exigido por padrão em TODAS as rotas.

@@ -1,7 +1,7 @@
 # Sistema para Restaurantes — Contexto do Projeto
 
 > Este arquivo é a **fonte de verdade** do projeto. Consultar em TODAS as etapas, antes de qualquer decisão de código.
-> Status atual: **Etapas 0, 1, 2, 3, 4 e 5 concluídas.**
+> Status atual: **Etapas 0 a 6 concluídas.**
 > — Etapa 0: fundação (Docker, multi-tenant, login/papéis, adaptadores fake).
 > — Etapa 1: cardápio público → pedido → pagamento fake (Pix) → KDS → acompanhamento ao vivo.
 > — Etapa 2: multimarca e multicanal (2 marcas, cardápio por canal, unidade + estações,
@@ -14,6 +14,13 @@
 > — Etapa 5: bastidores (relatórios/BI, estoque com ficha técnica e CMV com baixa
 >   automática, financeiro com DRE e contas, entregadores com despacho e acerto, LGPD
 >   com exportação e anonimização). Despacho e mapa seguem fake.
+> — Etapa 6: portal (vitrine cross-tenant com opt-in, comissão embutida no preço, funil de
+>   graduação, carteira da rede, split de 3 lados gravado, pool de motoboys entre tenants,
+>   assinatura do SaaS). Pagamento, cobrança e despacho seguem fake.
+>
+> ⚠️ ISOLAMENTO: só DOIS lugares leem vários tenants — `PortalService.vitrine` (marcas com
+> opt-in, campos públicos) e `DeliveryService.despacharPeloPool` (entregadores com opt-in).
+> Todo o resto continua trancado. Se precisar de um terceiro, discuta antes.
 >
 > ⚠️ ARMADILHA DE DATA: nunca use `new Date('2026-07-22')` para um dia — isso é meia-noite
 > em UTC, 21h do dia anterior no Brasil. Use os helpers de `src/common/datas.ts`.

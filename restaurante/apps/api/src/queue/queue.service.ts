@@ -11,6 +11,8 @@ export const FILAS = {
   CAMPANHAS: 'campanhas',
   /** faxina diária: vencer cashback, expirar carrinho parado */
   MANUTENCAO: 'manutencao',
+  /** cobrança mensal da assinatura do SaaS */
+  FATURAMENTO: 'faturamento',
 } as const;
 
 type Processador = (job: Job) => Promise<unknown>;

@@ -62,15 +62,26 @@ export class PaymentService {
       }
 
       const regras = lerRegras();
+
+      // Quem vai receber o dinheiro. Na Etapa 7 estes ids passam a ser os
+      // recebedores de verdade cadastrados no gateway.
+      const recebedores = {
+        restaurante: `restaurant:${pedido.brandId}`,
+        plataforma: 'platform',
+        motoboy: pedido.deliveryFeeCents > 0 ? 'courier-pool' : undefined,
+      };
+
       const split = calcularSplit({
         source: pedido.source,
         method: 'PIX',
         subtotalCents: pedido.subtotalCents,
         deliveryFeeCents: pedido.deliveryFeeCents,
+        // No pedido do portal a comissão já foi embutida item a item.
+        portalCommissionCents: pedido.portalMarkupCents || undefined,
         regras,
-        // Na Etapa 7 estes ids passam a ser os recebedores reais no gateway.
-        restauranteExternalId: `restaurant:${pedido.brandId}`,
-        plataformaExternalId: 'platform',
+        restauranteExternalId: recebedores.restaurante,
+        plataformaExternalId: recebedores.plataforma,
+        motoboyExternalId: recebedores.motoboy,
       });
 
       const cobranca = await this.gateway.createCharge({
@@ -93,6 +104,29 @@ export class PaymentService {
           qrCode: cobranca.qrCode,
           qrCodeImage: cobranca.qrCodeImage,
         },
+      });
+
+      // A divisão fica GRAVADA no pedido. Antes ela era calculada e esquecida;
+      // agora dá para conferir depois quem recebeu o quê — e é exatamente isto
+      // que o gateway real vai executar na Etapa 7.
+      await this.tenantPrisma.db.orderSplit.upsert({
+        where: { orderId: pedido.id },
+        update: {},
+        create: {
+          tenantId: pedido.tenantId,
+          orderId: pedido.id,
+          totalCents: split.totalCents,
+          restaurantCents: split.detalhe.restauranteCents,
+          platformCents: split.detalhe.plataformaCents,
+          courierCents: split.detalhe.motoboyCents,
+          portalCommissionCents: split.detalhe.comissaoPortalCents,
+          paymentFeeCents: split.detalhe.taxaPagamentoCents,
+          deliveryPlatformFeeCents: split.detalhe.taxaSobreEntregaCents,
+          restaurantRecipientId: recebedores.restaurante,
+          platformRecipientId: recebedores.plataforma,
+          courierRecipientId: recebedores.motoboy,
+          provider: 'fake-pix',
+        } as any,
       });
 
       // O detalhamento da divisão fica no histórico do pedido — é o que vai

@@ -105,6 +105,9 @@ model Brand {
   abandonedCarts AbandonedCart[]
   npsResponses   NpsResponse[]
 
+  // Etapa 6 — portal
+  portalListing PortalListing?
+
   @@index([tenantId])
   @@map("brands")
 }
@@ -356,12 +359,20 @@ model Order {
   /// Quando o estoque deste pedido foi baixado (evita baixar duas vezes).
   stockConsumedAt DateTime?
 
+  // ---- portal (Etapa 6) ----
+  /// Quanto do preço deste pedido foi a comissão embutida do portal.
+  /// Em pedido do canal direto isto é sempre zero.
+  portalMarkupCents Int @default(0)
+  /// O cupom de graduação gerado para o cliente pedir direto na próxima vez.
+  graduationCouponCode String?
+
   items    OrderItem[]
   events   OrderEvent[]
   payment  Payment?
   cashback CashbackEntry[]
   nps      NpsResponse?
   dispatch Dispatch?
+  split    OrderSplit?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -886,6 +897,7 @@ model NetworkCustomer {
   walletCents Int @default(0)
 
   tenantCustomers TenantCustomer[]
+  walletEntries   NetworkWalletEntry[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1311,6 +1323,16 @@ model Courier {
 
   active Boolean @default(true)
 
+  // ---- pool da rede (Etapa 6) ----
+  /// O entregador aceita corridas de OUTROS restaurantes do portal.
+  /// É opt-in dele: por padrão só atende quem o cadastrou.
+  acceptsNetworkPool Boolean @default(false)
+  /// até quantos km da cozinha ele topa buscar
+  serviceRadiusKm    Float   @default(8)
+  /// onde ele costuma ficar (vazio = usa a unidade)
+  baseLatitude  Float?
+  baseLongitude Float?
+
   dispatches Dispatch[]
   payouts    Payout[]
 
@@ -1489,6 +1511,217 @@ model ConsentRecord {
   @@index([tenantId])
   @@index([customerId, type])
   @@map("consent_records")
+}
+
+// ===========================================================================
+//  PORTAL — o marketplace da rede  (Etapa 6)
+// ===========================================================================
+
+/// O OPT-IN da marca no portal.
+///
+/// A existência desta linha com active=true é a ÚNICA coisa que autoriza a
+/// marca a aparecer para gente de fora do tenant dela. Sem isso, ela continua
+/// invisível — o padrão é não aparecer.
+model PortalListing {
+  id String @id @default(cuid())
+
+  tenantId String
+  brandId  String @unique
+  brand    Brand  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  active Boolean @default(false)
+
+  /// "Italiana", "Hambúrguer", "Japonesa"...
+  category String
+  /// frase curta que aparece no card da vitrine
+  headline String?
+  coverUrl String?
+
+  /// Comissão embutida no preço, em pontos-base. Vazio = usa o padrão do sistema.
+  /// IMPORTANTE: é um ACRÉSCIMO no preço do portal, não um desconto no que o
+  /// restaurante recebe. Ele continua recebendo o valor cheio do cardápio dele.
+  commissionBps Int?
+
+  /// de onde a marca atende (para a busca por proximidade)
+  latitude  Float?
+  longitude Float?
+  city      String?
+
+  /// quantos pedidos o portal já trouxe para esta marca
+  ordersFromPortal Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, category])
+  @@map("portal_listings")
+}
+
+/// A DIVISÃO DO DINHEIRO, gravada por pedido.
+///
+/// Antes desta etapa o split era calculado na hora e esquecido. Agora fica
+/// registrado: é o que permite conferir depois quem recebeu o quê, e é o que o
+/// gateway real vai executar na Etapa 7.
+model OrderSplit {
+  id String @id @default(cuid())
+
+  tenantId String
+  orderId  String @unique
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  totalCents Int
+
+  // ---- os três lados ----
+  restaurantCents Int
+  platformCents   Int
+  courierCents    Int @default(0)
+
+  // ---- de onde veio cada pedaço da parte da plataforma ----
+  portalCommissionCents    Int @default(0)
+  paymentFeeCents          Int @default(0)
+  deliveryPlatformFeeCents Int @default(0)
+
+  // ---- os recebedores no gateway (hoje fakes) ----
+  restaurantRecipientId String
+  platformRecipientId   String
+  courierRecipientId    String?
+
+  provider String @default("fake-pix")
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, createdAt])
+  @@map("order_splits")
+}
+
+enum NetworkWalletType {
+  EARN
+  REDEEM
+  EXPIRE
+  ADJUST
+}
+
+/// O extrato da CARTEIRA DA REDE.
+///
+/// Diferente do cashback da marca (que só vale naquele restaurante), este
+/// saldo vale em QUALQUER marca do portal. É o que faz o consumidor voltar
+/// ao portal — e é a moeda do marketing coletivo.
+model NetworkWalletEntry {
+  id String @id @default(cuid())
+
+  networkCustomerId String
+  networkCustomer   NetworkCustomer @relation(fields: [networkCustomerId], references: [id], onDelete: Cascade)
+
+  type        NetworkWalletType
+  amountCents Int
+
+  /// em qual pedido foi ganho ou usado (sem expor o tenant)
+  orderCode   String?
+  brandName   String?
+  description String?
+  expiresAt   DateTime?
+  expiredAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([networkCustomerId, createdAt])
+  @@map("network_wallet_entries")
+}
+
+// ===========================================================================
+//  ASSINATURA DO SaaS  (Etapa 6)
+// ===========================================================================
+
+/// Um plano de assinatura. A cobrança é POR TENANT, não por marca — quem opera
+/// várias marcas na mesma cozinha não é punido por isso.
+model Plan {
+  id String @id @default(cuid())
+
+  code        String  @unique
+  name        String
+  description String?
+
+  monthlyPriceCents Int
+  /// 0 = sem limite
+  maxBrands         Int @default(0)
+  maxOrdersPerMonth Int @default(0)
+
+  features String[] @default([])
+  active   Boolean  @default(true)
+  sortOrder Int     @default(0)
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("plans")
+}
+
+enum SubscriptionStatus {
+  TRIALING // em teste grátis
+  ACTIVE
+  PAST_DUE // fatura vencida
+  CANCELED
+}
+
+model Subscription {
+  id String @id @default(cuid())
+
+  tenantId String @unique
+  planId   String
+  plan     Plan   @relation(fields: [planId], references: [id])
+
+  status SubscriptionStatus @default(TRIALING)
+
+  startedAt          DateTime  @default(now())
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime  @default(now())
+  currentPeriodEnd   DateTime
+  canceledAt         DateTime?
+
+  /// id da assinatura no cobrador (hoje, no fake)
+  externalId String?
+
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("subscriptions")
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  OVERDUE
+  CANCELED
+}
+
+model Invoice {
+  id String @id @default(cuid())
+
+  tenantId       String
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  number String @unique
+
+  periodFrom DateTime
+  periodTo   DateTime
+
+  amountCents Int
+  status      InvoiceStatus @default(OPEN)
+  dueDate     DateTime
+  paidAt      DateTime?
+
+  externalId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId, dueDate])
+  @@map("invoices")
 }
 
 model NpsResponse {

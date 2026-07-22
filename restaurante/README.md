@@ -3,7 +3,7 @@
 SaaS de canal próprio (gestor de pedidos + cardápio digital sem comissão) e portal/marketplace.
 O contexto completo do produto está em [CLAUDE.md](./CLAUDE.md).
 
-**Etapa atual: 5 — Gestão e bastidores (concluída).**
+**Etapa atual: 6 — Portal / marketplace da rede (concluída).**
 
 ---
 
@@ -28,6 +28,7 @@ Para desligar: `Ctrl + C` no terminal, ou `docker compose down`.
 |---|---|
 | Site (login e Painel) | http://localhost:3010 |
 | **Painel único de pedidos** (todas as marcas) | http://localhost:3010/pedidos |
+| **PORTAL** — a vitrine da rede (sem login) | http://localhost:3010/portal |
 | **Relatórios** — vendas, itens e horários de pico | http://localhost:3010/relatorios |
 | **Financeiro** — DRE, contas e acertos | http://localhost:3010/financeiro |
 | **Estoque** — insumos, ficha técnica e CMV | http://localhost:3010/estoque |
@@ -456,15 +457,105 @@ Em http://localhost:3010/clientes, abra um cliente e desça até
 - **Apagar dados pessoais** anonimiza: nome, telefone e endereço somem, mas os
   valores dos pedidos ficam — a venda é obrigação fiscal
 
+---
+
+## Como testar a Etapa 6 (o Portal)
+
+### A ideia em uma frase
+
+O portal **apresenta** o restaurante a um cliente novo e depois **devolve** esse
+cliente para o canal direto — o contrário do pedágio.
+
+### Passo a passo
+
+**1. Ativar a marca no portal**
+Em http://localhost:3010/painel, no cartão de cada marca, clique em
+**entrar no portal**. A linha mostra a categoria, a comissão e quantos pedidos o
+portal já trouxe.
+
+**2. A vitrine**
+Abra http://localhost:3010/portal — **sem login**. As marcas que deram opt-in
+aparecem ali, de qualquer restaurante da rede. Dá para buscar, filtrar por
+categoria, ver só as abertas e ordenar por proximidade (escolha um bairro).
+
+**3. O preço do portal**
+Entre na Cantina pelo portal. Cada prato mostra **dois preços**:
+
+| | |
+|---|---|
+| No portal | **R$ 52,53** |
+| Direto com o restaurante | R$ 46,90 |
+
+A diferença de **R$ 5,63** é a comissão de 12% — um **acréscimo pago por quem
+chegou pelo portal**, não um desconto no bolso de quem cozinha.
+
+**4. Fazer o pedido**
+Monte um pedido e finalize. Na tela do checkout já aparece quanto os mesmos
+itens custariam pedindo direto.
+
+**5. O funil de graduação** ← o coração desta etapa
+Na tela do pedido você recebe:
+
+> 🎁 **Da próxima vez, peça direto e pague menos**
+> Neste pedido você pagou R$ 11,26 a mais por ter chegado pelo portal.
+> Cupom **DIRETOXXXXXX** — vale R$ 11,26 no site da Cantina.
+
+**6. Para onde vai o seu dinheiro**
+Mais abaixo, a divisão aparece **para o consumidor ver**:
+
+```
+🍽️ Restaurante   R$ 93,80   ← o valor CHEIO do cardápio dele
+🛵 Entregador    R$  6,30
+💻 Portal        R$ 11,96
+```
+
+**7. O pedido cai no gestor do restaurante**
+Em http://localhost:3010/kds ele aparece como qualquer pedido. Em
+http://localhost:3010/pedidos a origem é **PORTAL**. E em
+http://localhost:3010/clientes o cliente está no CRM **daquele restaurante**.
+
+**8. A carteira da rede**
+Volte ao portal e consulte seu telefone em *Sua carteira da rede*: o cashback
+de **3%** foi creditado. Peça em **outra marca** e veja o saldo somar — ele vale
+em qualquer restaurante do portal.
+
+**9. Pool de motoboys**
+Em http://localhost:3010/entregadores, com pedidos prontos, o botão do pool
+escolhe sozinho o entregador mais livre e mais perto. Se os seus estiverem
+ocupados, ele busca um de **outro restaurante** que aceitou trabalhar para a
+rede (no exemplo, o *Paulo*).
+
+**10. A assinatura do SaaS**
+Os planos são **Start (R$ 99)**, **Pro (R$ 249)** e **Network (R$ 499)** — a
+cobrança é por empresa, não por marca. A fatura mensal é emitida pela fila, e
+o cobrador é fake.
+
 ### Teste rápido pela API (opcional)
 
 ```bash
 docker compose exec api npx jest
 ```
 
-Devem passar **64 testes** — máquina de estados, divisão do dinheiro, papéis de
+Devem passar **76 testes** — máquina de estados, divisão do dinheiro, papéis de
 acesso, isolamento por empresa, canais de venda, cálculo de distância, divisão da
-conta, taxa de serviço, cashback, segmentos, NPS e datas no fuso local.
+conta, taxa de serviço, cashback, segmentos, NPS, datas no fuso local, preço do
+portal e split de 3 lados.
+
+---
+
+## O que ficou como "fake / ponta solta" na Etapa 6
+
+| Item | Situação | Quando resolve |
+|---|---|---|
+| **Split no gateway** | A divisão é **calculada e gravada** por pedido, com os recebedores modelados. Mas quem executaria a transferência é o gateway — e ele ainda é fake | Etapa 7 |
+| **Cobrança da assinatura** | `FakeBillingProvider`: cria assinatura, emite fatura e devolve link de mentira. Nada é cobrado de verdade | Etapa 7 |
+| **Carteira da rede** | Acumula e mostra o saldo, mas **ainda não dá para gastar** no checkout do portal — falta a tela de resgate | Próxima etapa de portal |
+| **Domínio** | A vitrine roda em `/portal` no mesmo site, como você escolheu. Virar domínio próprio é configuração, não código | Quando tiver o domínio |
+| **Descoberta por proximidade** | Usa o mapa fake (linha reta, bairros de Imbituba). Sem raio de entrega real por marca na vitrine | Etapa 7 |
+| **Avaliações no portal** | A vitrine não mostra nota nem comentários — o NPS existe, mas é interno de cada marca | Se você quiser depois |
+| **Bloqueio por limite de plano** | Os limites (marcas, pedidos/mês) são **exibidos**, mas ainda **não bloqueiam** nada | Antes de cobrar de verdade |
+| **Cupom de graduação** | É de uso único e vale 30 dias. Não há regra contra o cliente ficar alternando portal/direto para sempre ganhar cupom | Observar no uso real |
+| **iFood** | `MarketplaceImport` continua vazio — o portal é nosso, não importa de terceiros | Etapa 7 |
 
 ---
 

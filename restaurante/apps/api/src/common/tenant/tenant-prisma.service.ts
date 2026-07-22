@@ -38,6 +38,13 @@ export const TENANT_SCOPED_MODELS = new Set([
   'AccountEntry',
   'Payout',
   'ConsentRecord',
+  // Etapa 6 — portal
+  'PortalListing',
+  'OrderSplit',
+  'Invoice',
+  'Subscription',
+  // (NetworkCustomer, NetworkWalletEntry e Plan ficam de fora: são da REDE ou
+  //  do catálogo do sistema, não de um tenant)
   // (NetworkCustomer fica de fora: é a carteira da REDE, não de um tenant)
   // Etapa 1 — pedido
   'Order',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
 
@@ -10,16 +10,64 @@ import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
  * Pausar tira o cardápio do ar na hora e recusa pedidos novos — é o botão de
  * emergência de quando a cozinha entope ou acaba o gás.
  */
+type Listagem = {
+  ativo: boolean;
+  categoria: string | null;
+  comissaoPercentual: number;
+  pedidosDoPortal: number;
+};
+
 export function Marcas({ iniciais }: { iniciais: MarcaResumo[] }) {
   const [marcas, setMarcas] = useState(iniciais);
   const [ocupada, setOcupada] = useState<string | null>(null);
+  const [portal, setPortal] = useState<Record<string, Listagem>>({});
+
+  /** Busca a situação de cada marca no portal da rede. */
+  const carregarPortal = useCallback(async () => {
+    const mapa: Record<string, Listagem> = {};
+    await Promise.all(
+      iniciais.map(async (m) => {
+        try {
+          const res = await fetch(`/api/portal-admin/listagem/${m.id}`, { cache: 'no-store' });
+          if (res.ok) mapa[m.id] = await res.json();
+        } catch {
+          /* ignora */
+        }
+      }),
+    );
+    setPortal(mapa);
+  }, [iniciais]);
+
+  useEffect(() => {
+    carregarPortal();
+  }, [carregarPortal]);
 
   async function recarregar() {
     try {
       const res = await fetch('/api/brands', { cache: 'no-store' });
       if (res.ok) setMarcas(await res.json());
+      await carregarPortal();
     } catch {
       /* mantém a tela */
+    }
+  }
+
+  /** Liga ou desliga a marca na vitrine do portal. */
+  async function alternarPortal(marca: MarcaResumo) {
+    const atual = portal[marca.id];
+    setOcupada(marca.id);
+    try {
+      await fetch(`/api/portal-admin/listagem/${marca.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          active: !atual?.ativo,
+          category: atual?.categoria ?? 'Outros',
+        }),
+      });
+      await carregarPortal();
+    } finally {
+      setOcupada(null);
     }
   }
 
@@ -69,6 +117,30 @@ export function Marcas({ iniciais }: { iniciais: MarcaResumo[] }) {
                 {m.pausedReason}
               </div>
             )}
+
+            {/* Portal da rede — o opt-in da marca */}
+            <div className="canal-linha" style={{ marginTop: 6 }}>
+              <b>Portal da rede</b>{' '}
+              <span className={portal[m.id]?.ativo ? 'aberto-sim' : 'aberto-nao'}>
+                {portal[m.id]?.ativo ? 'na vitrine' : 'fora'}
+              </span>
+              {portal[m.id]?.ativo && (
+                <>
+                  {' · '}
+                  {portal[m.id].categoria} · comissão {portal[m.id].comissaoPercentual}% ·{' '}
+                  {portal[m.id].pedidosDoPortal} pedido(s) vindos de lá ·{' '}
+                  <Link href="/portal">ver vitrine</Link>
+                </>
+              )}
+              {' · '}
+              <button
+                className="remover"
+                disabled={ocupada === m.id}
+                onClick={() => alternarPortal(m)}
+              >
+                {portal[m.id]?.ativo ? 'sair do portal' : 'entrar no portal'}
+              </button>
+            </div>
 
             {/* Um canal por linha: cada um abre e fecha na sua hora */}
             <div style={{ marginTop: 8 }}>

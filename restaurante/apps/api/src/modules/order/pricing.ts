@@ -49,6 +49,13 @@ export interface EntradaDoSplit {
   subtotalCents: number;
   deliveryFeeCents: number;
   regras: RegrasDeCobranca;
+  /**
+   * A comissão do portal JÁ CALCULADA, quando o preço foi marcado item a item.
+   * Preferimos este valor ao cálculo por porcentagem porque o arredondamento
+   * de cada item já aconteceu — usar a porcentagem de novo daria diferença de
+   * centavos entre o que o cliente pagou e o que foi dividido.
+   */
+  portalCommissionCents?: number;
   /** Identificadores no gateway (hoje são fakes). */
   restauranteExternalId: string;
   plataformaExternalId: string;
@@ -85,9 +92,10 @@ export function calcularSplit(entrada: EntradaDoSplit): ResultadoDoSplit {
   const totalCents = subtotalCents + deliveryFeeCents;
 
   // 1) Comissão do portal — zero quando o pedido veio do canal direto.
+  //    Se o preço já veio marcado item a item, usamos o valor exato.
   const comissaoPortalCents =
     entrada.source === OrderSource.PORTAL
-      ? aplicarBps(subtotalCents, regras.comissaoPortalBps)
+      ? (entrada.portalCommissionCents ?? aplicarBps(subtotalCents, regras.comissaoPortalBps))
       : 0;
 
   // 2) Taxa de processamento, conforme a forma de pagamento.

@@ -342,6 +342,155 @@ export class OrderService {
   }
 
   /**
+   * Cria um pedido vindo do PORTAL.
+   *
+   * A diferença para o canal direto: o preço que o cliente paga já tem a
+   * comissão embutida. O pedido guarda quanto disso é comissão, para o split
+   * devolver ao restaurante o valor CHEIO do cardápio dele.
+   *
+   * Fora isso, é um pedido igual a qualquer outro: cai no mesmo KDS, no mesmo
+   * CRM, no mesmo relatório. O restaurante nem precisa saber que veio de fora.
+   */
+  async criarPedidoDoPortal(
+    brandSlug: string,
+    dto: CreateOrderDto,
+    comissaoBps: number,
+  ) {
+    const brand = await this.prisma.brand.findUnique({
+      where: { slug: brandSlug },
+      select: { id: true, tenantId: true, name: true, paused: true, pausedReason: true },
+    });
+    if (!brand) throw new NotFoundException('Restaurante não encontrado.');
+
+    return this.context.runAsTenant(brand.tenantId, async () => {
+      await this.operacao.exigirAberto(brand, SalesChannel.DELIVERY);
+
+      // As linhas vêm com o preço DIRETO do cardápio — é o que o restaurante recebe.
+      const { linhas, subtotalCents: subtotalDireto } = await this.montarLinhas(
+        brand.id,
+        SalesChannel.DELIVERY,
+        dto.items,
+      );
+
+      // Agora aplicamos a comissão item a item, do mesmo jeito que a vitrine
+      // mostrou. Somar no fim daria diferença de centavo.
+      let subtotalPortal = 0;
+      for (const l of linhas) {
+        const comComissao = Math.round(l.totalCents * (1 + comissaoBps / 10000));
+        subtotalPortal += comComissao;
+        l.totalCents = comComissao;
+        l.unitPriceCents = Math.round(l.unitPriceCents * (1 + comissaoBps / 10000));
+      }
+
+      const portalMarkupCents = subtotalPortal - subtotalDireto;
+
+      const frete = await this.operacao.calcularFrete(
+        brand.id,
+        SalesChannel.DELIVERY,
+        {
+          street: dto.addressStreet,
+          number: dto.addressNumber,
+          district: dto.addressDistrict,
+          city: dto.addressCity,
+        },
+        subtotalPortal,
+      );
+
+      const cliente = await this.acharOuCriarCliente(brand.id, dto);
+      const unitId = await this.unidadeDaMarca(brand.id);
+      const code = await this.gerarCodigoUnico();
+
+      const totalCents = subtotalPortal + frete.feeCents;
+
+      const pedido = await this.tenantPrisma.db.order.create({
+        data: {
+          tenantId: brand.tenantId,
+          brandId: brand.id,
+          channel: SalesChannel.DELIVERY,
+          // É ISTO que muda tudo: a origem manda no split e no funil.
+          source: OrderSource.PORTAL,
+          unitId,
+          customerId: cliente.id,
+          code,
+          status: OrderStatus.AWAITING_PAYMENT,
+          customerName: dto.customerName.trim(),
+          customerPhone: dto.customerPhone.trim(),
+          addressStreet: dto.addressStreet,
+          addressNumber: dto.addressNumber,
+          addressDistrict: dto.addressDistrict,
+          addressCity: dto.addressCity,
+          addressNote: dto.addressNote,
+          notes: dto.notes,
+          subtotalCents: subtotalPortal,
+          deliveryFeeCents: frete.feeCents,
+          totalCents,
+          portalMarkupCents,
+          items: {
+            create: linhas.map((l) => ({
+              tenantId: brand.tenantId,
+              itemId: l.itemId,
+              nameSnapshot: l.nameSnapshot,
+              unitPriceCents: l.unitPriceCents,
+              quantity: l.quantity,
+              totalCents: l.totalCents,
+              notes: l.notes,
+              stationId: l.stationId,
+              stationNameSnapshot: l.stationNameSnapshot,
+              modifiers: {
+                create: l.modifiers.map((m) => ({
+                  tenantId: brand.tenantId,
+                  modifierId: m.modifierId,
+                  nameSnapshot: m.nameSnapshot,
+                  priceDeltaCents: m.priceDeltaCents,
+                })),
+              },
+            })),
+          },
+        },
+        include: { items: { include: { modifiers: true } } },
+      });
+
+      await this.tenantPrisma.db.tenantCustomer.update({
+        where: { id: cliente.id },
+        data: {
+          ordersCount: { increment: 1 },
+          totalSpentCents: { increment: totalCents },
+          lastOrderAt: new Date(),
+          firstOrderAt: cliente.firstOrderAt ?? new Date(),
+          addressStreet: dto.addressStreet,
+          addressNumber: dto.addressNumber,
+          addressDistrict: dto.addressDistrict,
+          addressCity: dto.addressCity,
+          addressNote: dto.addressNote,
+        },
+      });
+
+      await this.registrarEvento(
+        pedido.tenantId,
+        pedido.brandId,
+        pedido.id,
+        pedido.code,
+        'order.created',
+        {
+          origem: 'PORTAL',
+          totalCents,
+          comissaoEmbutidaCents: portalMarkupCents,
+          frete: frete.descricao,
+        },
+      );
+
+      return {
+        pedido: this.formatarPedido(pedido),
+        brandId: brand.id,
+        tenantId: brand.tenantId,
+        clienteId: cliente.id,
+        subtotalDiretoCents: subtotalDireto,
+        portalMarkupCents,
+      };
+    });
+  }
+
+  /**
    * Cria um pedido de MESA (uma rodada da comanda).
    *
    * Diferenças para o delivery: não tem endereço nem frete, e o pedido nasce

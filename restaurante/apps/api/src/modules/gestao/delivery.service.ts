@@ -118,9 +118,17 @@ export class DeliveryService {
       throw new BadRequestException('Este pedido já tem entregador.');
     }
 
-    const courier = await this.tenantPrisma.db.courier.findUnique({ where: { id: courierId } });
+    // O entregador pode ser meu OU do pool da rede. Por isso a busca é crua —
+    // e por isso a checagem logo abaixo é obrigatória.
+    const courier = await this.prisma.courier.findUnique({ where: { id: courierId } });
     if (!courier) throw new NotFoundException('Entregador não encontrado.');
     if (!courier.active) throw new BadRequestException('Este entregador está inativo.');
+
+    const podeUsar = courier.tenantId === pedido.tenantId || courier.acceptsNetworkPool;
+    if (!podeUsar) {
+      // Entregador de outro restaurante que NÃO aceita corridas da rede.
+      throw new NotFoundException('Entregador não encontrado.');
+    }
 
     // Distância pelo MapProvider (hoje fake, em linha reta).
     let distanciaKm: number | null = null;
@@ -190,6 +198,100 @@ export class DeliveryService {
     );
 
     return this.formatarDispatch(dispatch.id);
+  }
+
+  /**
+   * POOL DA REDE — escolhe sozinho o melhor entregador disponível.
+   *
+   * A regra, em ordem:
+   *   1) entregadores do próprio restaurante (sempre podem);
+   *   2) entregadores de OUTROS restaurantes que marcaram "aceito corridas da
+   *      rede" — é a logística compartilhada, e é opt-in de cada um;
+   *   3) entre os candidatos, ganha quem está mais perto e com menos corridas
+   *      na mão.
+   *
+   * ⚠️ Este é o segundo (e último) ponto do sistema que lê outros tenants.
+   * Ele enxerga SÓ entregadores com opt-in — nunca pedidos ou clientes.
+   */
+  async despacharPeloPool(orderId: string) {
+    const pedido = await this.tenantPrisma.db.order.findUnique({
+      where: { id: orderId },
+      include: { unit: { select: { latitude: true, longitude: true } }, dispatch: true },
+    });
+    if (!pedido) throw new NotFoundException('Pedido não encontrado.');
+    if (pedido.dispatch && pedido.dispatch.status !== DispatchStatus.CANCELED) {
+      throw new BadRequestException('Este pedido já tem entregador.');
+    }
+
+    const origem =
+      pedido.unit?.latitude && pedido.unit?.longitude
+        ? { lat: pedido.unit.latitude, lng: pedido.unit.longitude }
+        : null;
+
+    // Candidatos: os meus + os da rede que aceitam pool (leitura cross-tenant
+    // estreita — só o que é preciso para escolher).
+    const candidatos = await this.prisma.courier.findMany({
+      where: {
+        active: true,
+        OR: [{ tenantId: pedido.tenantId }, { acceptsNetworkPool: true }],
+      },
+      select: {
+        id: true,
+        tenantId: true,
+        name: true,
+        acceptsNetworkPool: true,
+        serviceRadiusKm: true,
+        baseLatitude: true,
+        baseLongitude: true,
+        unit: { select: { latitude: true, longitude: true } },
+        _count: {
+          select: {
+            dispatches: { where: { status: { in: [DispatchStatus.ASSIGNED, DispatchStatus.PICKED_UP] } } },
+          },
+        },
+      },
+    });
+
+    if (candidatos.length === 0) {
+      throw new BadRequestException('Nenhum entregador disponível no momento.');
+    }
+
+    const comDistancia = candidatos.map((c) => {
+      const base =
+        c.baseLatitude && c.baseLongitude
+          ? { lat: c.baseLatitude, lng: c.baseLongitude }
+          : c.unit?.latitude && c.unit?.longitude
+            ? { lat: c.unit.latitude, lng: c.unit.longitude }
+            : null;
+
+      const km = origem && base ? distanciaEmKm(origem, base) : 0;
+
+      return {
+        ...c,
+        distanciaKm: Math.round(km * 100) / 100,
+        daCasa: c.tenantId === pedido.tenantId,
+        emRota: c._count.dispatches,
+      };
+    });
+
+    // Fora do raio que ele topa, não entra na disputa.
+    const disponiveis = comDistancia.filter((c) => c.daCasa || c.distanciaKm <= c.serviceRadiusKm);
+
+    if (disponiveis.length === 0) {
+      throw new BadRequestException('Nenhum entregador da rede cobre esta região agora.');
+    }
+
+    // Menos corridas na mão primeiro; empate resolve pela distância.
+    disponiveis.sort((a, b) => a.emRota - b.emRota || a.distanciaKm - b.distanciaKm);
+    const escolhido = disponiveis[0];
+
+    this.logger.log(
+      `Pool escolheu ${escolhido.name} (${escolhido.daCasa ? 'da casa' : 'da rede'}, ` +
+        `${escolhido.emRota} em rota, ${escolhido.distanciaKm} km) para o pedido ${pedido.code}.`,
+    );
+
+    const r = await this.atribuir(orderId, escolhido.id);
+    return { ...r, escolhidoPeloPool: true, daRede: !escolhido.daCasa };
   }
 
   /** Avança a corrida: saiu, entregou, cancelou. */

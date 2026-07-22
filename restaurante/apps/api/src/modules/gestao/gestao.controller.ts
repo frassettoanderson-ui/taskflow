@@ -227,6 +227,16 @@ export class GestaoController {
     return this.entregas.atribuir(dto.orderId, dto.courierId);
   }
 
+  /**
+   * POOL DA REDE: o sistema escolhe sozinho o entregador mais perto e mais
+   * livre, incluindo os de outros restaurantes que aceitam corridas da rede.
+   */
+  @Post('entregas/pool')
+  @Roles(...GESTAO_E_CAIXA)
+  despacharPeloPool(@Body() dto: { orderId: string }) {
+    return this.entregas.despacharPeloPool(dto.orderId);
+  }
+
   @Patch('entregas/:id/status')
   @Roles(...GESTAO_E_CAIXA)
   mudarStatusDaEntrega(@Param('id') id: string, @Body() dto: { status: DispatchStatus }) {

@@ -930,6 +930,9 @@ async function main() {
   await seedEstoque(grupoSabor.id, IDS.unidade);
   await seedEntregadores(grupoSabor.id, IDS.unidade);
 
+  // Portal: planos da assinatura (catálogo do sistema).
+  await seedPlanos();
+
   // ---------------------------------------------------------------
   // 4) Tenant "rival" — serve APENAS para provar o isolamento.
   // ---------------------------------------------------------------
@@ -961,6 +964,26 @@ async function main() {
       name: 'Forno do Rival',
       slug: 'forno-do-rival',
       primaryColor: '#1D4ED8',
+    },
+  });
+
+  // Um entregador do RIVAL que aceita corridas da rede.
+  // É ele que prova a logística compartilhada: um restaurante consegue usá-lo
+  // sem nunca enxergar mais nada do concorrente.
+  await prisma.courier.upsert({
+    where: { id: 'cur_paulo_rede' },
+    update: { acceptsNetworkPool: true },
+    create: {
+      id: 'cur_paulo_rede',
+      tenantId: rival.id,
+      name: 'Paulo (rede — outro restaurante)',
+      phone: '48988880004',
+      vehicle: 'Moto',
+      payModel: 'PERCENT_OF_FEE',
+      acceptsNetworkPool: true,
+      serviceRadiusKm: 15,
+      baseLatitude: -28.235,
+      baseLongitude: -48.665,
     },
   });
 
@@ -1343,6 +1366,18 @@ async function seedEntregadores(tenantId: string, unitId: string) {
       payModel: 'FIXED_PER_DELIVERY' as const,
       fixedPayCents: 800, // R$ 8,00 por corrida
     },
+    {
+      id: 'cur_marcos',
+      name: 'Marcos (pool da rede)',
+      phone: '48988880003',
+      vehicle: 'Moto',
+      payModel: 'PERCENT_OF_FEE' as const,
+      fixedPayCents: 0,
+      // Este aceita corridas de QUALQUER restaurante do portal — é a
+      // logística compartilhada da Etapa 6.
+      acceptsNetworkPool: true,
+      serviceRadiusKm: 12,
+    },
   ];
 
   for (const e of entregadores) {
@@ -1354,7 +1389,68 @@ async function seedEntregadores(tenantId: string, unitId: string) {
     });
   }
 
-  console.log('  🛵 Entregadores: Rafael (% do frete) e Lucas (R$ 8,00 por entrega)');
+  console.log(
+    '  🛵 Entregadores: Rafael (% do frete), Lucas (R$ 8,00 fixo) e Marcos (pool da rede)',
+  );
+}
+
+/**
+ * Os planos da assinatura do SaaS.
+ *
+ * A cobrança é POR TENANT: quem opera várias marcas na mesma cozinha não paga
+ * várias vezes. São os limites que separam as faixas.
+ */
+async function seedPlanos() {
+  const planos = [
+    {
+      code: 'START',
+      name: 'Start',
+      description: 'Para quem está começando, com uma marca.',
+      monthlyPriceCents: 9900,
+      maxBrands: 1,
+      maxOrdersPerMonth: 300,
+      features: ['Cardápio digital', 'Pedidos e KDS', 'Pagamento online', 'Relatórios básicos'],
+      sortOrder: 0,
+    },
+    {
+      code: 'PRO',
+      name: 'Pro',
+      description: 'Multimarca, salão e marketing.',
+      monthlyPriceCents: 24900,
+      maxBrands: 5,
+      maxOrdersPerMonth: 3000,
+      features: [
+        'Tudo do Start',
+        'Até 5 marcas',
+        'Salão, mesas e comanda',
+        'CRM, cashback e campanhas',
+        'Estoque com ficha técnica',
+      ],
+      sortOrder: 1,
+    },
+    {
+      code: 'NETWORK',
+      name: 'Network',
+      description: 'Para dark kitchen e rede, com portal e logística compartilhada.',
+      monthlyPriceCents: 49900,
+      maxBrands: 0, // sem limite
+      maxOrdersPerMonth: 0,
+      features: [
+        'Tudo do Pro',
+        'Marcas ilimitadas',
+        'Vitrine no portal da rede',
+        'Pool de entregadores',
+        'Multiunidade com gestão central',
+      ],
+      sortOrder: 2,
+    },
+  ];
+
+  for (const p of planos) {
+    await prisma.plan.upsert({ where: { code: p.code }, update: p, create: p });
+  }
+
+  console.log('  💼 Planos: Start (R$ 99), Pro (R$ 249) e Network (R$ 499)');
 }
 
 function resumo() {

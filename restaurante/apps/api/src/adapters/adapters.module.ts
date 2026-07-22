@@ -12,6 +12,8 @@ import { MARKETPLACE_IMPORT } from './marketplace/marketplace.port';
 import { FakeMarketplaceProvider } from './marketplace/fake-marketplace.provider';
 import { DELIVERY_PROVIDER } from './delivery/delivery.port';
 import { FakeDeliveryProvider } from './delivery/fake-delivery.provider';
+import { BILLING_PROVIDER } from './billing/billing.port';
+import { FakeBillingProvider } from './billing/fake-billing.provider';
 
 /**
  * Aqui é onde escolhemos QUAL aparelho está plugado em cada tomada.
@@ -28,6 +30,7 @@ import { FakeDeliveryProvider } from './delivery/fake-delivery.provider';
     { provide: FISCAL_PROVIDER, useClass: FakeFiscalProvider },
     { provide: MARKETPLACE_IMPORT, useClass: FakeMarketplaceProvider },
     { provide: DELIVERY_PROVIDER, useClass: FakeDeliveryProvider },
+    { provide: BILLING_PROVIDER, useClass: FakeBillingProvider },
   ],
   exports: [
     PAYMENT_PROVIDER,
@@ -36,6 +39,7 @@ import { FakeDeliveryProvider } from './delivery/fake-delivery.provider';
     FISCAL_PROVIDER,
     MARKETPLACE_IMPORT,
     DELIVERY_PROVIDER,
+    BILLING_PROVIDER,
   ],
 })
 export class AdaptersModule {}

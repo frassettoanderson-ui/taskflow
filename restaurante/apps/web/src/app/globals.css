@@ -461,6 +461,228 @@ code {
 }
 
 /* ======================================================================
+   PORTAL — a vitrine da rede
+   ====================================================================== */
+
+.portal {
+  --marca: var(--brand);
+  padding-bottom: 60px;
+}
+
+.portal-interno {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.portal-capa {
+  background: linear-gradient(160deg, #f97316, #7c2d12 70%, rgba(0, 0, 0, 0.9));
+  padding: 44px 0 36px;
+  margin-bottom: 24px;
+}
+
+.portal-capa h1 {
+  margin: 10px 0 6px;
+  font-size: 30px;
+  letter-spacing: -0.02em;
+}
+
+.portal-capa p {
+  margin: 0 0 22px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 15px;
+  max-width: 560px;
+}
+
+.portal-busca {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.portal-busca input {
+  flex: 1;
+  min-width: 240px;
+  margin-bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.portal-busca select {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.carteira-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.vitrine-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.vitrine-card {
+  display: block;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 0.2s ease;
+}
+
+.vitrine-card:hover {
+  border-color: var(--brand);
+}
+
+.vitrine-capa {
+  height: 96px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 10px;
+}
+
+.vitrine-categoria {
+  background: rgba(0, 0, 0, 0.4);
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vitrine-fechada {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fca5a5;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.vitrine-corpo {
+  padding: 14px;
+}
+
+.vitrine-corpo strong {
+  font-size: 16px;
+}
+
+.vitrine-corpo p {
+  margin: 5px 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.vitrine-rodape {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.portal-rodape {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.portal-rodape h3 {
+  color: var(--text);
+  font-size: 15px;
+  margin: 0 0 10px;
+}
+
+.voltar-portal {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.aviso-portal {
+  margin: 16px 24px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #bfdbfe;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.preco-direto {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ---- funil de graduação ---- */
+
+.graduacao {
+  margin-top: 16px;
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.07);
+}
+
+.graduacao-titulo {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.graduacao p {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+
+.cupom-destaque {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px dashed var(--ok);
+}
+
+.cupom-codigo {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--ok);
+}
+
+/* ======================================================================
    RELATÓRIOS
    ====================================================================== */
 
