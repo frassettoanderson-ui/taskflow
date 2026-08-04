@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { RegistrarServiceWorker } from '@/components/registrar-sw';
+import { AppChrome } from '@/components/app-chrome';
 
 export const metadata: Metadata = {
   title: 'Sistema para Restaurantes',
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body>
         <RegistrarServiceWorker />
-        {children}
+        <AppChrome>{children}</AppChrome>
       </body>
     </html>
   );

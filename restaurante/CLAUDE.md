@@ -61,6 +61,13 @@
 
 ## 1. Visão do produto
 
+> ⚠️ **PRIORIDADE (correção do fundador, 04/08/2026):** mais de **90% dos clientes terão 1 só
+> estabelecimento**. Preparar o sistema primeiro para quem tem **1 loja**. Multimarca / dark
+> kitchen é **diferencial, não a prioridade** — mantém-se bem-feito, mas é o caso avançado.
+> Nas telas, usar *progressive disclosure*: o multi (seletor de marca, "opera em qual cozinha",
+> etc.) só aparece quando o cliente de fato tem mais de uma marca/unidade; para o dono de 1 loja,
+> a experiência é enxuta. Na dúvida de layout/prioridade: **"como fica para quem tem 1 loja?"**.
+
 Um sistema para restaurantes com dois grandes blocos:
 
 **(A) SaaS de "canal próprio"** — gestor de pedidos + cardápio digital **sem comissão de marketplace**, cobrindo:
