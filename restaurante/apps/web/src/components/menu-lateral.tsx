@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -115,6 +115,30 @@ export function MenuLateral() {
   } | null>(null);
 
   /**
+   * O SEGREDO de um submenu que "não foge": ao sair do item, ele NÃO fecha na
+   * hora — espera um tempinho. Se nesse intervalo o mouse chegar na janelinha
+   * (ou voltar ao item), o fechamento é cancelado. Sem isso, o vãozinho entre
+   * o item e o painel já bastava para o painel sumir antes de a pessoa clicar.
+   *
+   * É o jeito que todo menu bom faz — bem mais confiável que "ponte invisível".
+   */
+  const timerFechar = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function cancelarFechar() {
+    if (timerFechar.current) {
+      clearTimeout(timerFechar.current);
+      timerFechar.current = null;
+    }
+  }
+
+  function agendarFechar() {
+    cancelarFechar();
+    // 400ms: tempo folgado para a mão fazer o L (descer pelo item, virar para a
+    // janelinha) sem o painel fugir. É o que o fundador sentiu faltar.
+    timerFechar.current = setTimeout(() => setVoando(null), 400);
+  }
+
+  /**
    * O painel é posicionado em coordenadas de TELA, não dentro da barra.
    *
    * Motivo: a lista de menus rola, e um elemento que rola RECORTA o que sai
@@ -122,6 +146,7 @@ export function MenuLateral() {
    * fixando o painel na tela, ele sempre sai inteiro, ao lado do item.
    */
   function abrirPainel(href: string, alvo: HTMLElement) {
+    cancelarFechar();
     const item = alvo.getBoundingClientRect();
     const barra = alvo.closest('.menu-lateral')?.getBoundingClientRect();
     setOndeVoar({
@@ -133,6 +158,9 @@ export function MenuLateral() {
     });
     setVoando(href);
   }
+
+  // Ao desmontar, não deixa um timer pendente disparar sobre nada.
+  useEffect(() => cancelarFechar, []);
 
   useEffect(() => {
     fetch('/api/auth/me', { cache: 'no-store' })
@@ -226,7 +254,7 @@ export function MenuLateral() {
                     className="menu-item-caixa"
                     key={href}
                     onMouseEnter={(e) => abrirPainel(href, e.currentTarget)}
-                    onMouseLeave={() => setVoando(null)}
+                    onMouseLeave={agendarFechar}
                   >
                     <Link
                       href={href}
@@ -249,6 +277,8 @@ export function MenuLateral() {
                     {mostrarPainel && (
                       <div
                         className="menu-voo"
+                        onMouseEnter={cancelarFechar}
+                        onMouseLeave={agendarFechar}
                         style={
                           ondeVoar
                             ? ({
