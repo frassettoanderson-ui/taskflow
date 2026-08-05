@@ -185,7 +185,7 @@ export function PedidosPorTipo({
         <span className={`ao-vivo ${aoVivo ? 'on' : ''}`}>{aoVivo ? '● ao vivo' : '○ reconectando'}</span>
       </section>
 
-      {/* 2) AÇÕES */}
+      {/* 2) AÇÕES — todos lado a lado */}
       <div className="acoes-barra">
         <Link href="/pdv" className="botao-acao destaque">
           + Novo pedido
@@ -195,23 +195,33 @@ export function PedidosPorTipo({
           {caixa.aberto ? '🔒 Fechar caixa' : '🔓 Abrir caixa'}
         </button>
 
-        <button
-          className={`botao-acao ${algumRecebendo ? 'perigo' : ''}`}
-          disabled={ocupado || listaMarcas.length === 0}
-          onClick={alternarTodos}
-        >
-          {algumRecebendo ? '⏸ Parar pedidos' : '▶ Receber pedidos'}
-        </button>
-
-        {multi && (
+        {/* Parar/receber pedidos. Numa loja só, o clique já para/retoma.
+            No multi, o MESMO botão abre um menu com cada estabelecimento. */}
+        {!multi ? (
+          <button
+            className={`botao-acao ${algumRecebendo ? 'perigo' : ''}`}
+            disabled={ocupado || listaMarcas.length === 0}
+            onClick={alternarTodos}
+          >
+            {algumRecebendo ? '⏸ Parar pedidos' : '▶ Receber pedidos'}
+          </button>
+        ) : (
           <div className="dropdown">
-            <button className="botao-acao" onClick={() => setMenuEstab((v) => !v)}>
-              Estabelecimentos ▾
+            <button
+              className={`botao-acao ${algumRecebendo ? 'perigo' : ''}`}
+              disabled={ocupado}
+              onClick={() => setMenuEstab((v) => !v)}
+            >
+              {algumRecebendo ? '⏸ Parar pedidos ▾' : '▶ Receber pedidos ▾'}
             </button>
             {menuEstab && (
               <>
                 <div className="dropdown-fundo" onClick={() => setMenuEstab(false)} />
                 <div className="dropdown-menu">
+                  <button className="dropdown-item forte" disabled={ocupado} onClick={alternarTodos}>
+                    {algumRecebendo ? '⏸ Parar todos' : '▶ Receber todos'}
+                  </button>
+                  <div className="dropdown-sep" />
                   {listaMarcas.map((m) => (
                     <button
                       key={m.id}

@@ -2447,6 +2447,9 @@ select:focus {
 }
 
 .botao-acao {
+  /* width:auto desfaz o `button { width:100% }` global — sem isto os botões
+     empilhavam um por linha em vez de ficar lado a lado. */
+  width: auto;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2459,6 +2462,7 @@ select:focus {
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+  white-space: nowrap;
 }
 .botao-acao:hover {
   border-color: var(--muted);
@@ -2695,4 +2699,15 @@ select:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* item "forte" do dropdown (parar/receber todos) + separador */
+.dropdown-item.forte {
+  font-weight: 700;
+  justify-content: center;
+}
+.dropdown-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 5px 4px;
 }
