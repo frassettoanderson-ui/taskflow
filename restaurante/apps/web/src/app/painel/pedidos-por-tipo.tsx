@@ -11,9 +11,15 @@ import {
   IconeMais,
   IconePausa,
   IconePlay,
+  IconeCards,
+  IconeLista,
   IconeRelogio,
   IconeSeta,
 } from '@/components/icones';
+
+/** Como os pedidos aparecem: em cartões ou em lista detalhada. */
+type Modo = 'cards' | 'lista';
+const CHAVE_DO_MODO = 'painel:modo-de-exibicao';
 
 /**
  * A TELA PRINCIPAL do restaurante.
@@ -92,6 +98,8 @@ export function PedidosPorTipo({
   /** qual marca está sendo ligada/desligada agora (para travar só a dela) */
   const [mexendo, setMexendo] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  /** cartões ou lista — a escolha fica guardada no aparelho */
+  const [modo, setModo] = useState<Modo>('cards');
   /** relógio que faz o tempo do cartão andar sozinho */
   const [agora, setAgora] = useState(() => Date.now());
 
@@ -123,6 +131,18 @@ export function PedidosPorTipo({
     buscar();
     buscarCaixa();
   }, [buscar, buscarCaixa]);
+
+  // Lê a preferência de exibição só depois que a página montou — se lesse antes,
+  // o HTML do servidor sairia diferente do que o navegador desenha.
+  useEffect(() => {
+    const salvo = localStorage.getItem(CHAVE_DO_MODO);
+    if (salvo === 'cards' || salvo === 'lista') setModo(salvo);
+  }, []);
+
+  function trocarModo(novo: Modo) {
+    setModo(novo);
+    localStorage.setItem(CHAVE_DO_MODO, novo);
+  }
 
   // O relógio do alerta: de meio em meio minuto basta (o alerta é grosso).
   useEffect(() => {
@@ -365,6 +385,29 @@ export function PedidosPorTipo({
             </button>
           );
         })}
+
+        {/* Como ver os pedidos. Fica no canto direito das abas — separado do
+            "o que eu filtro", porque é outra coisa: "como eu enxergo". */}
+        <div className="modo-exibicao" role="group" aria-label="Modo de exibição">
+          <button
+            className="modo-botao"
+            data-ativo={modo === 'cards'}
+            aria-pressed={modo === 'cards'}
+            title="Ver em cartões"
+            onClick={() => trocarModo('cards')}
+          >
+            <IconeCards tamanho={17} />
+          </button>
+          <button
+            className="modo-botao"
+            data-ativo={modo === 'lista'}
+            aria-pressed={modo === 'lista'}
+            title="Ver em lista"
+            onClick={() => trocarModo('lista')}
+          >
+            <IconeLista tamanho={17} />
+          </button>
+        </div>
       </div>
 
       {multi && (
@@ -399,7 +442,7 @@ export function PedidosPorTipo({
           <strong>Nenhum pedido em andamento</strong>
           <span>Quando entrar um pedido, ele aparece aqui sozinho.</span>
         </div>
-      ) : (
+      ) : modo === 'cards' ? (
         <div className="pedidos-lista">
           {lista.map((p) => {
             const t = tempo(p);
@@ -452,6 +495,98 @@ export function PedidosPorTipo({
               </Link>
             );
           })}
+        </div>
+      ) : (
+        <div className="card lista-caixa">
+          <table className="tabela lista-pedidos">
+            <thead>
+              <tr>
+                <th style={{ width: 62 }}>Nº</th>
+                <th>Tipo</th>
+                <th>Cliente</th>
+                <th>Itens</th>
+                {multi && <th>Estabelecimento</th>}
+                <th>Situação</th>
+                <th>Tempo</th>
+                <th style={{ textAlign: 'right' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lista.map((p) => {
+                const t = tempo(p);
+                const Icone = ICONE_DO_CANAL[p.channel as keyof typeof ICONE_DO_CANAL];
+                const mesa =
+                  p.channel === 'DINE_IN' && p.table?.number ? `Mesa ${p.table.number}` : null;
+
+                return (
+                  <tr key={p.id} className="lista-linha">
+                    <td>
+                      <Link href={`/pedido/${p.code}`} className="lista-numero">
+                        {p.numero != null ? p.numero : '—'}
+                      </Link>
+                    </td>
+
+                    <td>
+                      <span className={`tag tag-tipo ${CLASSE_DO_CANAL[p.channel]}`}>
+                        {Icone && <Icone tamanho={13} />}
+                        {mesa ?? ROTULO_DO_CANAL[p.channel] ?? p.channelLabel}
+                      </span>
+                    </td>
+
+                    <td>
+                      <Link href={`/pedido/${p.code}`} className="lista-cliente">
+                        {p.customerName}
+                      </Link>
+                      <div className="sub">{p.code}</div>
+                    </td>
+
+                    {/* É aqui que a lista ganha da grade: dá para ler O QUE foi
+                        pedido sem abrir o pedido um por um. */}
+                    <td className="lista-itens">
+                      {p.items.slice(0, 3).map((i) => (
+                        <div key={i.id}>
+                          <b>{i.quantity}×</b> {i.name}
+                        </div>
+                      ))}
+                      {p.items.length > 3 && (
+                        <div className="sub">+ {p.items.length - 3} item(ns)</div>
+                      )}
+                    </td>
+
+                    {multi && (
+                      <td>
+                        {p.brand && (
+                          <span className="marca-tag">
+                            <span className="dot" style={{ background: p.brand.primaryColor }} />
+                            {p.brand.name}
+                          </span>
+                        )}
+                      </td>
+                    )}
+
+                    <td>
+                      <span className="situacao" data-status={p.status}>
+                        {p.statusLabel}
+                      </span>
+                      {p.scheduledFor && <div className="sub">agendado</div>}
+                    </td>
+
+                    <td>
+                      <span className={`tempo-chip ${t.nivel}`}>
+                        <IconeRelogio tamanho={12} />
+                        {textoDoTempo(t.minutos)}
+                      </span>
+                      <div className="sub">{horaCurta(p.createdAt)}</div>
+                    </td>
+
+                    <td style={{ textAlign: 'right' }}>
+                      <strong className="lista-total">{dinheiro(p.totalCents)}</strong>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </main>

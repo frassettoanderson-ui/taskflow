@@ -3407,3 +3407,118 @@ select:focus {
   font-weight: 600;
   line-height: 1.4;
 }
+
+/* =========================================================================
+   MODO DE EXIBIÇÃO: cartões ou lista
+   =========================================================================
+   Dois botões no canto direito das abas. Ficam ali, e não junto dos filtros,
+   porque são outra pergunta: os filtros dizem O QUE aparece, estes dizem
+   COMO aparece.
+   ========================================================================= */
+
+.modo-exibicao {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  align-self: center;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 6px;
+}
+
+.modo-botao {
+  width: auto;
+  display: grid;
+  place-items: center;
+  padding: 6px 10px;
+  min-height: 32px;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  color: var(--muted);
+  cursor: pointer;
+  box-shadow: none;
+  transition: background 0.15s, color 0.15s;
+}
+.modo-botao:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.6);
+  filter: none;
+}
+/* o modo escolhido vira uma "pastilha" branca sobre o trilho */
+.modo-botao[data-ativo='true'] {
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: var(--sombra-sm);
+}
+
+/* ---------------- a lista detalhada ---------------- */
+
+.lista-caixa {
+  padding: 0;
+  overflow-x: auto;
+}
+
+.lista-pedidos {
+  min-width: 860px; /* abaixo disso a tabela espreme e fica ilegível */
+}
+
+/* o número do pedido é a âncora da linha: grande e clicável */
+.lista-numero {
+  font-family: var(--fonte-display-stack);
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+.lista-numero:hover {
+  color: var(--brand);
+}
+
+.lista-cliente {
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+.lista-cliente:hover {
+  color: var(--brand);
+}
+
+.lista-itens {
+  font-size: 13px;
+  line-height: 1.55;
+  max-width: 260px;
+}
+.lista-itens b {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.lista-total {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* a linha inteira acende ao passar o mouse, para não perder a horizontal */
+.lista-linha:hover .lista-numero {
+  color: var(--brand);
+}
+
+@media (max-width: 900px) {
+  /* no celular o cartão costuma ser melhor que a tabela; o seletor continua
+     lá para quem quiser, e a tabela rola na horizontal DENTRO da caixa (a
+     página em si nunca rola de lado) */
+  .modo-exibicao {
+    margin-left: 0;
+  }
+  /* alvo de dedo: 32px era briga com a unha */
+  .modo-botao {
+    min-height: 42px;
+    min-width: 48px;
+  }
+}

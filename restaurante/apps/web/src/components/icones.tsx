@@ -368,3 +368,21 @@ export const IconeEstrela = (p: Props) => (
     <path d="M12 3.8l2.6 5.3 5.9.9-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9-4.3-4.1 5.9-.9L12 3.8Z" />
   </Base>
 );
+
+/* ---------------- modo de exibição ---------------- */
+
+export const IconeCards = (p: Props) => (
+  <Base {...p}>
+    <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.8" />
+    <rect x="13" y="3.5" width="7.5" height="7.5" rx="1.8" />
+    <rect x="3.5" y="13" width="7.5" height="7.5" rx="1.8" />
+    <rect x="13" y="13" width="7.5" height="7.5" rx="1.8" />
+  </Base>
+);
+
+export const IconeLista = (p: Props) => (
+  <Base {...p}>
+    <path d="M9 6.5h11.5M9 12h11.5M9 17.5h11.5" />
+    <path d="M4 6.5h1M4 12h1M4 17.5h1" />
+  </Base>
+);
