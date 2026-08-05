@@ -11,7 +11,11 @@
  * (o desenho), não os DADOS.
  */
 
-const VERSAO = 'v1';
+/**
+ * Subir esta versão joga fora tudo o que estava guardado e obriga o navegador
+ * a buscar de novo. Mexeu na estratégia de cache? Sobe a versão.
+ */
+const VERSAO = 'v2';
 const CACHE_CASCA = `casca-${VERSAO}`;
 
 /** As telas que o caixa precisa conseguir abrir mesmo sem internet. */
@@ -68,7 +72,33 @@ self.addEventListener('fetch', (evento) => {
     return;
   }
 
-  // Arquivos do próprio site (JS, CSS, ícones): usa o guardado se houver, e
+  /**
+   * O CÓDIGO DO SISTEMA (`/_next/`) vem SEMPRE da internet, com o guardado só
+   * como reserva para quando ela cair.
+   *
+   * Por que não guardar primeiro, como fazemos com o resto: em
+   * desenvolvimento o endereço do arquivo NÃO muda quando o código muda
+   * (`page.js` continua `page.js`). Servindo o guardado primeiro, a tela fica
+   * mostrando código velho mesmo depois de uma correção — foi exatamente o que
+   * aconteceu com o interruptor: o servidor já mandava o novo e o navegador
+   * insistia no antigo.
+   *
+   * Offline continua funcionando: se a rede falhar, cai no guardado.
+   */
+  if (url.pathname.startsWith('/_next/')) {
+    evento.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copia = res.clone();
+          caches.open(CACHE_CASCA).then((c) => c.put(req, copia));
+          return res;
+        })
+        .catch(() => caches.match(req).then((g) => g || Response.error())),
+    );
+    return;
+  }
+
+  // Os demais arquivos nossos (ícones, manifesto): usa o guardado se houver, e
   // atualiza por baixo dos panos para a próxima vez.
   evento.respondWith(
     caches.match(req).then((guardado) => {
