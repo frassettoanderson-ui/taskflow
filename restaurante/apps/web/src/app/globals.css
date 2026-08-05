@@ -3093,8 +3093,11 @@ select:focus {
     flex: 1;
     min-width: 145px;
   }
+  /* 152px faz caber DOIS cartões num celular de 375px (343px úteis menos o
+     vão de 12px). Com 165 sobrava um por linha e a tela virava um rolo. */
   .pedidos-lista {
-    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+    gap: 12px;
   }
   .pedido-numero {
     font-size: 40px;
@@ -3193,4 +3196,149 @@ select:focus {
   background: oklch(from var(--marca) min(l, 0.52) c h);
   border-color: transparent;
   color: #fff;
+}
+
+/* =========================================================================
+   LOGIN — a porta de entrada
+   =========================================================================
+   Duas colunas: a capa (papel escuro, como a contracapa de um cardápio) e o
+   formulário. No celular, sobra só o formulário.
+   ========================================================================= */
+
+.login-tela {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  min-height: 100vh;
+}
+
+/* ---- a capa ---- */
+.login-capa {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 52px 54px;
+  background: linear-gradient(155deg, #2c1c10 0%, #1d1309 55%, #14100b 100%);
+  color: #f2e7da;
+  overflow: hidden;
+}
+
+/* um clarão de brasa no canto, como luz de forno */
+.login-capa::after {
+  content: '';
+  position: absolute;
+  right: -180px;
+  bottom: -180px;
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(228, 87, 27, 0.34), transparent 68%);
+  pointer-events: none;
+}
+
+.login-marca {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  position: relative;
+  z-index: 1;
+}
+.login-logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(150deg, var(--brand-vivo), #9a2f08);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(196, 65, 12, 0.45);
+}
+
+.login-frase {
+  position: relative;
+  z-index: 1;
+}
+.login-frase h2 {
+  font-family: var(--fonte-display-stack);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1;
+  font-size: clamp(34px, 4vw, 50px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin: 0 0 18px;
+  color: #fff;
+}
+.login-frase h2 em {
+  font-style: italic;
+  color: #ffa76b;
+}
+.login-frase p {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: #c9b6a3;
+}
+
+.login-lista {
+  position: relative;
+  z-index: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+.login-lista li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 14px;
+  color: #d8c8b6;
+}
+/* marcador desenhado: um ponto de brasa, não um bullet de lista */
+.login-lista li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand-vivo);
+  box-shadow: 0 0 10px rgba(228, 87, 27, 0.75);
+}
+
+/* ---- o formulário ---- */
+.login-lado {
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+  background: var(--bg);
+}
+.login-caixa {
+  width: 100%;
+  max-width: 384px;
+}
+.login-caixa .title {
+  font-size: 32px;
+}
+.login-caixa button[type='submit'] {
+  margin-top: 6px;
+  padding: 13px 16px;
+  font-size: 15.5px;
+}
+
+@media (max-width: 900px) {
+  .login-tela {
+    grid-template-columns: 1fr;
+  }
+  /* no celular a capa sai: o dono quer entrar, não ler propaganda */
+  .login-capa {
+    display: none;
+  }
 }
