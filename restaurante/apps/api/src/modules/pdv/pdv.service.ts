@@ -9,6 +9,7 @@ import {
 import { TenantPrismaService } from '../../common/tenant/tenant-prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { OrderService } from '../order/order.service';
+import { CaixaService } from '../caixa/caixa.service';
 import { calcularSplit, lerRegras } from '../order/pricing';
 import { inicioDoDia, fimDoDia } from '../../common/datas';
 import { VendaPdvDto } from './dto/venda-pdv.dto';
@@ -32,6 +33,7 @@ export class PdvService {
     private readonly tenantPrisma: TenantPrismaService,
     private readonly context: TenantContextService,
     private readonly orders: OrderService,
+    private readonly caixa: CaixaService,
   ) {}
 
   /**
@@ -188,6 +190,7 @@ export class PdvService {
 
     const unitId = await this.orders.unidadeDaMarca(brand.id);
     const code = await this.orders.gerarCodigoUnico();
+    const numeroDoDia = await this.caixa.proximoNumero();
 
     // A hora da venda é a do BALCÃO, não a da sincronização. Aceitamos até 24h
     // de atraso — mais que isso é sinal de aparelho com relógio errado, e aí
@@ -210,6 +213,7 @@ export class PdvService {
         unitId,
         customerId,
         code,
+        dailyNumber: numeroDoDia,
         // Já pago e já na cozinha — é o ponto todo do balcão.
         status: OrderStatus.RECEIVED,
         customerName: dto.customerName?.trim() || 'Balcão',

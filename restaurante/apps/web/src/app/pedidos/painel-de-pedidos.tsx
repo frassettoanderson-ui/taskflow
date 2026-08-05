@@ -26,6 +26,8 @@ export type MarcaResumo = {
 export type PedidoDoPainel = {
   id: string;
   code: string;
+  /** número do dia (1,2,3...); null se o caixa estava fechado */
+  numero: number | null;
   status: string;
   statusLabel: string;
   channel: string;

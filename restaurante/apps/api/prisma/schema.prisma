@@ -322,6 +322,11 @@ model Order {
   /// código curto que o cliente usa para acompanhar (ex.: "A7K2QD")
   code String @unique
 
+  /// Número do dia: 1, 2, 3... na ordem de chegada, contando TODOS os canais e
+  /// TODAS as marcas juntos. Zera quando o caixa é aberto (novo dia). É o número
+  /// que o balcão canta ("pedido 12 pronto"). Vazio se o caixa estava fechado.
+  dailyNumber Int?
+
   /// Apelido que o CAIXA gerou no aparelho dele, antes de o servidor saber
   /// do pedido. É o que impede a venda feita sem internet de virar duas quando
   /// a conexão volta e o aparelho reenvia: se o apelido já existe, devolvemos
@@ -1877,4 +1882,29 @@ model ProcessedWebhook {
 
   @@unique([provider, eventId])
   @@map("processed_webhooks")
+}
+
+/// O CAIXA do dia.
+///
+/// Abrir o caixa = começar um novo dia. É isso que zera a numeração dos
+/// pedidos: cada sessão aberta reinicia o contador em 1. Só existe UMA sessão
+/// aberta por vez (closedAt nulo) por empresa.
+model CashSession {
+  id String @id @default(cuid())
+
+  tenantId String
+
+  openedAt   DateTime  @default(now())
+  openedById String?
+  closedAt   DateTime?
+  closedById String?
+
+  /// Quantos pedidos já foram numerados nesta sessão. O próximo pedido leva
+  /// orderCount + 1. Incrementado de forma atômica a cada pedido.
+  orderCount Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, closedAt])
+  @@map("cash_sessions")
 }

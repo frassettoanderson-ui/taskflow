@@ -19,6 +19,7 @@ import { CashbackCodeService } from '../marketing/cashback-code.service';
 import { LimitesService } from '../portal/limites.service';
 import { RetentionService } from '../marketing/retention.service';
 import { inicioDoDia, fimDoDia } from '../../common/datas';
+import { CaixaService } from '../caixa/caixa.service';
 import { StockService } from '../gestao/stock.service';
 import { FinanceService } from '../gestao/finance.service';
 
@@ -42,6 +43,7 @@ export class OrderService {
     private readonly retencao: RetentionService,
     private readonly estoque: StockService,
     private readonly financeiro: FinanceService,
+    private readonly caixa: CaixaService,
   ) {}
 
   // =========================================================================
@@ -152,6 +154,8 @@ export class OrderService {
 
       // 6) Gravar.
       const code = await this.gerarCodigoUnico();
+      // número do dia (1,2,3...) — null se o caixa está fechado
+      const numeroDoDia = await this.caixa.proximoNumero();
 
       const pedido = await this.tenantPrisma.db.order.create({
         data: {
@@ -165,6 +169,7 @@ export class OrderService {
           unitId,
           customerId: cliente.id,
           code,
+          dailyNumber: numeroDoDia,
           status: OrderStatus.AWAITING_PAYMENT,
           customerName: dto.customerName.trim(),
           customerPhone: dto.customerPhone.trim(),
@@ -418,6 +423,8 @@ export class OrderService {
       const cliente = await this.acharOuCriarCliente(brand.id, dto);
       const unitId = await this.unidadeDaMarca(brand.id);
       const code = await this.gerarCodigoUnico();
+      // número do dia (1,2,3...) — null se o caixa está fechado
+      const numeroDoDia = await this.caixa.proximoNumero();
 
       // A carteira da rede abate no fim, como desconto. Nunca deixamos o total
       // ficar negativo — e o restaurante continua recebendo o preço cheio do
@@ -438,6 +445,7 @@ export class OrderService {
           unitId,
           customerId: cliente.id,
           code,
+          dailyNumber: numeroDoDia,
           status: OrderStatus.AWAITING_PAYMENT,
           customerName: dto.customerName.trim(),
           customerPhone: dto.customerPhone.trim(),
@@ -541,6 +549,8 @@ export class OrderService {
     );
 
     const code = await this.gerarCodigoUnico();
+    // número do dia (1,2,3...) — null se o caixa está fechado
+    const numeroDoDia = await this.caixa.proximoNumero();
 
     const pedido = await this.tenantPrisma.db.order.create({
       data: {
@@ -553,6 +563,7 @@ export class OrderService {
         tableSessionId: entrada.sessionId,
         waiterId: entrada.waiterId ?? null,
         code,
+        dailyNumber: numeroDoDia,
         // Na mesa o pedido já entra na cozinha; a conta vem depois.
         status: OrderStatus.RECEIVED,
         customerName: entrada.customerName,
@@ -1016,6 +1027,8 @@ export class OrderService {
     return {
       id: p.id,
       code: p.code,
+      /** número do dia (1,2,3...); null se o caixa estava fechado */
+      numero: p.dailyNumber ?? null,
       status: p.status,
       statusLabel: NOME_DO_STATUS[p.status as OrderStatus],
       finalizado: estaFinalizado(p.status),

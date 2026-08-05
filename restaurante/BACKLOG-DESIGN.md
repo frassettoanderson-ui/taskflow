@@ -43,7 +43,20 @@ _(nada agora)_
    - Nota: a tela antiga `/pedidos` (tabela com filtros) continua existindo por
      URL, mas saiu do menu. Depois a gente decide se mescla ou aposenta.
 
-### Pacote 3 — topo do painel: resultados + ações + abas (commit a seguir)
+### Pacote 4 — número do pedido, caixa, indicadores por etapa, cards 1:1 (commit a seguir)
+11. [x] **Cards 1:1** (quadrados).
+12. [x] **Número do pedido** por dia (1,2,3...), contando TODOS os canais e
+    marcas juntos. Zera quando o **caixa** é aberto (novo dia). Caixa fechado =
+    pedido sem número. Nova entidade `CashSession` + `Order.dailyNumber`.
+13. [x] **Indicadores por etapa** no topo (Aguardando pgto, Recebido, Em preparo,
+    Pronto, Saiu) — além de Faturado/Pedidos hoje.
+14. [x] **Botões**: Abrir caixa ⇄ Fechar caixa; Parar pedidos ⇄ Receber pedidos
+    (single = a marca; multi = todas); e no multi um **dropdown** para ligar/
+    desligar cada estabelecimento.
+    - Pendências anotadas: alinhar o "Fechamento do dia" do PDV com a sessão de
+      caixa (hoje o PDV conta por data, não por sessão).
+
+### Pacote 3 — topo do painel: resultados + ações + abas
 6. [x] **Removidos** o título "Pedidos" e o checkbox "mostrar finalizados".
 7. [x] **Painel de resultados**: Faturado hoje + Pedidos hoje (endpoint novo
    `GET /orders/resumo`, calculado no fuso local, dia inteiro — não preso aos

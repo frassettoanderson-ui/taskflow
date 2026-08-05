@@ -33,6 +33,10 @@
 > — PWA + contingência offline: instalável (manifest + service worker) e o PDV vende sem
 >   internet, guardando no aparelho e subindo sozinho. `Order.clientRef` é a trava contra
 >   venda dobrada; `soldAt` mantém a hora do balcão no fechamento de caixa.
+> — Caixa do dia (`CashSession`) + número diário do pedido (`Order.dailyNumber`): abrir o caixa
+>   zera a numeração; cada pedido (todos os canais/marcas juntos) leva o próximo número; caixa
+>   fechado = sem número. Rotas `/caixa`, `/caixa/abrir`, `/caixa/fechar`. ⚠️ pendente: alinhar o
+>   "Fechamento do dia" do PDV (hoje conta por data) com a sessão de caixa.
 > — PDV (`/pdv`): o caixa do balcão. Venda nasce paga e já na cozinha, com troco calculado,
 >   cliente opcional (vira CRM) e fechamento do dia por forma de pagamento. Dono/gerente/caixa.
 >   Maquininha e impressora térmica continuam fora (Etapa 7).
