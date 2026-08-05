@@ -89,6 +89,9 @@ export function PedidosPorTipo({
   const [abaMarca, setAbaMarca] = useState('TODAS');
   const [menuEstab, setMenuEstab] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  /** qual marca está sendo ligada/desligada agora (para travar só a dela) */
+  const [mexendo, setMexendo] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
   /** relógio que faz o tempo do cartão andar sozinho */
   const [agora, setAgora] = useState(() => Date.now());
 
@@ -152,13 +155,40 @@ export function PedidosPorTipo({
     }
   }
 
+  /**
+   * Liga/desliga o recebimento de uma marca.
+   *
+   * Confere se o servidor ACEITOU antes de mexer na tela. Antes isto não era
+   * checado: se a chamada falhasse, ou a tela mentia (mostrava pausado sem
+   * estar) ou não acontecia nada e ninguém era avisado.
+   */
   async function definirPausa(marca: MarcaResumo, pausar: boolean) {
-    await fetch(`/api/brands/${marca.id}/pausa`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ paused: pausar, reason: pausar ? 'Pausado no painel' : undefined }),
-    });
-    setListaMarcas((atual) => atual.map((m) => (m.id === marca.id ? { ...m, paused: pausar } : m)));
+    setMexendo(marca.id);
+    setErro(null);
+    try {
+      const res = await fetch(`/api/brands/${marca.id}/pausa`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paused: pausar, reason: pausar ? 'Pausado no painel' : undefined }),
+      });
+
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setErro(
+          (Array.isArray(d.message) ? d.message[0] : d.message) ??
+            `Não consegui ${pausar ? 'pausar' : 'reabrir'} ${marca.name}.`,
+        );
+        return;
+      }
+
+      setListaMarcas((atual) =>
+        atual.map((m) => (m.id === marca.id ? { ...m, paused: pausar } : m)),
+      );
+    } catch {
+      setErro('O servidor não respondeu. A marca continua como estava.');
+    } finally {
+      setMexendo(null);
+    }
   }
 
   const algumRecebendo = listaMarcas.some((m) => !m.paused);
@@ -286,16 +316,26 @@ export function PedidosPorTipo({
                     {algumRecebendo ? 'Parar todos' : 'Receber em todos'}
                   </button>
                   <div className="dropdown-sep" />
+
+                  {erro && <div className="dropdown-erro">{erro}</div>}
+
+                  {/* A linha INTEIRA é o botão (alvo grande, dá para acertar com
+                      o dedo), e o interruptor à direita mostra o estado. Antes
+                      era um selo escrito "Recebendo", que parecia enfeite. */}
                   {listaMarcas.map((m) => (
                     <button
                       key={m.id}
                       className="dropdown-item"
+                      role="switch"
+                      aria-checked={!m.paused}
+                      aria-label={`Receber pedidos de ${m.name}`}
+                      disabled={mexendo === m.id || ocupado}
                       onClick={() => definirPausa(m, !m.paused)}
                     >
                       <span className="dot" style={{ background: m.primaryColor }} />
                       <span className="dropdown-nome">{m.name}</span>
-                      <span className={`mini-status ${m.paused ? 'off' : 'on'}`}>
-                        {m.paused ? 'Pausado' : 'Recebendo'}
+                      <span className="interruptor" data-ligado={!m.paused} aria-hidden="true">
+                        <span className="interruptor-bola" />
                       </span>
                     </button>
                   ))}

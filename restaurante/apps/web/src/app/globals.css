@@ -2755,22 +2755,9 @@ select:focus {
   flex: 1;
   text-align: left;
 }
-.mini-status {
-  font-size: 10.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 3px 9px;
-  border-radius: 999px;
-}
-.mini-status.on {
-  background: var(--ok-bg);
-  color: var(--ok);
-}
-.mini-status.off {
-  background: var(--danger-bg);
-  color: var(--danger);
-}
+
+
+
 
 /* ---------------- 3) abas ---------------- */
 
@@ -3125,7 +3112,6 @@ select:focus {
 /* botões e chips com ícone: alinhamento por flex, mais confiável */
 .ghost,
 .botao-mini,
-.mini-status,
 .menu-sair {
   display: inline-flex;
   align-items: center;
@@ -3341,4 +3327,83 @@ select:focus {
   .login-capa {
     display: none;
   }
+}
+
+/* =========================================================================
+   INTERRUPTOR (liga/desliga)
+   =========================================================================
+   Um selo escrito "Recebendo" parece rótulo e ninguém clica. Um interruptor
+   parece interruptor: a bolinha de um lado ou do outro diz o estado, e o
+   desenho já convida a mexer.
+   ========================================================================= */
+
+.interruptor {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 25px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  /* Desligado. Este tom foi ESCOLHIDO por medição: um controle precisa se
+     distinguir do fundo em pelo menos 3:1, e o bege claro que eu queria dava
+     1,75:1 — o interruptor sumia no branco do menu, e a bolinha sumia nele. */
+  background: #9c8a78;
+  box-shadow: inset 0 0 0 1px rgba(60, 40, 25, 0.16);
+  transition: background 0.2s ease;
+}
+
+.interruptor-bola {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(60, 40, 25, 0.35);
+  transition: transform 0.2s cubic-bezier(0.3, 0.9, 0.4, 1);
+}
+
+/* ligado: verde e a bolinha corre para a direita */
+.interruptor[data-ligado='true'] {
+  background: var(--ok);
+}
+.interruptor[data-ligado='true'] .interruptor-bola {
+  transform: translateX(19px);
+}
+
+/* a linha inteira do menu é o botão: precisa parecer clicável */
+.dropdown-item[role='switch'] {
+  cursor: pointer;
+}
+.dropdown-item[role='switch']:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+/* enquanto salva, o interruptor pisca de leve — o clique teve resposta */
+.dropdown-item[role='switch']:disabled .interruptor {
+  animation: respira 1s ease-in-out infinite;
+}
+@keyframes respira {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* foco pelo teclado precisa aparecer no interruptor, não só na linha */
+.dropdown-item[role='switch']:focus-visible .interruptor {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* erro dentro do menu, quando o servidor recusa a mudança */
+.dropdown-erro {
+  margin: 0 4px 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
 }
