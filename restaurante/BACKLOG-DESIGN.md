@@ -43,6 +43,23 @@ _(nada agora)_
    - Nota: a tela antiga `/pedidos` (tabela com filtros) continua existindo por
      URL, mas saiu do menu. Depois a gente decide se mescla ou aposenta.
 
+### Pacote 5 — identidade visual "Papel & Brasa" (commit a seguir)
+15. [x] **Tema novo**: base clara quente (papel de cardápio) + menu lateral
+    espresso. Sombras quentes, grão de papel sutil. Ver `DESIGN.md`.
+16. [x] **Tipografia** distintiva: Fraunces (títulos e números) + Archivo
+    (interface). Auto-hospedadas — continuam funcionando offline.
+17. [x] **Ícones SVG** substituíram TODOS os emojis da interface
+    (`components/icones.tsx`). Emoji sobrou só onde é conteúdo (mensagem de
+    campanha ao cliente).
+18. [x] **Tempo correndo** no cartão do pedido, com alerta âmbar/vermelho —
+    veio das referências (iFood/Anota AI).
+19. [x] **Acessibilidade**: contraste medido em todas as telas (zero problemas),
+    `--muted` corrigido, alvos de toque aumentados, foco visível,
+    `prefers-reduced-motion` respeitado.
+20. [x] **Cor da marca à prova de escolha ruim**: luminosidade travada via
+    `oklch` — amarelo-limão saiu de 1,27:1 para 5,52:1.
+21. [x] **KDS mantido escuro** (tela de cozinha), com tokens próprios.
+
 ### Pacote 4 — número do pedido, caixa, indicadores por etapa, cards 1:1 (commit a seguir)
 11. [x] **Cards 1:1** (quadrados).
 12. [x] **Número do pedido** por dia (1,2,3...), contando TODOS os canais e

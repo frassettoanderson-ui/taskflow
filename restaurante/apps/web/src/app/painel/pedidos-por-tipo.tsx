@@ -4,16 +4,29 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo, PedidoDoPainel } from '../pedidos/painel-de-pedidos';
+import {
+  ICONE_DO_CANAL,
+  IconeCadeadoAberto,
+  IconeCadeadoFechado,
+  IconeMais,
+  IconePausa,
+  IconePlay,
+  IconeRelogio,
+  IconeSeta,
+} from '@/components/icones';
 
 /**
  * A TELA PRINCIPAL do restaurante.
  *
  * De cima para baixo:
- *   1. RESULTADOS do dia (faturado, pedidos) + quantos pedidos há em cada etapa;
- *   2. AÇÕES: + Novo pedido, Abrir/Fechar caixa, Parar/Receber pedidos e (no
- *      modo multi) um menu para ligar/desligar cada estabelecimento;
+ *   1. RESULTADOS do dia e quantos pedidos há em cada etapa;
+ *   2. AÇÕES: novo pedido, abrir/fechar caixa, parar/receber pedidos;
  *   3. ABAS por tipo e (no multi) por estabelecimento;
- *   4. a lista de pedidos em cards quadrados, cada um com o NÚMERO do dia.
+ *   4. os pedidos, cada um com o NÚMERO do dia e o TEMPO correndo.
+ *
+ * O tempo correndo é o detalhe que os sistemas de referência têm e que muda o
+ * jogo na hora do pico: o cartão avisa sozinho quando o pedido está demorando,
+ * em vez de o dono ter que reparar.
  */
 
 const ABAS_TIPO = [
@@ -23,7 +36,6 @@ const ABAS_TIPO = [
   { valor: 'DELIVERY', label: 'Delivery' },
 ];
 
-/** As etapas mostradas nos indicadores de cima, na ordem do fluxo. */
 const ETAPAS = [
   { status: 'AWAITING_PAYMENT', label: 'Aguardando pgto' },
   { status: 'RECEIVED', label: 'Recebido' },
@@ -32,14 +44,28 @@ const ETAPAS = [
   { status: 'OUT_FOR_DELIVERY', label: 'Saiu' },
 ];
 
-function tagDoTipo(p: PedidoDoPainel): { texto: string; icone: string; cls: string } {
-  if (p.channel === 'DINE_IN') {
-    const mesa = p.table?.number ? ` · mesa ${p.table.number}` : '';
-    return { texto: `Salão${mesa}`, icone: '🍽️', cls: 'salao' };
-  }
-  if (p.channel === 'COUNTER') return { texto: 'Retirada / Balcão', icone: '🥡', cls: 'balcao' };
-  return { texto: 'Delivery', icone: '🛵', cls: 'delivery' };
-}
+/**
+ * Quanto tempo se espera que um pedido leve, por canal (em minutos).
+ * É o parâmetro do alerta: metade disso fica âmbar, o dobro fica vermelho.
+ * Vira configuração por marca quando o fundador quiser.
+ */
+const MINUTOS_ESPERADOS: Record<string, number> = {
+  DELIVERY: 45,
+  DINE_IN: 25,
+  COUNTER: 20,
+};
+
+const ROTULO_DO_CANAL: Record<string, string> = {
+  DELIVERY: 'Delivery',
+  DINE_IN: 'Salão',
+  COUNTER: 'Retirada',
+};
+
+const CLASSE_DO_CANAL: Record<string, string> = {
+  DELIVERY: 'delivery',
+  DINE_IN: 'salao',
+  COUNTER: 'balcao',
+};
 
 function horaCurta(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -63,6 +89,8 @@ export function PedidosPorTipo({
   const [abaMarca, setAbaMarca] = useState('TODAS');
   const [menuEstab, setMenuEstab] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  /** relógio que faz o tempo do cartão andar sozinho */
+  const [agora, setAgora] = useState(() => Date.now());
 
   const multi = listaMarcas.length > 1;
 
@@ -93,6 +121,12 @@ export function PedidosPorTipo({
     buscarCaixa();
   }, [buscar, buscarCaixa]);
 
+  // O relógio do alerta: de meio em meio minuto basta (o alerta é grosso).
+  useEffect(() => {
+    const t = setInterval(() => setAgora(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
   useEffect(() => {
     const fonte = new EventSource('/api/orders/stream');
     fonte.onopen = () => setAoVivo(true);
@@ -108,7 +142,6 @@ export function PedidosPorTipo({
     return () => fonte.close();
   }, [buscar]);
 
-  // ---- caixa ----
   async function alternarCaixa() {
     setOcupado(true);
     try {
@@ -119,7 +152,6 @@ export function PedidosPorTipo({
     }
   }
 
-  // ---- pausar/receber ----
   async function definirPausa(marca: MarcaResumo, pausar: boolean) {
     await fetch(`/api/brands/${marca.id}/pausa`, {
       method: 'PATCH',
@@ -134,14 +166,12 @@ export function PedidosPorTipo({
   async function alternarTodos() {
     setOcupado(true);
     try {
-      // Se algum recebe, o clique PARA todos; se todos pausados, RETOMA todos.
       await Promise.all(listaMarcas.map((m) => definirPausa(m, algumRecebendo)));
     } finally {
       setOcupado(false);
     }
   }
 
-  // ---- indicadores por etapa ----
   const emAndamento = useMemo(
     () => pedidos.filter((p) => !p.finalizado && p.status !== 'CANCELED'),
     [pedidos],
@@ -149,7 +179,6 @@ export function PedidosPorTipo({
   const contarEtapa = (etapa: (typeof ETAPAS)[number]) =>
     emAndamento.filter((p) => p.status === etapa.status || etapa.tambem?.includes(p.status)).length;
 
-  // ---- lista filtrada pelas abas ----
   const lista = useMemo(
     () =>
       emAndamento.filter((p) => {
@@ -160,11 +189,37 @@ export function PedidosPorTipo({
     [emAndamento, abaTipo, abaMarca, multi],
   );
 
+  /**
+   * Há quanto tempo o pedido está aberto, e se isso já é motivo de aflição.
+   *
+   * Pedido esperando o cliente pagar não conta como atraso: a demora é dele,
+   * não da cozinha — seria injusto pintar o cartão de vermelho por isso.
+   */
+  function tempo(p: PedidoDoPainel) {
+    const minutos = Math.max(0, Math.floor((agora - new Date(p.createdAt).getTime()) / 60000));
+    if (p.status === 'AWAITING_PAYMENT') return { minutos, nivel: 'neutro' as const };
+
+    const esperado = MINUTOS_ESPERADOS[p.channel] ?? 30;
+    const nivel = minutos >= esperado ? 'atrasado' : minutos >= esperado / 2 ? 'atencao' : 'ok';
+    return { minutos, nivel };
+  }
+
+  function textoDoTempo(minutos: number) {
+    if (minutos < 60) return `${minutos} min`;
+    const horas = Math.floor(minutos / 60);
+    // Acima de um dia, contar hora vira ruído ("318h04" não diz nada a ninguém).
+    if (horas >= 24) {
+      const dias = Math.floor(horas / 24);
+      return dias === 1 ? 'ontem' : `${dias} dias`;
+    }
+    return `${horas}h${String(minutos % 60).padStart(2, '0')}`;
+  }
+
   return (
     <main className="pedidos-tela">
-      {/* 1) RESULTADOS + ETAPAS */}
+      {/* ---------- 1) RESULTADOS + ETAPAS ---------- */}
       <section className="resultados">
-        <div className="resultado-card">
+        <div className="resultado-card destaque">
           <span className="resultado-rotulo">Faturado hoje</span>
           <span className="resultado-valor">{dinheiro(resumo.faturadoCents)}</span>
         </div>
@@ -174,52 +229,61 @@ export function PedidosPorTipo({
         </div>
 
         <div className="etapas">
-          {ETAPAS.map((e) => (
-            <div className="etapa-chip" key={e.status}>
-              <span className="etapa-n">{contarEtapa(e)}</span>
-              <span className="etapa-l">{e.label}</span>
-            </div>
-          ))}
+          {ETAPAS.map((e) => {
+            const n = contarEtapa(e);
+            return (
+              <div className="etapa-chip" key={e.status} data-cheio={n > 0}>
+                <span className="etapa-n">{n}</span>
+                <span className="etapa-l">{e.label}</span>
+              </div>
+            );
+          })}
         </div>
 
-        <span className={`ao-vivo ${aoVivo ? 'on' : ''}`}>{aoVivo ? '● ao vivo' : '○ reconectando'}</span>
+        <span className={`ao-vivo ${aoVivo ? 'on' : ''}`}>
+          <i />
+          {aoVivo ? 'ao vivo' : 'reconectando'}
+        </span>
       </section>
 
-      {/* 2) AÇÕES — todos lado a lado */}
+      {/* ---------- 2) AÇÕES ---------- */}
       <div className="acoes-barra">
         <Link href="/pdv" className="botao-acao destaque">
-          + Novo pedido
+          <IconeMais tamanho={18} />
+          Novo pedido
         </Link>
 
         <button className="botao-acao" disabled={ocupado} onClick={alternarCaixa}>
-          {caixa.aberto ? '🔒 Fechar caixa' : '🔓 Abrir caixa'}
+          {caixa.aberto ? <IconeCadeadoFechado tamanho={17} /> : <IconeCadeadoAberto tamanho={17} />}
+          {caixa.aberto ? 'Fechar caixa' : 'Abrir caixa'}
         </button>
 
-        {/* Parar/receber pedidos. Numa loja só, o clique já para/retoma.
-            No multi, o MESMO botão abre um menu com cada estabelecimento. */}
         {!multi ? (
           <button
-            className={`botao-acao ${algumRecebendo ? 'perigo' : ''}`}
+            className={`botao-acao ${algumRecebendo ? 'perigo' : 'positivo'}`}
             disabled={ocupado || listaMarcas.length === 0}
             onClick={alternarTodos}
           >
-            {algumRecebendo ? '⏸ Parar pedidos' : '▶ Receber pedidos'}
+            {algumRecebendo ? <IconePausa tamanho={16} /> : <IconePlay tamanho={16} />}
+            {algumRecebendo ? 'Parar pedidos' : 'Receber pedidos'}
           </button>
         ) : (
           <div className="dropdown">
             <button
-              className={`botao-acao ${algumRecebendo ? 'perigo' : ''}`}
+              className={`botao-acao ${algumRecebendo ? 'perigo' : 'positivo'}`}
               disabled={ocupado}
               onClick={() => setMenuEstab((v) => !v)}
             >
-              {algumRecebendo ? '⏸ Parar pedidos ▾' : '▶ Receber pedidos ▾'}
+              {algumRecebendo ? <IconePausa tamanho={16} /> : <IconePlay tamanho={16} />}
+              {algumRecebendo ? 'Parar pedidos' : 'Receber pedidos'}
+              <IconeSeta tamanho={15} />
             </button>
             {menuEstab && (
               <>
                 <div className="dropdown-fundo" onClick={() => setMenuEstab(false)} />
                 <div className="dropdown-menu">
                   <button className="dropdown-item forte" disabled={ocupado} onClick={alternarTodos}>
-                    {algumRecebendo ? '⏸ Parar todos' : '▶ Receber todos'}
+                    {algumRecebendo ? 'Parar todos' : 'Receber em todos'}
                   </button>
                   <div className="dropdown-sep" />
                   {listaMarcas.map((m) => (
@@ -242,18 +306,25 @@ export function PedidosPorTipo({
         )}
       </div>
 
-      {/* 3) ABAS */}
+      {/* ---------- 3) ABAS ---------- */}
       <div className="abas-tipo">
-        {ABAS_TIPO.map((a) => (
-          <button
-            key={a.valor}
-            className="aba-tab"
-            data-ativa={abaTipo === a.valor}
-            onClick={() => setAbaTipo(a.valor)}
-          >
-            {a.label}
-          </button>
-        ))}
+        {ABAS_TIPO.map((a) => {
+          const n =
+            a.valor === 'TODOS'
+              ? emAndamento.length
+              : emAndamento.filter((p) => p.channel === a.valor).length;
+          return (
+            <button
+              key={a.valor}
+              className="aba-tab"
+              data-ativa={abaTipo === a.valor}
+              onClick={() => setAbaTipo(a.valor)}
+            >
+              {a.label}
+              <span className="aba-conta">{n}</span>
+            </button>
+          );
+        })}
       </div>
 
       {multi && (
@@ -279,30 +350,42 @@ export function PedidosPorTipo({
         </div>
       )}
 
-      {/* 4) LISTA (cards quadrados) */}
+      {/* ---------- 4) OS PEDIDOS ---------- */}
       {lista.length === 0 ? (
-        <p className="vazio">Nenhum pedido em andamento por aqui.</p>
+        <div className="vazio-caixa">
+          <div className="vazio-icone">
+            <IconeRelogio tamanho={26} />
+          </div>
+          <strong>Nenhum pedido em andamento</strong>
+          <span>Quando entrar um pedido, ele aparece aqui sozinho.</span>
+        </div>
       ) : (
         <div className="pedidos-lista">
           {lista.map((p) => {
-            const tipo = tagDoTipo(p);
+            const t = tempo(p);
+            const Icone = ICONE_DO_CANAL[p.channel as keyof typeof ICONE_DO_CANAL];
+            const mesa = p.channel === 'DINE_IN' && p.table?.number ? `Mesa ${p.table.number}` : null;
+
             return (
-              <Link href={`/pedido/${p.code}`} className="pedido-card" key={p.id}>
+              <Link
+                href={`/pedido/${p.code}`}
+                className="pedido-card"
+                key={p.id}
+                data-canal={CLASSE_DO_CANAL[p.channel] ?? 'delivery'}
+              >
                 <div className="pedido-tags">
-                  <span className={`tag tag-tipo ${tipo.cls}`}>
-                    <span>{tipo.icone}</span>
-                    {tipo.texto}
+                  <span className={`tag tag-tipo ${CLASSE_DO_CANAL[p.channel]}`}>
+                    {Icone && <Icone tamanho={14} />}
+                    {mesa ?? ROTULO_DO_CANAL[p.channel] ?? p.channelLabel}
                   </span>
-                  {multi && p.brand && (
-                    <span className="tag tag-marca">
-                      <span className="dot" style={{ background: p.brand.primaryColor }} />
-                      {p.brand.name}
-                    </span>
-                  )}
+                  <span className={`tempo-chip ${t.nivel}`} title="Tempo desde que o pedido entrou">
+                    <IconeRelogio tamanho={13} />
+                    {textoDoTempo(t.minutos)}
+                  </span>
                 </div>
 
                 <div className="pedido-miolo">
-                  <span className="pedido-numero">{p.numero != null ? `#${p.numero}` : '—'}</span>
+                  <span className="pedido-numero">{p.numero != null ? p.numero : '—'}</span>
                   <span className="situacao" data-status={p.status}>
                     {p.statusLabel}
                   </span>
@@ -310,15 +393,21 @@ export function PedidosPorTipo({
 
                 <div className="pedido-baixo">
                   <div className="pedido-linha">
-                    <span className="pedido-cod">{p.code}</span>
-                    <strong>{dinheiro(p.totalCents)}</strong>
+                    <span className="pedido-cliente">{p.customerName}</span>
+                    <strong className="pedido-total">{dinheiro(p.totalCents)}</strong>
                   </div>
                   <div className="pedido-linha sub">
-                    <span>{p.customerName}</span>
                     <span>
-                      {p.items.reduce((s, i) => s + i.quantity, 0)} item(ns) · {horaCurta(p.createdAt)}
+                      {p.code} · {p.items.reduce((s, i) => s + i.quantity, 0)} item(ns)
                     </span>
+                    <span>{horaCurta(p.createdAt)}</span>
                   </div>
+                  {multi && p.brand && (
+                    <div className="pedido-marca-linha">
+                      <span className="dot" style={{ background: p.brand.primaryColor }} />
+                      {p.brand.name}
+                    </div>
+                  )}
                 </div>
               </Link>
             );

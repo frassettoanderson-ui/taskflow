@@ -169,7 +169,7 @@ export function MesaCliente({
       </header>
 
       {aviso && (
-        <div className="fechado" style={{ background: 'rgba(34,197,94,.12)', borderColor: 'rgba(34,197,94,.35)', color: '#86efac' }}>
+        <div className="fechado" style={{ background: 'var(--ok-bg)', borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)', color: 'var(--ok)' }}>
           {aviso}
         </div>
       )}

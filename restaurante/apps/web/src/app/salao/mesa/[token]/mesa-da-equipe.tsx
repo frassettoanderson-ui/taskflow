@@ -139,7 +139,7 @@ export function MesaDaEquipe({
       {aviso && (
         <div
           className="fechado"
-          style={{ background: 'rgba(34,197,94,.12)', borderColor: 'rgba(34,197,94,.35)', color: '#86efac', margin: '0 0 16px' }}
+          style={{ background: 'var(--ok-bg)', borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)', color: 'var(--ok)', margin: '0 0 16px' }}
         >
           {aviso}
         </div>

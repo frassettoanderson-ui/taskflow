@@ -9,6 +9,7 @@ import { IdentidadeDaMarca } from './identidade-marca';
 import { RegrasDaMarca } from './regras-marca';
 import { Estrutura } from './estrutura';
 import { Usuarios } from './usuarios';
+import { IconeLinkExterno } from '@/components/icones';
 
 type Aba = 'identidade' | 'cardapio' | 'regras' | 'estrutura' | 'usuarios';
 
@@ -50,7 +51,7 @@ export function TelaDeCadastro({
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {marca && (
             <Link href={`/m/${marca.slug}`} target="_blank">
-              <button className="ghost">Ver cardápio publicado ↗</button>
+              <button className="ghost">Ver cardápio publicado <IconeLinkExterno tamanho={15} /></button>
             </Link>
           )}
           <Link href="/painel">
@@ -65,9 +66,9 @@ export function TelaDeCadastro({
           className="fechado"
           style={{
             margin: '0 0 16px',
-            background: 'rgba(34,197,94,.12)',
-            borderColor: 'rgba(34,197,94,.35)',
-            color: '#86efac',
+            background: 'var(--ok-bg)',
+            borderColor: 'color-mix(in srgb, var(--ok) 30%, transparent)',
+            color: 'var(--ok)',
           }}
         >
           {aviso}

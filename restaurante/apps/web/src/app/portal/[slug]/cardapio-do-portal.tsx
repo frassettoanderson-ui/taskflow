@@ -351,7 +351,7 @@ function CheckoutDoPortal({
                     </>
                   )}
                   {erroCodigo && (
-                    <p style={{ margin: '8px 0 0', fontSize: 13, color: '#fca5a5' }}>{erroCodigo}</p>
+                    <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--danger)' }}>{erroCodigo}</p>
                   )}
                 </div>
               )}

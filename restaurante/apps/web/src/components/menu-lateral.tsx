@@ -3,47 +3,62 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import {
+  IconeCaixa,
+  IconeCardapio,
+  IconeClientes,
+  IconeCozinha,
+  IconeEntregas,
+  IconeEstoque,
+  IconeFinanceiro,
+  IconeMarketing,
+  IconeMenu,
+  IconePedidos,
+  IconeRelatorios,
+  IconeSair,
+  IconeSalao,
+} from './icones';
 
 /**
  * O MENU LATERAL do restaurante — a espinha do sistema.
  *
- * Fica sempre à esquerda; o que se clica aqui abre no meio da tela. Substitui a
- * antiga fileira de botões no topo.
+ * Fica sempre à esquerda; o que se clica aqui abre no meio da tela.
  *
- * Organizado por "o que a pessoa quer fazer", não por tela solta: primeiro o
- * dia a dia (pedidos, cozinha, caixa), depois o cadastro, depois os bastidores.
+ * Organizado por INTENÇÃO, não por tela solta: primeiro o que se usa com o
+ * salão cheio, depois o que se cadastra com calma, depois o que se olha à
+ * noite fechando o caixa.
  */
 
 type Grupo = {
   titulo: string;
-  itens: Array<{ href: string; label: string; icone: string }>;
+  itens: Array<{ href: string; label: string; Icone: (p: { tamanho?: number }) => React.ReactElement }>;
 };
 
 const GRUPOS: Grupo[] = [
   {
     titulo: 'Dia a dia',
     itens: [
-      { href: '/painel', label: 'Pedidos', icone: '🧾' },
-      { href: '/kds', label: 'Cozinha', icone: '👨‍🍳' },
-      { href: '/pdv', label: 'Caixa (balcão)', icone: '💵' },
-      { href: '/salao', label: 'Salão', icone: '🍽️' },
+      { href: '/painel', label: 'Pedidos', Icone: IconePedidos },
+      { href: '/kds', label: 'Cozinha', Icone: IconeCozinha },
+      { href: '/pdv', label: 'Caixa', Icone: IconeCaixa },
+      { href: '/salao', label: 'Salão', Icone: IconeSalao },
     ],
   },
   {
     titulo: 'Sua loja',
     itens: [
-      { href: '/admin', label: 'Cardápio e cadastro', icone: '📋' },
-      { href: '/clientes', label: 'Clientes', icone: '🙋' },
-      { href: '/marketing', label: 'Marketing', icone: '📣' },
+      { href: '/admin', label: 'Cardápio', Icone: IconeCardapio },
+      { href: '/clientes', label: 'Clientes', Icone: IconeClientes },
+      { href: '/marketing', label: 'Marketing', Icone: IconeMarketing },
     ],
   },
   {
     titulo: 'Bastidores',
     itens: [
-      { href: '/relatorios', label: 'Relatórios', icone: '📊' },
-      { href: '/financeiro', label: 'Financeiro', icone: '💰' },
-      { href: '/estoque', label: 'Estoque', icone: '📦' },
-      { href: '/entregadores', label: 'Entregas', icone: '🛵' },
+      { href: '/relatorios', label: 'Relatórios', Icone: IconeRelatorios },
+      { href: '/financeiro', label: 'Financeiro', Icone: IconeFinanceiro },
+      { href: '/estoque', label: 'Estoque', Icone: IconeEstoque },
+      { href: '/entregadores', label: 'Entregas', Icone: IconeEntregas },
     ],
   },
 ];
@@ -91,23 +106,34 @@ export function MenuLateral() {
     router.refresh();
   }
 
+  const loja = me?.tenant?.name ?? 'Meu restaurante';
+
   return (
     <>
       {/* barra fininha só no celular, para abrir o menu */}
       <div className="menu-mobile-barra">
-        <button className="menu-hamburguer" onClick={() => setAberto((a) => !a)} aria-label="Menu">
-          ☰
+        <button className="menu-hamburguer" onClick={() => setAberto((a) => !a)} aria-label="Abrir menu">
+          <IconeMenu tamanho={22} />
         </button>
-        <span className="menu-mobile-nome">{me?.tenant?.name ?? 'Meu restaurante'}</span>
+        <span className="menu-mobile-nome">{loja}</span>
       </div>
 
       {aberto && <div className="menu-fundo" onClick={() => setAberto(false)} />}
 
       <aside className="menu-lateral" data-aberto={aberto}>
         <div className="menu-topo">
-          <div className="menu-logo">🍽️</div>
+          {/* a marca: um "prato com brasa" desenhado em SVG, não emoji */}
+          <div className="menu-logo" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.6" opacity="0.55" />
+              <path
+                d="M12 7.4c1.9 1.3 2.9 2.7 2.9 4.2a2.9 2.9 0 0 1-5.8 0c0-1.5 1-2.9 2.9-4.2Z"
+                fill="currentColor"
+              />
+            </svg>
+          </div>
           <div className="menu-loja">
-            <strong>{me?.tenant?.name ?? 'Meu restaurante'}</strong>
+            <strong>{loja}</strong>
             <span>Painel do restaurante</span>
           </div>
         </div>
@@ -116,15 +142,12 @@ export function MenuLateral() {
           {GRUPOS.map((g) => (
             <div className="menu-grupo" key={g.titulo}>
               <div className="menu-grupo-titulo">{g.titulo}</div>
-              {g.itens.map((i) => (
-                <Link
-                  key={i.href}
-                  href={i.href}
-                  className="menu-item"
-                  data-ativo={ativo(i.href)}
-                >
-                  <span className="menu-icone">{i.icone}</span>
-                  <span>{i.label}</span>
+              {g.itens.map(({ href, label, Icone }) => (
+                <Link key={href} href={href} className="menu-item" data-ativo={ativo(href)}>
+                  <span className="menu-icone">
+                    <Icone tamanho={19} />
+                  </span>
+                  <span>{label}</span>
                 </Link>
               ))}
             </div>
@@ -142,6 +165,7 @@ export function MenuLateral() {
             </div>
           )}
           <button className="menu-sair" onClick={sair}>
+            <IconeSair tamanho={17} />
             Sair
           </button>
         </div>

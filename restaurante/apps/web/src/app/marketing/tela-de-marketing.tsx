@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
+import { IconeCarrinho, IconeEstrela, IconeMegafone } from '@/components/icones';
 
 export type Cupom = {
   id: string;
@@ -337,14 +338,14 @@ export function TelaDeMarketing({
           <section className="grid" style={{ marginBottom: 16 }}>
             <div className="card">
               <div className="stat-label">NPS</div>
-              <div className="nps-numero" style={{ color: (nps.nps ?? 0) >= 50 ? 'var(--ok)' : (nps.nps ?? 0) >= 0 ? '#eab308' : 'var(--danger)' }}>
+              <div className="nps-numero" style={{ color: (nps.nps ?? 0) >= 50 ? 'var(--ok)' : (nps.nps ?? 0) >= 0 ? 'var(--aviso)' : 'var(--danger)' }}>
                 {nps.nps ?? '—'}
               </div>
               <div className="barra-nps">
                 {nps.total > 0 && (
                   <>
                     <i style={{ width: `${(nps.promotores / nps.total) * 100}%`, background: 'var(--ok)' }} />
-                    <i style={{ width: `${(nps.neutros / nps.total) * 100}%`, background: '#eab308' }} />
+                    <i style={{ width: `${(nps.neutros / nps.total) * 100}%`, background: 'var(--aviso)' }} />
                     <i style={{ width: `${(nps.detratores / nps.total) * 100}%`, background: 'var(--danger)' }} />
                   </>
                 )}
@@ -436,13 +437,15 @@ export function TelaDeMarketing({
                 {mensagens.map((m) => (
                   <tr key={m.id}>
                     <td className="sub">
-                      {m.kind === 'CAMPAIGN'
-                        ? '📣 campanha'
-                        : m.kind === 'CART_RECOVERY'
-                          ? '🛒 carrinho'
-                          : m.kind === 'NPS'
-                            ? '⭐ pesquisa'
-                            : m.kind}
+                      {m.kind === 'CAMPAIGN' ? (
+                        <><IconeMegafone tamanho={13} /> campanha</>
+                      ) : m.kind === 'CART_RECOVERY' ? (
+                        <><IconeCarrinho tamanho={13} /> carrinho</>
+                      ) : m.kind === 'NPS' ? (
+                        <><IconeEstrela tamanho={13} /> pesquisa</>
+                      ) : (
+                        m.kind
+                      )}
                     </td>
                     <td>
                       {m.customer?.name ?? '—'}

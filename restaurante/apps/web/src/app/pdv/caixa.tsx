@@ -18,6 +18,14 @@ import {
   type CategoriaCardapio,
   type LinhaCarrinho,
 } from '../m/[slug]/cardapio';
+import {
+  IconeAmpulheta,
+  IconeCartao,
+  IconeCelular,
+  IconeDinheiro,
+  IconeRecibo,
+  IconeSemInternet,
+} from '@/components/icones';
 
 type Marca = { id: string; name: string; slug: string; primaryColor: string };
 type Cardapio = { menuId: string; categories: CategoriaCardapio[] };
@@ -44,9 +52,9 @@ type Caixa = {
 };
 
 const FORMAS = [
-  { valor: 'CASH', label: '💵 Dinheiro' },
-  { valor: 'CARD', label: '💳 Cartão' },
-  { valor: 'PIX', label: '📱 Pix' },
+  { valor: 'CASH', label: 'Dinheiro', Icone: IconeDinheiro },
+  { valor: 'CARD', label: 'Cartão', Icone: IconeCartao },
+  { valor: 'PIX', label: 'Pix', Icone: IconeCelular },
 ];
 
 /**
@@ -276,7 +284,7 @@ export function Caixa({ operador }: { operador: string }) {
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button className="ghost" onClick={() => setVerCaixa((v) => !v)}>
-            {verCaixa ? 'Voltar à venda' : '🧾 Fechamento do dia'}
+            {verCaixa ? 'Voltar à venda' : <><IconeRecibo tamanho={15} /> Fechamento do dia</>}
           </button>
           <Link href="/painel">
             <button className="ghost">Painel</button>
@@ -289,7 +297,7 @@ export function Caixa({ operador }: { operador: string }) {
       {/* Estado da conexão: o caixa precisa saber, sem susto, o que está havendo. */}
       {!online && (
         <div className="fechado" style={{ margin: '0 0 16px' }}>
-          📴 <strong>Sem internet.</strong> Pode continuar vendendo normalmente — as vendas ficam
+          <IconeSemInternet tamanho={17} /> <strong>Sem internet.</strong> Pode continuar vendendo normalmente — as vendas ficam
           guardadas neste aparelho e sobem sozinhas quando a conexão voltar. A cozinha só recebe
           os pedidos nessa hora; até lá, produza pelo papel.
         </div>
@@ -300,14 +308,14 @@ export function Caixa({ operador }: { operador: string }) {
           className="fechado"
           style={{
             margin: '0 0 16px',
-            background: 'rgba(234,179,8,.12)',
-            borderColor: 'rgba(234,179,8,.35)',
-            color: '#fde68a',
+            background: 'var(--aviso-bg)',
+            borderColor: 'var(--aviso-bg)',
+            color: 'var(--aviso)',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
             <span>
-              ⏳ <strong>{pendentes.length}</strong> venda(s) esperando para subir
+              <IconeAmpulheta tamanho={15} /> <strong>{pendentes.length}</strong> venda(s) esperando para subir
               {pendentes.some((p) => p.ultimoErro) && ' — alguma foi recusada, veja abaixo'}
             </span>
             <button
@@ -360,7 +368,8 @@ export function Caixa({ operador }: { operador: string }) {
               return (
                 <div className="regra-linha" key={f.valor}>
                   <span>
-                    {f.label} <span className="sub">({linha?.quantidade ?? 0} venda[s])</span>
+                    <f.Icone tamanho={15} /> {f.label}{' '}
+                    <span className="sub">({linha?.quantidade ?? 0} venda[s])</span>
                   </span>
                   <strong>{dinheiro(linha?.totalCents ?? 0)}</strong>
                 </div>
@@ -410,7 +419,7 @@ export function Caixa({ operador }: { operador: string }) {
               {venda.changeCents > 0 && (
                 <div
                   className="regra-linha"
-                  style={{ fontSize: 22, background: '#FEF3C7', borderRadius: 8, padding: 12 }}
+                  style={{ fontSize: 22, background: 'var(--aviso-bg)', borderRadius: 8, padding: 12 }}
                 >
                   <span>
                     <strong>TROCO</strong>
@@ -463,6 +472,7 @@ export function Caixa({ operador }: { operador: string }) {
                       onClick={() => setForma(f.valor)}
                       style={{ fontSize: 16, padding: '12px 18px' }}
                     >
+                      <f.Icone tamanho={17} />
                       {f.label}
                     </button>
                   ))}
@@ -481,7 +491,7 @@ export function Caixa({ operador }: { operador: string }) {
                     {troco !== null && (
                       <div
                         className="regra-linha"
-                        style={{ fontSize: 22, background: '#FEF3C7', borderRadius: 8, padding: 12 }}
+                        style={{ fontSize: 22, background: 'var(--aviso-bg)', borderRadius: 8, padding: 12 }}
                       >
                         <span>
                           <strong>Troco</strong>
@@ -490,7 +500,7 @@ export function Caixa({ operador }: { operador: string }) {
                       </div>
                     )}
                     {recebido.trim() && troco === null && (
-                      <p className="hint" style={{ color: '#B91C1C' }}>
+                      <p className="hint" style={{ color: 'var(--danger)' }}>
                         Esse valor não cobre o total de {dinheiro(total)}.
                       </p>
                     )}

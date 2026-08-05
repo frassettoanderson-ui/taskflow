@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import Link from 'next/link';
 import { dinheiro } from '../m/[slug]/cardapio';
+import { IconeAlerta } from '@/components/icones';
 
 export type Insumo = {
   id: string;
@@ -141,8 +142,8 @@ export function TelaDeEstoque({
       {erro && <div className="error">{erro}</div>}
 
       {alertas.length > 0 && (
-        <section className="card" style={{ marginBottom: 16, borderColor: 'rgba(239,68,68,.4)' }}>
-          <div className="stat-label">⚠️ Abaixo do estoque mínimo ({alertas.length})</div>
+        <section className="card" style={{ marginBottom: 16, borderColor: 'var(--danger-bg)' }}>
+          <div className="stat-label"><IconeAlerta tamanho={13} /> Abaixo do estoque mínimo ({alertas.length})</div>
           {alertas.map((a) => (
             <div className="totais" key={a.id}>
               <span>

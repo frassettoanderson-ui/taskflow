@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { chamarApi } from '@/lib/chamar-api';
 import { dinheiro } from '../m/[slug]/cardapio';
+import { IconeAlerta, IconeCartao, IconeEtiqueta, IconeGrafico } from '@/components/icones';
 
 type Consumo = {
   assinado: boolean;
@@ -53,12 +54,12 @@ export function AvisoDoPlano() {
         className="fechado"
         style={{
           margin: '0 0 12px',
-          background: 'rgba(239,68,68,.12)',
-          borderColor: 'rgba(239,68,68,.4)',
-          color: '#fca5a5',
+          background: 'var(--danger-bg)',
+          borderColor: 'var(--danger-bg)',
+          color: 'var(--danger)',
         }}
       >
-        💳 <strong>Fatura {c.cobranca.faturaNumero} vencida</strong> há {c.cobranca.diasAtrasado}{' '}
+        <IconeCartao tamanho={16} /> <strong>Fatura {c.cobranca.faturaNumero} vencida</strong> há {c.cobranca.diasAtrasado}{' '}
         dia(s) — {dinheiro(c.cobranca.faturaVencidaCents)}.{' '}
         {c.cobranca.diasAteCortar === 0 ? (
           <strong>O sistema está bloqueado até o pagamento.</strong>
@@ -81,12 +82,12 @@ export function AvisoDoPlano() {
         className="fechado"
         style={{
           margin: '0 0 12px',
-          background: 'rgba(234,179,8,.12)',
-          borderColor: 'rgba(234,179,8,.35)',
-          color: '#fde68a',
+          background: 'var(--aviso-bg)',
+          borderColor: 'var(--aviso-bg)',
+          color: 'var(--aviso)',
         }}
       >
-        📈 Você já fez <strong>{c.pedidos.usado}</strong> pedidos este mês, e seu plano inclui{' '}
+        <IconeGrafico tamanho={16} /> Você já fez <strong>{c.pedidos.usado}</strong> pedidos este mês, e seu plano inclui{' '}
         {c.pedidos.limite}. <strong>Seus pedidos continuam entrando normalmente</strong> — os{' '}
         {c.pedidos.excedente} a mais entram como excedente na próxima fatura
         {c.pedidos.excedenteCents ? ` (${dinheiro(c.pedidos.excedenteCents)} até agora)` : ''}.{' '}
@@ -96,7 +97,7 @@ export function AvisoDoPlano() {
   } else if (c.pedidos.avisar) {
     faixas.push(
       <div key="perto" className="hint" style={{ marginTop: 0 }}>
-        📊 {c.pedidos.usado} de {c.pedidos.limite} pedidos do plano usados este mês. Passando
+        <IconeGrafico tamanho={15} /> {c.pedidos.usado} de {c.pedidos.limite} pedidos do plano usados este mês. Passando
         disso, nada para de funcionar — o excedente é cobrado na fatura.
       </div>,
     );
@@ -106,7 +107,7 @@ export function AvisoDoPlano() {
   if (c.marcas.cheio) {
     faixas.push(
       <div key="marcas" className="hint" style={{ marginTop: 0 }}>
-        🏷 Você usou as {c.marcas.limite} marca(s) do plano {c.plano?.nome}. Para criar outra,{' '}
+        <IconeEtiqueta tamanho={15} /> Você usou as {c.marcas.limite} marca(s) do plano {c.plano?.nome}. Para criar outra,{' '}
         <Link href="/portal">suba de plano</Link>.
       </div>,
     );

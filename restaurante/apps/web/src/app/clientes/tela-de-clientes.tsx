@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
+import { IconeBaixar, IconeProibido } from '@/components/icones';
 
 export type ClienteResumo = {
   id: string;
@@ -361,14 +362,14 @@ export function TelaDeClientes({
                     style={{ width: 'auto' }}
                     onClick={() => baixarDados(ficha.id, ficha.nome)}
                   >
-                    ⬇ Exportar dados
+                    <IconeBaixar tamanho={15} /> Exportar dados
                   </button>
                   <button
                     className="ghost"
                     style={{ width: 'auto', color: 'var(--danger)' }}
                     onClick={() => anonimizar(ficha.id)}
                   >
-                    🚫 Apagar dados pessoais
+                    <IconeProibido tamanho={15} /> Apagar dados pessoais
                   </button>
                 </div>
                 <p className="hint">

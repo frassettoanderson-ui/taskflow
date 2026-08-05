@@ -33,6 +33,9 @@
 > — PWA + contingência offline: instalável (manifest + service worker) e o PDV vende sem
 >   internet, guardando no aparelho e subindo sozinho. `Order.clientRef` é a trava contra
 >   venda dobrada; `soldAt` mantém a hora do balcão no fechamento de caixa.
+> — Identidade visual "Papel & Brasa" (04/08/2026): tema claro quente + menu espresso,
+>   Fraunces/Archivo auto-hospedadas, ícones SVG (nunca emoji), contraste medido.
+>   ⚠️ Antes de mexer em tela, ler `DESIGN.md` — tem as regras e o porquê de cada decisão.
 > — Caixa do dia (`CashSession`) + número diário do pedido (`Order.dailyNumber`): abrir o caixa
 >   zera a numeração; cada pedido (todos os canais/marcas juntos) leva o próximo número; caixa
 >   fechado = sem número. Rotas `/caixa`, `/caixa/abrir`, `/caixa/fechar`. ⚠️ pendente: alinhar o

@@ -1017,7 +1017,7 @@ function JanelaCheckout({
                     </>
                   )}
                   {codigoErro && (
-                    <p style={{ margin: '8px 0 0', fontSize: 13, color: '#fca5a5' }}>
+                    <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--danger)' }}>
                       {codigoErro}
                     </p>
                   )}

@@ -4,6 +4,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
 import { chamarApi, enviarFoto, paraCampo, paraCentavos } from '@/lib/chamar-api';
+import {
+  IconeCopiar,
+  IconeDescer,
+  IconeFechar,
+  IconeLapis,
+  IconeLixeira,
+  IconeOlho,
+  IconeOlhoCortado,
+  IconeSubir,
+} from '@/components/icones';
 
 type Cardapio = { id: string; channel: string; channelLabel: string; name: string; categorias: number };
 
@@ -142,7 +152,8 @@ export function EditorDeCardapio({
         <section className="card" style={{ marginBottom: 16 }}>
           {!copiando ? (
             <button className="ghost" style={{ width: 'auto' }} onClick={() => setCopiando(true)}>
-              📋 Copiar cardápio de outro canal
+              <IconeCopiar tamanho={16} />
+              Copiar cardápio de outro canal
             </button>
           ) : (
             <FormularioCopiar
@@ -220,7 +231,7 @@ export function EditorDeCardapio({
                       })
                     }
                   >
-                    ↑
+                    <IconeSubir tamanho={15} />
                   </button>
                   <button
                     className="botao-mini"
@@ -233,7 +244,7 @@ export function EditorDeCardapio({
                       })
                     }
                   >
-                    ↓
+                    <IconeDescer tamanho={15} />
                   </button>
                   <button
                     className="botao-mini"
@@ -246,7 +257,7 @@ export function EditorDeCardapio({
                       })
                     }
                   >
-                    {cat.ativa ? '👁' : '🚫'}
+                    {cat.ativa ? <IconeOlho tamanho={15} /> : <IconeOlhoCortado tamanho={15} />}
                   </button>
                   <button
                     className="botao-mini perigo"
@@ -260,7 +271,7 @@ export function EditorDeCardapio({
                       if (ok) agir(`/admin/categorias/${cat.id}`, { metodo: 'DELETE' }, 'Categoria apagada.');
                     }}
                   >
-                    ✕
+                    <IconeLixeira tamanho={15} />
                   </button>
                 </div>
               </div>
@@ -307,7 +318,7 @@ export function EditorDeCardapio({
                           })
                         }
                       >
-                        ↑
+                        <IconeSubir tamanho={14} />
                       </button>
                       <button
                         className="botao-mini"
@@ -320,10 +331,10 @@ export function EditorDeCardapio({
                           })
                         }
                       >
-                        ↓
+                        <IconeDescer tamanho={14} />
                       </button>
                       <button className="botao-mini" onClick={() => setItemAberto(item)} title="Editar">
-                        ✎
+                        <IconeLapis tamanho={14} />
                       </button>
                     </div>
                   </div>
@@ -524,7 +535,7 @@ function JanelaDoItem({
               {novo ? 'Novo item' : item.nome}
             </h2>
             <button className="modal-fechar" style={{ position: 'static' }} onClick={onFechar}>
-              ×
+              <IconeFechar tamanho={17} />
             </button>
           </div>
 
@@ -703,7 +714,7 @@ function JanelaDoItem({
                         await onRecarregar();
                       }}
                     >
-                      ✕
+                      <IconeLixeira tamanho={14} />
                     </button>
                   </div>
 

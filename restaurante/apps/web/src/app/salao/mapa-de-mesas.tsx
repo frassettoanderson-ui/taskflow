@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { dinheiro } from '../m/[slug]/cardapio';
+import { IconeMaoLevantada, IconeRecibo } from '@/components/icones';
 
 export type MesaDoMapa = {
   id: string;
@@ -199,11 +200,13 @@ export function MapaDeMesas({
 
       {/* ---------------- chamados ---------------- */}
       {chamados.length > 0 && (
-        <section className="card" style={{ marginBottom: 18, borderColor: 'rgba(239,68,68,.4)' }}>
+        <section className="card" style={{ marginBottom: 18, borderColor: 'var(--danger-bg)' }}>
           <div className="stat-label">Chamados aguardando ({chamados.length})</div>
           {chamados.map((c) => (
             <div className="chamado" key={c.id}>
-              <span style={{ fontSize: 20 }}>{c.tipo === 'BILL' ? '🧾' : '🙋'}</span>
+              <span className="chamado-icone">
+                {c.tipo === 'BILL' ? <IconeRecibo tamanho={20} /> : <IconeMaoLevantada tamanho={20} />}
+              </span>
               <span className="qual">
                 <strong>Mesa {c.mesa}</strong> — {c.tipo === 'BILL' ? 'pediu a conta' : 'chamou o garçom'}
                 <div className="sub">
@@ -219,13 +222,13 @@ export function MapaDeMesas({
       {/* ---------------- mapa ---------------- */}
       <div className="legenda">
         <span>
-          <i style={{ borderColor: 'rgba(34,197,94,.6)' }} /> livre
+          <i style={{ borderColor: 'var(--ok-bg)' }} /> livre
         </span>
         <span>
           <i style={{ borderColor: 'rgba(249,115,22,.7)' }} /> ocupada
         </span>
         <span>
-          <i style={{ borderColor: 'rgba(234,179,8,.7)' }} /> pediu a conta
+          <i style={{ borderColor: 'var(--aviso-bg)' }} /> pediu a conta
         </span>
         <span>
           <i style={{ borderColor: 'rgba(59,130,246,.7)' }} /> reservada
