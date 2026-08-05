@@ -1,30 +1,28 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, Archivo } from 'next/font/google';
+import { Poppins, Archivo } from 'next/font/google';
 import './globals.css';
 import { RegistrarServiceWorker } from '@/components/registrar-sw';
 import { AppChrome } from '@/components/app-chrome';
 
 /**
- * A voz tipográfica do sistema — "Papel & Brasa".
+ * A voz tipográfica do sistema.
  *
- * Fraunces: serifada variável, com eixos de "wonk" e "soft". Tem mão de
- * artesão, de casa de comida — nada a ver com a fonte de dashboard genérico.
- * Usada nos momentos de marca: títulos e o número do pedido.
+ * Poppins: geométrica, redonda, moderna. É a fonte dos títulos e dos números
+ * grandes. Escolhida pelo fundador — a serifada que estava antes tinha ar
+ * "sofisticado" demais para um sistema de trabalho.
  *
- * Archivo: grotesca industrial, ótima em tamanho pequeno e com números
- * tabulares (essencial para dinheiro alinhar em coluna). É a voz do dia a dia.
+ * Archivo: para o texto do dia a dia. Simples, ótima em tamanho pequeno e com
+ * números tabulares (é o que faz dinheiro alinhar em coluna nas tabelas —
+ * a Poppins, sendo geométrica, é larga demais para dado denso).
  *
  * As duas são BAIXADAS NO BUILD e servidas pelo próprio sistema — nada de
  * pedir fonte para o Google em tempo de uso. Continua funcionando sem internet,
  * que é requisito do nosso PDV.
  */
-// As duas são fontes VARIÁVEIS: um arquivo só cobre todos os pesos, e ainda dá
-// acesso aos eixos de desenho. Por isso não listamos pesos — pedir peso fixo
-// desliga os eixos (`SOFT`/`WONK`, que são justamente o charme da Fraunces).
-const fraunces = Fraunces({
+const poppins = Poppins({
   subsets: ['latin'],
   display: 'swap',
-  axes: ['SOFT', 'WONK', 'opsz'],
+  weight: ['500', '600', '700'],
   variable: '--fonte-display',
 });
 
@@ -53,7 +51,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={`${fraunces.variable} ${archivo.variable}`}>
+    <html lang="pt-BR" className={`${poppins.variable} ${archivo.variable}`}>
       <body>
         <RegistrarServiceWorker />
         <AppChrome>{children}</AppChrome>

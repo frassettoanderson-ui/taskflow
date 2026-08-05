@@ -65,10 +65,12 @@ tokens são redefinidos dentro de `.kds`.
 
 ## Tipografia
 
-- **Fraunces** (títulos, números de pedido, valores). Serifada variável com
-  eixos de *wonk* e *soft* — tem mão de artesão, de casa de comida.
-- **Archivo** (todo o resto). Grotesca industrial, ótima em corpo pequeno e com
-  **números tabulares** — dinheiro alinha em coluna.
+- **Poppins** (títulos, números de pedido, valores). Geométrica, redonda,
+  moderna. Escolhida pelo fundador: a serifada que havia antes (Fraunces) tinha
+  ar "sofisticado" demais para um sistema de trabalho.
+- **Archivo** (todo o resto). Simples, ótima em corpo pequeno e com **números
+  tabulares** — dinheiro alinha em coluna. A Poppins, sendo geométrica, é larga
+  demais para dado denso, por isso não serve para o texto do dia a dia.
 
 Baixadas no build e servidas pelo próprio sistema (`next/font`). **Nada é pedido
 ao Google em tempo de uso** — requisito do PDV, que funciona sem internet.
@@ -116,6 +118,20 @@ Medido, contraste sobre o papel:
 | azul `#0B2E6B` | 12,17:1 ✅ | 12,17:1 (não mexe) |
 
 ---
+
+## O menu lateral
+
+- **Retrátil**: o puxador na borda encolhe de 268px para 76px (só ícones). A
+  escolha fica guardada no aparelho.
+- **Submenus abrem PARA A DIREITA**, num painel — nunca empurrando o resto do
+  menu para baixo. Retraído, o mesmo painel serve para dizer o nome do item.
+- ⚠️ O painel é posicionado em **coordenadas de tela** (`position: fixed`,
+  calculadas em JS). Se fosse `absolute` dentro do menu, a lista — que rola —
+  o **recortaria pela metade**. Já aconteceu.
+- Nomes em **15,5px**: o menu é lido de relance, muitas vezes de longe, com o
+  tablet na bancada.
+- No celular vira gaveta e abre sempre **inteira**; retrair ali não ajuda
+  ninguém, e o puxador some.
 
 ## Regras para telas novas
 

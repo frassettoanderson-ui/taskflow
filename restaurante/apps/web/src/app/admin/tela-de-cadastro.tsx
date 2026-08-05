@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import type { MarcaResumo } from '../pedidos/painel-de-pedidos';
 import { chamarApi } from '@/lib/chamar-api';
 import { EditorDeCardapio } from './editor-cardapio';
@@ -21,6 +22,18 @@ export function TelaDeCadastro({
   papel: string;
 }) {
   const [aba, setAba] = useState<Aba>('cardapio');
+  const params = useSearchParams();
+
+  /**
+   * A aba também vem pelo endereço (`/admin?aba=usuarios`).
+   * É isso que faz o submenu da barra lateral cair direto na frente certa,
+   * em vez de a pessoa entrar aqui e ainda ter que caçar a aba.
+   */
+  useEffect(() => {
+    const pedida = params.get('aba');
+    const validas: Aba[] = ['identidade', 'cardapio', 'regras', 'estrutura', 'usuarios'];
+    if (pedida && (validas as string[]).includes(pedida)) setAba(pedida as Aba);
+  }, [params]);
   const [marcas, setMarcas] = useState(marcasIniciais);
   const [marcaId, setMarcaId] = useState(marcasIniciais[0]?.id ?? '');
   const [erro, setErro] = useState<string | null>(null);

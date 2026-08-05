@@ -63,7 +63,7 @@
   --sombra: 0 2px 10px rgba(84, 56, 32, 0.08);
   --sombra-lg: 0 14px 40px rgba(84, 56, 32, 0.14);
 
-  --fonte-display-stack: var(--fonte-display), Georgia, "Times New Roman", serif;
+  --fonte-display-stack: var(--fonte-display), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --fonte-texto-stack: var(--fonte-texto), ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
@@ -105,8 +105,8 @@ h2,
 h3,
 .title {
   font-family: var(--fonte-display-stack);
-  font-variation-settings: 'SOFT' 30, 'WONK' 1;
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 a {
@@ -2192,6 +2192,9 @@ select:focus {
    A lateral é espresso e o conteúdo é papel. Esse contraste faz três coisas:
    dá profundidade, separa "onde eu navego" de "onde eu trabalho", e deixa a
    tela com cara de produto pensado em vez de formulário cinza.
+
+   Ela RETRAI para uma faixa de ícones, e os submenus abrem PARA A DIREITA —
+   assim nada empurra o resto do menu para baixo.
    ========================================================================= */
 
 :root {
@@ -2200,6 +2203,8 @@ select:focus {
   --menu-text: #f0e7da;
   --menu-muted: #a4907a;
   --menu-linha: rgba(255, 255, 255, 0.09);
+  --menu-largura: 268px;
+  --menu-largura-retraido: 76px;
 }
 
 .console {
@@ -2236,17 +2241,51 @@ select:focus {
 /* ---------------- a barra lateral ---------------- */
 
 .menu-lateral {
-  width: 254px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: var(--menu-largura);
   flex-shrink: 0;
   background: var(--menu-bg);
   color: var(--menu-text);
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  /* um fio de brasa na borda: detalhe pequeno que assina a marca */
   box-shadow: inset -1px 0 0 var(--menu-linha), 1px 0 24px rgba(33, 25, 15, 0.18);
+  transition: width 0.22s cubic-bezier(0.3, 0.9, 0.4, 1);
+  /* o painel dos submenus precisa poder sair da barra */
+  overflow: visible;
+  z-index: 20;
+}
+
+/* ---- retraído: só os ícones ---- */
+.menu-lateral[data-retraido='true'] {
+  width: var(--menu-largura-retraido);
+}
+.menu-lateral[data-retraido='true'] .menu-rotulo,
+.menu-lateral[data-retraido='true'] .menu-loja,
+.menu-lateral[data-retraido='true'] .menu-usuario-info,
+.menu-lateral[data-retraido='true'] .menu-seta {
+  display: none;
+}
+.menu-lateral[data-retraido='true'] .menu-topo,
+.menu-lateral[data-retraido='true'] .menu-usuario {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+.menu-lateral[data-retraido='true'] .menu-item,
+.menu-lateral[data-retraido='true'] .menu-sair {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* o título do grupo vira um tracinho: some o texto, fica a divisão */
+.menu-lateral[data-retraido='true'] .menu-grupo-titulo {
+  font-size: 0;
+  height: 1px;
+  padding: 0;
+  margin: 0 12px 10px;
+  background: var(--menu-linha);
 }
 
 .menu-topo {
@@ -2255,6 +2294,7 @@ select:focus {
   gap: 12px;
   padding: 20px 18px;
   border-bottom: 1px solid var(--menu-linha);
+  flex-shrink: 0;
 }
 
 .menu-logo {
@@ -2276,22 +2316,22 @@ select:focus {
 }
 .menu-loja strong {
   font-family: var(--fonte-display-stack);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 16.5px;
+  font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .menu-loja span {
-  font-size: 11px;
+  font-size: 11.5px;
   color: var(--menu-muted);
-  letter-spacing: 0.02em;
 }
 
 .menu-nav {
   flex: 1;
   overflow-y: auto;
+  overflow-x: visible;
   padding: 16px 12px;
 }
 .menu-nav::-webkit-scrollbar {
@@ -2307,7 +2347,7 @@ select:focus {
 }
 
 .menu-grupo-titulo {
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.13em;
@@ -2315,16 +2355,23 @@ select:focus {
   padding: 0 11px 9px;
 }
 
+/* a caixa existe para o painel da direita se ancorar nela */
+.menu-item-caixa {
+  position: relative;
+}
+
 .menu-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 10px 11px;
+  gap: 12px;
+  padding: 11px 12px;
   border-radius: 10px;
   color: var(--menu-text);
   text-decoration: none;
-  font-size: 14px;
+  /* NOMES MAIORES: 15.5px em vez de 14 — o menu é lido de relance, muitas
+     vezes de longe, com o tablet na bancada. */
+  font-size: 15.5px;
   font-weight: 500;
   transition: background 0.15s, color 0.15s;
 }
@@ -2336,7 +2383,7 @@ select:focus {
 .menu-item[data-ativo='true'] {
   background: linear-gradient(90deg, rgba(228, 87, 27, 0.24), rgba(228, 87, 27, 0.06));
   color: #ffd9c2;
-  font-weight: 650;
+  font-weight: 600;
 }
 .menu-item[data-ativo='true']::before {
   content: '';
@@ -2345,7 +2392,7 @@ select:focus {
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 22px;
+  height: 24px;
   border-radius: 0 3px 3px 0;
   background: var(--brand-vivo);
 }
@@ -2353,7 +2400,7 @@ select:focus {
 .menu-icone {
   display: grid;
   place-items: center;
-  width: 20px;
+  width: 22px;
   flex-shrink: 0;
   opacity: 0.85;
 }
@@ -2361,9 +2408,78 @@ select:focus {
   opacity: 1;
 }
 
+/* a seta de "tem submenu" aponta para a direita, que é para onde ele abre */
+.menu-seta {
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  color: var(--menu-muted);
+  transform: rotate(-90deg);
+}
+
+/* ---------------- o painel que voa para a direita ---------------- */
+
+.menu-voo {
+  /* fixo na TELA: a lista de menus rola, e quem rola recorta o que sai dele.
+     A posição exata é calculada em JS na hora de abrir. */
+  position: fixed;
+  z-index: 60;
+  min-width: 210px;
+  padding: 7px;
+  background: var(--menu-bg-2);
+  border: 1px solid var(--menu-linha);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  animation: voa 0.14s ease-out;
+}
+@keyframes voa {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+}
+/* uma ponte invisível: dá para o mouse atravessar o vão sem o painel fechar */
+.menu-voo::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -12px;
+  width: 12px;
+  height: 100%;
+}
+
+.menu-voo-titulo {
+  padding: 7px 11px 9px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--menu-linha);
+  font-family: var(--fonte-display-stack);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--menu-text);
+}
+
+.menu-voo-item {
+  display: block;
+  padding: 9px 11px;
+  border-radius: 8px;
+  color: var(--menu-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+.menu-voo-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--menu-text);
+}
+
+/* ---------------- rodapé ---------------- */
+
 .menu-rodape {
   border-top: 1px solid var(--menu-linha);
   padding: 13px 12px;
+  flex-shrink: 0;
 }
 .menu-usuario {
   display: flex;
@@ -2372,8 +2488,8 @@ select:focus {
   padding: 4px 6px 13px;
 }
 .menu-avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--menu-bg-2);
   border: 1px solid var(--menu-linha);
@@ -2381,8 +2497,8 @@ select:focus {
   display: grid;
   place-items: center;
   font-family: var(--fonte-display-stack);
-  font-weight: 700;
-  font-size: 15px;
+  font-weight: 600;
+  font-size: 16px;
   flex-shrink: 0;
 }
 .menu-usuario-info {
@@ -2391,14 +2507,14 @@ select:focus {
   min-width: 0;
 }
 .menu-usuario-info strong {
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .menu-usuario-info span {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--menu-muted);
 }
 .menu-sair {
@@ -2406,14 +2522,14 @@ select:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 8px;
   background: transparent;
   border: 1px solid var(--menu-linha);
   color: var(--menu-muted);
-  padding: 9px;
+  padding: 10px;
   border-radius: 9px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
   box-shadow: none;
 }
@@ -2422,6 +2538,38 @@ select:focus {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.2);
   filter: none;
+}
+
+/* ---------------- o puxador de retrair ---------------- */
+
+.menu-puxador {
+  position: absolute;
+  top: 74px;
+  right: -13px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: var(--menu-bg-2);
+  border: 1px solid var(--menu-linha);
+  border-radius: 50%;
+  color: var(--menu-muted);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  /* a seta aponta para onde o menu VAI: fechado, para a esquerda */
+  transform: rotate(90deg);
+  transition: transform 0.22s, color 0.15s, background 0.15s;
+  z-index: 30;
+}
+.menu-puxador:hover:not(:disabled) {
+  color: var(--menu-text);
+  background: var(--brand);
+  border-color: var(--brand);
+  filter: none;
+}
+.menu-lateral[data-retraido='true'] .menu-puxador {
+  transform: rotate(-90deg);
 }
 
 /* ---- barra do celular (menu vira gaveta) ---- */
@@ -2442,8 +2590,8 @@ select:focus {
     z-index: 40;
   }
   .menu-hamburguer {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     display: grid;
     place-items: center;
     background: transparent;
@@ -2459,8 +2607,8 @@ select:focus {
   }
   .menu-mobile-nome {
     font-family: var(--fonte-display-stack);
-    font-weight: 700;
-    font-size: 16px;
+    font-weight: 600;
+    font-size: 16.5px;
   }
   .menu-fundo {
     position: fixed;
@@ -2469,10 +2617,13 @@ select:focus {
     backdrop-filter: blur(2px);
     z-index: 45;
   }
-  .menu-lateral {
+  /* no celular a gaveta abre SEMPRE inteira: retrair ali não ajuda ninguém */
+  .menu-lateral,
+  .menu-lateral[data-retraido='true'] {
     position: fixed;
     top: 0;
     left: 0;
+    width: var(--menu-largura);
     z-index: 50;
     transform: translateX(-100%);
     transition: transform 0.22s ease;
@@ -2481,11 +2632,46 @@ select:focus {
   .menu-lateral[data-aberto='true'] {
     transform: translateX(0);
   }
+  .menu-lateral[data-retraido='true'] .menu-rotulo,
+  .menu-lateral[data-retraido='true'] .menu-loja,
+  .menu-lateral[data-retraido='true'] .menu-usuario-info,
+  .menu-lateral[data-retraido='true'] .menu-seta {
+    display: revert;
+  }
+  .menu-lateral[data-retraido='true'] .menu-grupo-titulo {
+    font-size: 10.5px;
+    height: auto;
+    padding: 0 11px 9px;
+    margin: 0;
+    background: none;
+  }
+  .menu-lateral[data-retraido='true'] .menu-item,
+  .menu-lateral[data-retraido='true'] .menu-sair,
+  .menu-lateral[data-retraido='true'] .menu-topo,
+  .menu-lateral[data-retraido='true'] .menu-usuario {
+    justify-content: flex-start;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  /* o puxador não faz sentido na gaveta */
+  .menu-puxador {
+    display: none;
+  }
   .console {
     flex-direction: column;
   }
   .console-area .shell {
     padding: 20px 16px 56px;
+  }
+  /* no celular o submenu abre embaixo, não do lado (não há lado).
+     O !important desfaz as coordenadas que o JS calcula para o desktop. */
+  .menu-voo {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    margin: 4px 0 8px 30px;
+    box-shadow: none;
+    min-width: 0;
   }
 }
 
@@ -2984,7 +3170,6 @@ select:focus {
 }
 .pedido-numero {
   font-family: var(--fonte-display-stack);
-  font-variation-settings: 'SOFT' 40, 'WONK' 1;
   font-size: 52px;
   font-weight: 700;
   line-height: 1;
@@ -3250,7 +3435,6 @@ select:focus {
 }
 .login-frase h2 {
   font-family: var(--fonte-display-stack);
-  font-variation-settings: 'SOFT' 40, 'WONK' 1;
   font-size: clamp(34px, 4vw, 50px);
   font-weight: 700;
   line-height: 1.08;
