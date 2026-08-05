@@ -37,6 +37,7 @@ export type PedidoDoPainel = {
   createdAt: string;
   scheduledFor: string | null;
   brand?: { id: string; name: string; primaryColor: string };
+  table?: { number: string; area: string } | null;
   payment: { status: string } | null;
   items: Array<{ id: string; name: string; quantity: number }>;
 };

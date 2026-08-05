@@ -695,6 +695,7 @@ export class OrderService {
         items: { include: { modifiers: true } },
         brand: { select: { id: true, name: true, primaryColor: true } },
         payment: true,
+        table: { select: { number: true, area: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: Math.min(filtro.limite ?? 50, 200),
@@ -1020,6 +1021,8 @@ export class OrderService {
       totalCents: p.totalCents,
       createdAt: p.createdAt,
       brand: p.brand ?? undefined,
+      /** mesa do salão (só nos pedidos DINE_IN) — vira a tag "Salão · mesa X" */
+      table: p.table ? { number: p.table.number, area: p.table.area } : null,
       payment: p.payment
         ? {
             status: p.payment.status,

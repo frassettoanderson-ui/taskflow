@@ -20,6 +20,14 @@ _(vazio — os itens em execução/entregues estão abaixo)_
 
 _(nada agora)_
 
+### A revisitar (decisão adiada pelo fundador)
+- **Ligar/desligar recebimento de pedidos** — as barras verdes foram removidas
+  da tela de pedidos. Pensar depois a forma certa de ligar/desligar (onde fica,
+  como é o gesto). O backend (`PATCH /brands/:id/pausa`) continua pronto.
+- **CSS órfão** para limpar: blocos `.recebimento*`, `.pedidos-colunas`,
+  `.coluna*`, `.pedido-cliente`, `.pedido-marca` em `globals.css` ficaram sem
+  uso após o pacote 2 (não renderizam; limpar numa próxima).
+
 ---
 
 ## Entregue
@@ -31,8 +39,14 @@ _(nada agora)_
    caixa, cardápio do cliente e portal ficam sem menu). Vira gaveta no celular.
    - Cores atuais mantidas; identidade (marinho/laranja Obrigô?) fica p/ o pacote
      de cores.
-2. [x] **Tela principal = Pedidos por tipo**: 3 colunas (Delivery, Salão,
-   Retirada/Balcão), ao vivo, com botão de **recebendo pedidos / pausado** por
-   marca no topo. É o que abre ao entrar no sistema.
+2. [x] **Tela principal = Pedidos**: (versão inicial em 3 colunas)
    - Nota: a tela antiga `/pedidos` (tabela com filtros) continua existindo por
      URL, mas saiu do menu. Depois a gente decide se mescla ou aposenta.
+
+### Pacote 2 — pedidos em lista única com tags (commit a seguir)
+3. [x] **Removidas as barras verdes** de recebimento (decisão de ligar/desligar
+   adiada — ver "A revisitar").
+4. [x] **Tudo numa lista só** (grade que flui), sem separar em colunas.
+5. [x] Cada pedido ganhou **TAGS**: tipo (**Delivery**, **Retirada/Balcão** e
+   **Salão · mesa X** — a mesa vem do backend agora) + estabelecimento (só no
+   modo multi). Cada tipo tem sua cor para bater o olho.

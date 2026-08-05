@@ -6,19 +6,28 @@ import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo, PedidoDoPainel } from '../pedidos/painel-de-pedidos';
 
 /**
- * A TELA PRINCIPAL do restaurante: os pedidos, separados por tipo.
+ * A TELA PRINCIPAL do restaurante: TODOS os pedidos numa lista só.
  *
- * Três colunas — Delivery, Salão e Retirada (balcão) — para o dono bater o olho
- * e saber o que está acontecendo em cada frente, sem filtrar nada. Os pedidos
- * chegam sozinhos (tempo real): não precisa recarregar a página.
+ * Nada de colunas separadas — o dono vê tudo junto, na ordem de chegada, e cada
+ * pedido carrega TAGS que dizem de onde veio:
+ *   - o TIPO (Delivery, Balcão ou Salão · mesa X);
+ *   - o ESTABELECIMENTO (só aparece quando o cliente usa mais de uma marca —
+ *     para quem tem uma loja só, essa tag nem existe).
+ *
+ * Os pedidos chegam sozinhos (tempo real): não precisa recarregar.
  */
 
-/** As três colunas. `channel` casa com o valor que vem do backend. */
-const COLUNAS = [
-  { channel: 'DELIVERY', titulo: 'Delivery', icone: '🛵' },
-  { channel: 'DINE_IN', titulo: 'Salão', icone: '🍽️' },
-  { channel: 'COUNTER', titulo: 'Retirada / Balcão', icone: '🥡' },
-];
+/** Descreve a tag de tipo de um pedido. */
+function tagDoTipo(p: PedidoDoPainel): { texto: string; icone: string; cls: string } {
+  if (p.channel === 'DINE_IN') {
+    const mesa = p.table?.number ? ` · mesa ${p.table.number}` : '';
+    return { texto: `Salão${mesa}`, icone: '🍽️', cls: 'salao' };
+  }
+  if (p.channel === 'COUNTER') {
+    return { texto: 'Retirada / Balcão', icone: '🥡', cls: 'balcao' };
+  }
+  return { texto: 'Delivery', icone: '🛵', cls: 'delivery' };
+}
 
 function horaCurta(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -34,8 +43,9 @@ export function PedidosPorTipo({
   const [pedidos, setPedidos] = useState(iniciais);
   const [aoVivo, setAoVivo] = useState(false);
   const [verFinalizados, setVerFinalizados] = useState(false);
-  const [listaMarcas, setListaMarcas] = useState(marcas);
-  const [pausando, setPausando] = useState<string | null>(null);
+
+  /** Multi só aparece quando há de fato mais de uma marca (prioridade: 1 loja). */
+  const multi = marcas.length > 1;
 
   const buscar = useCallback(async () => {
     try {
@@ -62,38 +72,18 @@ export function PedidosPorTipo({
     return () => fonte.close();
   }, [buscar]);
 
-  /** Liga/desliga o recebimento de pedidos de uma marca (pausar/reabrir). */
-  async function alternarRecebimento(marca: MarcaResumo) {
-    setPausando(marca.id);
-    try {
-      await fetch(`/api/brands/${marca.id}/pausa`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          paused: !marca.paused,
-          reason: !marca.paused ? 'Pausado no painel' : undefined,
-        }),
-      });
-      setListaMarcas((atual) =>
-        atual.map((m) => (m.id === marca.id ? { ...m, paused: !m.paused } : m)),
-      );
-    } finally {
-      setPausando(null);
-    }
-  }
+  /** A lista, já sem cancelados e (por padrão) sem finalizados. */
+  const lista = useMemo(
+    () =>
+      pedidos.filter((p) => {
+        if (p.status === 'CANCELED') return false;
+        if (!verFinalizados && p.finalizado) return false;
+        return true;
+      }),
+    [pedidos, verFinalizados],
+  );
 
-  /** Separa os pedidos nas três colunas, já sem os cancelados. */
-  const porTipo = useMemo(() => {
-    const mapa: Record<string, PedidoDoPainel[]> = { DELIVERY: [], DINE_IN: [], COUNTER: [] };
-    for (const p of pedidos) {
-      if (p.status === 'CANCELED') continue;
-      if (!verFinalizados && p.finalizado) continue;
-      (mapa[p.channel] ?? (mapa[p.channel] = [])).push(p);
-    }
-    return mapa;
-  }, [pedidos, verFinalizados]);
-
-  const totalEmAndamento = pedidos.filter((p) => !p.finalizado && p.status !== 'CANCELED').length;
+  const emAndamento = pedidos.filter((p) => !p.finalizado && p.status !== 'CANCELED').length;
 
   return (
     <main className="pedidos-tela">
@@ -103,9 +93,7 @@ export function PedidosPorTipo({
             Pedidos
           </h1>
           <p className="subtitle" style={{ margin: 0 }}>
-            {totalEmAndamento === 0
-              ? 'Nenhum pedido em andamento agora.'
-              : `${totalEmAndamento} pedido(s) em andamento`}
+            {emAndamento === 0 ? 'Nenhum pedido em andamento agora.' : `${emAndamento} pedido(s) em andamento`}
             <span className={`ao-vivo ${aoVivo ? 'on' : ''}`}>{aoVivo ? '● ao vivo' : '○ reconectando'}</span>
           </p>
         </div>
@@ -120,68 +108,47 @@ export function PedidosPorTipo({
         </label>
       </header>
 
-      {/* Recebendo pedidos? (liga/desliga por marca) */}
-      <div className="recebimento">
-        {listaMarcas.map((m) => (
-          <button
-            key={m.id}
-            className="recebimento-pill"
-            data-pausado={m.paused}
-            disabled={pausando === m.id}
-            onClick={() => alternarRecebimento(m)}
-            title={m.paused ? 'Clique para voltar a receber' : 'Clique para pausar o recebimento'}
-          >
-            <span className="bolinha" />
-            {listaMarcas.length > 1 && <b>{m.name}:</b>}
-            {m.paused ? 'Pausado — não recebe pedidos' : 'Recebendo pedidos'}
-          </button>
-        ))}
-      </div>
+      {lista.length === 0 ? (
+        <p className="vazio">Nenhum pedido para mostrar.</p>
+      ) : (
+        <div className="pedidos-lista">
+          {lista.map((p) => {
+            const tipo = tagDoTipo(p);
+            return (
+              <Link href={`/pedido/${p.code}`} className="pedido-card" key={p.id}>
+                <div className="pedido-tags">
+                  <span className={`tag tag-tipo ${tipo.cls}`}>
+                    <span>{tipo.icone}</span>
+                    {tipo.texto}
+                  </span>
+                  {multi && p.brand && (
+                    <span className="tag tag-marca">
+                      <span className="dot" style={{ background: p.brand.primaryColor }} />
+                      {p.brand.name}
+                    </span>
+                  )}
+                  <span className="situacao" data-status={p.status}>
+                    {p.statusLabel}
+                  </span>
+                </div>
 
-      {/* Três colunas por tipo */}
-      <div className="pedidos-colunas">
-        {COLUNAS.map((col) => {
-          const lista = porTipo[col.channel] ?? [];
-          return (
-            <section className="coluna" key={col.channel}>
-              <div className="coluna-topo">
-                <span className="coluna-icone">{col.icone}</span>
-                <h2>{col.titulo}</h2>
-                <span className="coluna-conta">{lista.length}</span>
-              </div>
+                <div className="pedido-card-topo">
+                  <strong className="pedido-codigo">{p.code}</strong>
+                  <strong>{dinheiro(p.totalCents)}</strong>
+                </div>
 
-              {lista.length === 0 ? (
-                <p className="coluna-vazia">Nada por aqui.</p>
-              ) : (
-                lista.map((p) => (
-                  <Link href={`/pedido/${p.code}`} className="pedido-card" key={p.id}>
-                    <div className="pedido-card-topo">
-                      <strong className="pedido-codigo">{p.code}</strong>
-                      <span className="situacao" data-status={p.status}>
-                        {p.statusLabel}
-                      </span>
-                    </div>
-                    <div className="pedido-cliente">{p.customerName}</div>
-                    <div className="pedido-rodape">
-                      <span>
-                        {p.items.reduce((s, i) => s + i.quantity, 0)} item(ns) · {horaCurta(p.createdAt)}
-                        {p.scheduledFor && ' · agendado'}
-                      </span>
-                      <strong>{dinheiro(p.totalCents)}</strong>
-                    </div>
-                    {listaMarcas.length > 1 && p.brand && (
-                      <span className="pedido-marca">
-                        <span className="dot" style={{ background: p.brand.primaryColor }} />
-                        {p.brand.name}
-                      </span>
-                    )}
-                  </Link>
-                ))
-              )}
-            </section>
-          );
-        })}
-      </div>
+                <div className="pedido-rodape">
+                  <span>{p.customerName}</span>
+                  <span>
+                    {p.items.reduce((s, i) => s + i.quantity, 0)} item(ns) · {horaCurta(p.createdAt)}
+                    {p.scheduledFor && ' · agendado'}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </main>
   );
 }
