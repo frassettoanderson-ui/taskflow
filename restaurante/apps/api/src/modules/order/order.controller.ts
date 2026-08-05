@@ -45,6 +45,15 @@ export class OrderController {
   }
 
   /**
+   * Resumo do dia para o topo do painel: faturado e quantidade de hoje.
+   * GET /api/orders/resumo
+   */
+  @Get('resumo')
+  resumo() {
+    return this.orders.resumoDeHoje();
+  }
+
+  /**
    * Pedidos em andamento na cozinha.
    * GET /api/orders/kds?marca=<id>&estacao=<id>
    */

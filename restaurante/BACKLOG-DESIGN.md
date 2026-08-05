@@ -43,7 +43,20 @@ _(nada agora)_
    - Nota: a tela antiga `/pedidos` (tabela com filtros) continua existindo por
      URL, mas saiu do menu. Depois a gente decide se mescla ou aposenta.
 
-### Pacote 2 — pedidos em lista única com tags (commit a seguir)
+### Pacote 3 — topo do painel: resultados + ações + abas (commit a seguir)
+6. [x] **Removidos** o título "Pedidos" e o checkbox "mostrar finalizados".
+7. [x] **Painel de resultados**: Faturado hoje + Pedidos hoje (endpoint novo
+   `GET /orders/resumo`, calculado no fuso local, dia inteiro — não preso aos
+   últimos 100; ao vivo). Espaço para mais métricas depois.
+8. [x] **Barra de ações** com **+ Novo pedido** em destaque.
+   - Provisório: por ora aponta para `/pdv` (o fluxo existente de criar venda).
+     Definir depois o fluxo próprio de "novo pedido" (escolher tipo) e os demais
+     botões da barra.
+9. [x] **Abas por tipo**: Todos, Salão, Retirada, Delivery — filtram a lista.
+10. [x] **Abas por estabelecimento** (2ª fileira, só no modo multi): Todos
+    estabelecimentos + cada marca.
+
+### Pacote 2 — pedidos em lista única com tags
 3. [x] **Removidas as barras verdes** de recebimento (decisão de ligar/desligar
    adiada — ver "A revisitar").
 4. [x] **Tudo numa lista só** (grade que flui), sem separar em colunas.

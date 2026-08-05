@@ -18,6 +18,7 @@ import { LoyaltyService } from '../marketing/loyalty.service';
 import { CashbackCodeService } from '../marketing/cashback-code.service';
 import { LimitesService } from '../portal/limites.service';
 import { RetentionService } from '../marketing/retention.service';
+import { inicioDoDia, fimDoDia } from '../../common/datas';
 import { StockService } from '../gestao/stock.service';
 import { FinanceService } from '../gestao/finance.service';
 
@@ -673,6 +674,34 @@ export class OrderService {
       }
       return formatado;
     });
+  }
+
+  /**
+   * O resumo do dia para o topo do painel de pedidos.
+   *
+   * Conta o que aconteceu HOJE (fuso local — por isso os helpers de data, e não
+   * `new Date('...')`, que erraria o dia à noite). Não fica preso aos últimos
+   * 100 pedidos: pergunta ao banco o total do dia inteiro.
+   *
+   * "Faturado" aqui é o valor dos pedidos que não foram cancelados — a leitura
+   * que o dono espera de "quanto entrou hoje". O que ainda está "aguardando
+   * pagamento" conta, porque já é venda em andamento; cancelado, não.
+   */
+  async resumoDeHoje() {
+    const where = {
+      createdAt: { gte: inicioDoDia(), lte: fimDoDia() },
+      status: { not: OrderStatus.CANCELED },
+    };
+
+    const [agregado, quantidade] = await Promise.all([
+      this.tenantPrisma.db.order.aggregate({ where, _sum: { totalCents: true } }),
+      this.tenantPrisma.db.order.count({ where }),
+    ]);
+
+    return {
+      faturadoCents: agregado._sum.totalCents ?? 0,
+      quantidade,
+    };
   }
 
   /**

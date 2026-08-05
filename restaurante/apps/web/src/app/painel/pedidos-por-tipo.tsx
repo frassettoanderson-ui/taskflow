@@ -6,16 +6,24 @@ import { dinheiro } from '../m/[slug]/cardapio';
 import type { MarcaResumo, PedidoDoPainel } from '../pedidos/painel-de-pedidos';
 
 /**
- * A TELA PRINCIPAL do restaurante: TODOS os pedidos numa lista só.
+ * A TELA PRINCIPAL do restaurante.
  *
- * Nada de colunas separadas — o dono vê tudo junto, na ordem de chegada, e cada
- * pedido carrega TAGS que dizem de onde veio:
- *   - o TIPO (Delivery, Balcão ou Salão · mesa X);
- *   - o ESTABELECIMENTO (só aparece quando o cliente usa mais de uma marca —
- *     para quem tem uma loja só, essa tag nem existe).
+ * De cima para baixo:
+ *   1. um painel de RESULTADOS do dia (faturado, pedidos);
+ *   2. uma barra de AÇÕES (por ora só "+ Novo pedido");
+ *   3. as ABAS por tipo (Todos, Salão, Retirada, Delivery) — e, só quando há
+ *      mais de um estabelecimento, uma 2ª fileira de abas por marca;
+ *   4. a lista de pedidos, filtrada pelas abas escolhidas.
  *
- * Os pedidos chegam sozinhos (tempo real): não precisa recarregar.
+ * Tudo ao vivo: pedido novo entra sozinho e os números do topo se atualizam.
  */
+
+const ABAS_TIPO = [
+  { valor: 'TODOS', label: 'Todos' },
+  { valor: 'DINE_IN', label: 'Salão' },
+  { valor: 'COUNTER', label: 'Retirada' },
+  { valor: 'DELIVERY', label: 'Delivery' },
+];
 
 /** Descreve a tag de tipo de um pedido. */
 function tagDoTipo(p: PedidoDoPainel): { texto: string; icone: string; cls: string } {
@@ -41,22 +49,35 @@ export function PedidosPorTipo({
   marcas: MarcaResumo[];
 }) {
   const [pedidos, setPedidos] = useState(iniciais);
+  const [resumo, setResumo] = useState<{ faturadoCents: number; quantidade: number }>({
+    faturadoCents: 0,
+    quantidade: 0,
+  });
   const [aoVivo, setAoVivo] = useState(false);
-  const [verFinalizados, setVerFinalizados] = useState(false);
+  const [abaTipo, setAbaTipo] = useState('TODOS');
+  const [abaMarca, setAbaMarca] = useState('TODAS');
 
-  /** Multi só aparece quando há de fato mais de uma marca (prioridade: 1 loja). */
+  /** Multi só aparece com mais de uma marca (prioridade: 1 estabelecimento). */
   const multi = marcas.length > 1;
 
   const buscar = useCallback(async () => {
     try {
-      const res = await fetch('/api/orders?limite=100', { cache: 'no-store' });
-      if (res.ok) setPedidos(await res.json());
+      const [pRes, rRes] = await Promise.all([
+        fetch('/api/orders?limite=100', { cache: 'no-store' }),
+        fetch('/api/orders/resumo', { cache: 'no-store' }),
+      ]);
+      if (pRes.ok) setPedidos(await pRes.json());
+      if (rRes.ok) setResumo(await rRes.json());
     } catch {
       /* rede oscilou: mantém a tela */
     }
   }, []);
 
-  // Tempo real: pedido novo de qualquer tipo aparece aqui sozinho.
+  useEffect(() => {
+    buscar();
+  }, [buscar]);
+
+  // Tempo real: pedido novo aparece sozinho e os números do topo se atualizam.
   useEffect(() => {
     const fonte = new EventSource('/api/orders/stream');
     fonte.onopen = () => setAoVivo(true);
@@ -72,44 +93,80 @@ export function PedidosPorTipo({
     return () => fonte.close();
   }, [buscar]);
 
-  /** A lista, já sem cancelados e (por padrão) sem finalizados. */
+  /** A lista visível: em andamento, do tipo e da marca escolhidos. */
   const lista = useMemo(
     () =>
       pedidos.filter((p) => {
-        if (p.status === 'CANCELED') return false;
-        if (!verFinalizados && p.finalizado) return false;
+        if (p.status === 'CANCELED' || p.finalizado) return false;
+        if (abaTipo !== 'TODOS' && p.channel !== abaTipo) return false;
+        if (multi && abaMarca !== 'TODAS' && p.brand?.id !== abaMarca) return false;
         return true;
       }),
-    [pedidos, verFinalizados],
+    [pedidos, abaTipo, abaMarca, multi],
   );
-
-  const emAndamento = pedidos.filter((p) => !p.finalizado && p.status !== 'CANCELED').length;
 
   return (
     <main className="pedidos-tela">
-      <header className="pedidos-cabecalho">
-        <div>
-          <h1 className="title" style={{ marginBottom: 2 }}>
-            Pedidos
-          </h1>
-          <p className="subtitle" style={{ margin: 0 }}>
-            {emAndamento === 0 ? 'Nenhum pedido em andamento agora.' : `${emAndamento} pedido(s) em andamento`}
-            <span className={`ao-vivo ${aoVivo ? 'on' : ''}`}>{aoVivo ? '● ao vivo' : '○ reconectando'}</span>
-          </p>
+      {/* 1) PAINEL DE RESULTADOS */}
+      <section className="resultados">
+        <div className="resultado-card">
+          <span className="resultado-rotulo">Faturado hoje</span>
+          <span className="resultado-valor">{dinheiro(resumo.faturadoCents)}</span>
         </div>
+        <div className="resultado-card">
+          <span className="resultado-rotulo">Pedidos hoje</span>
+          <span className="resultado-valor">{resumo.quantidade}</span>
+        </div>
+        <span className={`ao-vivo ${aoVivo ? 'on' : ''}`}>{aoVivo ? '● ao vivo' : '○ reconectando'}</span>
+      </section>
 
-        <label className="ver-finalizados">
-          <input
-            type="checkbox"
-            checked={verFinalizados}
-            onChange={(e) => setVerFinalizados(e.target.checked)}
-          />
-          Mostrar entregues/finalizados
-        </label>
-      </header>
+      {/* 2) BARRA DE AÇÕES */}
+      <div className="acoes-barra">
+        <Link href="/pdv" className="botao-acao destaque">
+          + Novo pedido
+        </Link>
+      </div>
 
+      {/* 3) ABAS */}
+      <div className="abas-tipo">
+        {ABAS_TIPO.map((a) => (
+          <button
+            key={a.valor}
+            className="aba-tab"
+            data-ativa={abaTipo === a.valor}
+            onClick={() => setAbaTipo(a.valor)}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
+
+      {multi && (
+        <div className="abas-marca">
+          <button
+            className="aba-tab menor"
+            data-ativa={abaMarca === 'TODAS'}
+            onClick={() => setAbaMarca('TODAS')}
+          >
+            Todos estabelecimentos
+          </button>
+          {marcas.map((m) => (
+            <button
+              key={m.id}
+              className="aba-tab menor"
+              data-ativa={abaMarca === m.id}
+              onClick={() => setAbaMarca(m.id)}
+            >
+              <span className="dot" style={{ background: m.primaryColor }} />
+              {m.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 4) LISTA */}
       {lista.length === 0 ? (
-        <p className="vazio">Nenhum pedido para mostrar.</p>
+        <p className="vazio">Nenhum pedido em andamento por aqui.</p>
       ) : (
         <div className="pedidos-lista">
           {lista.map((p) => {
