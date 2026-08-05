@@ -108,7 +108,11 @@ export function MenuLateral() {
   const [retraido, setRetraido] = useState(false);
   /** qual item está com o painel da direita aberto, e onde ele deve aparecer */
   const [voando, setVoando] = useState<string | null>(null);
-  const [ondeVoar, setOndeVoar] = useState<{ topo: number; esquerda: number } | null>(null);
+  const [ondeVoar, setOndeVoar] = useState<{
+    topo: number;
+    esquerda: number;
+    seta: number;
+  } | null>(null);
 
   /**
    * O painel é posicionado em coordenadas de TELA, não dentro da barra.
@@ -120,7 +124,13 @@ export function MenuLateral() {
   function abrirPainel(href: string, alvo: HTMLElement) {
     const item = alvo.getBoundingClientRect();
     const barra = alvo.closest('.menu-lateral')?.getBoundingClientRect();
-    setOndeVoar({ topo: item.top - 6, esquerda: (barra?.right ?? item.right) + 8 });
+    setOndeVoar({
+      topo: item.top - 8,
+      esquerda: (barra?.right ?? item.right) + 10,
+      // onde a seta de ligação deve apontar: no meio do item, contado a partir
+      // do topo do painel
+      seta: item.height / 2 + 8,
+    });
     setVoando(href);
   }
 
@@ -222,6 +232,7 @@ export function MenuLateral() {
                       href={href}
                       className="menu-item"
                       data-ativo={ativo(href)}
+                      data-voando={mostrarPainel}
                       title={retraido ? label : undefined}
                     >
                       <span className="menu-icone">
@@ -240,7 +251,11 @@ export function MenuLateral() {
                         className="menu-voo"
                         style={
                           ondeVoar
-                            ? { top: ondeVoar.topo, left: ondeVoar.esquerda }
+                            ? ({
+                                top: ondeVoar.topo,
+                                left: ondeVoar.esquerda,
+                                ['--seta' as string]: `${ondeVoar.seta}px`,
+                              } as React.CSSProperties)
                             : undefined
                         }
                       >

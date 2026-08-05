@@ -2379,6 +2379,21 @@ select:focus {
   background: rgba(255, 255, 255, 0.06);
 }
 
+/* item com o painel aberto: fica aceso, para o olho ligar um ao outro */
+.menu-item[data-voando='true'] {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+/* a setinha continua apontando para a DIREITA (é para lá que o painel abre),
+   só acende e desliza um tico, indicando "vai por aqui" */
+.menu-item[data-voando='true'] .menu-seta {
+  color: var(--brand-vivo);
+  transform: rotate(-90deg) translateY(-2px);
+}
+.menu-seta {
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+
 /* o item ativo ganha a brasa e um traço na lateral */
 .menu-item[data-ativo='true'] {
   background: linear-gradient(90deg, rgba(228, 87, 27, 0.24), rgba(228, 87, 27, 0.06));
@@ -2424,28 +2439,48 @@ select:focus {
      A posição exata é calculada em JS na hora de abrir. */
   position: fixed;
   z-index: 60;
-  min-width: 210px;
+  min-width: 214px;
   padding: 7px;
   background: var(--menu-bg-2);
   border: 1px solid var(--menu-linha);
   border-radius: 12px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-  animation: voa 0.14s ease-out;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
+  /* nasce PEQUENO e À ESQUERDA (colado no menu) e cresce para a direita —
+     parece que saiu do item, não que apareceu do nada */
+  transform-origin: left center;
+  animation: voa 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 @keyframes voa {
   from {
     opacity: 0;
-    transform: translateX(-6px);
+    transform: translateX(-10px) scale(0.94);
   }
 }
-/* uma ponte invisível: dá para o mouse atravessar o vão sem o painel fechar */
+
+/* a PONTE invisível cobre o vão inteiro entre o menu e o painel, para o mouse
+   atravessar sem o painel fechar no meio do caminho */
 .menu-voo::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -12px;
-  width: 12px;
+  left: -14px;
+  width: 14px;
   height: 100%;
+}
+
+/* a SETA de ligação: um losango que sai da borda esquerda do painel e aponta
+   para o item que o abriu (a altura vem do JS, na variável --seta) */
+.menu-voo::after {
+  content: '';
+  position: absolute;
+  top: var(--seta, 22px);
+  left: -6px;
+  width: 11px;
+  height: 11px;
+  transform: translateY(-50%) rotate(45deg);
+  background: var(--menu-bg-2);
+  border-left: 1px solid var(--menu-linha);
+  border-bottom: 1px solid var(--menu-linha);
 }
 
 .menu-voo-titulo {
@@ -2672,6 +2707,10 @@ select:focus {
     margin: 4px 0 8px 30px;
     box-shadow: none;
     min-width: 0;
+  }
+  .menu-voo::after,
+  .menu-voo::before {
+    display: none;
   }
 }
 
