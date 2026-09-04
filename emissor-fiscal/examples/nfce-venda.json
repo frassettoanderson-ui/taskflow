@@ -1,0 +1,36 @@
+{
+  "emitente": "11111111000199",
+  "natureza_operacao": "Venda ao consumidor",
+  "consumidor": {
+    "cpf": "11122233396"
+  },
+  "itens": [
+    {
+      "codigo": "SKU-001",
+      "descricao": "Refrigerante lata 350ml",
+      "ncm": "22021000",
+      "cfop": "5102",
+      "unidade": "UN",
+      "quantidade": 2,
+      "valor_unitario": 6.5,
+      "origem": 0,
+      "csosn": "102"
+    },
+    {
+      "codigo": "SKU-002",
+      "descricao": "Salgado assado",
+      "ncm": "19059090",
+      "cfop": "5102",
+      "unidade": "UN",
+      "quantidade": 3,
+      "valor_unitario": 8.0,
+      "origem": 0,
+      "csosn": "102"
+    }
+  ],
+  "pagamentos": [
+    { "forma": "17", "valor": 17.0 },
+    { "forma": "01", "valor": 20.0 }
+  ],
+  "informacoes_adicionais": "Obrigado pela preferencia"
+}

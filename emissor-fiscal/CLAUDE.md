@@ -56,8 +56,11 @@ Assíncrono+webhook só se o volume exigir.
 - ✅ **NF-e (modelo 55)**: emitir (síncrono), consultar, cancelar, **carta de
   correção (CC-e)**, **DANFE PDF (sped-da)**, status SEFAZ
   — caso comum venda de mercadoria, Simples Nacional (CSOSN) e Regime Normal básico
+- ✅ **NFC-e (modelo 65)**: emitir (síncrono c/ QR Code), consultar, cancelar,
+  DANFCE PDF, status — consumidor opcional (CPF), múltiplos pagamentos + troco,
+  Simples Nacional e MEI (CRT 1/4). Exige CSC/CSCid no emitente.
 - ⏳ **Falta testar em homologação** com certificado real (nunca rodou ainda)
-- 🔜 Fase 2: **NFC-e** (modelo 65) — precisa CSC + QRCode
+- 🔜 Fase 3: **NFS-e** — Padrão Nacional gov.br + adaptadores por provedor
 - 📄 **Reforma Tributária IBS/CBS**: mapeada em `docs/REFORMA-IBS-CBS.md` (não implementada)
 - 🔜 Fase 3: **NFS-e** — começar pelo **Padrão Nacional** (ambiente nacional
   gov.br); municípios fora do padrão exigem adaptador por cidade

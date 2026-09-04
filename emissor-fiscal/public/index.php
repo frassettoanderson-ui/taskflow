@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Fiscal\NFe\NFeService;
+use App\Fiscal\NFCe\NFCeService;
 use App\Http\Request;
 use App\Http\Response;
 use App\Http\Router;
@@ -39,6 +40,19 @@ $nfeDoEmitente = static function (Request $req) use ($root, $emitentes, $store, 
     }
     $emit = $emitentes->buscar($cnpj);
     return new NFeService($root, $emit, Config::ambiente(), $store, $contador);
+};
+
+/** Idem, para NFC-e (modelo 65). */
+$nfceDoEmitente = static function (Request $req) use ($root, $emitentes, $store, $contador): NFCeService {
+    $cnpj = (string) ($req->body['emitente'] ?? '');
+    if ($cnpj === '') {
+        throw new InvalidArgumentException('Campo "emitente" (CNPJ) é obrigatório.');
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
+    }
+    $emit = $emitentes->buscar($cnpj);
+    return new NFCeService($root, $emit, Config::ambiente(), $store, $contador);
 };
 
 // ---------------- rotas ----------------
@@ -91,7 +105,43 @@ $router->add('POST', '/v1/nfe/danfe', function (Request $req) use ($nfeDoEmitent
     Response::ok($nfeDoEmitente($req)->danfe($chave));
 });
 
-// TODO(fase 2): /v1/nfce/emitir  (NFC-e modelo 65 — reaproveita sped-nfe)
+// ---------------- NFC-e (modelo 65) ----------------
+
+$router->add('POST', '/v1/nfce/status', function (Request $req) use ($nfceDoEmitente) {
+    Response::ok(['sefaz' => $nfceDoEmitente($req)->statusServico()]);
+});
+
+$router->add('POST', '/v1/nfce/emitir', function (Request $req) use ($nfceDoEmitente) {
+    $r = $nfceDoEmitente($req)->emitir($req->body);
+    $ok = $r['status'] === 'autorizado';
+    Response::json(['ok' => $ok] + $r, $ok ? 200 : 422);
+});
+
+$router->add('POST', '/v1/nfce/consultar', function (Request $req) use ($nfceDoEmitente) {
+    $chave = (string) ($req->body['chave'] ?? '');
+    if (strlen($chave) !== 44) {
+        Response::erro('chave de acesso inválida (44 dígitos).', 400);
+    }
+    Response::ok($nfceDoEmitente($req)->consultar($chave));
+});
+
+$router->add('POST', '/v1/nfce/cancelar', function (Request $req) use ($nfceDoEmitente) {
+    $r = $nfceDoEmitente($req)->cancelar(
+        (string) ($req->body['chave'] ?? ''),
+        (string) ($req->body['protocolo'] ?? ''),
+        (string) ($req->body['justificativa'] ?? '')
+    );
+    Response::json(['ok' => $r['status'] === 'cancelado'] + $r);
+});
+
+$router->add('POST', '/v1/nfce/danfce', function (Request $req) use ($nfceDoEmitente) {
+    $chave = (string) ($req->body['chave'] ?? '');
+    if (strlen($chave) !== 44) {
+        Response::erro('chave de acesso inválida (44 dígitos).', 400);
+    }
+    Response::ok($nfceDoEmitente($req)->danfce($chave));
+});
+
 // TODO(fase 3): /v1/nfse/emitir  (NFS-e — Padrão Nacional gov.br + adaptadores por provedor)
 
 $router->dispatch($req);

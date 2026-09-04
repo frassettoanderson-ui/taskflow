@@ -45,6 +45,11 @@ HTTPS, acessível só pela rede interna dos projetos.
 | POST | `/v1/nfe/cancelar` | `chave`, `protocolo`, `justificativa` |
 | POST | `/v1/nfe/carta-correcao` | `chave`, `correcao`, `sequencia?` |
 | POST | `/v1/nfe/danfe` | `chave` → PDF (arquivo + base64) |
+| POST | `/v1/nfce/status` | — (só `emitente`) |
+| POST | `/v1/nfce/emitir` | payload NFC-e (consumidor opcional + `pagamentos`) |
+| POST | `/v1/nfce/consultar` | `chave` |
+| POST | `/v1/nfce/cancelar` | `chave`, `protocolo`, `justificativa` (prazo curto!) |
+| POST | `/v1/nfce/danfce` | `chave` → PDF do cupom (arquivo + base64) |
 
 Todas (menos `/health`) exigem `Authorization: Bearer <chave-de-api>` **e** o
 campo `"emitente": "<cnpj>"` no corpo.
