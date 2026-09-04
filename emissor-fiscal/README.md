@@ -32,6 +32,8 @@ HTTPS, acessível só pela rede interna dos projetos.
 | POST | `/v1/nfe/emitir` | Emite NF-e (síncrono). Body = payload normalizado |
 | POST | `/v1/nfe/consultar` | `{ "chave": "..." }` situação da NF-e |
 | POST | `/v1/nfe/cancelar` | `{ "chave", "protocolo", "justificativa" }` |
+| POST | `/v1/nfe/carta-correcao` | `{ "chave", "correcao", "sequencia"? }` CC-e |
+| POST | `/v1/nfe/danfe` | `{ "chave" }` → PDF da DANFE (arquivo + base64) |
 
 Todas (menos `/health`) exigem `Authorization: Bearer <API_KEY>`.
 

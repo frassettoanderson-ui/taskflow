@@ -10,6 +10,7 @@ use App\Support\XmlStore;
 use NFePHP\Common\Certificate;
 use NFePHP\NFe\Tools;
 use NFePHP\NFe\Complements;
+use NFePHP\DA\NFe\Danfe;
 
 /**
  * Orquestra a emissão da NF-e: monta -> assina -> envia (síncrono) ->
@@ -141,6 +142,65 @@ final class NFeService
             'chave'  => $chave,
             'motivo' => trim("{$cStat} - {$xMotivo}"),
             'xml'    => $resp,
+        ];
+    }
+
+    /**
+     * Carta de Correção Eletrônica (CC-e).
+     * Corrige erros que NÃO alterem valores, impostos, dados do destinatário
+     * ou a data de emissão. seq = sequência do evento (1 na primeira correção).
+     */
+    public function cartaCorrecao(string $chave, string $correcao, int $seq = 1): array
+    {
+        $correcao = trim($correcao);
+        if (mb_strlen($correcao) < 15) {
+            throw new \InvalidArgumentException('A correção deve ter ao menos 15 caracteres.');
+        }
+        if (mb_strlen($correcao) > 1000) {
+            throw new \InvalidArgumentException('A correção não pode passar de 1000 caracteres.');
+        }
+        $resp = $this->tools->sefazCCe($chave, $correcao, $seq);
+        $st = new \DOMDocument();
+        $st->loadXML($resp);
+        $cStat = $st->getElementsByTagName('cStat')->item(0)->nodeValue ?? '';
+        $xMotivo = $st->getElementsByTagName('xMotivo')->item(0)->nodeValue ?? '';
+        // 135 = evento registrado e vinculado à NF-e
+        $sucesso = str_contains($resp, '<cStat>135</cStat>');
+        if ($sucesso) {
+            $this->store->salvar("{$chave}-cce-{$seq}", $resp, 'eventos');
+        }
+        return [
+            'status' => $sucesso ? 'registrada' : 'erro',
+            'chave'  => $chave,
+            'motivo' => trim("{$cStat} - {$xMotivo}"),
+            'xml'    => $resp,
+        ];
+    }
+
+    /**
+     * Gera o PDF da DANFE a partir do XML autorizado (procNFe) já guardado.
+     * Retorna o caminho do arquivo e o PDF em base64.
+     */
+    public function danfe(string $chave): array
+    {
+        $xml = $this->store->recuperar($chave, 'autorizado');
+        if ($xml === null) {
+            throw new \RuntimeException("XML autorizado não encontrado para a chave {$chave}.");
+        }
+        $danfe = new Danfe($xml);
+        $pdf = $danfe->render();
+
+        $dir = $this->root . '/storage/pdf';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0770, true);
+        }
+        $arquivo = $dir . '/' . $chave . '.pdf';
+        file_put_contents($arquivo, $pdf);
+
+        return [
+            'chave'       => $chave,
+            'arquivo'     => $arquivo,
+            'pdf_base64'  => base64_encode($pdf),
         ];
     }
 

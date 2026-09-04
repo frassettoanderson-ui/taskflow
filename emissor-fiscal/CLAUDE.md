@@ -30,11 +30,12 @@ enviam a cada requisição.
 
 ## Estado atual (o que está pronto / o que falta)
 - ✅ Fundação: config, certificado, router, auth, storage, contador
-- ✅ **NF-e (modelo 55)**: emitir (síncrono), consultar, cancelar, status SEFAZ
+- ✅ **NF-e (modelo 55)**: emitir (síncrono), consultar, cancelar, **carta de
+  correção (CC-e)**, **DANFE PDF (sped-da)**, status SEFAZ
   — caso comum venda de mercadoria, Simples Nacional (CSOSN) e Regime Normal básico
 - ⏳ **Falta testar em homologação** com certificado real (nunca rodou ainda)
-- ⏳ DANFE PDF (sped-da) — endpoint ainda não exposto
 - 🔜 Fase 2: **NFC-e** (modelo 65) — precisa CSC + QRCode
+- 📄 **Reforma Tributária IBS/CBS**: mapeada em `docs/REFORMA-IBS-CBS.md` (não implementada)
 - 🔜 Fase 3: **NFS-e** — começar pelo **Padrão Nacional** (ambiente nacional
   gov.br); municípios fora do padrão exigem adaptador por cidade
 
