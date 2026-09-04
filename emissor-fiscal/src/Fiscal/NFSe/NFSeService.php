@@ -57,6 +57,31 @@ final class NFSeService
             + ['provider' => $provider->nome()];
     }
 
+    /**
+     * Gera o PDF (DANFSE) da NFS-e a partir do XML autorizado guardado.
+     * Se não estiver guardado, consulta na ADN e usa o XML retornado.
+     */
+    public function danfse(string $chave, string $municipio): array
+    {
+        $xml = $this->store->recuperar($this->emitente->cnpj, $chave, 'nfse');
+        if ($xml === null) {
+            $consulta = $this->consultar($chave, $municipio);
+            $xml = $consulta['xml'] ?? null;
+        }
+        if (empty($xml)) {
+            throw new \RuntimeException("XML da NFS-e não encontrado para a chave {$chave}.");
+        }
+
+        $pdf = (new NFSeDanfse())->render($xml);
+        $dir = "{$this->root}/storage/pdf/" . preg_replace('/\D/', '', $this->emitente->cnpj);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0770, true);
+        }
+        $arquivo = "{$dir}/{$chave}.pdf";
+        file_put_contents($arquivo, $pdf);
+        return ['chave' => $chave, 'arquivo' => $arquivo, 'pdf_base64' => base64_encode($pdf)];
+    }
+
     public function cancelar(string $identificador, string $justificativa, string $municipio): array
     {
         if (mb_strlen($justificativa) < 15) {

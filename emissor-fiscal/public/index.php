@@ -178,6 +178,14 @@ $router->add('POST', '/v1/nfse/consultar', function (Request $req) use ($nfseDoE
     Response::ok($nfseDoEmitente($req)->consultar($chave, (string) ($req->body['municipio'] ?? '')));
 });
 
+$router->add('POST', '/v1/nfse/danfse', function (Request $req) use ($nfseDoEmitente) {
+    $chave = (string) ($req->body['chave'] ?? '');
+    if ($chave === '') {
+        Response::erro('Campo "chave" é obrigatório.', 400);
+    }
+    Response::ok($nfseDoEmitente($req)->danfse($chave, (string) ($req->body['municipio'] ?? '')));
+});
+
 $router->add('POST', '/v1/nfse/cancelar', function (Request $req) use ($nfseDoEmitente) {
     $r = $nfseDoEmitente($req)->cancelar(
         (string) ($req->body['chave'] ?? ''),
