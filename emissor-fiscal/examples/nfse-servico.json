@@ -1,0 +1,17 @@
+{
+  "emitente": "11111111000199",
+  "tomador": {
+    "cnpj": "22222222000188",
+    "nome": "Empresa Cliente LTDA",
+    "email": "financeiro@cliente.com"
+  },
+  "servico": {
+    "descricao": "Servicos de contabilidade - competencia 09/2026",
+    "valor": 1200.0,
+    "item_lista_servico": "010701",
+    "codigo_municipio_prestacao": "4205407",
+    "aliquota_iss": 3.0,
+    "iss_retido": false
+  },
+  "informacoes_adicionais": "Honorarios contabeis mensais"
+}

@@ -59,8 +59,11 @@ Assíncrono+webhook só se o volume exigir.
 - ✅ **NFC-e (modelo 65)**: emitir (síncrono c/ QR Code), consultar, cancelar,
   DANFCE PDF, status — consumidor opcional (CPF), múltiplos pagamentos + troco,
   Simples Nacional e MEI (CRT 1/4). Exige CSC/CSCid no emitente.
+- ✅ **NFS-e**: arquitetura de providers (`NFSeProvider` + `ProviderRegistry`) +
+  **Padrão Nacional** (emitir/consultar via DPS→assina→gzip/base64→REST mTLS).
+  Cancelamento nacional (por evento) e adaptadores municipais ainda pendentes.
+  Detalhes e o que verificar: `docs/NFSE.md`.
 - ⏳ **Falta testar em homologação** com certificado real (nunca rodou ainda)
-- 🔜 Fase 3: **NFS-e** — Padrão Nacional gov.br + adaptadores por provedor
 - 📄 **Reforma Tributária IBS/CBS**: mapeada em `docs/REFORMA-IBS-CBS.md` (não implementada)
 - 🔜 Fase 3: **NFS-e** — começar pelo **Padrão Nacional** (ambiente nacional
   gov.br); municípios fora do padrão exigem adaptador por cidade

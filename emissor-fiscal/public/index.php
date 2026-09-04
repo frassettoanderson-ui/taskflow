@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Fiscal\NFe\NFeService;
 use App\Fiscal\NFCe\NFCeService;
+use App\Fiscal\NFSe\NFSeService;
+use App\Fiscal\NFSe\ProviderRegistry;
+use App\Fiscal\NFSe\Providers\PadraoNacionalProvider;
 use App\Http\Request;
 use App\Http\Response;
 use App\Http\Router;
@@ -22,6 +25,10 @@ $apiKeys = new ApiKeys($root);
 $emitentes = new EmitenteRepository($root);
 $store = new XmlStore($root);
 $contador = new Contador($root);
+
+// Registry de NFS-e: Padrão Nacional cobre a maioria; adaptadores municipais
+// (ABRASF, São Paulo…) entram aqui conforme houver cliente real.
+$nfseRegistry = new ProviderRegistry($root, new PadraoNacionalProvider());
 
 $req = new Request();
 $router = new Router($apiKeys);
@@ -53,6 +60,19 @@ $nfceDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
     }
     $emit = $emitentes->buscar($cnpj);
     return new NFCeService($root, $emit, Config::ambiente(), $store, $contador);
+};
+
+/** Idem, para NFS-e (escolhe o provider pelo município). */
+$nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store, $contador, $nfseRegistry): NFSeService {
+    $cnpj = (string) ($req->body['emitente'] ?? '');
+    if ($cnpj === '') {
+        throw new InvalidArgumentException('Campo "emitente" (CNPJ) é obrigatório.');
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
+    }
+    $emit = $emitentes->buscar($cnpj);
+    return new NFSeService($root, $emit, Config::ambiente(), $store, $contador, $nfseRegistry);
 };
 
 // ---------------- rotas ----------------
@@ -142,6 +162,29 @@ $router->add('POST', '/v1/nfce/danfce', function (Request $req) use ($nfceDoEmit
     Response::ok($nfceDoEmitente($req)->danfce($chave));
 });
 
-// TODO(fase 3): /v1/nfse/emitir  (NFS-e — Padrão Nacional gov.br + adaptadores por provedor)
+// ---------------- NFS-e (Padrão Nacional + adaptadores por provedor) ----------------
+
+$router->add('POST', '/v1/nfse/emitir', function (Request $req) use ($nfseDoEmitente) {
+    $r = $nfseDoEmitente($req)->emitir($req->body);
+    $ok = $r['status'] === 'autorizado';
+    Response::json(['ok' => $ok] + $r, $ok ? 200 : 422);
+});
+
+$router->add('POST', '/v1/nfse/consultar', function (Request $req) use ($nfseDoEmitente) {
+    $chave = (string) ($req->body['chave'] ?? '');
+    if ($chave === '') {
+        Response::erro('Campo "chave" (identificador da NFS-e) é obrigatório.', 400);
+    }
+    Response::ok($nfseDoEmitente($req)->consultar($chave, (string) ($req->body['municipio'] ?? '')));
+});
+
+$router->add('POST', '/v1/nfse/cancelar', function (Request $req) use ($nfseDoEmitente) {
+    $r = $nfseDoEmitente($req)->cancelar(
+        (string) ($req->body['chave'] ?? ''),
+        (string) ($req->body['justificativa'] ?? ''),
+        (string) ($req->body['municipio'] ?? '')
+    );
+    Response::json(['ok' => ($r['status'] ?? '') === 'cancelado'] + $r);
+});
 
 $router->dispatch($req);

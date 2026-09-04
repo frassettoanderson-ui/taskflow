@@ -50,6 +50,9 @@ HTTPS, acessível só pela rede interna dos projetos.
 | POST | `/v1/nfce/consultar` | `chave` |
 | POST | `/v1/nfce/cancelar` | `chave`, `protocolo`, `justificativa` (prazo curto!) |
 | POST | `/v1/nfce/danfce` | `chave` → PDF do cupom (arquivo + base64) |
+| POST | `/v1/nfse/emitir` | payload NFS-e (`tomador` + `servico`) |
+| POST | `/v1/nfse/consultar` | `chave`, `municipio?` |
+| POST | `/v1/nfse/cancelar` | `chave`, `justificativa`, `municipio?` |
 
 Todas (menos `/health`) exigem `Authorization: Bearer <chave-de-api>` **e** o
 campo `"emitente": "<cnpj>"` no corpo.
