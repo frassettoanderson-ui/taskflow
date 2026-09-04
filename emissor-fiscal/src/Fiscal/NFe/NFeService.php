@@ -29,7 +29,7 @@ final class NFeService
     ) {
         $cert = CertificadoManager::carregar($root, $emitente->certPath, $emitente->certPassword);
         $this->tools = new Tools($emitente->nfephpConfig($ambiente), $cert);
-        $this->tools->model('55');
+        $this->tools->model(55);
     }
 
     /**

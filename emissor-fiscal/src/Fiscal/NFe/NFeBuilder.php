@@ -34,6 +34,11 @@ final class NFeBuilder
         $cMun = $this->emitente['cMun'];
         $dhEmi = date('Y-m-d\TH:i:sP');
 
+        // ------- infNFe (inicializa o nó raiz) -------
+        $infNFe = new \stdClass();
+        $infNFe->versao = '4.00';
+        $make->taginfNFe($infNFe);
+
         // ------- ide -------
         $cNF = str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
         $ide = new \stdClass();
@@ -196,6 +201,15 @@ final class NFeBuilder
             $infAdic->infCpl = $p['informacoes_adicionais'];
             $make->taginfAdic($infAdic);
         }
+
+        // ------- responsável técnico (exigido por SC e outras UFs) -------
+        $rt = $this->emitente['respTec'] ?? [];
+        $respTec = new \stdClass();
+        $respTec->CNPJ = $rt['CNPJ'] ?? '';
+        $respTec->xContato = $rt['xContato'] ?? '';
+        $respTec->email = $rt['email'] ?? '';
+        $respTec->fone = $rt['fone'] ?? '';
+        $make->taginfRespTec($respTec);
 
         $xml = $make->getXML();
         if (!$xml) {

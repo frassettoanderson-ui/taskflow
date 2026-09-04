@@ -12,7 +12,7 @@
         "ext-json": "*",
         "ext-mbstring": "*",
         "nfephp-org/sped-nfe": "^5.1",
-        "nfephp-org/sped-da": "^2.1",
+        "nfephp-org/sped-da": "^1.1",
         "vlucas/phpdotenv": "^5.6"
     },
     "autoload": {

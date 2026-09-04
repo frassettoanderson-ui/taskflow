@@ -31,6 +31,10 @@ final class Emitente
         public readonly int $nfceSerie,
         public readonly string $cscId,
         public readonly string $csc,
+        public readonly string $respTecCnpj,
+        public readonly string $respTecContato,
+        public readonly string $respTecEmail,
+        public readonly string $respTecFone,
     ) {}
 
     public static function fromArray(array $d): self
@@ -63,6 +67,11 @@ final class Emitente
             nfceSerie:    (int) ($d['nfce_serie'] ?? 1),
             cscId:        (string) ($d['csc_id'] ?? ''),
             csc:          (string) ($d['csc'] ?? ''),
+            // Responsável técnico (empresa do software). Fallback: o próprio emitente.
+            respTecCnpj:    preg_replace('/\D/', '', (string) ($d['resp_tec_cnpj'] ?? ($d['cnpj'] ?? ''))),
+            respTecContato: (string) ($d['resp_tec_contato'] ?? ($d['razao'] ?? 'Responsavel Tecnico')),
+            respTecEmail:   (string) ($d['resp_tec_email'] ?? 'contato@example.com'),
+            respTecFone:    preg_replace('/\D/', '', (string) ($d['resp_tec_fone'] ?? ($d['fone'] ?? ''))),
         );
     }
 
@@ -92,6 +101,12 @@ final class Emitente
             'cMun' => $this->cMun, 'xMun' => $this->xMun, 'xLgr' => $this->xLgr,
             'nro' => $this->nro, 'xBairro' => $this->xBairro, 'CEP' => $this->cep,
             'fone' => $this->fone,
+            'respTec' => [
+                'CNPJ'     => $this->respTecCnpj,
+                'xContato' => $this->respTecContato,
+                'email'    => $this->respTecEmail,
+                'fone'     => $this->respTecFone,
+            ],
         ];
     }
 }

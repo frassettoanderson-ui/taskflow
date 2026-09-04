@@ -35,6 +35,11 @@ final class NFCeBuilder
         $uf = $this->emitente['UF'];
         $cMun = $this->emitente['cMun'];
 
+        // ------- infNFe (inicializa o nó raiz) -------
+        $infNFe = new \stdClass();
+        $infNFe->versao = '4.00';
+        $make->taginfNFe($infNFe);
+
         // ------- ide -------
         $ide = new \stdClass();
         $ide->cUF = $this->codigoUF($uf);
@@ -177,6 +182,15 @@ final class NFCeBuilder
             $infAdic->infCpl = $p['informacoes_adicionais'];
             $make->taginfAdic($infAdic);
         }
+
+        // ------- responsável técnico -------
+        $rt = $this->emitente['respTec'] ?? [];
+        $respTec = new \stdClass();
+        $respTec->CNPJ = $rt['CNPJ'] ?? '';
+        $respTec->xContato = $rt['xContato'] ?? '';
+        $respTec->email = $rt['email'] ?? '';
+        $respTec->fone = $rt['fone'] ?? '';
+        $make->taginfRespTec($respTec);
 
         $xml = $make->getXML();
         if (!$xml) {
