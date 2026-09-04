@@ -1,0 +1,28 @@
+{
+    "name": "rscontabilidade/emissor-fiscal",
+    "description": "Microserviço fiscal (NF-e, NFC-e, NFS-e) via NFePHP, com API REST interna reutilizável por vários projetos.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.1",
+        "ext-openssl": "*",
+        "ext-curl": "*",
+        "ext-dom": "*",
+        "ext-soap": "*",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "nfephp-org/sped-nfe": "^5.1",
+        "nfephp-org/sped-da": "^2.1",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}

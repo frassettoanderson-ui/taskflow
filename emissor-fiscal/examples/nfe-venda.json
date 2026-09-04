@@ -1,0 +1,37 @@
+{
+  "natureza_operacao": "Venda de mercadoria",
+  "consumidor_final": true,
+  "modalidade_frete": 9,
+  "destinatario": {
+    "cpf": "11122233396",
+    "nome": "Cliente Exemplo",
+    "email": "cliente@exemplo.com",
+    "endereco": {
+      "logradouro": "Rua das Flores",
+      "numero": "250",
+      "bairro": "Centro",
+      "municipio_cod": "4205407",
+      "municipio_nome": "Imbituba",
+      "uf": "SC",
+      "cep": "88780000"
+    }
+  },
+  "itens": [
+    {
+      "codigo": "SKU-001",
+      "descricao": "Camiseta streetwear preta M",
+      "ncm": "61091000",
+      "cfop": "5102",
+      "unidade": "UN",
+      "quantidade": 2,
+      "valor_unitario": 79.9,
+      "origem": 0,
+      "csosn": "102"
+    }
+  ],
+  "pagamento": {
+    "forma": "01",
+    "valor": 159.8
+  },
+  "informacoes_adicionais": "Pedido #1234 - loja online"
+}

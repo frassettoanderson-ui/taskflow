@@ -1,0 +1,12 @@
+/vendor/
+/.env
+/storage/certificados/*
+!/storage/certificados/.gitkeep
+/storage/xml/*
+!/storage/xml/.gitkeep
+/storage/pdf/*
+!/storage/pdf/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+*.pfx
+*.p12
