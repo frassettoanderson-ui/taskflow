@@ -9,9 +9,10 @@
     "descricao": "Servicos de contabilidade - competencia 09/2026",
     "valor": 1200.0,
     "item_lista_servico": "010701",
-    "codigo_municipio_prestacao": "4205407",
+    "codigo_municipio_prestacao": "4207304",
     "aliquota_iss": 3.0,
-    "iss_retido": false
+    "iss_retido": false,
+    "pct_tributos_sn": 6.0
   },
   "informacoes_adicionais": "Honorarios contabeis mensais"
 }

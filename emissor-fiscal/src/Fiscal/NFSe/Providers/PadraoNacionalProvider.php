@@ -41,6 +41,7 @@ final class PadraoNacionalProvider implements NFSeProvider
 
         $dps = $this->montarDPS($emitente, $payload, $ambiente, $numero, $serie);
         $assinado = Signer::sign($cert, $dps, 'infDPS', 'Id');
+        $assinado = $this->normalizarXml($assinado);
 
         $gzB64 = base64_encode(gzencode($assinado));
         $resp = $this->request($cert, 'POST', '/nfse', $ambiente, ['dpsXmlGZipB64' => $gzB64]);
@@ -115,17 +116,27 @@ final class PadraoNacionalProvider implements NFSeProvider
         $cLocPrest = (string) ($serv['codigo_municipio_prestacao'] ?? $cLocEmi);
 
         $valor = number_format((float) ($serv['valor'] ?? 0), 2, '.', '');
-        $aliq = number_format((float) ($serv['aliquota_iss'] ?? 0), 2, '.', '');
-        $issRetido = !empty($serv['iss_retido']) ? 1 : 2; // 1=retido, 2=não retido
+        $issRetido = !empty($serv['iss_retido']) ? 2 : 1; // 1=não retido, 2=retido pelo tomador
         $cTribNac = $this->soDigitos((string) ($serv['item_lista_servico'] ?? '')); // ex.: 010701
         $descServ = htmlspecialchars((string) ($serv['descricao'] ?? ''), ENT_XML1);
 
         // opSimpNac: 1=Não optante, 2=MEI, 3=ME/EPP
         $opSimpNac = match ($e->crt) {
             4 => 2,       // MEI
-            1, 2 => 3,    // Simples
+            1, 2 => 3,    // Simples ME/EPP
             default => 1, // Normal
         };
+        // regApTribSN obrigatório para optante ME/EPP (opSimpNac=3).
+        // 1 = tributos federais e municipal pelo SN (regime padrão)
+        $tagRegApSN = $opSimpNac === 3 ? '<regApTribSN>1</regApTribSN>' : '';
+        // totTrib é obrigatório. Normal usa indTotTrib; Simples/MEI usa pTotTribSN
+        // (percentual aproximado de tributos do SN; E0712 proíbe indTotTrib p/ ME/EPP).
+        if ($opSimpNac === 1) {
+            $tagTotTrib = '<totTrib><indTotTrib>0</indTotTrib></totTrib>';
+        } else {
+            $pSN = number_format((float) ($serv['pct_tributos_sn'] ?? 0), 2, '.', '');
+            $tagTotTrib = "<totTrib><pTotTribSN>{$pSN}</pTotTribSN></totTrib>";
+        }
 
         // Id do infDPS: "DPS" + cLocEmi(7) + tpInsc(1=CNPJ) + Insc(14) + serie(5) + nDPS(15)
         $id = 'DPS'
@@ -153,6 +164,7 @@ final class PadraoNacionalProvider implements NFSeProvider
       <CNPJ>{$e->cnpj}</CNPJ>
       <regTrib>
         <opSimpNac>{$opSimpNac}</opSimpNac>
+        {$tagRegApSN}
         <regEspTrib>0</regEspTrib>
       </regTrib>
     </prest>
@@ -169,11 +181,9 @@ final class PadraoNacionalProvider implements NFSeProvider
       <trib>
         <tribMun>
           <tribISSQN>1</tribISSQN>
-          <cLocIncid>{$cLocPrest}</cLocIncid>
-          <pAliq>{$aliq}</pAliq>
           <tpRetISSQN>{$issRetido}</tpRetISSQN>
         </tribMun>
-        <totTrib><indTotTrib>0</indTotTrib></totTrib>
+        {$tagTotTrib}
       </trib>
     </valores>
   </infDPS>
@@ -242,13 +252,27 @@ XML;
     private function extrairErros(array $body, int $status): string
     {
         if (!empty($body['erros']) && is_array($body['erros'])) {
-            $msgs = array_map(
-                fn ($e) => trim(($e['codigo'] ?? '') . ' ' . ($e['descricao'] ?? $e['mensagem'] ?? '')),
-                $body['erros']
-            );
+            $msgs = array_map(function ($e) {
+                $cod = $e['Codigo'] ?? $e['codigo'] ?? '';
+                $desc = $e['Descricao'] ?? $e['descricao'] ?? $e['mensagem'] ?? '';
+                $compl = $e['Complemento'] ?? $e['complemento'] ?? '';
+                return trim("{$cod} {$desc} {$compl}");
+            }, $body['erros']);
             return implode(' | ', $msgs);
         }
         return $body['message'] ?? $body['mensagem'] ?? "HTTP {$status}";
+    }
+
+    /** Garante declaração XML com encoding UTF-8 e remove BOM (exigência da ADN). */
+    private function normalizarXml(string $xml): string
+    {
+        $xml = preg_replace('/^\xEF\xBB\xBF/', '', $xml);
+        if (preg_match('/<\?xml[^>]*\?>/', $xml)) {
+            $xml = preg_replace('/<\?xml[^>]*\?>/', '<?xml version="1.0" encoding="UTF-8"?>', $xml, 1);
+        } else {
+            $xml = '<?xml version="1.0" encoding="UTF-8"?>' . $xml;
+        }
+        return $xml;
     }
 
     private function soDigitos(?string $v): string
@@ -258,11 +282,15 @@ XML;
 
     private function agora(): string
     {
-        return date('Y-m-d\TH:i:sP');
+        // Fuso de Brasília + folga de 15s para absorver diferença de relógio
+        // (a ADN rejeita dhEmi posterior ao processamento — E0008).
+        $dt = new \DateTime('now', new \DateTimeZone('America/Sao_Paulo'));
+        $dt->modify('-15 seconds');
+        return $dt->format('Y-m-d\TH:i:sP');
     }
 
     private function hoje(): string
     {
-        return date('Y-m-d');
+        return (new \DateTime('now', new \DateTimeZone('America/Sao_Paulo')))->format('Y-m-d');
     }
 }
