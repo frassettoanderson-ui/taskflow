@@ -30,7 +30,9 @@ final class NFSeDanfse
         $chave   = preg_replace('/\D/', '', $idInf);
         $nNFSe   = $g('//n:infNFSe/n:nNFSe');
         $dhProc  = $this->dataBr($g('//n:infNFSe/n:dhProc'));
-        $amb     = $g('//n:infNFSe/n:ambGer');
+        // tpAmb (1=Produção, 2=Homologação) indica valor fiscal — NÃO usar ambGer,
+        // que significa ambiente gerador (1=Prefeitura, 2=Ambiente Nacional).
+        $tpAmb   = $g('//n:tpAmb');
         $xTrib   = $g('//n:infNFSe/n:xTribNac');
         $vLiq    = $g('//n:infNFSe/n:valores/n:vLiq');
 
@@ -53,7 +55,7 @@ final class NFSeDanfse
         $dCompet  = $this->dataBr($g('//n:DPS//n:dCompet'));
         $localPre = $g('//n:infNFSe/n:xLocPrestacao');
 
-        $selo = $amb === '1' ? '' :
+        $selo = $tpAmb === '1' ? '' :
             '<div class="selo">DOCUMENTO EMITIDO EM AMBIENTE DE TESTE — SEM VALOR FISCAL</div>';
 
         $tomaBloco = ($tomaNome || $tomaDoc)
