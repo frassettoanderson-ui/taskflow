@@ -9,6 +9,8 @@ final class Request
     public string $method;
     public string $path;
     public array $body;
+    /** @var array{nome:string,emitentes:array<string>}|null preenchido pelo Router em rotas protegidas */
+    public ?array $caller = null;
 
     public function __construct()
     {

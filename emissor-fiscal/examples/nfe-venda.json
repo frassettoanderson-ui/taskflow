@@ -1,4 +1,5 @@
 {
+  "emitente": "11111111000199",
   "natureza_operacao": "Venda de mercadoria",
   "consumidor_final": true,
   "modalidade_frete": 9,

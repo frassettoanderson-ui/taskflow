@@ -1,0 +1,10 @@
+{
+  "GERE_UMA_CHAVE_FORTE_PARA_O_RESTAURANTE": {
+    "nome": "restaurante",
+    "emitentes": ["11111111000199"]
+  },
+  "GERE_UMA_CHAVE_FORTE_PARA_A_CONTABILIDADE": {
+    "nome": "nauta",
+    "emitentes": ["*"]
+  }
+}

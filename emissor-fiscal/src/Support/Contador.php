@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace App\Support;
 
 /**
- * Contador atômico de numeração de notas por modelo+série.
- * Implementação inicial em arquivo com lock (suficiente p/ 1 processo/VPS).
+ * Contador atômico de numeração por emitente + modelo + série.
+ * Implementação em arquivo com lock (suficiente p/ 1 processo/VPS).
  *
- * ATENÇÃO: em cenário multi-instância, troque por sequência de banco
- * (ex.: SELECT ... FOR UPDATE ou uma tabela de contadores). Número pulado
- * ou repetido gera rejeição na SEFAZ e dor de cabeça fiscal.
+ * ATENÇÃO: multi-instância exige sequência de banco (SELECT ... FOR UPDATE).
+ * Número pulado ou repetido gera rejeição na SEFAZ.
  */
 final class Contador
 {
     public function __construct(private string $root) {}
 
-    public function proximo(string $modelo, int $serie): int
+    public function proximo(string $cnpj, string $modelo, int $serie): int
     {
-        $dir = $this->root . '/storage';
-        $arquivo = $dir . "/contador_{$modelo}_{$serie}.txt";
+        $cnpj = preg_replace('/\D/', '', $cnpj);
+        $dir = $this->root . '/storage/contadores';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0770, true);
+        }
+        $arquivo = $dir . "/{$cnpj}_{$modelo}_{$serie}.txt";
         $fp = fopen($arquivo, 'c+');
         if ($fp === false) {
             throw new \RuntimeException('Não foi possível abrir o contador.');

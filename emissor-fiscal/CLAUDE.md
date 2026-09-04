@@ -23,10 +23,33 @@ src/Fiscal/NFSe/        -> (fase 3) Padrão Nacional NFS-e (gov.br) + fallback m
 storage/                -> certificados/, xml/, pdf/, logs/, contadores
 ```
 
-## Autenticação
-Toda rota (menos `/health`) exige header `Authorization: Bearer <API_KEY>`.
-A `API_KEY` fica no `.env`. Os projetos consumidores guardam essa chave e a
-enviam a cada requisição.
+## Multi-emitente (multi-tenant)
+O motor guarda **vários emitentes** (empresas) em `config/emitentes.json`,
+chaveados por CNPJ, cada um com seu certificado A1, série e CSC. Toda
+requisição informa `"emitente": "<cnpj>"` e o motor usa o certificado certo.
+Casos de uso: o Restaurante sempre manda o próprio CNPJ; a contabilidade (Nauta)
+manda o CNPJ do cliente da vez.
+
+## Autenticação + escopo
+Toda rota (menos `/health`) exige `Authorization: Bearer <chave>`. As chaves
+ficam em `config/api-keys.json`, cada uma mapeada a um sistema e à lista de
+CNPJs que pode emitir (`"*"` = qualquer emitente, uso da contabilidade). Uma
+chave só emite pelos emitentes do seu escopo.
+
+## NFS-e — estratégia (fase 3)
+Não se integra prefeitura por prefeitura. Camadas:
+1. **Padrão Nacional NFS-e (ADN gov.br)** — 1 integração cobre os municípios
+   que aderiram (a maioria, e crescendo). É o ponto de partida.
+2. **Adaptadores por PROVEDOR** (não por cidade): a maioria fora do padrão usa
+   ABRASF 1.0/2.0/2.03, ou GINFES/ISSNet/WebISS/Betha… ~5 adaptadores cobrem
+   centenas de cidades. `sped-nfse` ajuda nos ABRASF.
+3. Só se implementa o adaptador da cidade onde há **cliente real**.
+Interface `NFSeProvider` + registry `codigo_municipio → provider`.
+
+## Retorno síncrono
+Emissão é **síncrona** (chama e espera a SEFAZ). Se a resposta se perder mas a
+nota tiver sido autorizada, reconciliar via `/v1/nfe/consultar` pela chave.
+Assíncrono+webhook só se o volume exigir.
 
 ## Estado atual (o que está pronto / o que falta)
 - ✅ Fundação: config, certificado, router, auth, storage, contador

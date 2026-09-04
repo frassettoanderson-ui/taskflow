@@ -9,10 +9,21 @@ Microserviço que emite **NF-e / NFC-e / NFS-e** direto na SEFAZ/prefeitura
 
 ```bash
 composer install
-cp .env.example .env
-# edite o .env: emitente, certificado, API_KEY (openssl rand -hex 32)
-# coloque o certificado A1 em storage/certificados/certificado.pfx
+cp .env.example .env                                   # ambiente (homologação/produção)
+cp config/emitentes.example.json config/emitentes.json # empresas emitentes
+cp config/api-keys.example.json config/api-keys.json   # chaves dos sistemas + escopo
 ```
+
+Depois:
+- Em `config/emitentes.json`: cadastre cada empresa (CNPJ, IE, endereço, série,
+  caminho do certificado e senha; CSC só p/ NFC-e).
+- Coloque cada certificado A1 em `storage/certificados/<cnpj>.pfx`.
+- Em `config/api-keys.json`: gere uma chave por sistema (`openssl rand -hex 32`)
+  e liste os CNPJs que ele pode emitir (`"*"` = qualquer um, uso da contabilidade).
+
+> **Multi-emitente:** o motor guarda vários certificados/empresas. Toda
+> requisição informa `"emitente": "<cnpj>"`, e a chave de API só emite pelos
+> emitentes autorizados no seu escopo.
 
 Suba em desenvolvimento:
 
@@ -25,17 +36,18 @@ HTTPS, acessível só pela rede interna dos projetos.
 
 ## Endpoints
 
-| Método | Rota | O que faz |
+| Método | Rota | Body (além de `emitente`) |
 |--------|------|-----------|
-| GET  | `/health` | Ping (sem auth) |
-| GET  | `/v1/nfe/status` | Status do serviço na SEFAZ |
-| POST | `/v1/nfe/emitir` | Emite NF-e (síncrono). Body = payload normalizado |
-| POST | `/v1/nfe/consultar` | `{ "chave": "..." }` situação da NF-e |
-| POST | `/v1/nfe/cancelar` | `{ "chave", "protocolo", "justificativa" }` |
-| POST | `/v1/nfe/carta-correcao` | `{ "chave", "correcao", "sequencia"? }` CC-e |
-| POST | `/v1/nfe/danfe` | `{ "chave" }` → PDF da DANFE (arquivo + base64) |
+| GET  | `/health` | — (sem auth) |
+| POST | `/v1/nfe/status` | — (só `emitente`) |
+| POST | `/v1/nfe/emitir` | payload normalizado da nota |
+| POST | `/v1/nfe/consultar` | `chave` |
+| POST | `/v1/nfe/cancelar` | `chave`, `protocolo`, `justificativa` |
+| POST | `/v1/nfe/carta-correcao` | `chave`, `correcao`, `sequencia?` |
+| POST | `/v1/nfe/danfe` | `chave` → PDF (arquivo + base64) |
 
-Todas (menos `/health`) exigem `Authorization: Bearer <API_KEY>`.
+Todas (menos `/health`) exigem `Authorization: Bearer <chave-de-api>` **e** o
+campo `"emitente": "<cnpj>"` no corpo.
 
 ## Exemplo
 

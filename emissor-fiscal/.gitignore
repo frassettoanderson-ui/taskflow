@@ -1,5 +1,8 @@
 /vendor/
 /.env
+/config/emitentes.json
+/config/api-keys.json
+/storage/contadores/*
 /storage/certificados/*
 !/storage/certificados/.gitkeep
 /storage/xml/*

@@ -1,0 +1,41 @@
+{
+  "11111111000199": {
+    "razao": "RESTAURANTE PAPEL E BRASA LTDA",
+    "fantasia": "Papel & Brasa",
+    "ie": "251234567",
+    "im": "12345",
+    "crt": 1,
+    "uf": "SC",
+    "municipio_cod": "4205407",
+    "municipio_nome": "Imbituba",
+    "logradouro": "Avenida Central",
+    "numero": "1000",
+    "bairro": "Centro",
+    "cep": "88780000",
+    "fone": "48999990000",
+    "cert_path": "storage/certificados/11111111000199.pfx",
+    "cert_password": "senha-do-certificado",
+    "nfe_serie": 1,
+    "nfce_serie": 1,
+    "csc_id": "000001",
+    "csc": "COLOQUE-O-CSC-DA-SEFAZ-AQUI"
+  },
+  "22222222000188": {
+    "razao": "CLIENTE DA CONTABILIDADE LTDA",
+    "fantasia": "Cliente Exemplo",
+    "ie": "ISENTO",
+    "crt": 1,
+    "uf": "SC",
+    "municipio_cod": "4205407",
+    "municipio_nome": "Imbituba",
+    "logradouro": "Rua Exemplo",
+    "numero": "50",
+    "bairro": "Centro",
+    "cep": "88780000",
+    "fone": "48988880000",
+    "cert_path": "storage/certificados/22222222000188.pfx",
+    "cert_password": "senha-do-certificado",
+    "nfe_serie": 1,
+    "nfce_serie": 1
+  }
+}
