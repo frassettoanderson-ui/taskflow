@@ -8,10 +8,13 @@ use Com\Tecnick\Barcode\Barcode;
 use Dompdf\Dompdf;
 
 /**
- * Gera o DANFSE (PDF) do Padrão Nacional a partir do XML autorizado.
- * A ADN não serve o PDF por API (só o portal, via login gov.br), então montamos
- * um DANFSE próprio, com layout de nota e QR Code de verificação — como fazem os
- * emissores comerciais.
+ * Gera o DANFSE (PDF) do Padrão Nacional a partir do XML autorizado, num layout
+ * no padrão de mercado (semelhante ao DANFSE municipal/ABRASF): cabeçalho,
+ * prestador/tomador, discriminação, valor total, grid de tributos e QR Code.
+ *
+ * Campos que só existem em layouts municipais e não vêm no XML nacional (ex.:
+ * código de verificação, retenções federais detalhadas) são preenchidos com a
+ * chave de acesso / 0,00, que é o correto para o caso (Simples via DAS).
  */
 final class NFSeDanfse
 {
@@ -36,109 +39,155 @@ final class NFSeDanfse
         $dhProc  = $this->dataBr($g('//n:infNFSe/n:dhProc'));
         $dhEmi   = $this->dataBr($g('//n:infDPS/n:dhEmi'));
         $dCompet = $this->dataMes($g('//n:infDPS/n:dCompet'));
-        $tpAmb   = $g('//n:tpAmb'); // 1=Produção, 2=Homologação (valor fiscal)
+        $tpAmb   = $g('//n:tpAmb');
         $xTrib   = $g('//n:infNFSe/n:xTribNac');
+        $cTribNac = $g('//n:DPS//n:serv/n:cServ/n:cTribNac');
+        $descServ = $g('//n:DPS//n:serv/n:cServ/n:xDescServ');
+        $municipio = $g('//n:infNFSe/n:xLocEmi');
+        $ufEmit    = $g('//n:infNFSe/n:emit/n:enderNac/n:UF');
+        $localInc  = $g('//n:infNFSe/n:xLocIncid') ?: $municipio;
 
         $emitNome = $g('//n:infNFSe/n:emit/n:xNome');
         $emitCnpj = $this->doc($g('//n:infNFSe/n:emit/n:CNPJ'), $g('//n:infNFSe/n:emit/n:CPF'));
+        $emitIM   = $g('//n:infNFSe/n:emit/n:IM');
         $emitEnd  = trim(
             $g('//n:infNFSe/n:emit/n:enderNac/n:xLgr') . ', ' .
             $g('//n:infNFSe/n:emit/n:enderNac/n:nro') . ' - ' .
             $g('//n:infNFSe/n:emit/n:enderNac/n:xBairro')
         );
-        $emitMun  = $g('//n:infNFSe/n:xLocEmi') . '/' . $g('//n:infNFSe/n:emit/n:enderNac/n:UF');
         $emitCep  = $this->cep($g('//n:infNFSe/n:emit/n:enderNac/n:CEP'));
         $emitFone = $g('//n:infNFSe/n:emit/n:fone');
         $emitMail = $g('//n:infNFSe/n:emit/n:email');
 
         $tomaNome = $g('//n:DPS//n:toma/n:xNome');
         $tomaDoc  = $this->doc($g('//n:DPS//n:toma/n:CNPJ'), $g('//n:DPS//n:toma/n:CPF'));
+        $tomaMail = $g('//n:DPS//n:toma/n:email');
 
-        $descServ = $g('//n:DPS//n:serv/n:cServ/n:xDescServ');
-        $cTribNac = $g('//n:DPS//n:serv/n:cServ/n:cTribNac');
-        $localPre = $g('//n:infNFSe/n:xLocPrestacao');
+        $vServ = (float) $g('//n:DPS//n:valores/n:vServPrest/n:vServ');
+        $vLiq  = (float) ($g('//n:infNFSe/n:valores/n:vLiq') ?: $vServ);
+        $pAliq = (float) $g('//n:DPS//n:tribMun/n:pAliq');
+        $vISS  = (float) $g('//n:DPS//n:tribMun/n:vISSQN');
+        $opSN  = $g('//n:DPS//n:regTrib/n:opSimpNac');
+        $optante = in_array($opSN, ['2', '3'], true) ? 'Sim' : 'Não';
+        $regime  = $opSN === '2' ? 'MEI' : ($opSN === '3' ? 'Simples Nacional' : 'Normal');
 
-        $vServ = $g('//n:DPS//n:valores/n:vServPrest/n:vServ');
-        $vLiq  = $g('//n:infNFSe/n:valores/n:vLiq');
-        $pSN   = $g('//n:DPS//n:totTrib/n:pTotTribSN');
-
+        $qr = $this->qrDataUri(self::URL_CONSULTA);
+        $chaveFmt = trim(chunk_split($chave, 4, ' '));
         $selo = $tpAmb === '1' ? '' :
-            '<div class="selo">DOCUMENTO EMITIDO EM AMBIENTE DE TESTE — SEM VALOR FISCAL</div>';
+            '<tr><td colspan="2" class="selo">DOCUMENTO EMITIDO EM AMBIENTE DE TESTE — SEM VALOR FISCAL</td></tr>';
 
-        $qrUri = $this->qrDataUri(self::URL_CONSULTA);
-        $tomador = ($tomaNome || $tomaDoc)
-            ? ($this->linha('Nome/Razão social', $tomaNome ?: '—') . $this->linha('CPF/CNPJ', $tomaDoc ?: '—'))
+        $tomaBloco = ($tomaNome || $tomaDoc)
+            ? $this->kv('CPF/CNPJ', $tomaDoc ?: '—') . $this->kv('Razão Social', $tomaNome ?: '—')
+              . ($tomaMail ? $this->kv('Email', $tomaMail) : '')
             : '<div class="muted">Consumidor não identificado</div>';
 
-        $chaveFmt = trim(chunk_split($chave, 4, ' '));
+        $m = fn (float $v) => number_format($v, 2, ',', '.');
 
-        $html = '<style>
-          *{font-family:DejaVu Sans, sans-serif;font-size:10px;color:#1a1a1a}
-          .wrap{border:1.5px solid #333;border-radius:6px;padding:0;overflow:hidden}
-          .head{background:#0e3a5f;color:#fff;padding:10px 14px}
-          .head .t{font-size:15px;font-weight:bold}
-          .head .s{font-size:9px;opacity:.85}
-          .headrow{width:100%}
-          .headrow td{vertical-align:middle}
-          .numbox{text-align:right;color:#fff}
-          .numbox b{font-size:18px}
-          .selo{background:#fde8e8;border:1px solid #e0b4b4;color:#a12;text-align:center;
-                padding:5px;font-weight:bold;font-size:9px}
-          .sec{padding:8px 14px;border-top:1px solid #ddd}
-          .sec h4{margin:0 0 5px;font-size:9px;letter-spacing:.6px;color:#0e3a5f;text-transform:uppercase}
-          .row{margin:2px 0}
-          .lbl{color:#666;font-size:8.5px}
-          .val{font-weight:bold}
-          .muted{color:#777}
-          table.v{width:100%;border-collapse:collapse;margin-top:4px}
-          table.v td{border:1px solid #ccc;padding:5px}
-          .tot{text-align:right}
-          .tot .big{font-size:16px;font-weight:bold;color:#0e3a5f}
-          .foot{padding:10px 14px;border-top:1px solid #ddd}
-          .foot td{vertical-align:middle}
-          .chave{font-family:DejaVu Sans Mono, monospace;font-size:9px;word-break:break-all}
+        $css = '<style>
+          *{font-family:DejaVu Sans, sans-serif;font-size:9px;color:#000}
+          .doc{border:1.2px solid #000}
+          .hd{width:100%;border-collapse:collapse}
+          .hd td{border-bottom:1.2px solid #000;padding:6px 8px;vertical-align:top}
+          .hd .muni{font-size:12px;font-weight:bold;color:#1c4587}
+          .hd .sub{font-size:8px;color:#333}
+          .hd .tit{font-size:13px;font-weight:bold}
+          .hd .rota{font-size:8px}
+          .hd .box b{font-size:9px}
+          .badge{border:1.5px solid #1c4587;color:#1c4587;font-weight:bold;font-size:16px;
+                 text-align:center;padding:6px 8px;border-radius:4px}
+          .rps{padding:4px 8px;border-bottom:1.2px solid #000;font-weight:bold;font-size:9px}
+          .sec{border-bottom:1.2px solid #000;padding:5px 8px}
+          .sec h4{margin:0 0 4px;font-size:9px;font-weight:bold;color:#1c4587}
+          .kv{margin:1px 0}
+          .kl{color:#333;font-weight:bold}
+          .muted{color:#555;font-style:italic}
+          .disc{min-height:150px;padding:6px 8px;border-bottom:1.2px solid #000}
+          .disc h4{margin:0 0 4px;font-size:9px;font-weight:bold;color:#1c4587}
+          .valtot{width:100%;border-collapse:collapse}
+          .valtot td{border-bottom:1.2px solid #000;padding:6px 8px;font-weight:bold}
+          .valtot .vv{text-align:left;width:160px;border-left:1px solid #000}
+          .item{padding:4px 8px;border-bottom:1.2px solid #000;font-size:8.5px}
+          .grid{width:100%;border-collapse:collapse}
+          .grid td{border:0.6px solid #999;padding:4px 6px;width:20%;vertical-align:top}
+          .grid .gl{font-weight:bold;font-size:7.5px;color:#333;display:block}
+          .foot{padding:5px 8px;font-size:8px}
+          .qr{width:78px;height:78px}
         </style>';
 
-        $html .= '<div class="wrap">';
-        $html .= '<div class="head"><table class="headrow"><tr>'
-            . '<td><div class="t">NFS-e</div><div class="s">Nota Fiscal de Serviço eletrônica · Padrão Nacional</div></td>'
-            . '<td class="numbox"><div class="s">Número</div><b>' . htmlspecialchars($nNFSe) . '</b>'
-            . '<div class="s">Emitida em ' . htmlspecialchars($dhProc) . '</div></td>'
-            . '</tr></table></div>';
-        $html .= $selo;
+        $html = $css . '<div class="doc">';
 
-        $html .= '<div class="sec"><h4>Prestador do serviço</h4>'
-            . $this->linha('Nome/Razão social', $emitNome)
-            . $this->linha('CNPJ', $emitCnpj)
-            . $this->linha('Endereço', trim($emitEnd . ($emitCep ? ' — ' . $emitCep : '')))
-            . $this->linha('Município/UF', $emitMun)
-            . $this->linha('Contato', trim($emitFone . '  ' . $emitMail))
-            . '</div>';
+        // Cabeçalho
+        $html .= '<table class="hd"><tr>'
+            . '<td style="width:62%"><div class="muni">Prefeitura do Município de ' . htmlspecialchars($municipio) . '</div>'
+            . '<div class="sub">Secretaria Municipal de Fazenda</div>'
+            . '<div class="tit">NOTA FISCAL DE SERVIÇO ELETRÔNICA - NFS-e</div></td>'
+            . '<td><div class="box"><div class="rota">Número</div><b>' . htmlspecialchars($nNFSe) . '</b>'
+            . '<div class="rota" style="margin-top:3px">Chave de acesso</div><b style="font-size:7px;font-family:DejaVu Sans Mono">' . htmlspecialchars($chave) . '</b>'
+            . '<div class="rota" style="margin-top:3px">Emitida em</div><b>' . htmlspecialchars($dhProc) . '</b></div></td>'
+            . '<td style="width:70px"><div class="badge">NFS-e</div></td>'
+            . '</tr>' . $selo . '</table>';
 
-        $html .= '<div class="sec"><h4>Tomador do serviço</h4>' . $tomador . '</div>';
+        $html .= '<div class="rps">DPS Nº ' . htmlspecialchars($nDPS) . ' · Série ' . htmlspecialchars($serie)
+            . ' · Emissão ' . htmlspecialchars($dhEmi) . '</div>';
 
-        $html .= '<div class="sec"><h4>Discriminação do serviço</h4>'
-            . '<table class="v"><tr><td style="width:70%">' . htmlspecialchars($descServ)
-            . '<div class="lbl" style="margin-top:4px">' . htmlspecialchars($xTrib) . '</div></td>'
-            . '<td class="tot">Valor do serviço<br><b>R$ ' . $this->moeda($vServ) . '</b></td></tr></table>'
-            . '<div class="row" style="margin-top:6px">'
-            . '<span class="lbl">Cód. tributação nacional: </span><span class="val">' . htmlspecialchars($cTribNac) . '</span>'
-            . '<span class="lbl">   ·   Local da prestação: </span><span class="val">' . htmlspecialchars($localPre) . '</span>'
-            . '<span class="lbl">   ·   Competência: </span><span class="val">' . htmlspecialchars($dCompet) . '</span>'
-            . '</div></div>';
+        // Prestador (com QR à direita)
+        $html .= '<div class="sec"><table style="width:100%"><tr><td>'
+            . '<h4>Prestador de Serviços</h4>'
+            . $this->kv('CPF/CNPJ', $emitCnpj) . ($emitIM ? $this->kv('Inscrição Municipal', $emitIM) : '')
+            . $this->kv('Razão Social', $emitNome)
+            . $this->kv('Endereço', $emitEnd . ($emitCep ? ' — CEP ' . $emitCep : ''))
+            . $this->kv('Município', $municipio . ($ufEmit ? ' - ' . $ufEmit : ''))
+            . $this->kv('Email', $emitMail) . $this->kv('Fone', $emitFone)
+            . '</td><td style="width:90px;text-align:right;vertical-align:top">'
+            . ($qr ? '<img class="qr" src="' . $qr . '">' : '') . '</td></tr></table></div>';
 
-        $html .= '<div class="sec"><h4>Valores</h4><table class="v"><tr>'
-            . '<td>Simples Nacional<br><span class="lbl">Trib. aprox. (' . $this->moeda($pSN) . '%)</span></td>'
-            . '<td class="tot">Valor líquido da nota<br><span class="big">R$ ' . $this->moeda($vLiq) . '</span></td>'
-            . '</tr></table></div>';
+        // Tomador
+        $html .= '<div class="sec"><h4>Tomador de Serviços</h4>' . $tomaBloco . '</div>';
 
-        $html .= '<div class="foot"><table style="width:100%"><tr>'
-            . '<td style="width:90px"><img src="' . $qrUri . '" style="width:82px;height:82px"></td>'
-            . '<td><div class="lbl">Chave de acesso</div><div class="chave">' . htmlspecialchars($chaveFmt) . '</div>'
-            . '<div class="lbl" style="margin-top:4px">Consulte a autenticidade em ' . self::URL_CONSULTA . '</div>'
-            . '<div class="lbl">Série ' . htmlspecialchars($serie) . ' · DPS ' . htmlspecialchars($nDPS)
-            . ' · Emissão ' . htmlspecialchars($dhEmi) . '</div>'
-            . '</td></tr></table></div>';
+        // Discriminação
+        $html .= '<div class="disc"><h4>Discriminação dos Serviços</h4>'
+            . nl2br(htmlspecialchars($descServ)) . '</div>';
+
+        // Valor total
+        $html .= '<table class="valtot"><tr><td>Valor Total da NFS-e</td>'
+            . '<td class="vv">R$ ' . $m($vLiq) . '</td></tr></table>';
+
+        // Item da lista
+        $html .= '<div class="item"><b>Item da Lista de Serviços:</b> ' . htmlspecialchars($cTribNac)
+            . ' - ' . htmlspecialchars($xTrib) . '</div>';
+
+        // Grid de tributos
+        $html .= '<table class="grid">'
+            . '<tr>'
+            . $this->cel('Valor Total Deduções', 'R$ ' . $m(0))
+            . $this->cel('Desc. Incondicionado', 'R$ ' . $m(0))
+            . $this->cel('Base de Cálculo', 'R$ ' . $m($vServ))
+            . $this->cel('Alíquota (%)', $m($pAliq))
+            . $this->cel('Valor do ISSQN', 'R$ ' . $m($vISS))
+            . '</tr><tr>'
+            . $this->cel('Valor do PIS', 'R$ ' . $m(0))
+            . $this->cel('Valor da COFINS', 'R$ ' . $m(0))
+            . $this->cel('Valor do INSS', 'R$ ' . $m(0))
+            . $this->cel('Valor do IRRF', 'R$ ' . $m(0))
+            . $this->cel('Valor do CSLL', 'R$ ' . $m(0))
+            . '</tr><tr>'
+            . $this->cel('Outras Retenções', 'R$ ' . $m(0))
+            . $this->cel('Desc. Condicionado', 'R$ ' . $m(0))
+            . $this->cel('Valor Líquido', 'R$ ' . $m($vLiq))
+            . $this->cel('Competência', $dCompet)
+            . $this->cel('Resp. Recolhimento', 'Prestador')
+            . '</tr><tr>'
+            . $this->cel('Optante Simples', $optante)
+            . $this->cel('Regime', $regime)
+            . $this->cel('Situação', 'Normal')
+            . $this->cel('Natureza Operação', 'Tributável')
+            . $this->cel('Município Credor', $localInc)
+            . '</tr></table>';
+
+        // Rodapé
+        $html .= '<div class="foot"><b>Outras Informações:</b> '
+            . 'Consulte a autenticidade deste documento em ' . self::URL_CONSULTA
+            . ' pela chave de acesso ' . htmlspecialchars($chaveFmt) . '.</div>';
 
         $html .= '</div>';
 
@@ -149,13 +198,19 @@ final class NFSeDanfse
         return $dompdf->output();
     }
 
-    private function linha(string $lbl, string $val): string
+    private function kv(string $k, string $v): string
     {
-        if ($val === '') {
+        if ($v === '') {
             return '';
         }
-        return '<div class="row"><span class="lbl">' . htmlspecialchars($lbl) . ': </span>'
-            . '<span class="val">' . htmlspecialchars($val) . '</span></div>';
+        return '<div class="kv"><span class="kl">' . htmlspecialchars($k) . ': </span>'
+            . htmlspecialchars($v) . '</div>';
+    }
+
+    private function cel(string $label, string $val): string
+    {
+        return '<td><span class="gl">' . htmlspecialchars($label) . '</span>'
+            . htmlspecialchars($val) . '</td>';
     }
 
     private function qrDataUri(string $texto): string
@@ -182,11 +237,6 @@ final class NFSeDanfse
     private function cep(string $cep): string
     {
         return preg_match('/^\d{8}$/', $cep) ? substr($cep, 0, 5) . '-' . substr($cep, 5) : $cep;
-    }
-
-    private function moeda(string $v): string
-    {
-        return number_format((float) $v, 2, ',', '.');
     }
 
     private function dataBr(string $iso): string
