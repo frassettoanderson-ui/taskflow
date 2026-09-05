@@ -7,6 +7,7 @@ use App\Fiscal\NFCe\NFCeService;
 use App\Fiscal\NFSe\NFSeService;
 use App\Fiscal\NFSe\ProviderRegistry;
 use App\Fiscal\NFSe\Providers\PadraoNacionalProvider;
+use App\Fiscal\NFSe\Providers\IpmAtendeNetProvider;
 use App\Fiscal\NFSe\Danfse\DanfseRegistry;
 use App\Fiscal\NFSe\Danfse\DanfseNacional;
 use App\Fiscal\NFSe\Danfse\DanfseImbituba;
@@ -31,7 +32,7 @@ $contador = new Contador($root);
 
 // Registry de NFS-e: Padrão Nacional cobre a maioria; adaptadores municipais
 // (ABRASF, São Paulo…) entram aqui conforme houver cliente real.
-$nfseRegistry = new ProviderRegistry($root, new PadraoNacionalProvider());
+$nfseRegistry = new ProviderRegistry($root, new PadraoNacionalProvider(), new IpmAtendeNetProvider());
 
 // Layouts de DANFSE por município (nacional é o padrão).
 $danfseRegistry = new DanfseRegistry($root, new DanfseNacional(), new DanfseImbituba());

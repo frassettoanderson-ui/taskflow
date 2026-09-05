@@ -34,7 +34,12 @@ final class PadraoNacionalProvider implements NFSeProvider
         return 'nacional';
     }
 
-    public function emitir(Emitente $emitente, Certificate $cert, array $payload, int $ambiente): array
+    public function precisaCertificado(): bool
+    {
+        return true;
+    }
+
+    public function emitir(Emitente $emitente, ?Certificate $cert, array $payload, int $ambiente): array
     {
         $numero = (int) ($payload['numero'] ?? 1); // idealmente vem do Contador (ver NFSeService)
         $serie = (int) ($payload['serie'] ?? 1);
@@ -70,7 +75,7 @@ final class PadraoNacionalProvider implements NFSeProvider
         ];
     }
 
-    public function consultar(Emitente $emitente, Certificate $cert, string $identificador, int $ambiente): array
+    public function consultar(Emitente $emitente, ?Certificate $cert, string $identificador, int $ambiente): array
     {
         $resp = $this->request($cert, 'GET', '/nfse/' . rawurlencode($identificador), $ambiente);
         $body = json_decode($resp['body'], true) ?: [];
@@ -87,7 +92,7 @@ final class PadraoNacionalProvider implements NFSeProvider
 
     public function cancelar(
         Emitente $emitente,
-        Certificate $cert,
+        ?Certificate $cert,
         string $identificador,
         string $justificativa,
         int $ambiente

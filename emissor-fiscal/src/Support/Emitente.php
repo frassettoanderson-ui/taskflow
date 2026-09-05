@@ -35,6 +35,11 @@ final class Emitente
         public readonly string $respTecContato,
         public readonly string $respTecEmail,
         public readonly string $respTecFone,
+        // NFS-e: provider explícito e credenciais municipais (ex.: IPM login/senha)
+        public readonly string $nfseProvider,
+        public readonly string $nfseSenha,
+        public readonly string $municipioTom,
+        public readonly string $ipmSubdominio,
     ) {}
 
     public static function fromArray(array $d): self
@@ -72,6 +77,10 @@ final class Emitente
             respTecContato: (string) ($d['resp_tec_contato'] ?? ($d['razao'] ?? 'Responsavel Tecnico')),
             respTecEmail:   (string) ($d['resp_tec_email'] ?? 'contato@example.com'),
             respTecFone:    preg_replace('/\D/', '', (string) ($d['resp_tec_fone'] ?? ($d['fone'] ?? ''))),
+            nfseProvider:   (string) ($d['nfse_provider'] ?? ''),
+            nfseSenha:      (string) ($d['nfse_senha'] ?? ''),
+            municipioTom:   preg_replace('/\D/', '', (string) ($d['municipio_tom'] ?? '')),
+            ipmSubdominio:  (string) ($d['ipm_subdominio'] ?? ''),
         );
     }
 

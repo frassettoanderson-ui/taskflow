@@ -37,5 +37,25 @@
     "cert_password": "senha-do-certificado",
     "nfe_serie": 1,
     "nfce_serie": 1
+  },
+  "33333333000177": {
+    "_comentario": "Prestador de servico SEM certificado (emite por login/senha da prefeitura via IPM/Atende.Net)",
+    "razao": "CLIENTE SEM CERTIFICADO LTDA",
+    "fantasia": "Cliente IPM",
+    "ie": "ISENTO",
+    "im": "99999",
+    "crt": 1,
+    "uf": "SC",
+    "municipio_cod": "4207304",
+    "municipio_nome": "Imbituba",
+    "logradouro": "Rua Exemplo",
+    "numero": "10",
+    "bairro": "Centro",
+    "cep": "88780000",
+    "fone": "",
+    "nfse_provider": "ipm",
+    "nfse_senha": "SENHA-DO-PORTAL-DA-PREFEITURA",
+    "municipio_tom": "",
+    "ipm_subdominio": "imbituba"
   }
 }

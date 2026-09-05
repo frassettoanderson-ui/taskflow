@@ -36,6 +36,14 @@ final class ProviderRegistry
         $this->mapa = is_array($json) ? $json : [];
     }
 
+    public function porNome(string $nome): NFSeProvider
+    {
+        if (!isset($this->providers[$nome])) {
+            throw new \RuntimeException("Provider de NFS-e '{$nome}' não registrado.");
+        }
+        return $this->providers[$nome];
+    }
+
     public function paraMunicipio(string $codigoMunicipio): NFSeProvider
     {
         $nome = $this->mapa[$codigoMunicipio] ?? ($this->mapa['_default'] ?? 'nacional');

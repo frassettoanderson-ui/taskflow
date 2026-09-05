@@ -18,7 +18,7 @@ use NFePHP\Common\Certificate;
  */
 final class NFSeService
 {
-    private Certificate $cert;
+    private ?Certificate $cert = null;
 
     public function __construct(
         private string $root,
@@ -28,21 +28,40 @@ final class NFSeService
         private Contador $contador,
         private ProviderRegistry $registry,
         private DanfseRegistry $danfseRegistry
-    ) {
-        $this->cert = CertificadoManager::carregar($root, $emitente->certPath, $emitente->certPassword);
+    ) {}
+
+    /** Escolhe o provider: override explícito do emitente, senão pelo município. */
+    private function provider(string $municipio): NFSeProvider
+    {
+        return $this->emitente->nfseProvider !== ''
+            ? $this->registry->porNome($this->emitente->nfseProvider)
+            : $this->registry->paraMunicipio($municipio);
+    }
+
+    /** Carrega o certificado só quando o provider exige (clientes IPM não têm). */
+    private function certPara(NFSeProvider $p): ?Certificate
+    {
+        if (!$p->precisaCertificado()) {
+            return null;
+        }
+        return $this->cert ??= CertificadoManager::carregar(
+            $this->root,
+            $this->emitente->certPath,
+            $this->emitente->certPassword
+        );
     }
 
     public function emitir(array $payload): array
     {
         $municipio = (string) ($payload['servico']['codigo_municipio_prestacao'] ?? $this->emitente->cMun);
-        $provider = $this->registry->paraMunicipio($municipio);
+        $provider = $this->provider($municipio);
 
         $serie = (int) ($payload['serie'] ?? 1);
         $numero = $this->contador->proximo($this->emitente->cnpj, 'nfse', $serie);
         $payload['numero'] = $numero;
         $payload['serie'] = $serie;
 
-        $r = $provider->emitir($this->emitente, $this->cert, $payload, $this->ambiente);
+        $r = $provider->emitir($this->emitente, $this->certPara($provider), $payload, $this->ambiente);
 
         if ($r['status'] === 'autorizado' && !empty($r['xml']) && !empty($r['chave'])) {
             $arquivo = $this->store->salvar($this->emitente->cnpj, $r['chave'], $r['xml'], 'nfse');
@@ -54,8 +73,8 @@ final class NFSeService
 
     public function consultar(string $identificador, string $municipio): array
     {
-        $provider = $this->registry->paraMunicipio($municipio);
-        return $provider->consultar($this->emitente, $this->cert, $identificador, $this->ambiente)
+        $provider = $this->provider($municipio);
+        return $provider->consultar($this->emitente, $this->certPara($provider), $identificador, $this->ambiente)
             + ['provider' => $provider->nome()];
     }
 
@@ -94,8 +113,8 @@ final class NFSeService
         if (mb_strlen($justificativa) < 15) {
             throw new \InvalidArgumentException('Justificativa deve ter ao menos 15 caracteres.');
         }
-        $provider = $this->registry->paraMunicipio($municipio);
-        return $provider->cancelar($this->emitente, $this->cert, $identificador, $justificativa, $this->ambiente)
+        $provider = $this->provider($municipio);
+        return $provider->cancelar($this->emitente, $this->certPara($provider), $identificador, $justificativa, $this->ambiente)
             + ['provider' => $provider->nome()];
     }
 }
