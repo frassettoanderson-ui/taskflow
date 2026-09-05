@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\NFSe;
 
+use App\Fiscal\NFSe\Danfse\DanfseRegistry;
 use App\Support\CertificadoManager;
 use App\Support\Contador;
 use App\Support\Emitente;
@@ -25,7 +26,8 @@ final class NFSeService
         private int $ambiente,
         private XmlStore $store,
         private Contador $contador,
-        private ProviderRegistry $registry
+        private ProviderRegistry $registry,
+        private DanfseRegistry $danfseRegistry
     ) {
         $this->cert = CertificadoManager::carregar($root, $emitente->certPath, $emitente->certPassword);
     }
@@ -72,7 +74,12 @@ final class NFSeService
             throw new \RuntimeException("XML da NFS-e não encontrado para a chave {$chave}.");
         }
 
-        $pdf = (new NFSeDanfse())->render($xml);
+        $renderer = $this->danfseRegistry->paraMunicipio($this->emitente->cMun);
+        $pdf = $renderer->render($xml, [
+            'im'       => $this->emitente->im,
+            'fantasia' => $this->emitente->fantasia,
+            'ie'       => $this->emitente->ie,
+        ]);
         $dir = "{$this->root}/storage/pdf/" . preg_replace('/\D/', '', $this->emitente->cnpj);
         if (!is_dir($dir)) {
             mkdir($dir, 0770, true);

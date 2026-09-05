@@ -7,6 +7,9 @@ use App\Fiscal\NFCe\NFCeService;
 use App\Fiscal\NFSe\NFSeService;
 use App\Fiscal\NFSe\ProviderRegistry;
 use App\Fiscal\NFSe\Providers\PadraoNacionalProvider;
+use App\Fiscal\NFSe\Danfse\DanfseRegistry;
+use App\Fiscal\NFSe\Danfse\DanfseNacional;
+use App\Fiscal\NFSe\Danfse\DanfseImbituba;
 use App\Http\Request;
 use App\Http\Response;
 use App\Http\Router;
@@ -29,6 +32,9 @@ $contador = new Contador($root);
 // Registry de NFS-e: Padrão Nacional cobre a maioria; adaptadores municipais
 // (ABRASF, São Paulo…) entram aqui conforme houver cliente real.
 $nfseRegistry = new ProviderRegistry($root, new PadraoNacionalProvider());
+
+// Layouts de DANFSE por município (nacional é o padrão).
+$danfseRegistry = new DanfseRegistry($root, new DanfseNacional(), new DanfseImbituba());
 
 $req = new Request();
 $router = new Router($apiKeys);
@@ -63,7 +69,7 @@ $nfceDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
 };
 
 /** Idem, para NFS-e (escolhe o provider pelo município). */
-$nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store, $contador, $nfseRegistry): NFSeService {
+$nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store, $contador, $nfseRegistry, $danfseRegistry): NFSeService {
     $cnpj = (string) ($req->body['emitente'] ?? '');
     if ($cnpj === '') {
         throw new InvalidArgumentException('Campo "emitente" (CNPJ) é obrigatório.');
@@ -72,7 +78,7 @@ $nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
         Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
     }
     $emit = $emitentes->buscar($cnpj);
-    return new NFSeService($root, $emit, Config::ambiente(), $store, $contador, $nfseRegistry);
+    return new NFSeService($root, $emit, Config::ambiente(), $store, $contador, $nfseRegistry, $danfseRegistry);
 };
 
 // ---------------- rotas ----------------

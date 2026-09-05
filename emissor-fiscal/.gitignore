@@ -13,3 +13,4 @@
 !/storage/logs/.gitkeep
 *.pfx
 *.p12
+/config/nfse-danfse-municipios.json
