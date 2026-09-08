@@ -178,8 +178,8 @@ section > * { max-width: var(--max); margin-left: auto; margin-right: auto; }
 .manifesto-ref { display: block; margin-top: 28px; font-family: var(--cond); letter-spacing: .34em; text-transform: uppercase; font-size: .8rem; color: var(--muted); }
 
 /* ── pilares: 3 cenas cinematográficas empilhadas ── */
-.pilares, .preletores { padding-left: 0; padding-right: 0; padding-bottom: 0; }
-.pilares .sec-head, .preletores .sec-head { padding: 0 24px; }
+.pilares, .preletores, .programacao { padding-left: 0; padding-right: 0; padding-bottom: 0; }
+.pilares .sec-head, .preletores .sec-head, .programacao .sec-head { padding: 0 24px; }
 .cenas { max-width: none; }
 .cena {
   position: relative; min-height: clamp(520px, 80vh, 840px); display: flex; align-items: center;
@@ -239,10 +239,13 @@ section > * { max-width: var(--max); margin-left: auto; margin-right: auto; }
 .preletor h3 { margin-top: 24px; font-size: 1.3rem; letter-spacing: .04em; }
 .preletor p { margin-top: 6px; color: var(--muted); font-family: var(--cond); letter-spacing: .2em; text-transform: uppercase; font-size: .8rem; }
 
-/* ── programação ── */
+/* ── programação: cena com a linha do tempo no lado escuro (esquerda) ── */
+.cena-programacao { max-width: none; background-image: url('../img/programacao.jpg'); background-position: center top; justify-content: flex-start; min-height: clamp(600px, 84vh, 880px); }
+.prog-text { width: 46%; max-width: 640px; padding: 0 clamp(20px, 4vw, 70px) 0 clamp(24px, 6vw, 110px); }
+.prog-text .timeline { margin: 0; max-width: none; }
 .timeline { list-style: none; padding: 0; margin: 0 auto; max-width: 720px; position: relative; }
 .timeline::before { content: ""; position: absolute; left: 118px; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(180deg, transparent, var(--gold) 12%, var(--gold) 88%, transparent); opacity: .45; }
-.timeline li { display: grid; grid-template-columns: 96px 1fr; gap: 44px; align-items: center; padding: 22px 0; position: relative; }
+.timeline li { display: grid; grid-template-columns: 96px 1fr; gap: 44px; align-items: center; padding: 12px 0; position: relative; }
 .timeline li::before { content: ""; position: absolute; left: 114px; width: 9px; height: 9px; background: var(--ink); border: 1px solid var(--gold); transform: rotate(45deg); }
 .timeline li.destaque::before { background: var(--gold); box-shadow: 0 0 16px rgba(205,163,73,.6); }
 .timeline li.fogo::before { background: var(--ember); border-color: var(--ember); box-shadow: 0 0 16px rgba(184,64,42,.6); }
@@ -368,8 +371,11 @@ section > * { max-width: var(--max); margin-left: auto; margin-right: auto; }
   .cena-num { font-size: 3.6rem; }
   .cena-num::after { margin: 14px auto 16px; }
   .cena-nome { font-size: 2.1rem; }
+  .cena-programacao { min-height: 0; padding: 250px 0 30px; background-size: 100% auto; background-position: center top; background-color: var(--ink); }
+  .cena-programacao::before { background: linear-gradient(180deg, rgba(7,7,8,.25) 0%, rgba(7,7,8,0) 30%, rgba(7,7,8,.75) 46%, var(--ink) 58%); }
+  .prog-text { width: 100%; max-width: none; padding: 0 22px; }
   .timeline::before, .timeline li::before { display: none; }
-  .timeline li { grid-template-columns: 1fr; gap: 6px; text-align: center; border-top: 1px solid var(--line); padding: 20px 0; }
+  .timeline li { grid-template-columns: 1fr; gap: 4px; text-align: center; border-top: 1px solid var(--line); padding: 14px 0; }
   .timeline li:last-child { border-bottom: 1px solid var(--line); }
   .timeline time { text-align: center; color: var(--gold); }
   .cta-fixo { display: flex; }
