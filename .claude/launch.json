@@ -2,11 +2,28 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "escriba",
-      "runtimeExecutable": "C:\\Users\\ander\\Downloads\\taskflow_backup_completo\\transcritor-video\\venv\\Scripts\\python.exe",
-      "runtimeArgs": ["C:\\Users\\ander\\Downloads\\taskflow_backup_completo\\transcritor-video\\server.py", "--no-window"],
-      "port": 8765,
-      "autoPort": false
+      "name": "oxfitness-manutencao",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8123", "--directory", "oxfitness-manutencao"],
+      "port": 8123
+    },
+    {
+      "name": "julius-landing",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8129", "--directory", "financas/landing"],
+      "port": 8129
+    },
+    {
+      "name": "abarim-site",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8131", "--directory", "site"],
+      "port": 8131
+    },
+    {
+      "name": "deskcomm",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "DeskcommCRM", "dev"],
+      "port": 3000
     }
   ]
 }

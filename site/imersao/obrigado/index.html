@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inscrição confirmada · Imersão Bravos</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="../img/favicon.png" type="image/png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .obrigado { min-height: 100svh; display: grid; place-items: center; text-align: center; padding: 60px 24px; }
+    .obrigado-card { max-width: 560px; }
+    .obrigado-simbolo { width: 120px; height: 120px; object-fit: contain; margin: 0 auto; filter: drop-shadow(0 0 28px rgba(205,163,73,.45)); }
+    .obrigado h1 { font-size: clamp(2rem, 5vw, 3rem); margin-top: 26px; }
+    .obrigado h1 em { font-style: normal; color: var(--gold); }
+    .obrigado-texto { margin-top: 18px; color: var(--muted); font-size: 1.05rem; }
+    .obrigado-passos { list-style: none; padding: 0; margin: 36px 0; text-align: center; }
+    .obrigado-passos li { padding: 16px 0; border-top: 1px solid var(--line); }
+    .obrigado-passos li:last-child { border-bottom: 1px solid var(--line); }
+    .obrigado-passos strong { display: block; font-family: var(--display); color: var(--cream); font-size: 1.05rem; }
+    .obrigado-passos span { color: var(--muted); font-size: .95rem; }
+    .obrigado .btn-lg { width: 100%; }
+    .obrigado-voltar { display: inline-block; margin-top: 22px; color: var(--muted); font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <main class="obrigado">
+    <div class="obrigado-card">
+      <img class="obrigado-simbolo rise" style="--d:0" src="../img/logo-bravos-gold.png" alt="" />
+      <p class="eyebrow rise" style="--d:1">Inscrição confirmada</p>
+      <h1 class="rise" style="--d:2">Você está entre<br />os <em>Bravos</em></h1>
+      <p class="obrigado-texto rise" style="--d:3">Sua vaga na Imersão está garantida. Agora entre no grupo do WhatsApp — é por lá que vamos passar todos os avisos até o dia 17.</p>
+      <ul class="obrigado-passos rise" style="--d:4">
+        <li><strong>Sábado, 17 de outubro · 15h</strong><span>Igreja Abarim — Av. 21 de Junho, 288, Centro, Imbituba/SC</span></li>
+        <li><strong>Leve sua Bíblia</strong><span>Café, ministrações e churrasco já estão inclusos</span></li>
+        <li><strong>Comprovante por e-mail</strong><span>Guarde — pode ser pedido no credenciamento</span></li>
+      </ul>
+      <div class="rise" style="--d:5">
+        <a href="#" id="grupo" class="btn btn-gold btn-lg">Entrar no grupo do WhatsApp</a>
+        <a href="../" class="obrigado-voltar">← Voltar para a página da Imersão</a>
+      </div>
+    </div>
+  </main>
+  <script>
+    // Link do grupo do WhatsApp (preencher quando criar o grupo)
+    const GRUPO_WHATSAPP = '';
+    const a = document.getElementById('grupo');
+    if (GRUPO_WHATSAPP) { a.href = GRUPO_WHATSAPP; a.target = '_blank'; a.rel = 'noopener'; }
+    else a.addEventListener('click', e => { e.preventDefault(); alert('O link do grupo será enviado por e-mail e WhatsApp.'); });
+  </script>
+</body>
+</html>

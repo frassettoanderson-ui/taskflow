@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8" />
+<title>Artes — Imersão Bravos</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+  :root { --ink:#070708; --gold:#cda349; --gold-hi:#ecc96a; --bronze:#8a6a2f; --cream:#f4eee2; --muted:#9a9384; }
+  html,body { margin:0; background:#222; }
+  .arte { position:relative; overflow:hidden; background:var(--ink); color:var(--cream); font-family:'Barlow',sans-serif; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .arte.post { width:1080px; height:1080px; }
+  .arte.story { width:1080px; height:1920px; }
+  .arte.og { width:1200px; height:630px; }
+  .bg { position:absolute; inset:0; background:url("../img/capacete-hero.png") center 40%/cover no-repeat; opacity:.6; }
+  .story .bg { background-size:1500px auto; background-position:center 34%; }
+  .og .bg { background-size:900px auto; background-position:center 38%; }
+  .veil { position:absolute; inset:0; background:radial-gradient(ellipse 60% 55% at 50% 45%, rgba(7,7,8,0), rgba(7,7,8,.6) 65%, var(--ink)), linear-gradient(180deg, rgba(7,7,8,.7), rgba(7,7,8,0) 30%, rgba(7,7,8,0) 55%, var(--ink) 92%); }
+  .c { position:relative; display:flex; flex-direction:column; align-items:center; }
+  .simbolo { color:var(--gold); filter:drop-shadow(0 0 30px rgba(205,163,73,.5)); }
+  .kicker { font-family:'Barlow Condensed'; font-weight:600; letter-spacing:.42em; text-transform:uppercase; color:var(--gold); }
+  .word { font-family:'Cinzel'; font-weight:900; letter-spacing:.08em; line-height:.95; color:transparent; background:linear-gradient(180deg,#fff6dc,var(--gold-hi) 35%,var(--gold) 60%,var(--bronze)); -webkit-background-clip:text; background-clip:text; }
+  .tema { font-family:'Cinzel'; font-weight:500; letter-spacing:.14em; text-transform:uppercase; }
+  .tema em { font-style:normal; color:var(--gold); }
+  .meta { display:flex; border-top:1px solid rgba(255,255,255,.14); border-bottom:1px solid rgba(255,255,255,.14); }
+  .meta div { padding:22px 34px; display:flex; flex-direction:column; gap:4px; }
+  .meta div + div { border-left:1px solid rgba(255,255,255,.14); }
+  .meta b { font-family:'Cinzel'; font-weight:700; color:var(--cream); }
+  .meta span { font-family:'Barlow Condensed'; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+  .preco { font-family:'Barlow Condensed'; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#1a1408; background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,var(--bronze)); padding:20px 46px; border-radius:4px; box-shadow:0 20px 60px -20px rgba(205,163,73,.9); }
+  .rodape { font-family:'Barlow Condensed'; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); }
+  .marca { position:absolute; bottom:44px; left:0; right:0; display:flex; justify-content:center; align-items:center; gap:14px; font-family:'Barlow Condensed'; letter-spacing:.28em; text-transform:uppercase; color:var(--muted); font-size:22px; }
+  .marca img { height:34px; opacity:.7; }
+
+  /* tamanhos por formato */
+  .post { padding-bottom:70px; } .post .simbolo { width:140px; } .post .kicker { font-size:22px; margin-top:18px; } .post .word { font-size:180px; margin-top:4px; } .post .tema { font-size:38px; margin-top:8px; }
+  .post .meta { margin-top:30px; } .post .meta div { padding:16px 30px; } .post .meta b { font-size:32px; } .post .meta span { font-size:16px; } .post .preco { font-size:26px; margin-top:30px; } .post .rodape { display:none; }
+  .post .marca { bottom:30px; font-size:18px; } .post .marca img { height:28px; }
+  .story .simbolo { width:300px; } .story .kicker { font-size:32px; margin-top:40px; } .story .word { font-size:250px; margin-top:10px; } .story .tema { font-size:52px; margin-top:20px; }
+  .story .meta { margin-top:70px; } .story .meta b { font-size:44px; } .story .meta span { font-size:20px; } .story .preco { font-size:36px; margin-top:70px; } .story .rodape { font-size:22px; margin-top:34px; }
+  .og .simbolo { width:120px; } .og .kicker { font-size:18px; margin-top:16px; } .og .word { font-size:150px; margin-top:2px; } .og .tema { font-size:30px; margin-top:6px; }
+  .og .meta { margin-top:26px; } .og .meta div { padding:12px 26px; } .og .meta b { font-size:26px; } .og .meta span { font-size:14px; } .og .preco, .og .rodape, .og .marca { display:none; }
+</style>
+</head>
+<body>
+<div class="arte" id="arte">
+  <div class="bg"></div><div class="veil"></div>
+  <div class="c">
+    <img class="simbolo" src="../img/logo-bravos-gold.png" alt="" />
+    <p class="kicker">Imersão para homens</p>
+    <p class="word">Bravos</p>
+    <p class="tema">O <em>caráter</em> de Davi</p>
+    <div class="meta">
+      <div><b>17 OUT</b><span>sábado · 15h</span></div>
+      <div><b>Abarim</b><span>Imbituba — SC</span></div>
+      <div><b>R$ 89,90</b><span>café + churrasco</span></div>
+    </div>
+    <p class="preco">Garanta sua vaga · abarimigreja.com.br/imersao</p>
+    <p class="rodape">Pr. Douglas Kowaski · Pr. Jonas Weimer</p>
+  </div>
+  <div class="marca"><img src="../../img/abarim-logo.png" alt="" /> Casa de Oração</div>
+</div>
+<script>
+  const f = new URLSearchParams(location.search).get('f') || 'post';
+  document.getElementById('arte').classList.add(f);
+  document.querySelectorAll('p,div').forEach(el => { el.style.margin = el.style.margin; });
+</script>
+</body>
+</html>
