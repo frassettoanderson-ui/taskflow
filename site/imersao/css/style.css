@@ -3,6 +3,7 @@
    Escuro, bronze martelado, tipografia romana.
    ═══════════════════════════════════════════════ */
 :root {
+  color-scheme: dark; /* evita o "auto dark" do Chrome Android escurecer o dourado */
   --ink: #070708;
   --stone: #0f0e10;
   --panel: #151317;
