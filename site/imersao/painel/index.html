@@ -69,6 +69,8 @@
     td{padding:13px 14px;border-top:1px solid var(--line);vertical-align:middle}
     tbody tr:hover{background:rgba(255,255,255,.02)}
     td.nome{color:var(--cream);font-weight:500}
+    th.ord,td.ord{width:52px;text-align:center;padding-left:8px;padding-right:8px}
+    td.ord{font-family:'Oswald',sans-serif;font-weight:500;color:var(--gold);font-size:.9rem}
     .tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:.74rem;
       font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
     .t-pago{background:rgba(78,168,106,.14);color:#7cc994}
@@ -150,6 +152,7 @@
       <table>
         <thead>
           <tr>
+            <th class="ord">#</th>
             <th>Nome</th>
             <th>WhatsApp</th>
             <th class="esconde">E-mail</th>
@@ -159,7 +162,7 @@
             <th></th>
           </tr>
         </thead>
-        <tbody id="linhas"><tr><td colspan="7" class="vazio">Carregando…</td></tr></tbody>
+        <tbody id="linhas"><tr><td colspan="8" class="vazio">Carregando…</td></tr></tbody>
       </table>
     </div>
 
@@ -260,6 +263,7 @@ function render() {
 
   $('#linhas').innerHTML = lista.length ? lista.map(r => `
     <tr>
+      <td class="ord">${r.ordem}</td>
       <td class="nome">${esc(r.nome)}</td>
       <td>${fone(r.whatsapp)}</td>
       <td class="esconde">${esc(r.email)}</td>
@@ -270,7 +274,7 @@ function render() {
         ${r.noGrupo === true ? '' : `<a class="zap" target="_blank" rel="noopener" href="${zap(r.whatsapp)}?text=${encodeURIComponent(convite(r.nome))}">Convite</a>`}
         <button class="lapis" data-edit="${r.id}" title="Editar">${LAPIS}</button>
       </td>
-    </tr>`).join('') : '<tr><td colspan="7" class="vazio">Nenhum registro com esse filtro.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="8" class="vazio">Nenhum registro com esse filtro.</td></tr>';
 
   $('#rodape').textContent = `${lista.length} de ${inscritos.length} registros · atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
 }
