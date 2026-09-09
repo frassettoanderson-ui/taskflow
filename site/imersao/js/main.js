@@ -85,7 +85,7 @@ $('#ano').textContent = new Date().getFullYear();
     show('form');
   }));
 
-  pay.addEventListener('click', e => { if (e.target.hasAttribute('data-close')) close(); });
+  pay.addEventListener('click', e => { if (e.target.closest('[data-close]')) close(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pay.hidden) close(); });
 
   const form = $('#pay-form');
