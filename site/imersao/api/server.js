@@ -250,12 +250,15 @@ app.post('/api/grupo/adicionar', async (req, res) => {
       body: JSON.stringify({ action: 'add', participants: [alvo] }),
     });
     const b = await r.json().catch(() => ({}));
-    const item = (b.add || b.participants || b.result || [])[0] || {};
+    const item = (b.updateParticipants || b.add || b.participants || b.result || [])[0] || {};
     const st = String(item.status || b.status || r.status);
     grupoCache = { at: 0, data: null }; // força releitura na próxima consulta
-    if (r.ok && (st === '200' || st === 'success')) return res.json({ ok: true, resultado: 'adicionado' });
-    // 403/408 = privacidade do usuário impede adicionar; o WhatsApp manda convite
-    if (st === '403' || st === '408' || st === '409') return res.json({ ok: false, resultado: 'privacidade', detalhe: item.message || '' });
+    // códigos do WhatsApp para adição em grupo
+    if (st === '200' || st === 'success') return res.json({ ok: true, resultado: 'adicionado' });
+    if (st === '409') return res.json({ ok: true, resultado: 'ja_no_grupo' });
+    if (st === '403') return res.json({ ok: false, resultado: 'privacidade' });
+    if (st === '408') return res.json({ ok: false, resultado: 'saiu_recente' });
+    if (st === '401') return res.json({ ok: false, resultado: 'bloqueou' });
     return res.json({ ok: false, resultado: 'falhou', detalhe: JSON.stringify(b).slice(0, 300) });
   } catch (e) {
     return res.status(502).json({ error: 'falha_evolution', detalhe: e.message });
