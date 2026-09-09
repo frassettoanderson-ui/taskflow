@@ -86,11 +86,27 @@ app.post('/api/cartao', async (req, res) => {
   if (!ok(nome) || !/.+@.+\..+/.test(email) || whatsapp.length < 10)
     return res.status(400).json({ error: 'dados_invalidos' });
   const id = crypto.randomUUID();
+  const [pnome, ...psobre] = nome.split(' ');
+  const sobrenome = psobre.join(' ') || pnome;
+  const ddd = whatsapp.length > 10 ? whatsapp.slice(0, 2) : whatsapp.slice(0, 2);
+  const fone = whatsapp.slice(2);
+  // dados completos melhoram muito a aprovação no antifraude do Mercado Pago
+  const itens = [{
+    id: 'bravos-2026', title: 'Imersão Bravos — O Caráter de Davi',
+    description: 'Inscrição individual · 17/10/2026 · Igreja Abarim, Imbituba/SC',
+    category_id: 'services', quantity: 1, unit_price: VALOR_CARTAO, currency_id: 'BRL',
+  }];
   const r = await mp('/checkout/preferences', {
     method: 'POST',
     body: JSON.stringify({
-      items: [{ title: 'Imersão Bravos — O Caráter de Davi', quantity: 1, unit_price: VALOR_CARTAO, currency_id: 'BRL' }],
-      payer: { name: nome, email },
+      items: itens,
+      payer: { name: pnome, surname: sobrenome, email, phone: { area_code: ddd, number: fone } },
+      additional_info: {
+        items: itens,
+        payer: { first_name: pnome, last_name: sobrenome, phone: { area_code: ddd, number: fone } },
+      },
+      statement_descriptor: 'IMERSAOBRAVOS',
+      binary_mode: false,
       external_reference: id,
       notification_url: `${PUBLIC_BASE}/api/webhook`,
       payment_methods: {
