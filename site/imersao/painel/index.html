@@ -46,10 +46,21 @@
       background:var(--panel);color:var(--cream);font-family:inherit;font-size:.95rem}
     .barra input::placeholder{color:#6d6659}
     .barra input:focus{outline:none;border-color:var(--gold)}
-    .filtros{display:flex;gap:6px;flex-wrap:wrap}
-    .chip{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);
-      font-family:'Oswald',sans-serif;font-size:.76rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
-    .chip.on{border-color:var(--gold);color:var(--gold);background:rgba(217,172,69,.08)}
+    .abas{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:16px}
+    .aba{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;border:0;background:transparent;cursor:pointer;
+      font-family:'Oswald',sans-serif;font-weight:500;font-size:.82rem;letter-spacing:1.2px;text-transform:uppercase;
+      color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:.18s}
+    .aba:hover{color:var(--cream)}
+    .aba.on{color:var(--gold);border-bottom-color:var(--gold)}
+    .aba i{font-style:normal;min-width:22px;padding:2px 7px;border-radius:999px;background:rgba(255,255,255,.07);
+      font-size:.74rem;color:inherit}
+    .aba.on i{background:rgba(217,172,69,.16)}
+    .aba[data-f="pagos"].on{color:#7cc994;border-bottom-color:#7cc994}
+    .aba[data-f="pagos"].on i{background:rgba(78,168,106,.18)}
+    .aba[data-f="pendentes"].on{color:#e0a45c;border-bottom-color:#e0a45c}
+    .aba[data-f="pendentes"].on i{background:rgba(201,130,47,.18)}
+    .aba[data-f="recusados"].on{color:#e08872;border-bottom-color:#e08872}
+    .aba[data-f="recusados"].on i{background:rgba(184,64,42,.18)}
 
     .tabela{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--stone)}
     table{width:100%;border-collapse:collapse;font-size:.92rem}
@@ -98,14 +109,16 @@
 
     <div class="cards" id="cards"></div>
 
+    <div class="abas" id="abas">
+      <button class="aba on" data-f="pagos">Pagos <i id="c-pagos">0</i></button>
+      <button class="aba" data-f="pendentes">Pendentes <i id="c-pendentes">0</i></button>
+      <button class="aba" data-f="recusados">Recusados <i id="c-recusados">0</i></button>
+      <button class="aba" data-f="fora">Fora do grupo <i id="c-fora">0</i></button>
+      <button class="aba" data-f="todos">Todos <i id="c-todos">0</i></button>
+    </div>
+
     <div class="barra">
       <input id="busca" type="search" placeholder="Buscar por nome, WhatsApp ou e-mail…" />
-      <div class="filtros" id="filtros">
-        <button class="chip on" data-f="todos">Todos</button>
-        <button class="chip" data-f="pagos">Pagos</button>
-        <button class="chip" data-f="fora">Pagos fora do grupo</button>
-        <button class="chip" data-f="pendentes">Pendentes</button>
-      </div>
     </div>
 
     <div class="tabela">
@@ -134,7 +147,7 @@ const params = new URLSearchParams(location.search);
 let KEY = params.get('key') || localStorage.getItem('bravos_key') || '';
 if (params.get('key')) { localStorage.setItem('bravos_key', KEY); history.replaceState(null,'',location.pathname); }
 
-let dados = null, filtro = 'todos', termo = '';
+let dados = null, filtro = 'pagos', termo = '';
 
 const fone = w => {
   const d = String(w||'').replace(/\D/g,'').replace(/^55/,'');
@@ -175,9 +188,20 @@ function render() {
     <div class="card warn"><b>${resumo.foraGrupo}</b><span>Pagos fora do grupo</span></div>
     <div class="card"><b>${resumo.pendentes}</b><span>Pagamentos pendentes</span></div>`;
 
+  // contadores das abas
+  const cont = {
+    pagos: inscritos.filter(r => r.status === 'approved').length,
+    pendentes: inscritos.filter(r => r.status === 'pending').length,
+    recusados: inscritos.filter(r => r.status !== 'approved' && r.status !== 'pending').length,
+    fora: inscritos.filter(r => r.status === 'approved' && r.noGrupo === false).length,
+    todos: inscritos.length,
+  };
+  for (const k in cont) { const el = document.getElementById('c-' + k); if (el) el.textContent = cont[k]; }
+
   let lista = inscritos;
   if (filtro === 'pagos') lista = lista.filter(r => r.status === 'approved');
   if (filtro === 'pendentes') lista = lista.filter(r => r.status === 'pending');
+  if (filtro === 'recusados') lista = lista.filter(r => r.status !== 'approved' && r.status !== 'pending');
   if (filtro === 'fora') lista = lista.filter(r => r.status === 'approved' && r.noGrupo === false);
   if (termo) {
     const t = termo.toLowerCase(), td = termo.replace(/\D/g,'');
@@ -215,9 +239,9 @@ const esc = s => String(s==null?'':s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'
 
 $('#atualizar').addEventListener('click', () => carregar(true));
 $('#busca').addEventListener('input', e => { termo = e.target.value.trim(); render(); });
-$('#filtros').addEventListener('click', e => {
-  const b = e.target.closest('.chip'); if (!b) return;
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
+$('#abas').addEventListener('click', e => {
+  const b = e.target.closest('.aba'); if (!b) return;
+  document.querySelectorAll('.aba').forEach(c => c.classList.toggle('on', c === b));
   filtro = b.dataset.f; render();
 });
 
