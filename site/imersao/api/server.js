@@ -160,6 +160,9 @@ app.post('/api/webhook', async (req, res) => {
 const EVO_URL = process.env.EVOLUTION_URL || 'http://127.0.0.1:8081';
 const EVO_KEY = process.env.EVOLUTION_KEY || '';
 const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || 'nauta';
+// instância do número que é ADMIN do grupo — é ela que consegue adicionar participantes
+const EVO_ADD_INSTANCE = process.env.EVOLUTION_ADD_INSTANCE || 'abarim';
+let grupoJid = process.env.GRUPO_JID || '';
 const GRUPO_CODE = (String(GRUPO).match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/) || [])[1] || '';
 
 // o WhatsApp guarda números BR sem o 9º dígito — compara DDD + últimos 8
@@ -177,6 +180,7 @@ async function grupoInfo(forcar) {
       { headers: { apikey: EVO_KEY } });
     const b = await r.json();
     if (!b || !b.id) return grupoCache.data;
+    grupoJid = b.id;
     const data = {
       nome: b.subject, total: b.size,
       membros: (b.participants || []).map(p => chaveFone(p.phoneNumber || p.id)),
@@ -207,6 +211,55 @@ app.get('/api/painel', async (req, res) => {
     },
     inscritos: list,
   });
+});
+
+// edita o inscrito (hoje: telefone, nome, e-mail)
+app.patch('/api/inscrito/:id', (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
+  const rec = db[req.params.id];
+  if (!rec) return res.status(404).json({ error: 'nao_encontrado' });
+  const w = digits(req.body.whatsapp);
+  if (req.body.whatsapp !== undefined) {
+    if (w.length < 10) return res.status(400).json({ error: 'telefone_invalido' });
+    rec.whatsapp = w;
+  }
+  if (ok(req.body.nome)) rec.nome = String(req.body.nome).trim();
+  if (req.body.email && /.+@.+\..+/.test(req.body.email)) rec.email = String(req.body.email).trim();
+  save();
+  res.json({ ok: true, inscrito: rec });
+});
+
+// adiciona o inscrito no grupo do WhatsApp (usa a instância do número admin do grupo)
+app.post('/api/grupo/adicionar', async (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
+  const rec = db[req.body.id];
+  if (!rec) return res.status(404).json({ error: 'nao_encontrado' });
+  if (!EVO_KEY) return res.status(503).json({ error: 'evolution_nao_configurado' });
+
+  const g = await grupoInfo(true);
+  const jid = grupoJid;
+  if (!jid) return res.status(503).json({ error: 'grupo_indisponivel' });
+
+  // WhatsApp usa o número com 55 e, em geral, sem o 9º dígito para linhas antigas
+  const base = digits(rec.whatsapp).replace(/^55/, '');
+  const alvo = '55' + base;
+  try {
+    const r = await fetch(`${EVO_URL}/group/updateParticipant/${EVO_ADD_INSTANCE}?groupJid=${encodeURIComponent(jid)}`, {
+      method: 'POST',
+      headers: { apikey: EVO_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add', participants: [alvo] }),
+    });
+    const b = await r.json().catch(() => ({}));
+    const item = (b.add || b.participants || b.result || [])[0] || {};
+    const st = String(item.status || b.status || r.status);
+    grupoCache = { at: 0, data: null }; // força releitura na próxima consulta
+    if (r.ok && (st === '200' || st === 'success')) return res.json({ ok: true, resultado: 'adicionado' });
+    // 403/408 = privacidade do usuário impede adicionar; o WhatsApp manda convite
+    if (st === '403' || st === '408' || st === '409') return res.json({ ok: false, resultado: 'privacidade', detalhe: item.message || '' });
+    return res.json({ ok: false, resultado: 'falhou', detalhe: JSON.stringify(b).slice(0, 300) });
+  } catch (e) {
+    return res.status(502).json({ error: 'falha_evolution', detalhe: e.message });
+  }
 });
 
 // painel de inscritos (protegido por ?key=)

@@ -77,6 +77,31 @@
     .t-sim{background:rgba(78,168,106,.14);color:#7cc994}
     .t-nao{background:rgba(184,64,42,.14);color:#e08872}
     .zap{color:var(--gold);text-decoration:none;font-size:.8rem;white-space:nowrap;border-bottom:1px solid rgba(217,172,69,.35)}
+    .mini{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:4px;cursor:pointer;
+      border:1px solid var(--gold);background:transparent;color:var(--gold);white-space:nowrap;
+      font-family:'Oswald',sans-serif;font-weight:500;font-size:.72rem;letter-spacing:.9px;text-transform:uppercase;transition:.18s}
+    .mini:hover{background:rgba(217,172,69,.12)}
+    .mini[disabled]{opacity:.55;pointer-events:none}
+    .lapis{border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;
+      width:32px;height:32px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;transition:.18s}
+    .lapis:hover{border-color:var(--gold);color:var(--gold)}
+    .lapis svg{width:15px;height:15px}
+    td.acoes{white-space:nowrap;text-align:right}
+    td.acoes>*+*{margin-left:6px}
+    .msg{font-size:.76rem;color:var(--muted)}
+    .msg.erro{color:#e08872}
+    .msg.ok{color:#7cc994}
+    .fundo{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px}
+    .fundo[hidden]{display:none}
+    .caixa{width:min(420px,100%);background:var(--stone);border:1px solid var(--line);border-radius:8px;padding:26px}
+    .caixa h3{margin:0 0 4px;font-family:'Cinzel',serif;font-size:1.1rem;color:var(--cream)}
+    .caixa p.quem{margin:0 0 18px;font-size:.85rem;color:var(--muted)}
+    .caixa label{display:block;font-family:'Oswald',sans-serif;font-size:.72rem;letter-spacing:1.2px;
+      text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+    .caixa input{width:100%;padding:11px 13px;border-radius:4px;border:1px solid var(--line);
+      background:var(--panel);color:var(--cream);font-family:inherit;font-size:.95rem}
+    .caixa input:focus{outline:none;border-color:var(--gold)}
+    .caixa .fim{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
     .vazio{padding:44px 20px;text-align:center;color:var(--muted)}
     .aviso{margin-bottom:18px;padding:13px 16px;border-radius:6px;border:1px solid rgba(201,130,47,.35);
       background:rgba(201,130,47,.08);color:#e0a45c;font-size:.9rem}
@@ -139,6 +164,22 @@
     </div>
 
     <p class="rodape" id="rodape"></p>
+  </div>
+
+  <div class="fundo" id="editor" hidden>
+    <div class="caixa">
+      <h3>Editar inscrito</h3>
+      <p class="quem" id="ed-quem"></p>
+      <label for="ed-nome">Nome</label>
+      <input id="ed-nome" type="text" />
+      <label for="ed-fone">WhatsApp (com DDD)</label>
+      <input id="ed-fone" type="tel" inputmode="numeric" placeholder="48999999999" />
+      <p class="msg erro" id="ed-erro" hidden></p>
+      <div class="fim">
+        <button class="btn" id="ed-cancelar">Cancelar</button>
+        <button class="btn btn-ouro" id="ed-salvar">Salvar</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -212,8 +253,10 @@ function render() {
   const tagPag = s => s === 'approved' ? '<span class="tag t-pago">Pago</span>'
     : s === 'pending' ? '<span class="tag t-pend">Pendente</span>'
     : `<span class="tag t-neg">${s === 'rejected' ? 'Recusado' : s}</span>`;
-  const tagGrupo = r => r.noGrupo === null ? '<span style="color:#6d6659">—</span>'
-    : r.noGrupo ? '<span class="tag t-sim">Sim</span>' : '<span class="tag t-nao">Não</span>';
+  const tagGrupo = r => r.noGrupo === true
+    ? '<span class="tag t-sim">Sim</span>'
+    : '<button class="mini" data-add="' + r.id + '">Adicionar no grupo</button>';
+  const LAPIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
   $('#linhas').innerHTML = lista.length ? lista.map(r => `
     <tr>
@@ -221,11 +264,12 @@ function render() {
       <td>${fone(r.whatsapp)}</td>
       <td class="esconde">${esc(r.email)}</td>
       <td>${tagPag(r.status)}</td>
-      <td>${tagGrupo(r)}</td>
+      <td id="g-${r.id}">${tagGrupo(r)}</td>
       <td class="esconde">${dataBr(r.criado)}</td>
-      <td>${r.status === 'approved' && r.noGrupo === false
-        ? `<a class="zap" target="_blank" rel="noopener" href="${zap(r.whatsapp)}?text=${encodeURIComponent(convite(r.nome))}">Chamar pro grupo</a>`
-        : ''}</td>
+      <td class="acoes">
+        ${r.noGrupo === true ? '' : `<a class="zap" target="_blank" rel="noopener" href="${zap(r.whatsapp)}?text=${encodeURIComponent(convite(r.nome))}">Convite</a>`}
+        <button class="lapis" data-edit="${r.id}" title="Editar">${LAPIS}</button>
+      </td>
     </tr>`).join('') : '<tr><td colspan="7" class="vazio">Nenhum registro com esse filtro.</td></tr>';
 
   $('#rodape').textContent = `${lista.length} de ${inscritos.length} registros · atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
@@ -236,6 +280,63 @@ function convite(nome){
   return `Olá ${p}! Sua inscrição na Imersão Bravos está confirmada. ✅\n\nEntre no grupo dos inscritos pra receber os avisos até o dia 17/10:\n${(dados?.grupo?.link)||''}`;
 }
 const esc = s => String(s==null?'':s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+// adicionar ao grupo + abrir editor
+$('#linhas').addEventListener('click', async e => {
+  const add = e.target.closest('[data-add]');
+  const ed  = e.target.closest('[data-edit]');
+  if (ed) return abrirEditor(ed.dataset.edit);
+  if (!add) return;
+
+  const cel = document.getElementById('g-' + add.dataset.add);
+  add.disabled = true; add.textContent = 'Adicionando...';
+  try {
+    const r = await fetch('../api/grupo/adicionar?key=' + encodeURIComponent(KEY), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: add.dataset.add }),
+    });
+    const d = await r.json();
+    if (d.ok) { cel.innerHTML = '<span class="tag t-sim">Sim</span>'; setTimeout(() => carregar(true), 1500); }
+    else if (d.resultado === 'privacidade') cel.innerHTML = '<span class="msg erro">Privacidade bloqueia \u2014 use Convite</span>';
+    else cel.innerHTML = '<span class="msg erro">' + esc(d.error || d.resultado || 'falhou') + '</span>';
+  } catch (err) { cel.innerHTML = '<span class="msg erro">Erro de conexao</span>'; }
+});
+
+// editor de inscrito
+let editando = null;
+function abrirEditor(id) {
+  const r = (dados && dados.inscritos || []).find(x => x.id === id); if (!r) return;
+  editando = id;
+  $('#ed-quem').textContent = r.email || '';
+  $('#ed-nome').value = r.nome || '';
+  $('#ed-fone').value = r.whatsapp || '';
+  $('#ed-erro').hidden = true;
+  $('#editor').hidden = false;
+  $('#ed-fone').focus();
+}
+const fecharEditor = () => { $('#editor').hidden = true; editando = null; };
+$('#ed-cancelar').addEventListener('click', fecharEditor);
+$('#editor').addEventListener('click', e => { if (e.target.id === 'editor') fecharEditor(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#editor').hidden) fecharEditor(); });
+
+$('#ed-salvar').addEventListener('click', async () => {
+  const fone = $('#ed-fone').value.replace(/\D/g, '');
+  const erro = $('#ed-erro');
+  if (fone.replace(/^55/, '').length < 10) {
+    erro.textContent = 'Telefone invalido - informe DDD + numero.'; erro.hidden = false; return;
+  }
+  const b = $('#ed-salvar'); b.disabled = true; b.textContent = 'Salvando...';
+  try {
+    const r = await fetch('../api/inscrito/' + editando + '?key=' + encodeURIComponent(KEY), {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ whatsapp: fone, nome: $('#ed-nome').value }),
+    });
+    const d = await r.json();
+    if (!r.ok) { erro.textContent = d.error || 'Nao consegui salvar.'; erro.hidden = false; return; }
+    fecharEditor(); carregar(true);
+  } catch (e) { erro.textContent = 'Erro de conexao.'; erro.hidden = false; }
+  finally { b.disabled = false; b.textContent = 'Salvar'; }
+});
 
 $('#atualizar').addEventListener('click', () => carregar(true));
 $('#busca').addEventListener('input', e => { termo = e.target.value.trim(); render(); });
