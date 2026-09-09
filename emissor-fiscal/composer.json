@@ -12,6 +12,8 @@
         "ext-json": "*",
         "ext-mbstring": "*",
         "nfephp-org/sped-nfe": "^5.1",
+        "nfephp-org/sped-cte": "^5.0",
+        "nfephp-org/sped-mdfe": "^4.2",
         "nfephp-org/sped-da": "^1.1",
         "dompdf/dompdf": "^3.1",
         "vlucas/phpdotenv": "^5.6"

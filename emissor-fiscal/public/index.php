@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Fiscal\NFe\NFeService;
 use App\Fiscal\NFCe\NFCeService;
+use App\Fiscal\CTe\CTeService;
+use App\Fiscal\MDFe\MDFeService;
 use App\Fiscal\NFSe\NFSeService;
 use App\Fiscal\NFSe\ProviderRegistry;
 use App\Fiscal\NFSe\Providers\PadraoNacionalProvider;
@@ -67,6 +69,30 @@ $nfceDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
     }
     $emit = $emitentes->buscar($cnpj);
     return new NFCeService($root, $emit, Config::ambiente(), $store, $contador);
+};
+
+/** Resolve o serviço de CT-e para o emitente pedido. */
+$cteDoEmitente = static function (Request $req) use ($root, $emitentes, $store, $contador): CTeService {
+    $cnpj = (string) ($req->body['emitente'] ?? '');
+    if ($cnpj === '') {
+        throw new InvalidArgumentException('Campo "emitente" (CNPJ) é obrigatório.');
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
+    }
+    return new CTeService($root, $emitentes->buscar($cnpj), Config::ambiente(), $store, $contador);
+};
+
+/** Resolve o serviço de MDF-e para o emitente pedido. */
+$mdfeDoEmitente = static function (Request $req) use ($root, $emitentes, $store, $contador): MDFeService {
+    $cnpj = (string) ($req->body['emitente'] ?? '');
+    if ($cnpj === '') {
+        throw new InvalidArgumentException('Campo "emitente" (CNPJ) é obrigatório.');
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
+    }
+    return new MDFeService($root, $emitentes->buscar($cnpj), Config::ambiente(), $store, $contador);
 };
 
 /** Idem, para NFS-e (escolhe o provider pelo município). */
@@ -167,6 +193,54 @@ $router->add('POST', '/v1/nfce/danfce', function (Request $req) use ($nfceDoEmit
         Response::erro('chave de acesso inválida (44 dígitos).', 400);
     }
     Response::ok($nfceDoEmitente($req)->danfce($chave));
+});
+
+// ---------------- CT-e (modelo 57) ----------------
+
+$router->add('POST', '/v1/cte/status', function (Request $req) use ($cteDoEmitente) {
+    Response::ok(['sefaz' => $cteDoEmitente($req)->statusServico()]);
+});
+$router->add('POST', '/v1/cte/emitir', function (Request $req) use ($cteDoEmitente) {
+    $r = $cteDoEmitente($req)->emitir($req->body);
+    Response::json(['ok' => $r['status'] === 'autorizado'] + $r, $r['status'] === 'autorizado' ? 200 : 422);
+});
+$router->add('POST', '/v1/cte/consultar', function (Request $req) use ($cteDoEmitente) {
+    Response::ok($cteDoEmitente($req)->consultar((string) ($req->body['chave'] ?? '')));
+});
+$router->add('POST', '/v1/cte/cancelar', function (Request $req) use ($cteDoEmitente) {
+    $r = $cteDoEmitente($req)->cancelar((string) ($req->body['chave'] ?? ''),
+        (string) ($req->body['protocolo'] ?? ''), (string) ($req->body['justificativa'] ?? ''));
+    Response::json(['ok' => $r['status'] === 'cancelado'] + $r);
+});
+$router->add('POST', '/v1/cte/dacte', function (Request $req) use ($cteDoEmitente) {
+    Response::ok($cteDoEmitente($req)->dacte((string) ($req->body['chave'] ?? '')));
+});
+
+// ---------------- MDF-e (modelo 58) ----------------
+
+$router->add('POST', '/v1/mdfe/status', function (Request $req) use ($mdfeDoEmitente) {
+    Response::ok(['sefaz' => $mdfeDoEmitente($req)->statusServico()]);
+});
+$router->add('POST', '/v1/mdfe/emitir', function (Request $req) use ($mdfeDoEmitente) {
+    $r = $mdfeDoEmitente($req)->emitir($req->body);
+    Response::json(['ok' => $r['status'] === 'autorizado'] + $r, $r['status'] === 'autorizado' ? 200 : 422);
+});
+$router->add('POST', '/v1/mdfe/consultar', function (Request $req) use ($mdfeDoEmitente) {
+    Response::ok($mdfeDoEmitente($req)->consultar((string) ($req->body['chave'] ?? '')));
+});
+$router->add('POST', '/v1/mdfe/cancelar', function (Request $req) use ($mdfeDoEmitente) {
+    $r = $mdfeDoEmitente($req)->cancelar((string) ($req->body['chave'] ?? ''),
+        (string) ($req->body['protocolo'] ?? ''), (string) ($req->body['justificativa'] ?? ''));
+    Response::json(['ok' => $r['status'] === 'cancelado'] + $r);
+});
+$router->add('POST', '/v1/mdfe/encerrar', function (Request $req) use ($mdfeDoEmitente) {
+    $r = $mdfeDoEmitente($req)->encerrar((string) ($req->body['chave'] ?? ''),
+        (string) ($req->body['protocolo'] ?? ''), (string) ($req->body['municipio_cod'] ?? ''),
+        (string) ($req->body['uf'] ?? ''));
+    Response::json(['ok' => $r['status'] === 'encerrado'] + $r);
+});
+$router->add('POST', '/v1/mdfe/damdfe', function (Request $req) use ($mdfeDoEmitente) {
+    Response::ok($mdfeDoEmitente($req)->damdfe((string) ($req->body['chave'] ?? '')));
 });
 
 // ---------------- NFS-e (Padrão Nacional + adaptadores por provedor) ----------------

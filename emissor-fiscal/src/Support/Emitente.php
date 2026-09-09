@@ -29,6 +29,8 @@ final class Emitente
         public readonly string $certPassword,
         public readonly int $nfeSerie,
         public readonly int $nfceSerie,
+        public readonly int $cteSerie,
+        public readonly int $mdfeSerie,
         public readonly string $cscId,
         public readonly string $csc,
         public readonly string $respTecCnpj,
@@ -70,6 +72,8 @@ final class Emitente
             certPassword: (string) ($d['cert_password'] ?? ''),
             nfeSerie:     (int) ($d['nfe_serie'] ?? 1),
             nfceSerie:    (int) ($d['nfce_serie'] ?? 1),
+            cteSerie:     (int) ($d['cte_serie'] ?? 1),
+            mdfeSerie:    (int) ($d['mdfe_serie'] ?? 1),
             cscId:        (string) ($d['csc_id'] ?? ''),
             csc:          (string) ($d['csc'] ?? ''),
             // Responsável técnico (empresa do software). Fallback: o próprio emitente.
@@ -84,8 +88,9 @@ final class Emitente
         );
     }
 
-    /** Config no formato que o NFePHP\NFe\Tools espera. */
-    public function nfephpConfig(int $ambiente): string
+    /** Config no formato que o NFePHP Tools espera. A versão do layout varia por
+     *  documento (NF-e/NFC-e/CT-e = 4.00; MDF-e = 3.00). */
+    public function nfephpConfig(int $ambiente, string $versao = '4.00'): string
     {
         return json_encode([
             'atualizacao' => date('Y-m-d H:i:s'),
@@ -94,7 +99,7 @@ final class Emitente
             'siglaUF'     => $this->uf,
             'cnpj'        => $this->cnpj,
             'schemes'     => 'PL_009_V4',
-            'versao'      => '4.00',
+            'versao'      => $versao,
             'tokenIBPT'   => '',
             'CSC'         => $this->csc,
             'CSCid'       => $this->cscId,
