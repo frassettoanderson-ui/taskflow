@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#070708" />
+  <title>Painel · Imersão Bravos</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="../img/favicon.png" type="image/png" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Oswald:wght@500;600&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:#070708; --stone:#0f0e10; --panel:#151317; --line:rgba(255,255,255,.09);
+      --gold:#D9AC45; --gold-hi:#F2D16B; --cream:#F4EEE2; --muted:#8d867a;
+      --ok:#4ea86a; --warn:#c9822f; --bad:#b8402a;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    [hidden]{display:none!important}
+    body{margin:0;background:var(--ink);color:#cfc8ba;font-family:'Barlow',system-ui,sans-serif;font-weight:300;font-size:16px}
+    a{color:var(--gold)}
+    .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+
+    header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:26px}
+    header img{width:46px;height:46px;object-fit:contain}
+    header h1{margin:0;font-family:'Cinzel',serif;font-weight:700;font-size:1.35rem;letter-spacing:.06em;color:var(--cream)}
+    header .sub{font-family:'Oswald',sans-serif;font-size:.78rem;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+    header .acoes{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:4px;
+      font-family:'Oswald',sans-serif;font-weight:600;font-size:.85rem;letter-spacing:1.4px;text-transform:uppercase;
+      text-decoration:none;cursor:pointer;border:1px solid var(--gold);background:transparent;color:var(--gold);transition:.2s}
+    .btn:hover{background:rgba(217,172,69,.1)}
+    .btn-ouro{background:linear-gradient(180deg,var(--gold-hi),var(--gold) 55%,#B98728);color:#141006;border-color:transparent}
+    .btn-ouro:hover{filter:brightness(1.08)}
+    .btn[disabled]{opacity:.5;pointer-events:none}
+
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:12px;margin-bottom:26px}
+    .card{background:var(--stone);border:1px solid var(--line);border-radius:6px;padding:18px 20px}
+    .card b{display:block;font-family:'Oswald',sans-serif;font-weight:600;font-size:2rem;line-height:1.1;color:var(--cream)}
+    .card span{display:block;margin-top:4px;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+    .card.ok b{color:var(--ok)} .card.warn b{color:var(--warn)} .card.gold b{color:var(--gold)}
+
+    .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+    .barra input{flex:1;min-width:200px;padding:11px 14px;border-radius:4px;border:1px solid var(--line);
+      background:var(--panel);color:var(--cream);font-family:inherit;font-size:.95rem}
+    .barra input::placeholder{color:#6d6659}
+    .barra input:focus{outline:none;border-color:var(--gold)}
+    .filtros{display:flex;gap:6px;flex-wrap:wrap}
+    .chip{padding:9px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);
+      font-family:'Oswald',sans-serif;font-size:.76rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+    .chip.on{border-color:var(--gold);color:var(--gold);background:rgba(217,172,69,.08)}
+
+    .tabela{border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--stone)}
+    table{width:100%;border-collapse:collapse;font-size:.92rem}
+    th{background:var(--panel);text-align:left;padding:13px 14px;font-family:'Oswald',sans-serif;font-weight:500;
+      font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+    td{padding:13px 14px;border-top:1px solid var(--line);vertical-align:middle}
+    tbody tr:hover{background:rgba(255,255,255,.02)}
+    td.nome{color:var(--cream);font-weight:500}
+    .tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:.74rem;
+      font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+    .t-pago{background:rgba(78,168,106,.14);color:#7cc994}
+    .t-pend{background:rgba(201,130,47,.14);color:#e0a45c}
+    .t-neg{background:rgba(184,64,42,.14);color:#e08872}
+    .t-sim{background:rgba(78,168,106,.14);color:#7cc994}
+    .t-nao{background:rgba(184,64,42,.14);color:#e08872}
+    .zap{color:var(--gold);text-decoration:none;font-size:.8rem;white-space:nowrap;border-bottom:1px solid rgba(217,172,69,.35)}
+    .vazio{padding:44px 20px;text-align:center;color:var(--muted)}
+    .aviso{margin-bottom:18px;padding:13px 16px;border-radius:6px;border:1px solid rgba(201,130,47,.35);
+      background:rgba(201,130,47,.08);color:#e0a45c;font-size:.9rem}
+    .rodape{margin-top:16px;font-size:.8rem;color:var(--muted);text-align:center}
+
+    @media (max-width:720px){
+      .wrap{padding:20px 14px 70px}
+      header .acoes{width:100%;margin-left:0}
+      table{font-size:.86rem}
+      th,td{padding:11px 10px}
+      .esconde{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="../img/logo-bravos-gold.png" alt="" />
+      <div>
+        <h1>Painel de Inscritos</h1>
+        <div class="sub" id="sub">Imersão Bravos · 17.10.2026</div>
+      </div>
+      <div class="acoes">
+        <button class="btn" id="atualizar">Atualizar</button>
+        <a class="btn btn-ouro" id="csv" href="#">Baixar planilha</a>
+      </div>
+    </header>
+
+    <div id="alerta" class="aviso" hidden></div>
+
+    <div class="cards" id="cards"></div>
+
+    <div class="barra">
+      <input id="busca" type="search" placeholder="Buscar por nome, WhatsApp ou e-mail…" />
+      <div class="filtros" id="filtros">
+        <button class="chip on" data-f="todos">Todos</button>
+        <button class="chip" data-f="pagos">Pagos</button>
+        <button class="chip" data-f="fora">Pagos fora do grupo</button>
+        <button class="chip" data-f="pendentes">Pendentes</button>
+      </div>
+    </div>
+
+    <div class="tabela">
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>WhatsApp</th>
+            <th class="esconde">E-mail</th>
+            <th>Pagamento</th>
+            <th>No grupo</th>
+            <th class="esconde">Inscrito em</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="linhas"><tr><td colspan="7" class="vazio">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+
+    <p class="rodape" id="rodape"></p>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+let KEY = params.get('key') || localStorage.getItem('bravos_key') || '';
+if (params.get('key')) { localStorage.setItem('bravos_key', KEY); history.replaceState(null,'',location.pathname); }
+
+let dados = null, filtro = 'todos', termo = '';
+
+const fone = w => {
+  const d = String(w||'').replace(/\D/g,'').replace(/^55/,'');
+  return d.length >= 10 ? `(${d.slice(0,2)}) ${d.slice(2,-4)}-${d.slice(-4)}` : (w||'');
+};
+const zap = w => 'https://wa.me/55' + String(w||'').replace(/\D/g,'').replace(/^55/,'');
+const dataBr = s => { if(!s) return '—'; const d=new Date(s);
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+const real = n => 'R$ ' + Number(n||0).toFixed(2).replace('.',',');
+
+async function carregar(forcar) {
+  if (!KEY) { KEY = prompt('Chave de acesso do painel:') || ''; if (KEY) localStorage.setItem('bravos_key', KEY); }
+  if (!KEY) return;
+  const btn = $('#atualizar'); btn.disabled = true; btn.textContent = 'Atualizando…';
+  try {
+    const r = await fetch(`../api/painel?key=${encodeURIComponent(KEY)}${forcar ? '&atualizar=1' : ''}`);
+    if (r.status === 401) { localStorage.removeItem('bravos_key'); KEY=''; alerta('Chave inválida. Recarregue a página e informe a chave correta.'); return; }
+    dados = await r.json();
+    $('#csv').href = `../api/admin?key=${encodeURIComponent(KEY)}&csv=1`;
+    render();
+  } catch (e) { alerta('Não consegui carregar os dados: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Atualizar'; }
+}
+
+function alerta(msg){ const a=$('#alerta'); a.textContent=msg; a.hidden=!msg; }
+
+function render() {
+  if (!dados) return;
+  const { resumo, grupo, inscritos } = dados;
+
+  alerta(grupo ? '' : 'Não consegui ler o grupo do WhatsApp agora — a coluna "No grupo" fica indisponível. Os pagamentos continuam corretos.');
+  $('#sub').textContent = grupo ? `Imersão Bravos · grupo "${grupo.nome}" · ${grupo.total} no grupo` : 'Imersão Bravos · 17.10.2026';
+
+  $('#cards').innerHTML = `
+    <div class="card ok"><b>${resumo.pagos}</b><span>Inscrições pagas</span></div>
+    <div class="card gold"><b>${real(resumo.arrecadado)}</b><span>Arrecadado</span></div>
+    <div class="card ok"><b>${resumo.noGrupo}</b><span>Pagos no grupo</span></div>
+    <div class="card warn"><b>${resumo.foraGrupo}</b><span>Pagos fora do grupo</span></div>
+    <div class="card"><b>${resumo.pendentes}</b><span>Pagamentos pendentes</span></div>`;
+
+  let lista = inscritos;
+  if (filtro === 'pagos') lista = lista.filter(r => r.status === 'approved');
+  if (filtro === 'pendentes') lista = lista.filter(r => r.status === 'pending');
+  if (filtro === 'fora') lista = lista.filter(r => r.status === 'approved' && r.noGrupo === false);
+  if (termo) {
+    const t = termo.toLowerCase(), td = termo.replace(/\D/g,'');
+    lista = lista.filter(r => (r.nome||'').toLowerCase().includes(t) || (r.email||'').toLowerCase().includes(t)
+      || (td && String(r.whatsapp||'').includes(td)));
+  }
+
+  const tagPag = s => s === 'approved' ? '<span class="tag t-pago">Pago</span>'
+    : s === 'pending' ? '<span class="tag t-pend">Pendente</span>'
+    : `<span class="tag t-neg">${s === 'rejected' ? 'Recusado' : s}</span>`;
+  const tagGrupo = r => r.noGrupo === null ? '<span style="color:#6d6659">—</span>'
+    : r.noGrupo ? '<span class="tag t-sim">Sim</span>' : '<span class="tag t-nao">Não</span>';
+
+  $('#linhas').innerHTML = lista.length ? lista.map(r => `
+    <tr>
+      <td class="nome">${esc(r.nome)}</td>
+      <td>${fone(r.whatsapp)}</td>
+      <td class="esconde">${esc(r.email)}</td>
+      <td>${tagPag(r.status)}</td>
+      <td>${tagGrupo(r)}</td>
+      <td class="esconde">${dataBr(r.criado)}</td>
+      <td>${r.status === 'approved' && r.noGrupo === false
+        ? `<a class="zap" target="_blank" rel="noopener" href="${zap(r.whatsapp)}?text=${encodeURIComponent(convite(r.nome))}">Chamar pro grupo</a>`
+        : ''}</td>
+    </tr>`).join('') : '<tr><td colspan="7" class="vazio">Nenhum registro com esse filtro.</td></tr>';
+
+  $('#rodape').textContent = `${lista.length} de ${inscritos.length} registros · atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
+}
+
+function convite(nome){
+  const p = String(nome||'').split(' ')[0];
+  return `Olá ${p}! Sua inscrição na Imersão Bravos está confirmada. ✅\n\nEntre no grupo dos inscritos pra receber os avisos até o dia 17/10:\n${(dados?.grupo?.link)||''}`;
+}
+const esc = s => String(s==null?'':s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+$('#atualizar').addEventListener('click', () => carregar(true));
+$('#busca').addEventListener('input', e => { termo = e.target.value.trim(); render(); });
+$('#filtros').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c === b));
+  filtro = b.dataset.f; render();
+});
+
+carregar();
+setInterval(() => carregar(false), 60000);
+</script>
+</body>
+</html>

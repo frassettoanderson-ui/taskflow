@@ -156,6 +156,59 @@ app.post('/api/webhook', async (req, res) => {
   } catch (e) { console.error('webhook', e); }
 });
 
+// ── grupo do WhatsApp (leitura via Evolution API) ─────────────────────────
+const EVO_URL = process.env.EVOLUTION_URL || 'http://127.0.0.1:8081';
+const EVO_KEY = process.env.EVOLUTION_KEY || '';
+const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || 'nauta';
+const GRUPO_CODE = (String(GRUPO).match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/) || [])[1] || '';
+
+// o WhatsApp guarda números BR sem o 9º dígito — compara DDD + últimos 8
+const chaveFone = s => {
+  const d = digits(s).replace(/^55/, '');
+  return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d;
+};
+
+let grupoCache = { at: 0, data: null };
+async function grupoInfo(forcar) {
+  if (!EVO_KEY || !GRUPO_CODE) return null;
+  if (!forcar && grupoCache.data && Date.now() - grupoCache.at < 60000) return grupoCache.data;
+  try {
+    const r = await fetch(`${EVO_URL}/group/inviteInfo/${EVO_INSTANCE}?inviteCode=${GRUPO_CODE}`,
+      { headers: { apikey: EVO_KEY } });
+    const b = await r.json();
+    if (!b || !b.id) return grupoCache.data;
+    const data = {
+      nome: b.subject, total: b.size,
+      membros: (b.participants || []).map(p => chaveFone(p.phoneNumber || p.id)),
+    };
+    grupoCache = { at: Date.now(), data };
+    return data;
+  } catch (e) { console.error('grupo', e.message); return grupoCache.data; }
+}
+
+// dados do painel (JSON)
+app.get('/api/painel', async (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
+  const g = await grupoInfo(req.query.atualizar === '1');
+  const membros = new Set(g?.membros || []);
+  const list = Object.values(db)
+    .sort((a, b) => (b.criado || '').localeCompare(a.criado || ''))
+    .map(r => ({ ...r, noGrupo: membros.size ? membros.has(chaveFone(r.whatsapp)) : null }));
+  const pagos = list.filter(r => r.status === 'approved');
+  res.json({
+    grupo: g ? { nome: g.nome, total: g.total, link: GRUPO } : null,
+    resumo: {
+      total: list.length,
+      pagos: pagos.length,
+      pendentes: list.filter(r => r.status === 'pending').length,
+      arrecadado: pagos.reduce((s, r) => s + Number(r.valor || 0), 0),
+      noGrupo: pagos.filter(r => r.noGrupo === true).length,
+      foraGrupo: pagos.filter(r => r.noGrupo === false).length,
+    },
+    inscritos: list,
+  });
+});
+
 // painel de inscritos (protegido por ?key=)
 app.get('/api/admin', (req, res) => {
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).send('nao autorizado');
