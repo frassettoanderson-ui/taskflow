@@ -382,3 +382,40 @@ section > * { max-width: var(--max); margin-left: auto; margin-right: auto; }
   .cta-fixo { display: flex; }
   .rodape { padding-bottom: 130px; }
 }
+
+/* ── modal de inscrição (pagamento) ── */
+.pay { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 20px; }
+.pay-backdrop { position: absolute; inset: 0; background: rgba(4,4,5,.82); backdrop-filter: blur(6px); }
+.pay-box {
+  position: relative; width: min(440px, 100%); max-height: 92vh; overflow-y: auto;
+  background: linear-gradient(180deg, #17151a, #0e0d10); border: 1px solid rgba(217,172,69,.3); border-radius: 8px;
+  padding: clamp(28px, 5vw, 44px); text-align: center; box-shadow: 0 40px 100px -40px #000;
+  animation: pay-in .45s var(--ease) both;
+}
+@keyframes pay-in { from { opacity: 0; transform: translateY(20px) scale(.98); } to { opacity: 1; transform: none; } }
+.pay-x { position: absolute; top: 12px; right: 16px; background: none; border: 0; color: var(--muted); font-size: 1.8rem; line-height: 1; cursor: pointer; transition: color .2s; }
+.pay-x:hover { color: var(--cream); }
+.pay-logo { width: 64px; height: 64px; object-fit: contain; margin: 0 auto 14px; }
+.pay-titulo { font-family: 'Cinzel', serif; font-weight: 700; font-size: 1.5rem; color: var(--cream); }
+.pay-sub { margin-top: 8px; color: var(--muted); font-size: 1rem; }
+.pay-sub strong { color: #D9AC45; }
+#pay-form { display: flex; flex-direction: column; gap: 12px; margin-top: 26px; }
+#pay-form input {
+  width: 100%; padding: 15px 16px; border-radius: 4px; border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.03); color: var(--cream); font-family: var(--body); font-size: 1rem;
+}
+#pay-form input::placeholder { color: #7c7566; }
+#pay-form input:focus { outline: none; border-color: #D9AC45; background: rgba(217,172,69,.06); }
+#pay-form .hero-btn { width: 100%; height: 60px; margin-top: 6px; }
+.pay-alt { background: none; border: 0; color: var(--muted); font-family: var(--cond); letter-spacing: .1em; text-transform: uppercase; font-size: .85rem; cursor: pointer; padding: 6px; transition: color .2s; }
+.pay-alt:hover { color: #D9AC45; }
+.pay-erro { color: #e0736a; font-size: .9rem; margin-top: 4px; }
+.pay-qr { width: 240px; height: 240px; margin: 22px auto 0; border-radius: 8px; background: #fff; padding: 10px; }
+.pay-copy { margin-top: 18px; width: 100%; height: 54px; border-radius: 4px; border: 1px solid #D9AC45; background: transparent; color: #D9AC45; font-family: var(--cond); font-weight: 600; letter-spacing: .12em; text-transform: uppercase; cursor: pointer; transition: background .2s; }
+.pay-copy:hover { background: rgba(217,172,69,.1); }
+.pay-copy.copiado { background: #D9AC45; color: #17151a; }
+.pay-wait { margin-top: 20px; color: var(--muted); font-size: .92rem; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.pay-spin { width: 16px; height: 16px; border: 2px solid rgba(217,172,69,.3); border-top-color: #D9AC45; border-radius: 50%; animation: pay-spin .8s linear infinite; }
+@keyframes pay-spin { to { transform: rotate(360deg); } }
+.pay-check { width: 76px; height: 76px; margin: 0 auto 18px; border-radius: 50%; background: rgba(92,214,122,.14); color: #5cd67a; display: grid; place-items: center; font-size: 2.4rem; animation: pay-in .5s var(--ease) both; }
+.pay-step .hero-btn { width: 100%; margin-top: 24px; }

@@ -219,6 +219,44 @@
     <a href="#inscricao" class="btn btn-gold" data-cta>Garantir vaga</a>
   </div>
 
+  <!-- ░░ MODAL DE INSCRIÇÃO ░░ -->
+  <div class="pay" id="pay" hidden>
+    <div class="pay-backdrop" data-close></div>
+    <div class="pay-box" role="dialog" aria-modal="true" aria-label="Inscrição">
+      <button class="pay-x" data-close aria-label="Fechar">&times;</button>
+
+      <div class="pay-step" data-step="form">
+        <img class="pay-logo" src="img/logo-bravos-gold.png" alt="" />
+        <h3 class="pay-titulo">Garanta sua vaga</h3>
+        <p class="pay-sub">Imersão Bravos · <strong>R$ 89,90</strong></p>
+        <form id="pay-form" novalidate>
+          <input name="nome" placeholder="Nome completo" autocomplete="name" required />
+          <input name="whatsapp" placeholder="WhatsApp com DDD" inputmode="tel" autocomplete="tel" required />
+          <input name="email" type="email" placeholder="E-mail" autocomplete="email" required />
+          <button class="hero-btn hero-btn-primary" type="submit" data-pix>Pagar com PIX</button>
+          <button class="pay-alt" type="button" data-cartao>ou pagar com cartão</button>
+          <p class="pay-erro" role="alert" hidden></p>
+        </form>
+      </div>
+
+      <div class="pay-step" data-step="pix" hidden>
+        <h3 class="pay-titulo">Falta pouco!</h3>
+        <p class="pay-sub">Escaneie o QR Code no app do seu banco</p>
+        <img class="pay-qr" alt="QR Code PIX" />
+        <button class="pay-copy" type="button" data-copy>Copiar código PIX</button>
+        <p class="pay-wait"><span class="pay-spin"></span> Aguardando confirmação do pagamento…</p>
+      </div>
+
+      <div class="pay-step" data-step="ok" hidden>
+        <div class="pay-check">✓</div>
+        <h3 class="pay-titulo">Inscrição confirmada!</h3>
+        <p class="pay-sub">Bem-vindo aos Bravos. Entre no grupo do WhatsApp para receber os avisos.</p>
+        <a class="hero-btn hero-btn-primary" id="pay-grupo" target="_blank" rel="noopener">Entrar no grupo</a>
+      </div>
+    </div>
+  </div>
+
+
   <script src="js/main.js"></script>
 </body>
 </html>
