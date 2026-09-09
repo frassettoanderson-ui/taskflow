@@ -296,9 +296,14 @@ $('#linhas').addEventListener('click', async e => {
       body: JSON.stringify({ id: add.dataset.add }),
     });
     const d = await r.json();
+    const recados = {
+      privacidade: 'Privacidade do WhatsApp bloqueia - use Convite',
+      saiu_recente: 'Saiu do grupo ha pouco - use Convite',
+      bloqueou: 'Numero indisponivel - confira o telefone',
+      falhou: 'Nao consegui adicionar - use Convite',
+    };
     if (d.ok) { cel.innerHTML = '<span class="tag t-sim">Sim</span>'; setTimeout(() => carregar(true), 1500); }
-    else if (d.resultado === 'privacidade') cel.innerHTML = '<span class="msg erro">Privacidade bloqueia \u2014 use Convite</span>';
-    else cel.innerHTML = '<span class="msg erro">' + esc(d.error || d.resultado || 'falhou') + '</span>';
+    else cel.innerHTML = '<span class="msg erro">' + esc(recados[d.resultado] || d.error || 'Falhou') + '</span>';
   } catch (err) { cel.innerHTML = '<span class="msg erro">Erro de conexao</span>'; }
 });
 
