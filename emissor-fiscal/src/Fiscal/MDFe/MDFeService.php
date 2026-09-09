@@ -43,20 +43,9 @@ final class MDFeService
 
         $xmlAssinado = $this->tools->signMDFe($montada['make']->getXML());
         $idLote = str_pad((string) random_int(1, 999999999), 15, '0', STR_PAD_LEFT);
-        $recibo = $this->tools->sefazEnviaLote([$xmlAssinado], $idLote);
+        // Envio SÍNCRONO (o assíncrono foi desativado pela SEFAZ para MDF-e).
+        $resp = $this->tools->sefazEnviaLote([$xmlAssinado], $idLote, 1);
 
-        // pega o número do recibo e consulta o processamento
-        $st = new \DOMDocument();
-        $st->loadXML($recibo);
-        $nRec = $st->getElementsByTagName('nRec')->item(0)->nodeValue ?? '';
-        if ($nRec === '') {
-            $this->store->salvar($this->emitente->cnpj, $chave, $xmlAssinado, 'mdfe-rejeitado');
-            return ['status' => 'rejeitado', 'chave' => $chave, 'protocolo' => null,
-                    'motivo' => $this->motivo($recibo), 'xml' => null];
-        }
-
-        usleep(1500000); // aguarda o processamento do lote
-        $resp = $this->tools->sefazConsultaRecibo($nRec);
         $rp = new \DOMDocument();
         $rp->loadXML($resp);
         $prot = $rp->getElementsByTagName('protMDFe')->item(0);
@@ -72,7 +61,7 @@ final class MDFeService
         }
         $this->store->salvar($this->emitente->cnpj, $chave, $xmlAssinado, 'mdfe-rejeitado');
         return ['status' => 'rejeitado', 'chave' => $chave, 'protocolo' => $nProt,
-                'motivo' => $this->motivo($resp), 'xml' => null, 'recibo' => $nRec];
+                'motivo' => $this->motivo($resp), 'xml' => null];
     }
 
     public function consultar(string $chave): array

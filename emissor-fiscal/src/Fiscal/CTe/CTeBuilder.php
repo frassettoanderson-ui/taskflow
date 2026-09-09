@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\CTe;
 
-use NFePHP\CTe\Make;
+use NFePHP\CTe\MakeCTe;
 
 /**
  * Monta o XML de um CT-e Normal (modelo 57), modal RODOVIÁRIO — o caso mais
@@ -22,11 +22,11 @@ final class CTeBuilder
         private int $serie
     ) {}
 
-    /** @return array{make:Make,chave:string,numero:int} */
+    /** @return array{make:MakeCTe,chave:string,numero:int} */
     public function montar(array $p, int $numero): array
     {
         $this->validar($p);
-        $make = new Make();
+        $make = new MakeCTe();
         $uf = $this->emitente['UF'];
         $cMun = $this->emitente['cMun'];
 
@@ -69,13 +69,14 @@ final class CTeBuilder
         $make->tagide($ide);
 
         $toma = new \stdClass();
-        $toma->toma = (string) ($p['tomador'] ?? 0);
-        $make->tagtoma($toma);
+        $toma->toma = (string) ($p['tomador'] ?? 3); // 0=Rem,1=Exped,2=Receb,3=Dest
+        $make->tagtoma3($toma);
 
         // ---- emit (transportadora) ----
         $emit = new \stdClass();
         $emit->CNPJ = $this->emitente['CNPJ'];
         $emit->IE = $this->emitente['IE'];
+        $emit->CRT = $this->emitente['CRT'] ?? 1;
         $emit->xNome = $this->emitente['xNome'];
         $emit->xFant = $this->emitente['xFant'] ?: null;
         $make->tagemit($emit);
@@ -112,8 +113,12 @@ final class CTeBuilder
         // ---- ICMS ----
         $icms = new \stdClass();
         if (($this->emitente['CRT'] ?? 1) == 1) {
-            $icms->cst = '90';       // Simples Nacional
+            // Simples Nacional: CST 90 "ICMS outros" com valores zerados (ISS no DAS)
+            $icms->cst = '90';
             $icms->indSN = 1;
+            $icms->vBC = '0.00';
+            $icms->pICMS = '0.00';
+            $icms->vICMS = '0.00';
         } else {
             $icms->cst = (string) ($p['cst_icms'] ?? '00');
             $icms->vBC = $vPrest->vTPrest;
@@ -156,17 +161,20 @@ final class CTeBuilder
         $respTec->CNPJ = $rt['CNPJ'] ?? '';
         $respTec->xContato = $rt['xContato'] ?? '';
         $respTec->email = $rt['email'] ?? '';
-        $respTec->fone = $rt['fone'] ?? '';
+        $respTec->fone = !empty($rt['fone']) ? $rt['fone'] : '4899999999';
         $make->taginfRespTec($respTec);
 
-        $xml = $make->getXML();
-        if (!$xml) {
-            throw new \RuntimeException('Erro ao montar CT-e: ' . implode(' | ', $make->getErrors()));
+        try {
+            $make->getXML();
+        } catch (\Throwable $e) {
+            $erros = $make->getErrors();
+            throw new \RuntimeException('Erro ao montar CT-e: '
+                . (empty($erros) ? $e->getMessage() : implode(' | ', $erros)));
         }
         return ['make' => $make, 'chave' => $make->getChave(), 'numero' => $numero];
     }
 
-    private function pessoa(Make $make, string $tipo, array $d): void
+    private function pessoa(MakeCTe $make, string $tipo, array $d): void
     {
         $obj = new \stdClass();
         if (!empty($d['cnpj'])) {

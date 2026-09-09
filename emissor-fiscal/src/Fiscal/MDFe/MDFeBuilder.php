@@ -38,6 +38,7 @@ final class MDFeBuilder
         $ide->serie = $this->serie;
         $ide->nMDF = $numero;
         $ide->cMDF = str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
+        $ide->cDV = 0;                // placeholder; o Make recalcula pela chave
         $ide->modal = 1;              // rodoviário
         $ide->dhEmi = date('Y-m-d\TH:i:sP');
         $ide->tpEmis = 1;
@@ -85,6 +86,8 @@ final class MDFeBuilder
         $vt->cInt = (string) ($veic['codigo_interno'] ?? '1');
         $vt->placa = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $veic['placa']));
         $vt->tara = (string) ($veic['tara'] ?? '0');
+        $vt->tpRod = (string) ($veic['tipo_rodado'] ?? '03'); // 03 = Cavalo Mecânico
+        $vt->tpCar = (string) ($veic['tipo_carroceria'] ?? '00'); // 00 = não aplicável
         $vt->UF = (string) ($veic['uf'] ?? $uf);
         if (!empty($veic['condutor_cpf'])) {
             $vt->condutor = [(object) [
@@ -93,6 +96,18 @@ final class MDFeBuilder
             ]];
         }
         $make->tagveicTracao($vt);
+
+        // reboques (carretas) — obrigatório ao menos um com cavalo mecânico
+        foreach (($p['reboques'] ?? []) as $i => $rb) {
+            $vr = new \stdClass();
+            $vr->cInt = (string) ($rb['codigo_interno'] ?? (string) ($i + 1));
+            $vr->placa = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $rb['placa']));
+            $vr->tara = (string) ($rb['tara'] ?? '0');
+            $vr->capKG = (string) ($rb['capacidade_kg'] ?? '0');
+            $vr->tpCar = (string) ($rb['tipo_carroceria'] ?? '00');
+            $vr->UF = (string) ($rb['uf'] ?? $uf);
+            $make->tagveicReboque($vr);
+        }
 
         // ---- documentos por município de descarga ----
         foreach ($p['descargas'] as $desc) {
@@ -115,6 +130,63 @@ final class MDFeBuilder
             }
         }
 
+        // ---- produto predominante (obrigatório no rodoviário) + lotação ----
+        $pp = $p['produto_predominante'] ?? [];
+        $prodPred = new \stdClass();
+        $prodPred->tpCarga = (string) ($pp['tipo_carga'] ?? '05'); // 05 = Carga Geral
+        $prodPred->xProd = (string) ($pp['descricao'] ?? 'PRODUTOS DIVERSOS');
+        $prodPred->NCM = (string) ($pp['ncm'] ?? '21069090');
+        // infLotacao: obrigatória quando há um único documento (carga de lotação)
+        $lot = $p['lotacao'] ?? [];
+        $prodPred->infLotacao = (object) [
+            'infLocalCarrega'    => (object) ['CEP' => $this->soDigitos($lot['cep_carrega'] ?? $this->emitente['CEP'])],
+            'infLocalDescarrega' => (object) ['CEP' => $this->soDigitos($lot['cep_descarrega'] ?? ($p['descargas'][0]['cep'] ?? '88010000'))],
+        ];
+        $make->tagprodPred($prodPred);
+
+        // ---- contratante(s) do serviço de transporte (tomador) ----
+        foreach (($p['contratantes'] ?? []) as $ct) {
+            $c = new \stdClass();
+            if (!empty($ct['cnpj'])) {
+                $c->CNPJ = $this->soDigitos($ct['cnpj']);
+            } else {
+                $c->CPF = $this->soDigitos($ct['cpf'] ?? '');
+            }
+            $c->xNome = (string) ($ct['nome'] ?? '');
+            $make->taginfContratante($c);
+        }
+
+        // ---- pagamento do frete (obrigatório p/ carga lotação) ----
+        $pagto = $p['pagamento'] ?? [];
+        $ct0 = $p['contratantes'][0] ?? [];
+        $vFrete = number_format((float) ($pagto['valor'] ?? 100), 2, '.', '');
+        $pag = new \stdClass();
+        $pag->xNome = (string) ($pagto['nome'] ?? ($ct0['nome'] ?? 'CONTRATANTE'));
+        $docPag = $pagto['cnpj'] ?? ($ct0['cnpj'] ?? '');
+        if ($docPag !== '') {
+            $pag->CNPJ = $this->soDigitos($docPag);
+        } else {
+            $pag->CPF = $this->soDigitos($pagto['cpf'] ?? ($ct0['cpf'] ?? ''));
+        }
+        $pag->Comp = [(object) ['tpComp' => '99', 'vComp' => $vFrete, 'xComp' => 'Frete']];
+        $pag->vContrato = $vFrete;
+        $pag->indPag = (string) ($pagto['forma'] ?? '0'); // 0 = à vista
+        $pag->infBanc = (object) ['PIX' => $this->soDigitos($pagto['pix'] ?? $this->emitente['CNPJ'])];
+        $make->taginfPag($pag);
+
+        // ---- seguro da carga (obrigatório p/ transportadora no rodoviário) ----
+        $seguro = $p['seguro'] ?? [];
+        $seg = new \stdClass();
+        $seg->respSeg = (string) ($seguro['responsavel'] ?? '2'); // 2 = Emitente do MDF-e (transportador)
+        $seg->CNPJ = $this->emitente['CNPJ'];                      // responsável pelo seguro
+        $seg->infSeg = (object) [                                 // seguradora
+            'xSeg' => (string) ($seguro['seguradora'] ?? 'SEGURADORA TESTE'),
+            'CNPJ' => $this->soDigitos($seguro['seguradora_cnpj'] ?? $this->emitente['CNPJ']),
+        ];
+        $seg->nApol = (string) ($seguro['apolice'] ?? '0000000001');
+        $seg->nAver = [(string) ($seguro['averbacao'] ?? '01020304050607080910')]; // array (uma ou mais averbações)
+        $make->tagseg($seg);
+
         // ---- totais ----
         $tot = new \stdClass();
         $tot->qCTe = (string) ($p['tot']['qtd_cte'] ?? 0);
@@ -130,12 +202,15 @@ final class MDFeBuilder
         $respTec->CNPJ = $rt['CNPJ'] ?? '';
         $respTec->xContato = $rt['xContato'] ?? '';
         $respTec->email = $rt['email'] ?? '';
-        $respTec->fone = $rt['fone'] ?? '';
+        $respTec->fone = !empty($rt['fone']) ? $rt['fone'] : '4899999999';
         $make->taginfRespTec($respTec);
 
-        $xml = $make->getXML();
-        if (!$xml) {
-            throw new \RuntimeException('Erro ao montar MDF-e: ' . implode(' | ', $make->getErrors()));
+        try {
+            $make->getXML();
+        } catch (\Throwable $e) {
+            $erros = $make->getErrors();
+            throw new \RuntimeException('Erro ao montar MDF-e: '
+                . (empty($erros) ? $e->getMessage() : implode(' | ', $erros)));
         }
         return ['make' => $make, 'chave' => $make->getChave(), 'numero' => $numero];
     }
