@@ -86,6 +86,15 @@ $('#ano').textContent = new Date().getFullYear();
   }));
 
   pay.addEventListener('click', e => { if (e.target.closest('[data-close]')) close(); });
+
+  // voltou do cartão recusado → reabre o formulário explicando o que fazer
+  if (new URLSearchParams(location.search).get('pagamento') === 'falhou') {
+    show('form');
+    const er = $('.pay-erro');
+    er.textContent = 'O cartão não foi aprovado. Tente entrar na sua conta do Mercado Pago antes de pagar, use outro cartão — ou pague pelo PIX, que é aprovado na hora.';
+    er.hidden = false;
+    history.replaceState(null, '', location.pathname);
+  }
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !pay.hidden) close(); });
 
   const form = $('#pay-form');

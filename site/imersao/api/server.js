@@ -98,7 +98,7 @@ app.post('/api/cartao', async (req, res) => {
         installments: MAX_PARCELAS,
         default_installments: 1,
       },
-      back_urls: { success: `${PUBLIC_BASE}/obrigado/`, pending: `${PUBLIC_BASE}/obrigado/`, failure: `${PUBLIC_BASE}/#inscricao` },
+      back_urls: { success: `${PUBLIC_BASE}/obrigado/`, pending: `${PUBLIC_BASE}/obrigado/`, failure: `${PUBLIC_BASE}/?pagamento=falhou` },
       auto_return: 'approved',
     }),
   });
