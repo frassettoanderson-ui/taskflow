@@ -17,6 +17,10 @@ const PUBLIC_BASE = process.env.PUBLIC_BASE || 'https://abarimigreja.com.br/imer
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const GRUPO = process.env.GRUPO_WHATSAPP || '';
 const VALOR = Number(process.env.VALOR || '89.90');
+const MAX_PARCELAS = Number(process.env.MAX_PARCELAS || '3');
+// taxa do cartão do Mercado Pago (ex.: 0.0499 = 4,99%); usada só no cartão pra repassar ao cliente
+const TAXA_CARTAO = Number(process.env.TAXA_CARTAO || '0.0499');
+const VALOR_CARTAO = Number((VALOR / (1 - TAXA_CARTAO)).toFixed(2));
 const PORT = Number(process.env.PORT || '8402');
 const DB = path.join(__dirname, 'data', 'inscritos.json');
 
@@ -39,7 +43,7 @@ const ok = v => typeof v === 'string' && v.trim().length > 1;
 const esc = s => String(s == null ? '' : s).replace(/[<>&"]/g, c => ({ '<': '&' + 'lt;', '>': '&' + 'gt;', '&': '&' + 'amp;', '"': '&' + 'quot;' }[c]));
 
 // estado da configuração — o front usa pra decidir se abre o formulário ou cai no WhatsApp
-app.get('/api/config', (_req, res) => res.json({ enabled: !!TOKEN, valor: VALOR }));
+app.get('/api/config', (_req, res) => res.json({ enabled: !!TOKEN, valor: VALOR, valorCartao: VALOR_CARTAO, maxParcelas: MAX_PARCELAS }));
 
 // cria a inscrição + cobrança PIX
 app.post('/api/inscrever', async (req, res) => {
@@ -85,17 +89,21 @@ app.post('/api/cartao', async (req, res) => {
   const r = await mp('/checkout/preferences', {
     method: 'POST',
     body: JSON.stringify({
-      items: [{ title: 'Imersão Bravos — O Caráter de Davi', quantity: 1, unit_price: VALOR, currency_id: 'BRL' }],
+      items: [{ title: 'Imersão Bravos — O Caráter de Davi', quantity: 1, unit_price: VALOR_CARTAO, currency_id: 'BRL' }],
       payer: { name: nome, email },
       external_reference: id,
       notification_url: `${PUBLIC_BASE}/api/webhook`,
-      payment_methods: { excluded_payment_types: [{ id: 'ticket' }] },
+      payment_methods: {
+        excluded_payment_types: [{ id: 'ticket' }, { id: 'bank_transfer' }],
+        installments: MAX_PARCELAS,
+        default_installments: 1,
+      },
       back_urls: { success: `${PUBLIC_BASE}/obrigado/`, pending: `${PUBLIC_BASE}/obrigado/`, failure: `${PUBLIC_BASE}/#inscricao` },
       auto_return: 'approved',
     }),
   });
   if (!r.ok) { console.error('MP pref erro', r.status, r.body); return res.status(502).json({ error: 'falha_cartao' }); }
-  db[id] = { id, nome, email, whatsapp, valor: VALOR, metodo: 'cartao', mp_id: null,
+  db[id] = { id, nome, email, whatsapp, valor: VALOR_CARTAO, metodo: 'cartao', mp_id: null,
     status: 'pending', criado: new Date().toISOString(), pago: null };
   save();
   res.json({ id, init_point: r.body.init_point });

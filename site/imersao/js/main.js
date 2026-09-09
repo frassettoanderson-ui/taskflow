@@ -63,7 +63,15 @@ $('#ano').textContent = new Date().getFullYear();
   const API = 'api';
   let enabled = false, poll = null;
 
-  fetch(API + '/config').then(r => r.json()).then(c => { enabled = !!c.enabled; }).catch(() => {});
+  fetch(API + '/config').then(r => r.json()).then(c => {
+    enabled = !!c.enabled;
+    const nota = $('.pay-cartao-nota');
+    if (nota && c.valorCartao) {
+      const v = Number(c.valorCartao).toFixed(2).replace('.', ',');
+      nota.textContent = 'No cartão: R$ ' + v + ' · em até ' + (c.maxParcelas || 3) + 'x';
+      nota.hidden = false;
+    }
+  }).catch(() => {});
 
   const steps = $$('.pay-step', pay);
   const show = name => { pay.hidden = false; document.body.style.overflow = 'hidden'; steps.forEach(s => s.hidden = s.dataset.step !== name); };
