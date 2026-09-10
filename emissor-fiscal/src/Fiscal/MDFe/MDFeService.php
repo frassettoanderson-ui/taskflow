@@ -89,9 +89,10 @@ final class MDFeService
      */
     public function encerrar(string $chave, string $protocolo, string $municipioCod, string $uf): array
     {
-        $nSeqEvento = 1;
+        // Assinatura NFePHP: sefazEncerra(chave, nProt, cUF, cMun, dtEnc)
+        $cUF = $this->codigoUF($uf);
         $dtEnc = date('Y-m-d');
-        $resp = $this->tools->sefazEncerra($chave, $dtEnc, $uf, $municipioCod, $protocolo, $nSeqEvento);
+        $resp = $this->tools->sefazEncerra($chave, $protocolo, (string) $cUF, $municipioCod, $dtEnc);
         $sucesso = str_contains($resp, '<cStat>135</cStat>');
         if ($sucesso) {
             $this->store->salvar($this->emitente->cnpj, "{$chave}-enc", $resp, 'mdfe-eventos');
@@ -125,6 +126,12 @@ final class MDFeService
                 'motivo' => $st->getElementsByTagName('xMotivo')->item(0)->nodeValue ?? '',
                 'ambiente' => $this->ambiente === 1 ? 'producao' : 'homologacao',
                 'emitente' => $this->emitente->cnpj];
+    }
+
+    private function codigoUF(string $uf): int
+    {
+        $map = ['RO'=>11,'AC'=>12,'AM'=>13,'RR'=>14,'PA'=>15,'AP'=>16,'TO'=>17,'MA'=>21,'PI'=>22,'CE'=>23,'RN'=>24,'PB'=>25,'PE'=>26,'AL'=>27,'SE'=>28,'BA'=>29,'MG'=>31,'ES'=>32,'RJ'=>33,'SP'=>35,'PR'=>41,'SC'=>42,'RS'=>43,'MS'=>50,'MT'=>51,'GO'=>52,'DF'=>53];
+        return $map[strtoupper($uf)] ?? 0;
     }
 
     private function motivo(string $resp): string
