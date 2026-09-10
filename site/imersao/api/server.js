@@ -195,10 +195,15 @@ app.get('/api/painel', async (req, res) => {
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
   const g = await grupoInfo(req.query.atualizar === '1');
   const membros = new Set(g?.membros || []);
-  // ordem de inscrição: o primeiro que se inscreveu é o nº 1
+  // ordem de inscrição: numera SÓ os pagos, em sequência (1, 2, 3...)
+  let n = 0;
   const list = Object.values(db)
     .sort((a, b) => (a.criado || '').localeCompare(b.criado || ''))
-    .map((r, i) => ({ ...r, ordem: i + 1, noGrupo: membros.size ? membros.has(chaveFone(r.whatsapp)) : null }));
+    .map(r => ({
+      ...r,
+      ordem: r.status === 'approved' ? ++n : null,
+      noGrupo: membros.size ? membros.has(chaveFone(r.whatsapp)) : null,
+    }));
   const pagos = list.filter(r => r.status === 'approved');
   res.json({
     grupo: g ? { nome: g.nome, total: g.total, link: GRUPO } : null,
@@ -272,8 +277,9 @@ app.get('/api/admin', (req, res) => {
   const list = Object.values(db).sort((a, b) => (a.criado || '').localeCompare(b.criado || ''));
   const pagos = list.filter(r => r.status === 'approved');
   if (req.query.csv) {
+    let nc = 0;
     const rows = [['#', 'nome', 'whatsapp', 'email', 'status', 'metodo', 'criado', 'pago'],
-      ...list.map((r, i) => [i + 1, r.nome, r.whatsapp, r.email, r.status, r.metodo, r.criado, r.pago || ''])];
+      ...list.map(r => [r.status === 'approved' ? ++nc : '', r.nome, r.whatsapp, r.email, r.status, r.metodo, r.criado, r.pago || ''])];
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename=inscritos-bravos.csv');
     return res.send('﻿' + rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(';')).join('\n'));

@@ -299,7 +299,7 @@ function render() {
 
   $('#linhas').innerHTML = lista.length ? lista.map(r => `
     <tr>
-      <td class="ord">${r.ordem}</td>
+      <td class="ord">${r.ordem || "–"}</td>
       <td class="nome">${esc(r.nome)}</td>
       <td>${fone(r.whatsapp)}</td>
       <td class="esconde">${esc(r.email)}</td>
