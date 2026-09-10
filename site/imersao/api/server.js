@@ -305,6 +305,54 @@ app.post('/api/grupo/adicionar', async (req, res) => {
   }
 });
 
+// envia o convite do grupo direto no WhatsApp da pessoa (via Evolution)
+app.post('/api/convite', async (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
+  const rec = db[req.body.id];
+  if (!rec) return res.status(404).json({ error: 'nao_encontrado' });
+  if (!EVO_KEY) return res.status(503).json({ error: 'whatsapp_desconectado' });
+  if (!GRUPO) return res.status(400).json({ error: 'sem_link_grupo' });
+
+  const numero = '55' + digits(rec.whatsapp).replace(/^55/, '');
+  const primeiro = String(rec.nome || '').split(' ')[0] || '';
+  const texto =
+    `Olá ${primeiro}! Sua inscrição na *Imersão Bravos* está confirmada. ✅\n\n` +
+    `📅 Sábado, 17/10 às 15h — Igreja Abarim, Av. 21 de Junho, 288, Centro (Imbituba/SC)\n\n` +
+    `Entre no grupo dos inscritos para receber todos os avisos até o dia:\n${GRUPO}`;
+  try {
+    const r = await fetch(`${EVO_URL}/message/sendText/${EVO_ADD_INSTANCE}`, {
+      method: 'POST',
+      headers: { apikey: EVO_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: numero, text: texto }),
+    });
+    const b = await r.json().catch(() => ({}));
+    if (r.ok && b.key) {
+      rec.conviteEnviado = new Date().toISOString();
+      save();
+      return res.json({ ok: true });
+    }
+    return res.json({ ok: false, detalhe: (b && (b.message || b.error)) || `status ${r.status}` });
+  } catch (e) {
+    return res.status(502).json({ error: 'falha_envio', detalhe: e.message });
+  }
+});
+
+// ── vigia de conexão: se a instância cair, tenta reconectar sozinho ───────
+let ultimoEstado = '';
+async function vigiaConexao() {
+  if (!EVO_KEY) return;
+  try {
+    const s = await evo(`${EVO_URL}/instance/connectionState/${EVO_ADD_INSTANCE}`);
+    const st = (s && s.instance && s.instance.state) || 'desconhecido';
+    if (st !== ultimoEstado) { console.log('[whatsapp] estado:', st); ultimoEstado = st; }
+    if (st !== 'open') {
+      // sessão ainda válida (queda curta) reconecta sem QR; se foi deslogada, precisa de QR novo
+      await evo(`${EVO_URL}/instance/connect/${EVO_ADD_INSTANCE}`).catch(() => {});
+    }
+  } catch (e) { /* silencioso — tenta de novo no próximo ciclo */ }
+}
+if (EVO_KEY) { setInterval(vigiaConexao, 90000); setTimeout(vigiaConexao, 5000); }
+
 // painel de inscritos (protegido por ?key=)
 app.get('/api/admin', (req, res) => {
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).send('nao autorizado');
