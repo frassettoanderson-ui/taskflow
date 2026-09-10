@@ -172,18 +172,30 @@ const chaveFone = s => {
 };
 
 let grupoCache = { at: 0, data: null };
+let grupoNome = '';
+const evo = (url) => fetch(url, { headers: { apikey: EVO_KEY } }).then(r => r.json());
+
 async function grupoInfo(forcar) {
-  if (!EVO_KEY || !GRUPO_CODE) return null;
+  if (!EVO_KEY) return null;
   if (!forcar && grupoCache.data && Date.now() - grupoCache.at < 60000) return grupoCache.data;
   try {
-    const r = await fetch(`${EVO_URL}/group/inviteInfo/${EVO_INSTANCE}?inviteCode=${GRUPO_CODE}`,
-      { headers: { apikey: EVO_KEY } });
-    const b = await r.json();
-    if (!b || !b.id) return grupoCache.data;
-    grupoJid = b.id;
+    // 1) descobre o id e o nome do grupo uma única vez (pelo código do convite)
+    if ((!grupoJid || !grupoNome) && GRUPO_CODE) {
+      const b = await evo(`${EVO_URL}/group/inviteInfo/${EVO_INSTANCE}?inviteCode=${GRUPO_CODE}`);
+      if (b && b.id) { grupoJid = b.id; grupoNome = b.subject || grupoNome; }
+    }
+    if (!grupoJid) return grupoCache.data;
+
+    // 2) lista de participantes pela instância que está DENTRO do grupo.
+    //    O inviteInfo devolve lista incompleta — este endpoint é o confiável.
+    const b = await evo(`${EVO_URL}/group/participants/${EVO_ADD_INSTANCE}?groupJid=${encodeURIComponent(grupoJid)}`);
+    const parts = (b && b.participants) || [];
+    if (!parts.length) return grupoCache.data;
+
     const data = {
-      nome: b.subject, total: b.size,
-      membros: (b.participants || []).map(p => chaveFone(p.phoneNumber || p.id)),
+      nome: grupoNome || 'Grupo da Imersão',
+      total: parts.length,
+      membros: parts.map(p => chaveFone(p.phoneNumber || p.id)),
     };
     grupoCache = { at: Date.now(), data };
     return data;
