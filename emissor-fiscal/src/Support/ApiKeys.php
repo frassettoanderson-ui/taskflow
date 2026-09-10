@@ -46,6 +46,7 @@ final class ApiKeys
             if (hash_equals((string) $chave, $token)) {
                 return [
                     'nome'      => (string) ($conf['nome'] ?? 'desconhecido'),
+                    'admin'     => (bool) ($conf['admin'] ?? false),
                     'emitentes' => array_map(
                         fn ($c) => $c === '*' ? '*' : preg_replace('/\D/', '', (string) $c),
                         (array) ($conf['emitentes'] ?? [])

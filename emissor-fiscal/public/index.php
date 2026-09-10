@@ -22,6 +22,7 @@ use App\Support\Config;
 use App\Support\Contador;
 use App\Support\EmitenteRepository;
 use App\Support\XmlStore;
+use App\Admin\EmitenteAdminService;
 
 $root = dirname(__DIR__);
 require $root . '/vendor/autoload.php';
@@ -114,6 +115,32 @@ $nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
 $router->add('GET', '/health', function () {
     Response::ok(['servico' => 'emissor-fiscal', 'versao' => '1.0']);
 }, protected: false);
+
+// ---------------- Admin: cadastro de emitentes (chave admin) ----------------
+$exigirAdmin = static function (Request $req): void {
+    if (empty($req->caller['admin'])) {
+        Response::erro('Requer chave de API com permissão de admin.', 403);
+    }
+};
+$admin = static fn (): EmitenteAdminService => new EmitenteAdminService(dirname(__DIR__));
+
+$router->add('POST', '/v1/admin/emitentes', function (Request $req) use ($exigirAdmin, $admin) {
+    $exigirAdmin($req);
+    $cert = $req->body['certificado_base64'] ?? null;
+    $r = $admin()->registrar($req->body, is_string($cert) ? $cert : null);
+    Response::ok(['emitente' => $r]);
+});
+
+$router->add('GET', '/v1/admin/emitentes', function (Request $req) use ($exigirAdmin, $admin) {
+    $exigirAdmin($req);
+    Response::ok(['emitentes' => $admin()->listar()]);
+});
+
+$router->add('POST', '/v1/admin/emitentes/remover', function (Request $req) use ($exigirAdmin, $admin) {
+    $exigirAdmin($req);
+    $admin()->remover((string) ($req->body['cnpj'] ?? ''));
+    Response::ok();
+});
 
 $router->add('POST', '/v1/nfe/status', function (Request $req) use ($nfeDoEmitente) {
     Response::ok(['sefaz' => $nfeDoEmitente($req)->statusServico()]);
