@@ -93,6 +93,8 @@
     .msg{font-size:.76rem;color:var(--muted)}
     .msg.erro{color:#e08872}
     .msg.ok{color:#7cc994}
+    .forma{display:block;margin-top:4px;font-size:.72rem;letter-spacing:.06em;color:#8d867a}
+    .forma.manual{color:#c9a24a}
     .login{position:fixed;inset:0;z-index:150;background:var(--ink);display:grid;place-items:center;padding:20px}
     .login[hidden]{display:none}
     .login-box{width:min(380px,100%);text-align:center}
@@ -114,6 +116,9 @@
     .caixa input{width:100%;padding:11px 13px;border-radius:4px;border:1px solid var(--line);
       background:var(--panel);color:var(--cream);font-family:inherit;font-size:.95rem}
     .caixa input:focus{outline:none;border-color:var(--gold)}
+    .caixa select{width:100%;padding:11px 13px;border-radius:4px;border:1px solid var(--line);
+      background:var(--panel);color:var(--cream);font-family:inherit;font-size:.95rem}
+    .caixa select:focus{outline:none;border-color:var(--gold)}
     .caixa .fim{display:flex;gap:10px;justify-content:flex-end;margin-top:22px}
     .vazio{padding:44px 20px;text-align:center;color:var(--muted)}
     .aviso{margin-bottom:18px;padding:13px 16px;border-radius:6px;border:1px solid rgba(201,130,47,.35);
@@ -139,6 +144,7 @@
       </div>
       <div class="acoes">
         <button class="btn" id="atualizar">Atualizar</button>
+        <button class="btn" id="lancar">+ Lançar manual</button>
         <a class="btn btn-ouro" id="csv" href="#">Baixar planilha</a>
       </div>
     </header>
@@ -188,6 +194,33 @@
       <input id="lg-chave" type="password" placeholder="Chave de acesso" autocomplete="current-password" />
       <button class="btn btn-ouro" id="lg-entrar">Entrar</button>
       <p class="erro" id="lg-erro" hidden></p>
+    </div>
+  </div>
+
+  <div class="fundo" id="manual" hidden>
+    <div class="caixa">
+      <h3>Lançar inscrição manual</h3>
+      <p class="quem">Para quem pagou por fora do site (dinheiro, transferência, etc.). Entra direto como pago.</p>
+      <label for="mn-nome">Nome</label>
+      <input id="mn-nome" type="text" placeholder="Nome completo" />
+      <label for="mn-fone">WhatsApp (com DDD)</label>
+      <input id="mn-fone" type="tel" inputmode="numeric" placeholder="48999999999" />
+      <label for="mn-email">E-mail (opcional)</label>
+      <input id="mn-email" type="email" placeholder="email@exemplo.com" />
+      <label for="mn-metodo">Forma de pagamento</label>
+      <select id="mn-metodo">
+        <option value="dinheiro">Dinheiro</option>
+        <option value="pix">PIX (fora do site)</option>
+        <option value="transferencia">Transferência</option>
+        <option value="cartao">Cartão (maquininha)</option>
+      </select>
+      <label for="mn-valor">Valor (R$)</label>
+      <input id="mn-valor" type="text" inputmode="decimal" value="89,90" />
+      <p class="msg erro" id="mn-erro" hidden></p>
+      <div class="fim">
+        <button class="btn" id="mn-cancelar">Cancelar</button>
+        <button class="btn btn-ouro" id="mn-salvar">Lançar como pago</button>
+      </div>
     </div>
   </div>
 
@@ -289,7 +322,11 @@ function render() {
       || (td && String(r.whatsapp||'').includes(td)));
   }
 
-  const tagPag = s => s === 'approved' ? '<span class="tag t-pago">Pago</span>'
+  const formaLabel = r => {
+    const m = { pix: 'PIX', cartao: 'Cartão', dinheiro: 'Dinheiro', transferencia: 'Transferência', manual: 'Manual' }[r.metodo] || r.metodo || '';
+    return r.manual ? (m + ' · lançado') : m;
+  };
+    const tagPag = s => s === 'approved' ? '<span class="tag t-pago">Pago</span>'
     : s === 'pending' ? '<span class="tag t-pend">Pendente</span>'
     : `<span class="tag t-neg">${s === 'rejected' ? 'Recusado' : s}</span>`;
   const tagGrupo = r => r.noGrupo === true
@@ -303,7 +340,7 @@ function render() {
       <td class="nome">${esc(r.nome)}</td>
       <td>${fone(r.whatsapp)}</td>
       <td class="esconde">${esc(r.email)}</td>
-      <td>${tagPag(r.status)}</td>
+      <td>${tagPag(r.status)}${r.status === 'approved' ? `<span class="forma ${r.manual ? 'manual' : ''}">${formaLabel(r)}</span>` : ''}</td>
       <td id="g-${r.id}">${tagGrupo(r)}</td>
       <td class="esconde">${dataBr(r.criado)}</td>
       <td class="acoes">
@@ -396,6 +433,39 @@ $('#ed-salvar').addEventListener('click', async () => {
     fecharEditor(); carregar(true);
   } catch (e) { erro.textContent = 'Erro de conexao.'; erro.hidden = false; }
   finally { b.disabled = false; b.textContent = 'Salvar'; }
+});
+
+// lançamento manual
+const abrirManual = () => {
+  $('#mn-nome').value = ''; $('#mn-fone').value = ''; $('#mn-email').value = '';
+  $('#mn-metodo').value = 'dinheiro'; $('#mn-valor').value = '89,90'; $('#mn-erro').hidden = true;
+  $('#manual').hidden = false; $('#mn-nome').focus();
+};
+const fecharManual = () => { $('#manual').hidden = true; };
+$('#lancar').addEventListener('click', abrirManual);
+$('#mn-cancelar').addEventListener('click', fecharManual);
+$('#manual').addEventListener('click', e => { if (e.target.id === 'manual') fecharManual(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#manual').hidden) fecharManual(); });
+
+$('#mn-salvar').addEventListener('click', async () => {
+  const nome = $('#mn-nome').value.trim();
+  const fone = $('#mn-fone').value.replace(/\D/g, '');
+  const valor = ($('#mn-valor').value || '').replace(/[^0-9,.-]/g, '').replace(',', '.');
+  const erro = $('#mn-erro');
+  if (nome.length < 3) { erro.textContent = 'Informe o nome completo.'; erro.hidden = false; return; }
+  if (fone.replace(/^55/, '').length < 10) { erro.textContent = 'Telefone inválido (DDD + número).'; erro.hidden = false; return; }
+  const b = $('#mn-salvar'); b.disabled = true; b.textContent = 'Lançando...';
+  try {
+    const r = await fetch('../api/manual?key=' + encodeURIComponent(KEY), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nome, whatsapp: fone, email: $('#mn-email').value.trim(),
+        metodo: $('#mn-metodo').value, valor }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.ok) { erro.textContent = d.error || 'Não consegui lançar.'; erro.hidden = false; return; }
+    fecharManual(); carregar(true);
+  } catch (e) { erro.textContent = 'Erro de conexão.'; erro.hidden = false; }
+  finally { b.disabled = false; b.textContent = 'Lançar como pago'; }
 });
 
 $('#atualizar').addEventListener('click', () => carregar(true));

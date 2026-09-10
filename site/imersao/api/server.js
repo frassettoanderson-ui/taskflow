@@ -253,6 +253,24 @@ app.get('/api/painel', async (req, res) => {
   });
 });
 
+// lançamento manual (pagou em dinheiro/transferência/PIX direto fora do site)
+app.post('/api/manual', (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
+  const nome = (req.body.nome || '').trim();
+  const email = (req.body.email || '').trim();
+  const whatsapp = digits(req.body.whatsapp);
+  const metodo = ['dinheiro', 'pix', 'cartao', 'transferencia'].includes(req.body.metodo) ? req.body.metodo : 'dinheiro';
+  const valor = Number(req.body.valor) || VALOR;
+  if (!ok(nome) || whatsapp.length < 10) return res.status(400).json({ error: 'dados_invalidos' });
+  const id = crypto.randomUUID();
+  const rec = { id, nome, email, whatsapp, valor, metodo, mp_id: null,
+    status: 'approved', criado: new Date().toISOString(), pago: new Date().toISOString(), manual: true };
+  db[id] = rec;
+  limparPendentes(rec);
+  save();
+  res.json({ ok: true, inscrito: rec });
+});
+
 // edita o inscrito (hoje: telefone, nome, e-mail)
 app.patch('/api/inscrito/:id', (req, res) => {
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
