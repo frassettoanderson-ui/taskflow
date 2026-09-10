@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Fiscal\NFe\NFeService;
 use App\Fiscal\NFCe\NFCeService;
+use App\Fiscal\SubstituicaoNFCe;
 use App\Fiscal\CTe\CTeService;
 use App\Fiscal\MDFe\MDFeService;
 use App\Fiscal\NFSe\NFSeService;
@@ -193,6 +194,20 @@ $router->add('POST', '/v1/nfce/danfce', function (Request $req) use ($nfceDoEmit
         Response::erro('chave de acesso inválida (44 dígitos).', 400);
     }
     Response::ok($nfceDoEmitente($req)->danfce($chave));
+});
+
+// Substituir NFC-e por NF-e (cancela a NFC-e e emite NF-e com os mesmos itens)
+$router->add('POST', '/v1/nfe/substituir-nfce', function (Request $req) use ($root, $emitentes, $store, $contador) {
+    $cnpj = (string) ($req->body['emitente'] ?? '');
+    if ($cnpj === '') {
+        throw new InvalidArgumentException('Campo "emitente" (CNPJ) é obrigatório.');
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
+    }
+    $svc = new SubstituicaoNFCe($root, $emitentes->buscar($cnpj), Config::ambiente(), $store, $contador);
+    $r = $svc->executar($req->body);
+    Response::json($r, !empty($r['ok']) ? 200 : 422);
 });
 
 // ---------------- CT-e (modelo 57) ----------------

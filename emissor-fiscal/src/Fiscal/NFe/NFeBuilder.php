@@ -62,6 +62,13 @@ final class NFeBuilder
         $ide->verProc = 'emissor-fiscal-1.0';
         $make->tagide($ide);
 
+        // Documentos referenciados (ex.: NFC-e substituída por esta NF-e)
+        foreach (($p['referencias'] ?? []) as $refChave) {
+            $ref = new \stdClass();
+            $ref->refNFe = preg_replace('/\D/', '', (string) $refChave);
+            $make->tagrefNFe($ref);
+        }
+
         // ------- emit -------
         $emit = new \stdClass();
         $emit->CNPJ = $this->emitente['CNPJ'];
