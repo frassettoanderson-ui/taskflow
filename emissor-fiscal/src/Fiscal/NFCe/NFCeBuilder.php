@@ -103,14 +103,24 @@ final class NFCeBuilder
             $make->tagdest($dest);
         }
 
-        // ------- itens -------
-        $totalProd = 0.0;
-        foreach (array_values($p['itens']) as $i => $item) {
+        // ------- itens (com rateio de desconto) -------
+        $itens = array_values($p['itens']);
+        $vprods = [];
+        foreach ($itens as $item) {
+            $qtd = (float) $item['quantidade'];
+            $vun = (float) $item['valor_unitario'];
+            $vprods[] = isset($item['valor_total']) ? (float) $item['valor_total'] : round($qtd * $vun, 2);
+        }
+        $totalProd = array_sum($vprods);
+        $descontos = $this->ratearDesconto($itens, $vprods, (float) ($p['desconto'] ?? 0), $totalProd);
+        $totalDesc = array_sum($descontos);
+
+        foreach ($itens as $i => $item) {
             $n = $i + 1;
             $qtd = (float) $item['quantidade'];
             $vun = (float) $item['valor_unitario'];
-            $vprod = isset($item['valor_total']) ? (float) $item['valor_total'] : round($qtd * $vun, 2);
-            $totalProd += $vprod;
+            $vprod = $vprods[$i];
+            $vDesc = $descontos[$i];
 
             $prod = new \stdClass();
             $prod->item = $n;
@@ -126,6 +136,9 @@ final class NFCeBuilder
             $prod->qCom = number_format($qtd, 4, '.', '');
             $prod->vUnCom = number_format($vun, 10, '.', '');
             $prod->vProd = number_format($vprod, 2, '.', '');
+            if ($vDesc > 0) {
+                $prod->vDesc = number_format($vDesc, 2, '.', '');
+            }
             $prod->cEANTrib = $prod->cEAN;
             $prod->uTrib = $prod->uCom;
             $prod->qTrib = $prod->qCom;
@@ -137,7 +150,8 @@ final class NFCeBuilder
             $imposto->item = $n;
             $make->tagimposto($imposto);
 
-            $this->montarImpostos($make, $n, $item, $vprod);
+            // base do ICMS = valor líquido do item (vProd - vDesc)
+            $this->montarImpostos($make, $n, $item, round($vprod - $vDesc, 2));
         }
 
         // ------- totais -------
@@ -147,7 +161,8 @@ final class NFCeBuilder
             $icmsTot->$z = '0.00';
         }
         $icmsTot->vProd = number_format($totalProd, 2, '.', '');
-        $icmsTot->vNF = number_format($totalProd, 2, '.', '');
+        $icmsTot->vDesc = number_format($totalDesc, 2, '.', '');
+        $icmsTot->vNF = number_format($totalProd - $totalDesc, 2, '.', '');
         $make->tagICMSTot($icmsTot);
 
         // ------- transporte -------
@@ -156,12 +171,13 @@ final class NFCeBuilder
         $make->tagtransp($transp);
 
         // ------- pagamento (obrigatório; aceita várias formas + troco) -------
-        $pagamentos = $p['pagamentos'] ?? [['forma' => '01', 'valor' => $totalProd]];
+        $vNF = $totalProd - $totalDesc;
+        $pagamentos = $p['pagamentos'] ?? [['forma' => '01', 'valor' => $vNF]];
         $totalPago = 0.0;
         foreach ($pagamentos as $pg) {
             $totalPago += (float) ($pg['valor'] ?? 0);
         }
-        $troco = max(0.0, $totalPago - $totalProd);
+        $troco = max(0.0, $totalPago - $vNF);
 
         $pag = new \stdClass();
         if ($troco > 0) {
@@ -198,6 +214,42 @@ final class NFCeBuilder
         }
 
         return ['make' => $make, 'chave' => $make->getChave(), 'numero' => $numero];
+    }
+
+    /**
+     * Rateia o desconto entre os itens: soma o desconto por item (se houver) com
+     * o desconto global (rateado proporcional ao valor de cada item). O resíduo
+     * de arredondamento vai no último item, para o total bater exatamente.
+     * @return float[] desconto de cada item, na ordem
+     */
+    private function ratearDesconto(array $itens, array $vprods, float $descGlobal, float $totalProd): array
+    {
+        $n = count($vprods);
+        $descontos = array_fill(0, $n, 0.0);
+
+        foreach ($itens as $i => $item) {
+            if (isset($item['desconto'])) {
+                $descontos[$i] += (float) $item['desconto'];
+            }
+        }
+
+        if ($descGlobal > 0 && $totalProd > 0) {
+            $acumulado = 0.0;
+            for ($i = 0; $i < $n; $i++) {
+                if ($i === $n - 1) {
+                    $parte = round($descGlobal - $acumulado, 2); // resíduo no último
+                } else {
+                    $parte = round($descGlobal * $vprods[$i] / $totalProd, 2);
+                    $acumulado += $parte;
+                }
+                $descontos[$i] += $parte;
+            }
+        }
+
+        for ($i = 0; $i < $n; $i++) {
+            $descontos[$i] = min(max($descontos[$i], 0.0), $vprods[$i]); // nunca passa do item
+        }
+        return $descontos;
     }
 
     private function montarImpostos(Make $make, int $item, array $it, float $vprod): void
