@@ -35,7 +35,7 @@ img { max-width: 100%; display: block; }
 a { color: inherit; }
 ::selection { background: rgba(205,163,73,.32); color: var(--cream); }
 h1,h2,h3 { margin: 0; font-family: var(--display); color: var(--cream); font-weight: 700; line-height: 1.1; }
-h2 { font-size: clamp(1.9rem, 4.2vw, 3rem); letter-spacing: .01em; }
+h2 { font-size: clamp(1.9rem, 4.2vw, 3rem); letter-spacing: .01em; text-transform: uppercase; }
 h2 em, .hero-tema em { font-style: normal; color: var(--gold); }
 p { margin: 0; }
 section { position: relative; padding: clamp(80px, 11vw, 140px) 24px; }
