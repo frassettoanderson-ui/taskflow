@@ -131,7 +131,10 @@ app.get('/api/status/:id', async (req, res) => {
   if (!rec) return res.status(404).json({ error: 'nao_encontrado' });
   if (rec.status !== 'approved' && rec.mp_id && TOKEN) {
     const r = await mp('/v1/payments/' + rec.mp_id);
-    if (r.ok && r.body.status === 'approved') { rec.status = 'approved'; rec.pago = new Date().toISOString(); save(); }
+    if (r.ok && r.body.status === 'approved') {
+      rec.status = 'approved'; rec.pago = new Date().toISOString();
+      limparPendentes(rec); save();
+    }
   }
   res.json({ status: rec.status, grupo: rec.status === 'approved' ? GRUPO : undefined });
 });
@@ -149,7 +152,10 @@ app.post('/api/webhook', async (req, res) => {
     const rec = db[ref];
     if (rec) {
       rec.mp_id = paymentId;
-      if (r.body.status === 'approved' && rec.status !== 'approved') { rec.status = 'approved'; rec.pago = new Date().toISOString(); }
+      if (r.body.status === 'approved' && rec.status !== 'approved') {
+        rec.status = 'approved'; rec.pago = new Date().toISOString();
+        limparPendentes(rec);
+      }
       else if (rec.status === 'pending') rec.status = r.body.status;
       save();
     }
@@ -170,6 +176,22 @@ const chaveFone = s => {
   const d = digits(s).replace(/^55/, '');
   return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d;
 };
+
+// quando um pagamento é aprovado, remove as tentativas pendentes da mesma pessoa
+// (ex.: gerou o PIX, não pagou na hora, e depois se inscreveu de novo e pagou)
+function limparPendentes(rec) {
+  const chave = chaveFone(rec.whatsapp);
+  const mail = String(rec.email || '').toLowerCase();
+  let n = 0;
+  for (const [id, r] of Object.entries(db)) {
+    if (id === rec.id || r.status !== 'pending') continue;
+    const mesmoFone = chave && chaveFone(r.whatsapp) === chave;
+    const mesmoMail = mail && String(r.email || '').toLowerCase() === mail;
+    if (mesmoFone || mesmoMail) { delete db[id]; n++; }
+  }
+  if (n) console.log(`limpou ${n} pendente(s) de ${rec.nome}`);
+  return n;
+}
 
 let grupoCache = { at: 0, data: null };
 let grupoNome = '';
