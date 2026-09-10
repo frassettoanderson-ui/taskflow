@@ -93,6 +93,17 @@
     .msg{font-size:.76rem;color:var(--muted)}
     .msg.erro{color:#e08872}
     .msg.ok{color:#7cc994}
+    .login{position:fixed;inset:0;z-index:150;background:var(--ink);display:grid;place-items:center;padding:20px}
+    .login[hidden]{display:none}
+    .login-box{width:min(380px,100%);text-align:center}
+    .login-box img{width:78px;height:78px;object-fit:contain;margin:0 auto 18px}
+    .login-box h2{margin:0 0 6px;font-family:'Cinzel',serif;font-weight:700;font-size:1.25rem;color:var(--cream)}
+    .login-box p{margin:0 0 24px;font-size:.9rem;color:var(--muted)}
+    .login-box input{width:100%;padding:14px 16px;border-radius:5px;border:1px solid var(--line);
+      background:var(--panel);color:var(--cream);font-family:inherit;font-size:1rem;text-align:center;letter-spacing:.06em}
+    .login-box input:focus{outline:none;border-color:var(--gold)}
+    .login-box .btn{width:100%;margin-top:14px;padding:14px}
+    .login-box .erro{margin:14px 0 0;font-size:.85rem;color:#e08872}
     .fundo{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);display:grid;place-items:center;padding:20px}
     .fundo[hidden]{display:none}
     .caixa{width:min(420px,100%);background:var(--stone);border:1px solid var(--line);border-radius:8px;padding:26px}
@@ -169,6 +180,17 @@
     <p class="rodape" id="rodape"></p>
   </div>
 
+  <div class="login" id="login" hidden>
+    <div class="login-box">
+      <img src="../img/logo-bravos-gold.png" alt="" />
+      <h2>Painel de Inscritos</h2>
+      <p>Informe a chave de acesso para ver os inscritos da Imersão Bravos.</p>
+      <input id="lg-chave" type="password" placeholder="Chave de acesso" autocomplete="current-password" />
+      <button class="btn btn-ouro" id="lg-entrar">Entrar</button>
+      <p class="erro" id="lg-erro" hidden></p>
+    </div>
+  </div>
+
   <div class="fundo" id="editor" hidden>
     <div class="caixa">
       <h3>Editar inscrito</h3>
@@ -202,13 +224,27 @@ const dataBr = s => { if(!s) return '—'; const d=new Date(s);
   return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
 const real = n => 'R$ ' + Number(n||0).toFixed(2).replace('.',',');
 
+function pedirChave(msg) {
+  $('#login').hidden = false;
+  const e = $('#lg-erro');
+  if (msg) { e.textContent = msg; e.hidden = false; } else e.hidden = true;
+  $('#lg-chave').focus();
+}
+$('#lg-entrar').addEventListener('click', () => {
+  const v = $('#lg-chave').value.trim();
+  if (!v) return pedirChave('Digite a chave.');
+  KEY = v; localStorage.setItem('bravos_key', KEY);
+  $('#login').hidden = true; $('#lg-chave').value = '';
+  carregar(true);
+});
+$('#lg-chave').addEventListener('keydown', e => { if (e.key === 'Enter') $('#lg-entrar').click(); });
+
 async function carregar(forcar) {
-  if (!KEY) { KEY = prompt('Chave de acesso do painel:') || ''; if (KEY) localStorage.setItem('bravos_key', KEY); }
-  if (!KEY) return;
+  if (!KEY) { pedirChave(); return; }
   const btn = $('#atualizar'); btn.disabled = true; btn.textContent = 'Atualizando…';
   try {
     const r = await fetch(`../api/painel?key=${encodeURIComponent(KEY)}${forcar ? '&atualizar=1' : ''}`);
-    if (r.status === 401) { localStorage.removeItem('bravos_key'); KEY=''; alerta('Chave inválida. Recarregue a página e informe a chave correta.'); return; }
+    if (r.status === 401) { localStorage.removeItem('bravos_key'); KEY=''; pedirChave('Chave incorreta. Tente de novo.'); return; }
     dados = await r.json();
     $('#csv').href = `../api/admin?key=${encodeURIComponent(KEY)}&csv=1`;
     render();
