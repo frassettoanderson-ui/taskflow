@@ -190,6 +190,10 @@ final class NFCeBuilder
             $detPag->indPag = 0;
             $detPag->tPag = (string) ($pg['forma'] ?? '01'); // 01 dinheiro, 03 crédito, 04 débito, 17 PIX
             $detPag->vPag = number_format((float) ($pg['valor'] ?? 0), 2, '.', '');
+            // Cartão (crédito/débito/etc.) exige o grupo card: sem TEF integrado, tpIntegra=2 (rejeição 391).
+            if (in_array($detPag->tPag, ['03', '04', '10', '11', '12', '13'], true)) {
+                $detPag->tpIntegra = 2; // pagamento não integrado (sem TEF)
+            }
             $make->tagdetPag($detPag);
         }
 
