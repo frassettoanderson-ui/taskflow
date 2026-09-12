@@ -98,7 +98,7 @@ final class Emitente
             'razaosocial' => $this->razao,
             'siglaUF'     => $this->uf,
             'cnpj'        => $this->cnpj,
-            'schemes'     => 'PL_009_V4',
+            'schemes'     => 'PL_010_V1.30', // NT 2025.002 (Reforma Tributária) — IBS/CBS opcional no XSD
             'versao'      => $versao,
             'tokenIBPT'   => '',
             'CSC'         => $this->csc,

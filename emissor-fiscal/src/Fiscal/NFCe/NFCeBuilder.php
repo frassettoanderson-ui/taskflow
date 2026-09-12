@@ -31,7 +31,9 @@ final class NFCeBuilder
     {
         $this->validar($p);
 
-        $make = new Make();
+        // PL_010 = leiaute da NT 2025.002 (Reforma Tributária): traz o grupo IBS/CBS.
+        // O grupo é opcional no schema — emitentes do Simples (dispensados) seguem sem ele.
+        $make = new Make('PL_010_V1.30');
         $uf = $this->emitente['UF'];
         $cMun = $this->emitente['cMun'];
 
@@ -115,6 +117,8 @@ final class NFCeBuilder
         $descontos = $this->ratearDesconto($itens, $vprods, (float) ($p['desconto'] ?? 0), $totalProd);
         $totalDesc = array_sum($descontos);
 
+        $somaBcIcms = 0.0;
+        $somaIcms = 0.0;
         foreach ($itens as $i => $item) {
             $n = $i + 1;
             $qtd = (float) $item['quantidade'];
@@ -151,7 +155,9 @@ final class NFCeBuilder
             $make->tagimposto($imposto);
 
             // base do ICMS = valor líquido do item (vProd - vDesc)
-            $this->montarImpostos($make, $n, $item, round($vprod - $vDesc, 2));
+            $totItem = $this->montarImpostos($make, $n, $item, round($vprod - $vDesc, 2));
+            $somaBcIcms += $totItem['vBC'];
+            $somaIcms += $totItem['vICMS'];
         }
 
         // ------- totais -------
@@ -160,6 +166,8 @@ final class NFCeBuilder
                   'vFrete','vSeg','vDesc','vII','vIPI','vIPIDevol','vPIS','vCOFINS','vOutro'] as $z) {
             $icmsTot->$z = '0.00';
         }
+        $icmsTot->vBC = number_format($somaBcIcms, 2, '.', '');
+        $icmsTot->vICMS = number_format($somaIcms, 2, '.', '');
         $icmsTot->vProd = number_format($totalProd, 2, '.', '');
         $icmsTot->vDesc = number_format($totalDesc, 2, '.', '');
         $icmsTot->vNF = number_format($totalProd - $totalDesc, 2, '.', '');
@@ -256,12 +264,15 @@ final class NFCeBuilder
         return $descontos;
     }
 
-    private function montarImpostos(Make $make, int $item, array $it, float $vprod): void
+    /** @return array{vBC: float, vICMS: float} contribuição do item para o total de ICMS */
+    private function montarImpostos(Make $make, int $item, array $it, float $vprod): array
     {
         $origem = (string) ($it['origem'] ?? 0);
         $vprodF = number_format($vprod, 2, '.', '');
+        $totIcms = ['vBC' => 0.0, 'vICMS' => 0.0];
+        $simples = $this->emitente['CRT'] == 1 || $this->emitente['CRT'] == 4;
 
-        if ($this->emitente['CRT'] == 1 || $this->emitente['CRT'] == 4) {
+        if ($simples) {
             // Simples Nacional / MEI -> ICMSSN
             $icms = new \stdClass();
             $icms->item = $item;
@@ -269,15 +280,43 @@ final class NFCeBuilder
             $icms->CSOSN = (string) ($it['csosn'] ?? '102');
             $make->tagICMSSN($icms);
         } else {
+            $cst = (string) ($it['cst_icms'] ?? '00');
+            $aliq = (float) ($it['aliquota_icms'] ?? 0);
+            // CSTs sem débito próprio (isenta/não tributada/suspensão/ST retido) não somam no total
+            $tributa = !in_array($cst, ['40', '41', '50', '60'], true) && $aliq > 0;
+            $vIcms = $tributa ? round($vprod * $aliq / 100, 2) : 0.0;
+
             $icms = new \stdClass();
             $icms->item = $item;
             $icms->orig = $origem;
-            $icms->CST = (string) ($it['cst_icms'] ?? '00');
+            $icms->CST = $cst;
             $icms->modBC = 3;
             $icms->vBC = $vprodF;
-            $icms->pICMS = number_format((float) ($it['aliquota_icms'] ?? 0), 2, '.', '');
-            $icms->vICMS = number_format($vprod * ((float) ($it['aliquota_icms'] ?? 0) / 100), 2, '.', '');
+            $icms->pICMS = number_format($aliq, 2, '.', '');
+            $icms->vICMS = number_format($vIcms, 2, '.', '');
             $make->tagICMS($icms);
+            if ($tributa) {
+                $totIcms = ['vBC' => $vprod, 'vICMS' => $vIcms];
+            }
+
+            // Reforma Tributária (NT 2025.002): Regime Normal destaca IBS/CBS desde 2026
+            // (rejeição 1115 sem o grupo). Em 2026 é informativo: CBS 0,9% + IBS UF 0,1%.
+            // O Simples é dispensado do destaque, por isso fica fora deste bloco.
+            $pIbsUf = (float) ($it['aliquota_ibs_uf'] ?? 0.10);
+            $pIbsMun = (float) ($it['aliquota_ibs_mun'] ?? 0.00);
+            $pCbs = (float) ($it['aliquota_cbs'] ?? 0.90);
+            $ibscbs = new \stdClass();
+            $ibscbs->item = $item;
+            $ibscbs->CST = (string) ($it['cst_ibscbs'] ?? '000');       // 000 = tributação integral
+            $ibscbs->cClassTrib = (string) ($it['classtrib'] ?? '000001'); // situação onerada padrão
+            $ibscbs->vBC = $vprodF;
+            $ibscbs->gIBSUF_pIBSUF = number_format($pIbsUf, 4, '.', '');
+            $ibscbs->gIBSUF_vIBSUF = number_format(round($vprod * $pIbsUf / 100, 2), 2, '.', '');
+            $ibscbs->gIBSMun_pIBSMun = number_format($pIbsMun, 4, '.', '');
+            $ibscbs->gIBSMun_vIBSMun = number_format(round($vprod * $pIbsMun / 100, 2), 2, '.', '');
+            $ibscbs->gCBS_pCBS = number_format($pCbs, 4, '.', '');
+            $ibscbs->gCBS_vCBS = number_format(round($vprod * $pCbs / 100, 2), 2, '.', '');
+            $make->tagIBSCBS($ibscbs);
         }
 
         $pis = new \stdClass();
@@ -295,6 +334,8 @@ final class NFCeBuilder
         $cofins->pCOFINS = '0.00';
         $cofins->vCOFINS = '0.00';
         $make->tagCOFINS($cofins);
+
+        return $totIcms;
     }
 
     private function validar(array $p): void
