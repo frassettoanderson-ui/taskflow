@@ -35,7 +35,7 @@ final class MDFeService
     public function emitir(array $payload): array
     {
         $serie = $this->emitente->mdfeSerie;
-        $numero = $this->contador->proximo($this->emitente->cnpj, '58', $serie);
+        $numero = $this->contador->proximo($this->emitente->cnpj, '58', $serie, $this->ambiente);
 
         $builder = new MDFeBuilder($this->emitente->paraBuilder(), $this->ambiente, $serie);
         $montada = $builder->montar($payload, $numero);

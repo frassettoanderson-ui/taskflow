@@ -42,7 +42,16 @@ final class Emitente
         public readonly string $nfseSenha,
         public readonly string $municipioTom,
         public readonly string $ipmSubdominio,
+        // Ambiente POR EMITENTE (1=produção, 2=homologação); 0 = usa o FISCAL_AMBIENTE global.
+        // Permite virar um emitente pra produção sem afetar os demais do motor.
+        public readonly int $ambiente = 0,
     ) {}
+
+    /** Ambiente efetivo deste emitente (o próprio, ou o global quando não definido). */
+    public function ambienteEfetivo(int $global): int
+    {
+        return in_array($this->ambiente, [1, 2], true) ? $this->ambiente : $global;
+    }
 
     public static function fromArray(array $d): self
     {
@@ -85,6 +94,7 @@ final class Emitente
             nfseSenha:      (string) ($d['nfse_senha'] ?? ''),
             municipioTom:   preg_replace('/\D/', '', (string) ($d['municipio_tom'] ?? '')),
             ipmSubdominio:  (string) ($d['ipm_subdominio'] ?? ''),
+            ambiente:       (int) ($d['ambiente'] ?? 0),
         );
     }
 

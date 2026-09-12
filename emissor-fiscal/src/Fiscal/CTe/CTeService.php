@@ -35,7 +35,7 @@ final class CTeService
     public function emitir(array $payload): array
     {
         $serie = $this->emitente->cteSerie;
-        $numero = $this->contador->proximo($this->emitente->cnpj, '57', $serie);
+        $numero = $this->contador->proximo($this->emitente->cnpj, '57', $serie, $this->ambiente);
 
         $builder = new CTeBuilder($this->emitente->paraBuilder(), $this->ambiente, $serie);
         $montada = $builder->montar($payload, $numero);

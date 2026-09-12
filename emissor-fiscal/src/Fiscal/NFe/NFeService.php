@@ -38,7 +38,7 @@ final class NFeService
      */
     public function emitir(array $payload): array
     {
-        $numero = $this->contador->proximo($this->emitente->cnpj, '55', $this->emitente->nfeSerie);
+        $numero = $this->contador->proximo($this->emitente->cnpj, '55', $this->emitente->nfeSerie, $this->ambiente);
 
         $builder = new NFeBuilder($this->emitente->paraBuilder(), $this->ambiente, $this->emitente->nfeSerie);
         $montada = $builder->montar($payload, $numero);

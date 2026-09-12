@@ -57,7 +57,7 @@ final class NFSeService
         $provider = $this->provider($municipio);
 
         $serie = (int) ($payload['serie'] ?? 1);
-        $numero = $this->contador->proximo($this->emitente->cnpj, 'nfse', $serie);
+        $numero = $this->contador->proximo($this->emitente->cnpj, 'nfse', $serie, $this->ambiente);
         $payload['numero'] = $numero;
         $payload['serie'] = $serie;
 

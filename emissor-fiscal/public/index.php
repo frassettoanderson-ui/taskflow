@@ -57,7 +57,7 @@ $nfeDoEmitente = static function (Request $req) use ($root, $emitentes, $store, 
         Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
     }
     $emit = $emitentes->buscar($cnpj);
-    return new NFeService($root, $emit, Config::ambiente(), $store, $contador);
+    return new NFeService($root, $emit, $emit->ambienteEfetivo(Config::ambiente()), $store, $contador);
 };
 
 /** Idem, para NFC-e (modelo 65). */
@@ -70,7 +70,7 @@ $nfceDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
         Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
     }
     $emit = $emitentes->buscar($cnpj);
-    return new NFCeService($root, $emit, Config::ambiente(), $store, $contador);
+    return new NFCeService($root, $emit, $emit->ambienteEfetivo(Config::ambiente()), $store, $contador);
 };
 
 /** Resolve o serviço de CT-e para o emitente pedido. */
@@ -82,7 +82,8 @@ $cteDoEmitente = static function (Request $req) use ($root, $emitentes, $store, 
     if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
         Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
     }
-    return new CTeService($root, $emitentes->buscar($cnpj), Config::ambiente(), $store, $contador);
+    $emit = $emitentes->buscar($cnpj);
+    return new CTeService($root, $emit, $emit->ambienteEfetivo(Config::ambiente()), $store, $contador);
 };
 
 /** Resolve o serviço de MDF-e para o emitente pedido. */
@@ -94,7 +95,8 @@ $mdfeDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
     if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
         Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
     }
-    return new MDFeService($root, $emitentes->buscar($cnpj), Config::ambiente(), $store, $contador);
+    $emit = $emitentes->buscar($cnpj);
+    return new MDFeService($root, $emit, $emit->ambienteEfetivo(Config::ambiente()), $store, $contador);
 };
 
 /** Idem, para NFS-e (escolhe o provider pelo município). */
@@ -107,7 +109,7 @@ $nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
         Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
     }
     $emit = $emitentes->buscar($cnpj);
-    return new NFSeService($root, $emit, Config::ambiente(), $store, $contador, $nfseRegistry, $danfseRegistry);
+    return new NFSeService($root, $emit, $emit->ambienteEfetivo(Config::ambiente()), $store, $contador, $nfseRegistry, $danfseRegistry);
 };
 
 // ---------------- rotas ----------------
@@ -232,7 +234,8 @@ $router->add('POST', '/v1/nfe/substituir-nfce', function (Request $req) use ($ro
     if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
         Response::erro('Sua chave não tem permissão para emitir por este emitente.', 403);
     }
-    $svc = new SubstituicaoNFCe($root, $emitentes->buscar($cnpj), Config::ambiente(), $store, $contador);
+    $emitSub = $emitentes->buscar($cnpj);
+    $svc = new SubstituicaoNFCe($root, $emitSub, $emitSub->ambienteEfetivo(Config::ambiente()), $store, $contador);
     $r = $svc->executar($req->body);
     Response::json($r, !empty($r['ok']) ? 200 : 422);
 });

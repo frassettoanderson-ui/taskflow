@@ -44,7 +44,7 @@ final class NFCeService
      */
     public function emitir(array $payload): array
     {
-        $numero = $this->contador->proximo($this->emitente->cnpj, '65', $this->emitente->nfceSerie);
+        $numero = $this->contador->proximo($this->emitente->cnpj, '65', $this->emitente->nfceSerie, $this->ambiente);
 
         $builder = new NFCeBuilder($this->emitente->paraBuilder(), $this->ambiente, $this->emitente->nfceSerie);
         $montada = $builder->montar($payload, $numero);
