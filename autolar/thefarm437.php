@@ -12,6 +12,7 @@
  */
 require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/functions.php';
+header('Cache-Control: no-cache, must-revalidate'); // evita HTML antigo apontando p/ CSS/JS antigos
 
 $page_titulo = 'The Farm 437 — Cabanas em Imaruí/SC | ' . EMPRESA_NOME;
 $page_desc   = 'Três cabanas em 4.000 m² em Imaruí/SC, com operação de hospedagem ativa e avaliação 5,0 no Airbnb. Um imóvel que já é um negócio. R$ 1.200.000,00.';
