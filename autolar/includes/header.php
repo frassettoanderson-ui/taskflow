@@ -32,27 +32,17 @@ function nav_active(string $id, string $atual): string {
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Dancing+Script:wght@600;700&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="<?= e(url('assets/img/favicon.svg')) ?>" type="image/svg+xml">
-<link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>">
+<link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>?v=<?= @filemtime(ROOT_PATH . '/assets/css/style.css') ?>">
+<?= $page_head ?? '' /* CSS/meta extra de páginas especiais (ex.: thefarm437.php) */ ?>
 </head>
 <body>
 
 <header class="site-header">
   <div class="container header-inner">
     <a class="brand" href="<?= e(url('index.php')) ?>" aria-label="<?= e(EMPRESA_NOME_FULL) ?>">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="url(#bm)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6bd64"/><stop offset="1" stop-color="#c9952b"/></linearGradient></defs>
-          <path d="M5 11l1.5-4A2 2 0 0 1 8.4 5.7h7.2a2 2 0 0 1 1.9 1.3L19 11"/>
-          <path d="M4 11h16a1 1 0 0 1 1 1v4H3v-4a1 1 0 0 1 1-1z"/>
-          <circle cx="7.5" cy="16.5" r="1.3"/><circle cx="16.5" cy="16.5" r="1.3"/>
-        </svg>
-      </span>
-      <span class="brand-text">
-        <span class="brand-word"><span class="brand-auto">Auto</span><span class="brand-lar">lar</span></span>
-        <span class="brand-sub">automóveis e imóveis</span>
-      </span>
+      <img class="brand-logo" src="<?= e(url('assets/img/logo-autolar.png')) ?>" alt="<?= e(EMPRESA_NOME_FULL) ?>">
     </a>
 
     <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false">

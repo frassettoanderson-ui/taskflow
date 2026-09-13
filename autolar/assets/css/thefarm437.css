@@ -1,0 +1,263 @@
+/* ============================================================================
+   THE FARM 437 — página especial (landing de imóvel/investimento)
+   Conceito: "da noite estrelada ao aconchego". Seções noturnas (marinho
+   profundo + âmbar das cabanas) alternam com seções creme quentes.
+   Tipografia: Cormorant Garamond (display) + Poppins (UI), já carregadas.
+   ========================================================================== */
+
+.tf {
+  --night:     #070b16;
+  --night-2:   #0c1424;
+  --night-3:   #131d33;
+  --amber:     #e9a94b;
+  --amber-soft:#f3cf8f;
+  --amber-glow: rgba(233,169,75,.35);
+  --cream:     #f6f1e7;
+  --cream-2:   #efe7d8;
+  --bark:      #2a2620;
+  --bark-2:    #5b544a;
+  --bark-3:    #8a8276;
+  --hair:      rgba(42,38,32,.12);
+  --hair-n:    rgba(255,255,255,.09);
+  --serif: var(--font-display);
+  color: var(--bark);
+  background: var(--night);
+  overflow-x: hidden;
+}
+.tf ::selection { background: rgba(233,169,75,.35); }
+
+/* utilitários */
+.tf .tf-wrap { width: 100%; max-width: 1180px; margin-inline: auto; padding-inline: 22px; }
+.tf .tf-eyebrow { display: inline-flex; align-items: center; gap: .7rem; font-size: .72rem; letter-spacing: .3em;
+  text-transform: uppercase; font-weight: 600; color: var(--gold); }
+.tf .tf-eyebrow::before { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .8; }
+.tf h1, .tf h2, .tf h3 { font-family: var(--serif); font-weight: 600; line-height: 1.05; letter-spacing: -.01em; color: inherit; }
+.tf h2 { font-size: clamp(2.1rem, 4.4vw, 3.5rem); }
+.tf h2 em, .tf h1 em, .tf .tf-em { font-style: italic; font-weight: 500; color: var(--gold); }
+.tf p { font-weight: 300; line-height: 1.75; }
+.tf .tf-lead { font-size: clamp(1.05rem, 1.5vw, 1.22rem); }
+.tf-night { background: var(--night); color: #f1ecdf; }
+.tf-night .tf-eyebrow { color: var(--amber-soft); }
+.tf-night h2 em { color: var(--amber-soft); }
+.tf-night p { color: rgba(241,236,223,.78); }
+.tf-cream { background: var(--cream); color: var(--bark); }
+.tf-cream p { color: var(--bark-2); }
+.tf-sec { padding-block: clamp(64px, 9vw, 128px); position: relative; }
+
+/* ============================================================== HERO */
+.tf-hero { position: relative; min-height: calc(100vh - var(--hdr)); min-height: calc(100svh - var(--hdr));
+  display: grid; align-content: start; isolation: isolate; overflow: hidden; color: #fff; }
+.tf-hero__img { position: absolute; inset: 0; z-index: -2; }
+.tf-hero__img img { width: 100%; height: 100%; object-fit: cover; object-position: center bottom;
+  transform: scale(1.04); animation: tf-hero-zoom 14s ease-out forwards; }
+@keyframes tf-hero-zoom { to { transform: scale(1); } }
+.tf-hero__veil { position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(7,11,22,.72) 0%, rgba(7,11,22,.32) 34%, rgba(7,11,22,0) 58%, rgba(7,11,22,0) 84%, var(--night) 100%); }
+.tf-hero__inner { padding-top: clamp(56px, 9vh, 120px); padding-bottom: 46vh; text-align: center; }
+.tf-hero .tf-eyebrow { color: var(--amber-soft); justify-content: center; }
+.tf-hero .tf-eyebrow::after { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .8; }
+.tf-hero h1 { font-size: clamp(3.2rem, 9vw, 7.4rem); margin-top: .9rem; line-height: .95; text-shadow: 0 10px 40px rgba(0,0,0,.55); }
+.tf-hero h1 small { display: block; font-size: .28em; letter-spacing: .32em; text-transform: uppercase; font-style: normal;
+  font-weight: 500; opacity: .85; margin-top: .55rem; font-family: var(--font); }
+.tf-hero__sub { max-width: 620px; margin: 1.4rem auto 0; font-size: clamp(1.02rem, 1.6vw, 1.25rem); color: rgba(255,255,255,.86);
+  text-shadow: 0 2px 18px rgba(0,0,0,.6); }
+.tf-hero__cta { margin-top: 2rem; display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
+.tf-hero__cta .btn-ghost { background: rgba(255,255,255,.06); color: #fff; border-color: rgba(255,255,255,.35); backdrop-filter: blur(6px); }
+.tf-hero__cta .btn-ghost:hover { background: rgba(255,255,255,.14); border-color: #fff; transform: translateY(-3px); }
+.tf-hero__scroll { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); display: flex; flex-direction: column;
+  align-items: center; gap: .5rem; font-size: .66rem; letter-spacing: .3em; text-transform: uppercase; color: rgba(255,255,255,.7); }
+.tf-hero__scroll span { width: 1px; height: 44px; background: linear-gradient(180deg, rgba(255,255,255,.8), transparent);
+  animation: tf-drop 2.2s ease-in-out infinite; transform-origin: top; }
+@keyframes tf-drop { 0% { transform: scaleY(0); opacity: 0 } 40% { transform: scaleY(1); opacity: 1 } 100% { transform: scaleY(1) translateY(16px); opacity: 0 } }
+
+/* entrada escalonada do hero */
+.tf-hero [data-rise] { opacity: 0; transform: translateY(22px); animation: tf-rise 1.1s var(--ease) forwards; }
+.tf-hero [data-rise="1"] { animation-delay: .2s } .tf-hero [data-rise="2"] { animation-delay: .45s }
+.tf-hero [data-rise="3"] { animation-delay: .75s } .tf-hero [data-rise="4"] { animation-delay: 1s }
+@keyframes tf-rise { to { opacity: 1; transform: none } }
+
+/* céu: estrelas piscando + estrelas cadentes (montado via JS) */
+.tf-sky { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.tf-sky__twinkle { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff;
+  opacity: 0; animation: tf-twinkle var(--dur, 4s) ease-in-out var(--delay, 0s) infinite; }
+@keyframes tf-twinkle { 0%,100% { opacity: 0; transform: scale(.6) } 50% { opacity: var(--peak, .9); transform: scale(1.2) } }
+.tf-sky__shoot { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0;
+  box-shadow: 0 0 8px 2px rgba(255,255,255,.75), 0 0 22px 6px rgba(243,207,143,.35); will-change: transform, opacity; }
+.tf-sky__shoot::before { content: ""; position: absolute; right: 1px; top: 50%; height: 1.5px; width: var(--tail, 240px);
+  transform: translateY(-50%); border-radius: 2px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(243,207,143,.35) 55%, rgba(255,255,255,.95) 100%); }
+
+/* ============================================================== NÚMEROS (faixa) */
+.tf-stats { position: relative; z-index: 1; margin-top: -1px; padding-block: clamp(28px, 4vw, 44px); border-top: 1px solid var(--hair-n); border-bottom: 1px solid var(--hair-n);
+  background: linear-gradient(180deg, var(--night) 0%, var(--night-2) 100%); }
+.tf-stats__grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+.tf-stat { text-align: center; padding: .6rem 1rem; border-left: 1px solid var(--hair-n); }
+.tf-stat:first-child { border-left: 0; }
+.tf-stat b { display: block; font-family: var(--serif); font-weight: 600; font-size: clamp(2rem, 3.6vw, 3rem); line-height: 1; color: #fff; }
+.tf-stat b i { font-style: italic; color: var(--amber-soft); font-weight: 500; }
+.tf-stat span { display: block; margin-top: .45rem; font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(241,236,223,.6); font-weight: 500; }
+
+/* ============================================================== OPORTUNIDADE (editorial) */
+.tf-intro__grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: clamp(32px, 6vw, 96px); align-items: end; }
+.tf-intro h2 { margin-top: 1rem; }
+.tf-intro__txt p + p { margin-top: 1rem; }
+.tf-intro__txt { border-left: 1px solid var(--gold); padding-left: clamp(18px, 3vw, 34px); }
+.tf-intro__ig { display: inline-flex; align-items: center; gap: .55rem; margin-top: 1.4rem; font-size: .86rem; font-weight: 500; color: var(--bark);
+  border-bottom: 1px solid var(--gold); padding-bottom: 2px; transition: color .2s; }
+.tf-intro__ig:hover { color: var(--gold-deep); }
+.tf-intro__ig svg { width: 16px; height: 16px; }
+
+/* ============================================================== TERRENO */
+.tf-terreno__grid { display: grid; grid-template-columns: .95fr 1.05fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+.tf-terreno h2 { margin-top: 1rem; }
+.tf-terreno .tf-lead { margin-top: 1.1rem; }
+.tf-feats { margin-top: 1.8rem; display: grid; grid-template-columns: 1fr 1fr; gap: .9rem 1.4rem; }
+.tf-feat { display: flex; gap: .8rem; align-items: flex-start; padding: .9rem 1rem; border: 1px solid var(--hair); border-radius: 14px; background: rgba(255,255,255,.55); }
+.tf-feat svg { width: 22px; height: 22px; flex: none; color: var(--gold); margin-top: 2px; }
+.tf-feat b { display: block; font-weight: 600; font-size: .95rem; color: var(--bark); }
+.tf-feat small { display: block; font-weight: 300; color: var(--bark-2); font-size: .82rem; line-height: 1.45; margin-top: .15rem; }
+
+/* ============================================================== GALERIA / PLACEHOLDER */
+.tf-gal { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: auto auto; gap: 10px; }
+.tf-gal__main { grid-column: 1 / -1; aspect-ratio: 4 / 3; border-radius: 22px; overflow: hidden; position: relative; }
+.tf-gal__thumb { aspect-ratio: 1 / 1; border-radius: 14px; overflow: hidden; position: relative; }
+.tf-gal img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .8s var(--ease); }
+.tf-gal a:hover img { transform: scale(1.05); }
+.tf-gal a { display: block; width: 100%; height: 100%; cursor: zoom-in; }
+.tf-gal__more { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(7,11,22,.55); color: #fff;
+  font-family: var(--serif); font-size: 1.6rem; font-weight: 600; letter-spacing: .02em; }
+.tf-ph { width: 100%; height: 100%; display: grid; place-items: center; text-align: center; padding: 1rem; color: rgba(243,207,143,.75);
+  background:
+    radial-gradient(1px 1px at 18% 24%, rgba(255,255,255,.55) 50%, transparent 51%),
+    radial-gradient(1px 1px at 62% 12%, rgba(255,255,255,.45) 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 80% 40%, rgba(255,255,255,.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 36% 66%, rgba(255,255,255,.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 88% 78%, rgba(255,255,255,.4) 50%, transparent 51%),
+    linear-gradient(160deg, #101a30 0%, #0a1224 60%, #070b16 100%); }
+.tf-ph svg { width: 34px; height: 34px; opacity: .8; }
+.tf-ph span { display: block; margin-top: .5rem; font-size: .68rem; letter-spacing: .22em; text-transform: uppercase; font-weight: 500; }
+.tf-gal__thumb .tf-ph svg { width: 20px; height: 20px; }
+.tf-gal__thumb .tf-ph span { display: none; }
+.tf-ph--amber { color: var(--amber-soft); background: linear-gradient(160deg, #3a2a14 0%, #1d1509 100%); }
+
+/* ============================================================== CABANAS */
+.tf-cabanas { padding-top: clamp(56px, 8vw, 110px); }
+.tf-cabanas__head { text-align: center; max-width: 720px; margin-inline: auto; }
+.tf-cabanas__head h2 { margin-top: 1rem; }
+.tf-cabanas__head p { margin-top: 1rem; }
+.tf-cabana { display: grid; grid-template-columns: 1.05fr .95fr; gap: clamp(28px, 5vw, 72px); align-items: center;
+  padding-block: clamp(48px, 7vw, 96px); border-top: 1px solid var(--hair); }
+.tf-cabanas__head + .tf-cabana { border-top: 0; margin-top: clamp(24px, 4vw, 48px); }
+.tf-cabana--flip .tf-cabana__gal { order: 2; }
+.tf-cabana__num { font-family: var(--serif); font-style: italic; font-size: 5.5rem; line-height: .8; color: var(--gold); opacity: .28; font-weight: 500; }
+.tf-cabana h3 { font-size: clamp(2.2rem, 4.2vw, 3.4rem); margin-top: -.6rem; }
+.tf-cabana h3 small { display: block; font-family: var(--font); font-size: .74rem; letter-spacing: .26em; text-transform: uppercase; font-weight: 600; color: var(--bark-3); margin-top: .4rem; }
+.tf-cabana__desc { margin-top: 1rem; }
+.tf-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.1rem; }
+.tf-chip { display: inline-flex; align-items: center; gap: .45rem; padding: .42rem .85rem; border-radius: 999px; font-size: .78rem; font-weight: 500;
+  background: #fff; border: 1px solid var(--hair); color: var(--bark); }
+.tf-chip svg { width: 14px; height: 14px; color: var(--gold); }
+.tf-chip--dark { background: var(--night-2); color: #f1ecdf; border-color: transparent; }
+.tf-chip--dark svg { color: var(--amber-soft); }
+.tf-amen { margin-top: 1.5rem; display: grid; grid-template-columns: 1fr 1fr; gap: .55rem 1.2rem; }
+.tf-amen li { position: relative; padding-left: 1.15rem; font-size: .92rem; font-weight: 400; color: var(--bark-2); line-height: 1.5; }
+.tf-amen li::before { content: ""; position: absolute; left: 0; top: .62em; width: 6px; height: 6px; transform: rotate(45deg); background: var(--gold); }
+.tf-amen li b { font-weight: 600; color: var(--bark); }
+
+/* ============================================================== NEGÓCIO */
+.tf-biz { overflow: hidden; }
+.tf-biz::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(900px 480px at 85% 0%, rgba(233,169,75,.14), transparent 60%),
+              radial-gradient(700px 400px at 10% 100%, rgba(72,110,190,.16), transparent 60%); }
+.tf-biz__grid { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 96px); align-items: start; }
+.tf-biz h2 { margin-top: 1rem; }
+.tf-biz .tf-lead { margin-top: 1.1rem; }
+.tf-big { margin-top: 2rem; padding: 1.6rem 1.8rem; border: 1px solid rgba(243,207,143,.28); border-radius: 22px;
+  background: linear-gradient(160deg, rgba(243,207,143,.08), rgba(243,207,143,.02)); position: relative; overflow: hidden; }
+.tf-big::after { content: ""; position: absolute; right: -40px; top: -40px; width: 180px; height: 180px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(233,169,75,.25), transparent 65%); }
+.tf-big small { display: block; font-size: .7rem; letter-spacing: .26em; text-transform: uppercase; color: var(--amber-soft); font-weight: 600; }
+.tf-big b { display: block; font-family: var(--serif); font-weight: 600; font-size: clamp(2.8rem, 5.4vw, 4.4rem); line-height: 1; color: #fff; margin-top: .5rem; }
+.tf-big b i { font-style: italic; font-weight: 500; color: var(--amber-soft); font-size: .55em; margin-left: .2em; }
+.tf-big p { margin-top: .6rem; font-size: .92rem; color: rgba(241,236,223,.7); }
+.tf-proofs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tf-proof { padding: 1.3rem 1.3rem 1.2rem; border-radius: 18px; border: 1px solid var(--hair-n); background: rgba(255,255,255,.035); backdrop-filter: blur(4px); }
+.tf-proof svg { width: 26px; height: 26px; color: var(--amber-soft); }
+.tf-proof b { display: block; font-family: var(--serif); font-size: 1.9rem; font-weight: 600; line-height: 1.05; margin-top: .8rem; color: #fff; }
+.tf-proof span { display: block; font-size: .82rem; color: rgba(241,236,223,.66); margin-top: .3rem; line-height: 1.45; font-weight: 300; }
+.tf-proof--wide { grid-column: 1 / -1; display: grid; grid-template-columns: auto 1fr; gap: 1.1rem; align-items: center; }
+.tf-proof--wide b { margin-top: 0; font-size: 1.35rem; }
+.tf-inclui { margin-top: clamp(40px, 6vw, 72px); padding-top: clamp(32px, 4vw, 48px); border-top: 1px solid var(--hair-n);
+  display: grid; grid-template-columns: .8fr 1.2fr; gap: clamp(24px, 4vw, 64px); position: relative; }
+.tf-inclui h3 { font-size: clamp(1.7rem, 2.8vw, 2.3rem); }
+.tf-inclui__list { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem 1.4rem; }
+.tf-inclui__list li { display: flex; gap: .7rem; align-items: flex-start; font-size: .94rem; color: rgba(241,236,223,.85); font-weight: 300; line-height: 1.5; }
+.tf-inclui__list li svg { width: 18px; height: 18px; flex: none; color: var(--amber-soft); margin-top: 3px; }
+.tf-inclui__list li b { font-weight: 500; color: #fff; }
+
+/* ============================================================== REGIÃO */
+.tf-regiao__grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 72px); align-items: center; }
+.tf-regiao h2 { margin-top: 1rem; }
+.tf-regiao .tf-lead { margin-top: 1.1rem; }
+.tf-regiao p + p { margin-top: .9rem; }
+.tf-dist { margin-top: 1.6rem; border-top: 1px solid var(--hair); }
+.tf-dist li { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid var(--hair); font-size: .94rem; }
+.tf-dist li span { color: var(--bark-2); font-weight: 300; }
+.tf-dist li b { font-family: var(--serif); font-size: 1.25rem; font-weight: 600; color: var(--bark); white-space: nowrap; }
+.tf-regiao__mosaic { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tf-regiao__mosaic > * { border-radius: 18px; overflow: hidden; aspect-ratio: 1 / 1; }
+.tf-regiao__mosaic > :first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
+.tf-regiao__mosaic img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ============================================================== CTA FINAL */
+.tf-cta { position: relative; isolation: isolate; color: #fff; text-align: center; padding-block: clamp(96px, 16vw, 200px); overflow: hidden; }
+.tf-cta__img { position: absolute; inset: 0; z-index: -2; }
+.tf-cta__img img { width: 100%; height: 100%; object-fit: cover; object-position: center 70%; }
+.tf-cta__veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--night) 0%, rgba(7,11,22,.35) 30%, rgba(7,11,22,.55) 100%); }
+.tf-cta .tf-eyebrow { color: var(--amber-soft); justify-content: center; }
+.tf-cta .tf-eyebrow::after { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .8; }
+.tf-cta h2 { font-size: clamp(2.6rem, 6vw, 5rem); margin-top: 1rem; text-shadow: 0 10px 40px rgba(0,0,0,.6); }
+.tf-cta p { max-width: 560px; margin: 1.1rem auto 0; color: rgba(255,255,255,.82); text-shadow: 0 2px 14px rgba(0,0,0,.6); }
+.tf-cta__price { display: inline-flex; align-items: center; gap: .8rem; margin-top: 1.6rem; padding: .7rem 1.3rem; border: 1px solid rgba(243,207,143,.5); border-radius: 999px;
+  font-size: .78rem; letter-spacing: .22em; text-transform: uppercase; font-weight: 600; color: var(--amber-soft); background: rgba(7,11,22,.45); backdrop-filter: blur(6px); }
+.tf-cta__btns { margin-top: 2rem; display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
+.tf-cta__ig { margin-top: 1.4rem; display: inline-flex; align-items: center; gap: .5rem; color: rgba(255,255,255,.8); font-size: .86rem; border-bottom: 1px solid rgba(255,255,255,.35); padding-bottom: 2px; }
+.tf-cta__ig svg { width: 16px; height: 16px; }
+.tf-cta__ig:hover { color: #fff; border-color: #fff; }
+
+/* ============================================================== LIGHTBOX */
+.tf-lb { position: fixed; inset: 0; z-index: 200; background: rgba(4,6,12,.94); display: none; align-items: center; justify-content: center; padding: 3vh 4vw; }
+.tf-lb.is-open { display: flex; }
+.tf-lb img { max-width: 100%; max-height: 92vh; border-radius: 10px; box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+.tf-lb__btn { position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25);
+  background: rgba(255,255,255,.08); color: #fff; display: grid; place-items: center; }
+.tf-lb__btn svg { width: 22px; height: 22px; }
+.tf-lb__btn:hover { background: rgba(255,255,255,.18); }
+.tf-lb__prev { left: 18px; } .tf-lb__next { right: 18px; }
+.tf-lb__close { position: absolute; top: 16px; right: 18px; width: 46px; height: 46px; border-radius: 50%; border: 0; background: rgba(255,255,255,.1); color: #fff; font-size: 1.4rem; }
+.tf-lb__count { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,.7); font-size: .8rem; letter-spacing: .2em; }
+
+/* ============================================================== RESPONSIVO */
+@media (max-width: 960px) {
+  .tf-intro__grid, .tf-terreno__grid, .tf-cabana, .tf-biz__grid, .tf-inclui, .tf-regiao__grid { grid-template-columns: 1fr; }
+  .tf-cabana--flip .tf-cabana__gal { order: 0; }
+  .tf-stats__grid { grid-template-columns: 1fr 1fr; }
+  .tf-stat:nth-child(3) { border-left: 0; }
+  .tf-stat:nth-child(n+3) { border-top: 1px solid var(--hair-n); margin-top: .5rem; padding-top: 1.1rem; }
+  .tf-hero__inner { padding-bottom: 52vh; }
+}
+@media (max-width: 600px) {
+  .tf-feats, .tf-amen, .tf-proofs, .tf-inclui__list { grid-template-columns: 1fr; }
+  .tf-proof--wide { grid-column: auto; }
+  .tf-hero h1 { font-size: clamp(2.8rem, 15vw, 4.2rem); }
+  .tf-hero h1 small { font-size: .62rem; letter-spacing: .22em; }
+  .tf-hero__inner { padding-top: 40px; padding-bottom: 48vh; }
+  .tf-hero__img img { object-position: 50% 100%; }
+  .tf-cabana__num { font-size: 4rem; }
+  .tf-gal__main { border-radius: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tf-hero [data-rise], .tf-hero__img img { animation: none; opacity: 1; transform: none; }
+  .tf-sky { display: none; }
+}
