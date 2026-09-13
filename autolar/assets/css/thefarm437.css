@@ -91,14 +91,15 @@
 .tf-sky__twinkle { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff;
   opacity: 0; animation: tf-twinkle var(--dur, 4s) ease-in-out var(--delay, 0s) infinite; }
 @keyframes tf-twinkle { 0%,100% { opacity: 0; transform: scale(.6) } 50% { opacity: var(--peak, .9); transform: scale(1.2) } }
-.tf-sky__shoot { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #fff; opacity: 0;
-  box-shadow: 0 0 10px 3px rgba(255,255,255,.9), 0 0 30px 8px rgba(243,207,143,.45); will-change: transform, opacity; }
-.tf-sky__shoot::before { content: ""; position: absolute; right: 2px; top: 50%; height: 2px; width: var(--tail, 300px);
-  transform: translateY(-50%); border-radius: 2px;
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(243,207,143,.5) 45%, rgba(255,255,255,1) 100%); }
-.tf-sky__shoot--big { width: 6px; height: 6px;
-  box-shadow: 0 0 14px 4px rgba(255,255,255,1), 0 0 44px 12px rgba(243,207,143,.55); }
-.tf-sky__shoot--big::before { height: 3px; width: calc(var(--tail, 300px) * 1.35); }
+.tf-sky__shoot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: 0; z-index: 2;
+  box-shadow: 0 0 12px 4px rgba(255,255,255,1), 0 0 36px 10px rgba(243,207,143,.6); will-change: transform, opacity; }
+.tf-sky__shoot::before { content: ""; position: absolute; right: 3px; top: 50%; height: 3px; width: var(--tail, 380px);
+  transform: translateY(-50%); border-radius: 3px;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(243,207,143,.55) 40%, rgba(255,255,255,1) 100%);
+  box-shadow: 0 0 10px rgba(255,255,255,.35); }
+.tf-sky__shoot--big { width: 9px; height: 9px;
+  box-shadow: 0 0 18px 6px rgba(255,255,255,1), 0 0 60px 16px rgba(243,207,143,.65); }
+.tf-sky__shoot--big::before { height: 4px; width: calc(var(--tail, 380px) * 1.4); }
 
 /* ============================================================== NÚMEROS (faixa) */
 .tf-stats { position: relative; z-index: 1; margin-top: -1px; padding-block: clamp(28px, 4vw, 44px); border-top: 1px solid var(--hair-n);
@@ -256,8 +257,13 @@
 .tf-cta .tf-eyebrow::after { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .8; }
 .tf-cta h2 { font-size: clamp(2.6rem, 6vw, 5rem); margin-top: 1rem; text-shadow: 0 10px 40px rgba(0,0,0,.6); }
 .tf-cta p { max-width: 560px; margin: 1.1rem auto 0; color: rgba(255,255,255,.82); text-shadow: 0 2px 14px rgba(0,0,0,.6); }
-.tf-cta__price { display: inline-flex; align-items: center; gap: .8rem; margin-top: 1.6rem; padding: .7rem 1.3rem; border: 1px solid rgba(243,207,143,.5); border-radius: 999px;
-  font-size: .78rem; letter-spacing: .22em; text-transform: uppercase; font-weight: 600; color: var(--amber-soft); background: rgba(7,11,22,.45); backdrop-filter: blur(6px); }
+.tf-cta__price { display: inline-flex; flex-direction: column; align-items: center; gap: .15rem; margin-top: 1.6rem; padding: .9rem 2.2rem 1rem;
+  border: 1px solid rgba(243,207,143,.55); border-radius: 22px; background: rgba(7,11,22,.5); backdrop-filter: blur(8px);
+  box-shadow: 0 0 40px rgba(233,169,75,.18); }
+.tf-cta__price small { font-size: .68rem; letter-spacing: .3em; text-transform: uppercase; font-weight: 600; color: var(--amber-soft); }
+.tf-cta__price b { font-family: var(--serif); font-weight: 600; font-size: clamp(2.4rem, 5.2vw, 4.2rem); line-height: 1; color: #fff;
+  text-shadow: 0 6px 30px rgba(0,0,0,.6); letter-spacing: .01em; }
+.tf-cta__price b i { font-style: italic; font-weight: 500; color: var(--amber-soft); font-size: .6em; margin-right: .25em; vertical-align: .18em; }
 .tf-cta__btns { margin-top: 2rem; display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
 .tf-cta__ig { margin-top: 1.4rem; display: inline-flex; align-items: center; gap: .5rem; color: rgba(255,255,255,.8); font-size: .86rem; border-bottom: 1px solid rgba(255,255,255,.35); padding-bottom: 2px; }
 .tf-cta__ig svg { width: 16px; height: 16px; }
@@ -309,5 +315,4 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .tf-hero [data-rise], .tf-hero__img img { animation: none; opacity: 1; transform: none; }
-  .tf-sky { display: none; }
 }

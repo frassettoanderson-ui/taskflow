@@ -346,7 +346,7 @@ include __DIR__ . '/includes/header.php';
       <span class="tf-eyebrow">Agende uma visita</span>
       <h2>Venha ver <em>o céu daqui.</em></h2>
       <p>Visitas acompanhadas pela equipe Autolar. Enviamos os números completos da operação para compradores qualificados.</p>
-      <div class="tf-cta__price">R$ 1.200.000,00</div>
+      <div class="tf-cta__price"><small>Valor de venda</small><b><i>R$</i>1.200.000,00</b></div>
       <div class="tf-cta__btns">
         <a class="btn btn-gold btn-lg" href="<?= e($wa_link) ?>" target="_blank" rel="noopener"><?= $svg_wa ?> <?= e(CONTATO_TELEFONE) ?></a>
         <a class="btn btn-lg btn-ghost" style="background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.35)" href="<?= e($wa_link2) ?>" target="_blank" rel="noopener"><?= $svg_wa ?> <?= e(CONTATO_TELEFONE_2) ?></a>

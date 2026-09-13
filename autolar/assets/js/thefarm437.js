@@ -8,7 +8,7 @@
 
   /* ---- Céu: estrelas piscando + estrelas cadentes ------------------------ */
   document.querySelectorAll('[data-sky]').forEach(function (sky) {
-    if (reduce) return;
+    // (estrelas rodam mesmo com prefers-reduced-motion — pedido do cliente)
     var top = parseFloat(sky.getAttribute('data-sky-top') || '0');     // faixa vertical útil (%)
     var bottom = parseFloat(sky.getAttribute('data-sky-bottom') || '55');
 
@@ -34,18 +34,18 @@
       var angle = (toRight ? 1 : -1) * rand(12, 38);    // graus (positivo = desce p/ direita)
       var startX = toRight ? rand(2, 55) : rand(45, 98);
       var startY = rand(top + 1, Math.max(top + 6, bottom * .6));
-      var dist = rand(520, 1100);
-      var dur = rand(700, 1300);
+      var dist = rand(600, 1200);
+      var dur = rand(900, 1500);
       el.style.left = startX + '%';
       el.style.top = startY + '%';
-      el.style.setProperty('--tail', rand(220, 420) + 'px');
+      el.style.setProperty('--tail', rand(320, 560) + 'px');
       sky.appendChild(el);
       // rotate(angle) alinha o eixo X com a trajetória; scaleX(-1) espelha a cauda quando vai p/ a esquerda
       var base = 'rotate(' + angle + 'deg)' + (toRight ? '' : ' scaleX(-1)');
       var anim = el.animate([
         { transform: base + ' translateX(0)', opacity: 0 },
-        { transform: base + ' translateX(' + (dist * .1) + 'px)', opacity: 1, offset: .1 },
-        { transform: base + ' translateX(' + (dist * .78) + 'px)', opacity: .95, offset: .78 },
+        { transform: base + ' translateX(' + (dist * .08) + 'px)', opacity: 1, offset: .08 },
+        { transform: base + ' translateX(' + (dist * .85) + 'px)', opacity: 1, offset: .85 },
         { transform: base + ' translateX(' + dist + 'px)', opacity: 0 }
       ], { duration: dur, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'forwards' });
       anim.onfinish = function () { el.remove(); };
@@ -55,7 +55,7 @@
       var wait = rand(700, 1500);
       setTimeout(function () { if (document.hidden) { schedule(); return; } shoot(); }, wait);
     }
-    setTimeout(shoot, 900); // primeira logo após o hero aparecer
+    setTimeout(shoot, 300); // primeira logo após o hero aparecer
   });
 
   /* ---- Vídeo aéreo: toca só quando visível; botão de tela cheia ---------- */
