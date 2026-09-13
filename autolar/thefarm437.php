@@ -59,6 +59,7 @@ function tf_galeria(string $grupo, string $rotulo): void
     echo '<div class="tf-gal__main' . ($vert ? ' tf-gal__main--v' : '') . '"><a href="' . e($fotos[0]) . '" data-lb="' . e($grupo) . '" data-lb-i="0">'
        . ($vert ? '<img class="tf-gal__bg" src="' . e($fotos[0]) . '" alt="" aria-hidden="true" loading="lazy">' : '')
        . '<img src="' . e($fotos[0]) . '" alt="' . e($rotulo) . '" loading="lazy"></a></div>';
+    if ($total === 1) { echo '</div>'; return; } // foto única: sem fileira de miniaturas
     for ($i = 1; $i <= 4; $i++) {
         echo '<div class="tf-gal__thumb">';
         if (isset($fotos[$i])) {
