@@ -103,6 +103,7 @@ function csrf_validar(): bool
 
 function fmt_moeda($valor): string
 {
+    if ((float)$valor <= 0) return 'Sob consulta'; // preço 0 = não divulgado
     return 'R$ ' . number_format((float)$valor, 0, ',', '.');
 }
 
@@ -363,4 +364,35 @@ function valores_distintos(PDO $pdo, string $tabela, string $coluna, string $whe
     $sql = "SELECT DISTINCT $coluna AS v FROM $tabela WHERE $where AND $coluna IS NOT NULL AND $coluna <> '' ORDER BY $coluna";
     $rows = $pdo->query($sql)->fetchAll();
     return array_column($rows, 'v');
+}
+
+/**
+ * TODAS as imagens (em ordem) de vários registros — para o carrossel no card.
+ * @return array<int,string[]>  [registro_id => [arquivo, arquivo, ...]]
+ */
+function imagens_por_ids(PDO $pdo, string $tabelaImg, string $fk, array $ids): array
+{
+    $ids = array_values(array_filter(array_map('intval', $ids)));
+    if (!$ids) return [];
+    $in = implode(',', array_fill(0, count($ids), '?'));
+    $sql = "SELECT $fk AS rid, arquivo FROM $tabelaImg WHERE $fk IN ($in) ORDER BY capa DESC, ordem ASC, id ASC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($ids);
+    $map = [];
+    foreach ($stmt->fetchAll() as $r) { $map[(int)$r['rid']][] = $r['arquivo']; }
+    return $map;
+}
+
+/** Converte um link do YouTube/Vimeo em URL de embed. Retorna null se inválido. */
+function video_embed_url(?string $url): ?string
+{
+    if (!$url) return null;
+    $url = trim($url);
+    if (preg_match('~(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{6,})~i', $url, $m)) {
+        return 'https://www.youtube.com/embed/' . $m[1];
+    }
+    if (preg_match('~vimeo\.com/(?:video/)?(\d+)~i', $url, $m)) {
+        return 'https://player.vimeo.com/video/' . $m[1];
+    }
+    return null;
 }
