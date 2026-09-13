@@ -295,6 +295,13 @@
   .tf-video { aspect-ratio: 4 / 3; }
   .tf-video__cap h2 { font-size: 1.45rem; }
   .tf-video__tag { display: none; }
+  .tf-dawn, .tf-dusk { height: 100px; }                 /* faixas de transição mais curtas no celular */
+  .tf-hero__cta .btn { width: min(100%, 300px); }        /* CTAs do hero empilhados e alinhados */
+  .tf-cta__btns .btn { width: min(100%, 300px); }
+  .tf-stat b { font-size: 1.8rem; }
+  .tf-gal { gap: 8px; }
+  .tf-lb__btn { width: 42px; height: 42px; }
+  .tf-lb__prev { left: 8px; } .tf-lb__next { right: 8px; }
   .tf-gal__main { border-radius: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
