@@ -128,6 +128,8 @@ include __DIR__ . '/includes/header.php';
     </div>
   </section>
 
+  <div class="tf-dawn" aria-hidden="true"></div>
+
   <!-- ============================================================ OPORTUNIDADE -->
   <section class="tf-sec tf-cream tf-intro" id="oportunidade">
     <div class="tf-wrap tf-intro__grid">
@@ -244,6 +246,8 @@ include __DIR__ . '/includes/header.php';
     </div>
   </section>
 
+  <div class="tf-dusk" aria-hidden="true"></div>
+
   <!-- ============================================================ NEGÓCIO -->
   <section class="tf-sec tf-night tf-biz" id="negocio">
     <div class="tf-wrap">
@@ -291,6 +295,8 @@ include __DIR__ . '/includes/header.php';
     </div>
   </section>
 
+  <div class="tf-dawn" aria-hidden="true"></div>
+
   <!-- ============================================================ REGIÃO -->
   <section class="tf-sec tf-cream tf-regiao" id="regiao">
     <div class="tf-wrap tf-regiao__grid">
@@ -323,6 +329,8 @@ include __DIR__ . '/includes/header.php';
       </div>
     </div>
   </section>
+
+  <div class="tf-dusk" aria-hidden="true"></div>
 
   <!-- ============================================================ CTA FINAL -->
   <section class="tf-cta" id="contato-thefarm">

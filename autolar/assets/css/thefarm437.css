@@ -44,6 +44,15 @@
 .tf-cream p { color: var(--bark-2); }
 .tf-sec { padding-block: clamp(64px, 9vw, 128px); position: relative; }
 
+/* transições suaves entre seções escuras e claras ("amanhecer" / "entardecer") */
+.tf-dawn, .tf-dusk { height: clamp(140px, 18vw, 240px); position: relative; z-index: 1; }
+.tf-dawn { background: linear-gradient(180deg,
+  var(--night-2) 0%, #131c33 18%, #2b2e45 36%, #5d4f56 52%, #9a7f6c 66%, #c9b59d 80%, #e8dfcf 91%, var(--cream) 100%); }
+.tf-dusk { background: linear-gradient(180deg,
+  var(--cream) 0%, #e8dfcf 9%, #c9b59d 20%, #9a7f6c 34%, #5d4f56 48%, #2b2e45 64%, #131c33 82%, var(--night) 100%); }
+.tf-dawn::after, .tf-dusk::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background: radial-gradient(60% 55% at 50% 50%, rgba(233,169,75,.22), transparent 70%); }
+
 /* ============================================================== HERO */
 .tf-hero { position: relative; min-height: calc(100vh - var(--hdr)); min-height: calc(100svh - var(--hdr));
   display: grid; align-content: start; isolation: isolate; overflow: hidden; color: #fff; }
@@ -89,7 +98,7 @@
   background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(243,207,143,.35) 55%, rgba(255,255,255,.95) 100%); }
 
 /* ============================================================== NÚMEROS (faixa) */
-.tf-stats { position: relative; z-index: 1; margin-top: -1px; padding-block: clamp(28px, 4vw, 44px); border-top: 1px solid var(--hair-n); border-bottom: 1px solid var(--hair-n);
+.tf-stats { position: relative; z-index: 1; margin-top: -1px; padding-block: clamp(28px, 4vw, 44px); border-top: 1px solid var(--hair-n);
   background: linear-gradient(180deg, var(--night) 0%, var(--night-2) 100%); }
 .tf-stats__grid { display: grid; grid-template-columns: repeat(4, 1fr); }
 .tf-stat { text-align: center; padding: .6rem 1rem; border-left: 1px solid var(--hair-n); }
@@ -231,7 +240,10 @@
 .tf-cta { position: relative; isolation: isolate; color: #fff; text-align: center; padding-block: clamp(96px, 16vw, 200px); overflow: hidden; }
 .tf-cta__img { position: absolute; inset: 0; z-index: -2; }
 .tf-cta__img img { width: 100%; height: 100%; object-fit: cover; object-position: center 70%; }
-.tf-cta__veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--night) 0%, rgba(7,11,22,.35) 30%, rgba(7,11,22,.55) 100%); }
+.tf-cta__veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--night) 0%, rgba(7,11,22,.35) 34%, rgba(7,11,22,.55) 100%); }
+.tf-cta { margin-top: -1px; }
+/* seções logo após uma faixa de transição precisam de menos respiro em cima */
+.tf-dawn + .tf-sec, .tf-dusk + .tf-sec { padding-top: clamp(28px, 4vw, 56px); }
 .tf-cta .tf-eyebrow { color: var(--amber-soft); justify-content: center; }
 .tf-cta .tf-eyebrow::after { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .8; }
 .tf-cta h2 { font-size: clamp(2.6rem, 6vw, 5rem); margin-top: 1rem; text-shadow: 0 10px 40px rgba(0,0,0,.6); }
