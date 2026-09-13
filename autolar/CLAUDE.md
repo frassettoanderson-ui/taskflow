@@ -112,12 +112,12 @@ Header ganhou o hook `$page_head` para CSS extra. **Fotos são descobertas autom
 `assets/img/thefarm437/` pelo prefixo: `bella-NN`, `luz-NN`, `grand-NN`, `regiao-NN` (jpg/png/webp);
 sem foto = placeholder. A seção **Terreno usa vídeo de drone** (`terreno.mp4`, 1600px/24fps/CRF31 ≈ 9 MB, sem áudio,
 gerado por ffmpeg do original `DJI_0996.MP4`; poster `terreno-poster.jpg`) — autoplay mudo quando visível + botão tela cheia. Preço "sob consulta". Dados do Airbnb (5,0 · 38 + 15 avaliações) foram lidos dos anúncios reais.
-Também está **cadastrada no catálogo como imóvel id 19** (tipo sítio, Imaruí, preço 0 = "Sob consulta", destaque),
+Também está **cadastrada no catálogo como imóvel id 19** (tipo sítio, Imaruí, **R$ 1.200.000** desde 13/09, destaque),
 com 14 fotos copiadas p/ `uploads/imoveis/` com marca d'água (script `cadastrar_thefarm437.php`, rodado 13/09/2026).
 `imovel.php` tem o mapa `$paginasEspeciais = [19 => 'thefarm437']` que mostra o botão "Ver página completa".
 **URL limpa:** `/thefarm437` (nginx: `location = /thefarm437` faz rewrite p/ o .php; `/thefarm437.php` → 301 p/ a limpa).
 Backup do nginx antes da mudança em `/root/autolar-teste.nginx.bak-*`.
-`fmt_moeda()` devolve **"Sob consulta"** quando o preço é 0.
+`fmt_moeda()` devolve **"Sob consulta"** quando o preço é 0. A **home** tem o banner `.thefarm-banner` (index.php + style.css) logo após os cards de escolha.
 
 **Admin (`/admin`):**
 - Marca d'água automática nas fotos enviadas (opacidade ~22%, em `aplicar_marca_dagua()` de

@@ -14,7 +14,7 @@ require_once __DIR__ . '/config/config.php';
 require_once __DIR__ . '/includes/functions.php';
 
 $page_titulo = 'The Farm 437 — Cabanas em Imaruí/SC | ' . EMPRESA_NOME;
-$page_desc   = 'Três cabanas em 4.000 m² em Imaruí/SC, com operação de hospedagem ativa e avaliação 5,0 no Airbnb. Um imóvel que já é um negócio. Valor sob consulta.';
+$page_desc   = 'Três cabanas em 4.000 m² em Imaruí/SC, com operação de hospedagem ativa e avaliação 5,0 no Airbnb. Um imóvel que já é um negócio. R$ 1.200.000,00.';
 $page_atual  = 'imoveis';
 $page_head   = '<link rel="stylesheet" href="' . e(url('assets/css/thefarm437.css')) . '?v=' . @filemtime(ROOT_PATH . '/assets/css/thefarm437.css') . '">'
              . '<meta property="og:image" content="' . e(url('assets/img/thefarm437/hero.jpg')) . '">';
@@ -346,7 +346,7 @@ include __DIR__ . '/includes/header.php';
       <span class="tf-eyebrow">Agende uma visita</span>
       <h2>Venha ver <em>o céu daqui.</em></h2>
       <p>Visitas acompanhadas pela equipe Autolar. Enviamos os números completos da operação para compradores qualificados.</p>
-      <div class="tf-cta__price">Valor sob consulta</div>
+      <div class="tf-cta__price">R$ 1.200.000,00</div>
       <div class="tf-cta__btns">
         <a class="btn btn-gold btn-lg" href="<?= e($wa_link) ?>" target="_blank" rel="noopener"><?= $svg_wa ?> <?= e(CONTATO_TELEFONE) ?></a>
         <a class="btn btn-lg btn-ghost" style="background:rgba(255,255,255,.06);color:#fff;border-color:rgba(255,255,255,.35)" href="<?= e($wa_link2) ?>" target="_blank" rel="noopener"><?= $svg_wa ?> <?= e(CONTATO_TELEFONE_2) ?></a>
