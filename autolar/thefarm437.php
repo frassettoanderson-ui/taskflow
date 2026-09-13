@@ -147,14 +147,27 @@ include __DIR__ . '/includes/header.php';
   </section>
 
   <!-- ============================================================ TERRENO -->
-  <section class="tf-sec tf-cream tf-terreno" style="padding-top:0">
-    <div class="tf-wrap tf-terreno__grid">
-      <div class="reveal">
-        <?php tf_galeria('terreno', 'O terreno'); ?>
+  <section class="tf-sec tf-cream tf-terreno" id="terreno" style="padding-top:0">
+    <div class="tf-wrap">
+      <!-- Vídeo aéreo (drone): roda sem som em loop quando entra na tela; botão abre em tela cheia -->
+      <div class="tf-video reveal">
+        <video id="tfVideo" muted loop playsinline preload="metadata"
+               poster="<?= e(url('assets/img/thefarm437/terreno-poster.jpg')) ?>" aria-label="Filmagem aérea do terreno do The Farm 437">
+          <source src="<?= e(url('assets/img/thefarm437/terreno.mp4')) ?>" type="video/mp4">
+        </video>
+        <div class="tf-video__veil"></div>
+        <span class="tf-video__tag"><i></i> Filmagem aérea</span>
+        <button class="tf-video__full" type="button" data-video-full aria-label="Assistir em tela cheia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+          <span>Tela cheia</span>
+        </button>
+        <div class="tf-video__cap">
+          <span class="tf-eyebrow">O terreno</span>
+          <h2>4.000 m² ao pé da montanha, <em>de frente para a lagoa.</em></h2>
+        </div>
       </div>
-      <div class="reveal" data-d="2">
-        <span class="tf-eyebrow">O terreno</span>
-        <h2>4.000 m² ao pé da montanha, <em>de frente para a lagoa.</em></h2>
+
+      <div class="tf-terreno__body reveal" data-d="2">
         <p class="tf-lead">Dentro de um condomínio de acesso restrito, sem vizinhos colados e sem barulho de cidade.
           Cavalos passam em frente às cabanas; do alto do morro, um mirante 360° revela a lagoa encontrando o mar.</p>
         <div class="tf-feats">

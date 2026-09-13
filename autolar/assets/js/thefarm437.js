@@ -56,6 +56,30 @@
     setTimeout(shoot, 1600); // primeira logo após o hero aparecer
   });
 
+  /* ---- Vídeo aéreo: toca só quando visível; botão de tela cheia ---------- */
+  var video = document.getElementById('tfVideo');
+  if (video) {
+    if (!reduce && 'IntersectionObserver' in window) {
+      new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { var p = video.play(); if (p && p.catch) p.catch(function () {}); }
+          else video.pause();
+        });
+      }, { threshold: 0.35 }).observe(video);
+    }
+    var fullBtn = document.querySelector('[data-video-full]');
+    if (fullBtn) {
+      fullBtn.addEventListener('click', function () {
+        var p = video.play(); if (p && p.catch) p.catch(function () {});
+        if (video.requestFullscreen) video.requestFullscreen();
+        else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen(); // iOS Safari
+      });
+      document.addEventListener('fullscreenchange', function () {
+        video.controls = document.fullscreenElement === video;
+      });
+    }
+  }
+
   /* ---- Lightbox das galerias -------------------------------------------- */
   var lb = document.getElementById('tfLightbox');
   if (lb) {
