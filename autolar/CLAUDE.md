@@ -114,7 +114,9 @@ sem foto = placeholder. A seção **Terreno usa vídeo de drone** (`terreno.mp4`
 gerado por ffmpeg do original `DJI_0996.MP4`; poster `terreno-poster.jpg`) — autoplay mudo quando visível + botão tela cheia. Preço "sob consulta". Dados do Airbnb (5,0 · 38 + 15 avaliações) foram lidos dos anúncios reais.
 Também está **cadastrada no catálogo como imóvel id 19** (tipo sítio, Imaruí, preço 0 = "Sob consulta", destaque),
 com 14 fotos copiadas p/ `uploads/imoveis/` com marca d'água (script `cadastrar_thefarm437.php`, rodado 13/09/2026).
-`imovel.php` tem o mapa `$paginasEspeciais = [19 => 'thefarm437.php']` que mostra o botão "Ver página completa".
+`imovel.php` tem o mapa `$paginasEspeciais = [19 => 'thefarm437']` que mostra o botão "Ver página completa".
+**URL limpa:** `/thefarm437` (nginx: `location = /thefarm437` faz rewrite p/ o .php; `/thefarm437.php` → 301 p/ a limpa).
+Backup do nginx antes da mudança em `/root/autolar-teste.nginx.bak-*`.
 `fmt_moeda()` devolve **"Sob consulta"** quando o preço é 0.
 
 **Admin (`/admin`):**

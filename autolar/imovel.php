@@ -24,7 +24,7 @@ $video   = video_embed_url($im['video_url'] ?? null);
 $soldI   = ($im['status'] === 'vendido');
 
 // Imóveis com landing page própria (id => arquivo). Mostra botão "Ver página completa" no detalhe.
-$paginasEspeciais = [19 => 'thefarm437.php'];
+$paginasEspeciais = [19 => 'thefarm437']; // URL limpa (rewrite no nginx)
 $paginaEspecial   = $paginasEspeciais[$id] ?? null;
 
 $titulo  = $im['titulo'] ?: (rotulo_tipo_imovel($im['tipo']) . ' em ' . $im['cidade']);
