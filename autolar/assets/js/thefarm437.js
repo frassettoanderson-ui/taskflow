@@ -26,34 +26,36 @@
       sky.appendChild(s);
     }
 
-    // estrela cadente: cruza a área escura em intervalos aleatórios
+    // estrelas cadentes: uma a cada ~1 s, em posições/ângulos variados; de vez em quando uma "grande"
     function shoot() {
       var el = document.createElement('i');
-      el.className = 'tf-sky__shoot';
-      var angle = rand(14, 34);                      // graus (descendo p/ direita)
-      var fromLeft = Math.random() < .5;
-      var startX = fromLeft ? rand(4, 40) : rand(30, 70);
-      var startY = rand(top + 2, Math.max(top + 6, bottom * .55));
-      var dist = rand(420, 820);
-      var dur = rand(900, 1500);
+      el.className = 'tf-sky__shoot' + (Math.random() < .25 ? ' tf-sky__shoot--big' : '');
+      var toRight = Math.random() < .7;                 // maioria cai para a direita
+      var angle = (toRight ? 1 : -1) * rand(12, 38);    // graus (positivo = desce p/ direita)
+      var startX = toRight ? rand(2, 55) : rand(45, 98);
+      var startY = rand(top + 1, Math.max(top + 6, bottom * .6));
+      var dist = rand(520, 1100);
+      var dur = rand(700, 1300);
       el.style.left = startX + '%';
       el.style.top = startY + '%';
-      el.style.setProperty('--tail', rand(160, 300) + 'px');
+      el.style.setProperty('--tail', rand(220, 420) + 'px');
       sky.appendChild(el);
+      // rotate(angle) alinha o eixo X com a trajetória; scaleX(-1) espelha a cauda quando vai p/ a esquerda
+      var base = 'rotate(' + angle + 'deg)' + (toRight ? '' : ' scaleX(-1)');
       var anim = el.animate([
-        { transform: 'rotate(' + angle + 'deg) translateX(0)', opacity: 0 },
-        { transform: 'rotate(' + angle + 'deg) translateX(' + (dist * .12) + 'px)', opacity: 1, offset: .12 },
-        { transform: 'rotate(' + angle + 'deg) translateX(' + (dist * .8) + 'px)', opacity: .9, offset: .8 },
-        { transform: 'rotate(' + angle + 'deg) translateX(' + dist + 'px)', opacity: 0 }
+        { transform: base + ' translateX(0)', opacity: 0 },
+        { transform: base + ' translateX(' + (dist * .1) + 'px)', opacity: 1, offset: .1 },
+        { transform: base + ' translateX(' + (dist * .78) + 'px)', opacity: .95, offset: .78 },
+        { transform: base + ' translateX(' + dist + 'px)', opacity: 0 }
       ], { duration: dur, easing: 'cubic-bezier(.2,.6,.4,1)', fill: 'forwards' });
       anim.onfinish = function () { el.remove(); };
       schedule();
     }
     function schedule() {
-      var wait = rand(3800, 8500);
+      var wait = rand(700, 1500);
       setTimeout(function () { if (document.hidden) { schedule(); return; } shoot(); }, wait);
     }
-    setTimeout(shoot, 1600); // primeira logo após o hero aparecer
+    setTimeout(shoot, 900); // primeira logo após o hero aparecer
   });
 
   /* ---- Vídeo aéreo: toca só quando visível; botão de tela cheia ---------- */
