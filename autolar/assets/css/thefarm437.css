@@ -108,7 +108,7 @@
 .tf-stat span { display: block; margin-top: .45rem; font-size: .72rem; letter-spacing: .2em; text-transform: uppercase; color: rgba(241,236,223,.6); font-weight: 500; }
 
 /* ============================================================== OPORTUNIDADE (editorial) */
-.tf-intro__grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: clamp(32px, 6vw, 96px); align-items: end; }
+.tf-intro__grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: clamp(32px, 6vw, 96px); align-items: start; }
 .tf-intro h2 { margin-top: 1rem; }
 .tf-intro__txt p + p { margin-top: 1rem; }
 .tf-intro__txt { border-left: 1px solid var(--gold); padding-left: clamp(18px, 3vw, 34px); }
@@ -243,7 +243,7 @@
 .tf-cta__veil { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, var(--night) 0%, rgba(7,11,22,.35) 34%, rgba(7,11,22,.55) 100%); }
 .tf-cta { margin-top: -1px; }
 /* seções logo após uma faixa de transição precisam de menos respiro em cima */
-.tf-dawn + .tf-sec, .tf-dusk + .tf-sec { padding-top: clamp(28px, 4vw, 56px); }
+.tf-dawn + .tf-sec, .tf-dusk + .tf-sec { padding-top: clamp(4px, 1.2vw, 16px); }
 .tf-cta .tf-eyebrow { color: var(--amber-soft); justify-content: center; }
 .tf-cta .tf-eyebrow::after { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .8; }
 .tf-cta h2 { font-size: clamp(2.6rem, 6vw, 5rem); margin-top: 1rem; text-shadow: 0 10px 40px rgba(0,0,0,.6); }
