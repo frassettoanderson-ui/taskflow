@@ -67,8 +67,8 @@
 .tf-hero .tf-eyebrow { color: var(--amber-soft); justify-content: center; }
 .tf-hero .tf-eyebrow::after { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .8; }
 .tf-hero h1 { font-size: clamp(3.2rem, 9vw, 7.4rem); margin-top: .9rem; line-height: .95; text-shadow: 0 10px 40px rgba(0,0,0,.55); }
-.tf-hero h1 small { display: block; font-size: .28em; letter-spacing: .32em; text-transform: uppercase; font-style: normal;
-  font-weight: 500; opacity: .85; margin-top: .55rem; font-family: var(--font); }
+.tf-hero h1 small { display: block; font-size: .2em; letter-spacing: .26em; text-transform: uppercase; font-style: normal;
+  font-weight: 500; opacity: .85; margin-top: 1.1rem; font-family: var(--font); }
 .tf-hero__sub { max-width: 620px; margin: 1.4rem auto 0; font-size: clamp(1.02rem, 1.6vw, 1.25rem); color: rgba(255,255,255,.86);
   text-shadow: 0 2px 18px rgba(0,0,0,.6); }
 .tf-hero__cta { margin-top: 2rem; display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
@@ -283,7 +283,7 @@
   .tf-feats, .tf-amen, .tf-proofs, .tf-inclui__list { grid-template-columns: 1fr; }
   .tf-proof--wide { grid-column: auto; }
   .tf-hero h1 { font-size: clamp(2.8rem, 15vw, 4.2rem); }
-  .tf-hero h1 small { font-size: .62rem; letter-spacing: .22em; }
+  .tf-hero h1 small { font-size: .58rem; letter-spacing: .2em; margin-top: .8rem; }
   .tf-hero__inner { padding-top: 40px; padding-bottom: 48vh; }
   .tf-hero__img img { object-position: 50% 100%; }
   .tf-cabana__num { font-size: 4rem; }
