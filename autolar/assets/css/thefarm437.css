@@ -150,6 +150,11 @@
 .tf-gal__thumb { aspect-ratio: 1 / 1; border-radius: 14px; overflow: hidden; position: relative; }
 .tf-gal img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .8s var(--ease); }
 .tf-gal a:hover img { transform: scale(1.05); }
+.tf-gal__main--v a { position: relative; }
+.tf-gal__main--v img { position: relative; object-fit: contain; }
+.tf-gal__main--v .tf-gal__bg { position: absolute; inset: 0; object-fit: cover; filter: blur(26px) brightness(.72) saturate(1.1); transform: scale(1.18); }
+.tf-gal__main--v a:hover img { transform: scale(1.02); }
+.tf-gal__main--v a:hover .tf-gal__bg { transform: scale(1.18); }
 .tf-gal a { display: block; width: 100%; height: 100%; cursor: zoom-in; }
 .tf-gal__more { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(7,11,22,.55); color: #fff;
   font-family: var(--serif); font-size: 1.6rem; font-weight: 600; letter-spacing: .02em; }

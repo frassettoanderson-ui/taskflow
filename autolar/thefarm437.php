@@ -53,7 +53,11 @@ function tf_galeria(string $grupo, string $rotulo): void
         return;
     }
     $total = count($fotos);
-    echo '<div class="tf-gal__main"><a href="' . e($fotos[0]) . '" data-lb="' . e($grupo) . '" data-lb-i="0">'
+    // foto grande vertical: mostra inteira (sem cortar) sobre uma cópia desfocada, como na página de detalhe
+    $dim  = @getimagesize(ROOT_PATH . '/assets/img/thefarm437/' . basename($fotos[0]));
+    $vert = $dim && $dim[1] > $dim[0];
+    echo '<div class="tf-gal__main' . ($vert ? ' tf-gal__main--v' : '') . '"><a href="' . e($fotos[0]) . '" data-lb="' . e($grupo) . '" data-lb-i="0">'
+       . ($vert ? '<img class="tf-gal__bg" src="' . e($fotos[0]) . '" alt="" aria-hidden="true" loading="lazy">' : '')
        . '<img src="' . e($fotos[0]) . '" alt="' . e($rotulo) . '" loading="lazy"></a></div>';
     for ($i = 1; $i <= 4; $i++) {
         echo '<div class="tf-gal__thumb">';
