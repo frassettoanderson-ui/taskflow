@@ -387,22 +387,58 @@
     document.getElementById('ev-tipo').addEventListener('change', sinc);
     sinc();
 
-    // Seleção de ministérios; funções/quantidades vêm da config de cada ministério
+    // Seleção de ministérios: busca → clica → vai pra lista embaixo
     let detsMin = [];
+    const selMin = [];   // ids escolhidos
     (async () => {
       const mins = await getJSON('escalas/ministerios');
       detsMin = await Promise.all(mins.map((m) => getJSON('escalas/ministerios/' + m.id)));
       const comFunc = detsMin.filter((d) => d.funcoes.length);
-      document.getElementById('ev-vagas').innerHTML = comFunc.length ? `<div class="min-lista">${comFunc.map((d) => `
-        <label class="min-check"><input type="checkbox" class="ev-min" data-min="${d.id}"><span class="min-dot" style="background:${esc(d.cor)}"></span><span class="min-check-nome">${esc(d.nome)}</span></label>`).join('')}</div>`
-        : '<p class="vazio">Nenhum ministério com funções ainda. Crie em Ministérios › Funções (pode cadastrar o evento agora e definir as vagas depois).</p>';
+      if (!comFunc.length) {
+        document.getElementById('ev-vagas').innerHTML = '<p class="vazio">Nenhum ministério com funções ainda. Crie em Ministérios › Funções (pode cadastrar o evento agora e definir as vagas depois).</p>';
+        return;
+      }
+      document.getElementById('ev-vagas').innerHTML = `
+        <div class="mb2-busca"><input type="text" id="evm-busca" placeholder="Buscar ministério para adicionar…" autocomplete="off"><div id="evm-result" class="mb2-result" hidden></div></div>
+        <div id="evm-sel" class="mb2-equipe" style="margin-top:10px"></div>`;
+      const porId = {}; comFunc.forEach((d) => (porId[d.id] = d));
+
+      const pintarSel = () => {
+        document.getElementById('evm-sel').innerHTML = selMin.length
+          ? selMin.map((id) => `<div class="mb2-item"><span><span class="min-dot" style="background:${esc(porId[id].cor)}"></span> ${esc(porId[id].nome)}</span>
+               <button type="button" class="mb2-rem" data-remmin="${id}" title="Remover">✕</button></div>`).join('')
+          : '<p class="vazio" style="margin:4px 0">Nenhum ministério selecionado. Busque acima.</p>';
+        document.querySelectorAll('[data-remmin]').forEach((b) => b.addEventListener('click', () => {
+          const i = selMin.indexOf(Number(b.dataset.remmin)); if (i >= 0) selMin.splice(i, 1);
+          pintarSel(); buscar();
+        }));
+      };
+      const buscar = () => {
+        const f = document.getElementById('evm-busca').value.trim().toLowerCase();
+        const box = document.getElementById('evm-result');
+        const achados = comFunc.filter((d) => !selMin.includes(d.id) && (!f || d.nome.toLowerCase().includes(f)));
+        if (!f && !achados.length) { box.hidden = true; box.innerHTML = ''; return; }
+        box.hidden = false;
+        box.innerHTML = achados.length
+          ? achados.map((d) => `<button type="button" class="mb2-add" data-addmin="${d.id}"><span><span class="min-dot" style="background:${esc(d.cor)}"></span> ${esc(d.nome)}</span><span class="mb2-plus">+ adicionar</span></button>`).join('')
+          : '<div class="mb2-vazio">Nenhum ministério encontrado.</div>';
+        box.querySelectorAll('[data-addmin]').forEach((b) => b.addEventListener('click', () => {
+          const id = Number(b.dataset.addmin);
+          if (!selMin.includes(id)) selMin.push(id);
+          document.getElementById('evm-busca').value = ''; buscar(); pintarSel();
+          document.getElementById('evm-busca').focus();
+        }));
+      };
+      const inp = document.getElementById('evm-busca');
+      inp.addEventListener('input', buscar);
+      inp.addEventListener('focus', buscar);
+      pintarSel();
     })();
 
-    // expande os ministérios marcados nas vagas (funcao × quantidade padrão)
+    // expande os ministérios escolhidos nas vagas (funcao × quantidade padrão)
     const coletarVagas = () => {
-      const marcados = new Set([...document.querySelectorAll('.ev-min:checked')].map((c) => Number(c.dataset.min)));
       const itens = [];
-      detsMin.filter((d) => marcados.has(d.id)).forEach((d) => d.funcoes.forEach((f) => {
+      detsMin.filter((d) => selMin.includes(d.id)).forEach((d) => d.funcoes.forEach((f) => {
         const q = f.qtd_padrao == null ? 1 : f.qtd_padrao;
         if (q > 0) itens.push({ funcao_id: f.id, quantidade: q });
       }));
@@ -438,6 +474,10 @@
       }
       if (d.data) mes = d.data.slice(0, 7);
       document.getElementById('fev').reset();
+      selMin.length = 0;
+      const selBox = document.getElementById('evm-sel'); if (selBox) selBox.innerHTML = '<p class="vazio" style="margin:4px 0">Nenhum ministério selecionado. Busque acima.</p>';
+      const buscaBox = document.getElementById('evm-busca'); if (buscaBox) buscaBox.value = '';
+      const resBox = document.getElementById('evm-result'); if (resBox) { resBox.hidden = true; resBox.innerHTML = ''; }
       sinc();
       listar();
     });
