@@ -538,6 +538,7 @@
 
       // quais ministérios trabalham por banda
       const usaBanda = {}; (dados.ministerios || []).forEach((m) => (usaBanda[m.id] = m.usa_bandas === true));
+      const disp = new Set(dados.disponiveis || []);   // membros que marcaram que PODEM servir nesta data
 
       // carrega membros (com funções) dos ministérios necessários, só uma vez
       const idsMin = [...new Set(dados.necessidades.map((n) => n.ministerio_id))];
@@ -563,7 +564,11 @@
       dados.escala.forEach((s) => (escPorFunc[s.funcao_id] = escPorFunc[s.funcao_id] || []).push(s));
 
       body.className = '';
-      body.innerHTML = Object.entries(porMinNec).map(([minId, necs]) => {
+      const totalDisp = disp.size;
+      body.innerHTML = `<div class="esc-toolbar">
+          <button id="esc-gerar" class="pequeno">⚡ Gerar automático</button>
+          <span class="sub-txt">${totalDisp ? totalDisp + ' pessoa(s) marcaram disponibilidade nesta data' : 'Ninguém marcou disponibilidade ainda — o automático não terá quem escalar.'}</span>
+        </div>` + Object.entries(porMinNec).map(([minId, necs]) => {
         const membros = membrosPorMin[minId] || [];
         const cor = necs[0].cor, nomeMin = necs[0].ministerio;
         const bandas = bandasPorMin[minId] || [];
@@ -588,13 +593,25 @@
                 ${jaFunc.map((s) => `<span class="chip-pessoa">${esc(s.membro_nome)}<button class="chip-x" data-rem="${s.id}" title="Remover">✕</button></span>`).join('') || '<span class="sub-txt">Ninguém.</span>'}
               </div>
               ${faltam > 0 ? (aptos.length
-                ? `<div class="esc-add"><select data-add-func="${n.funcao_id}" data-add-min="${minId}"><option value="">+ escalar…</option>${aptos.map((mm) => `<option value="${mm.id}">${esc(mm.nome)}</option>`).join('')}</select></div>`
+                ? `<div class="esc-add"><select data-add-func="${n.funcao_id}" data-add-min="${minId}"><option value="">+ escalar…</option>${aptos.slice().sort((a, b) => (disp.has(b.id) - disp.has(a.id))).map((mm) => `<option value="${mm.id}">${disp.has(mm.id) ? '✓ ' : '○ '}${esc(mm.nome)}</option>`).join('')}</select></div>`
                 : `<p class="sub-txt">Sem ninguém apto (marque a função “${esc(n.funcao)}” em Membros).</p>`) : ''}
             </div>`;
           }).join('')}
         </div>`;
       }).join('');
 
+      const btGerar = document.getElementById('esc-gerar');
+      if (btGerar) btGerar.addEventListener('click', async () => {
+        if (!confirm('Gerar a escala automaticamente? Isso preenche as vagas ainda abertas usando quem marcou disponibilidade, distribuindo de forma equilibrada. O que você já escalou na mão é mantido.')) return;
+        btGerar.disabled = true; btGerar.textContent = 'Gerando…';
+        const r = await api('escalas/eventos/' + eventoId + '/gerar', { method: 'POST' });
+        const d = await r.json();
+        if (!r.ok) { alert(d.erro || 'Erro ao gerar'); btGerar.disabled = false; btGerar.textContent = '⚡ Gerar automático'; return; }
+        let m = `Escala gerada: ${d.escalados} pessoa(s) escalada(s).`;
+        if (d.faltando && d.faltando.length) m += '\n\nFicaram vagas em aberto (sem gente disponível):\n' + d.faltando.map((x) => `• ${x.funcao}: faltam ${x.faltam}`).join('\n');
+        alert(m);
+        await carregar(); if (aoConcluir) aoConcluir();
+      });
       body.querySelectorAll('[data-banda-min]').forEach((sel) => sel.addEventListener('change', async () => {
         if (!sel.value) return;
         const r = await api('escalas/eventos/' + eventoId + '/aplicar-banda', { method: 'POST', body: JSON.stringify({ banda_id: sel.value }) });
@@ -625,7 +642,7 @@
   // ══════════════════════════════════════════════
   VIEWS['escalas-membros'] = async () => {
     app.innerHTML = `<div class="painel"><h2>Membros dos ministérios</h2>
-      <p class="desc">Quem faz parte de algum ministério, com os ministérios e as próximas escalas.</p>
+      <p class="desc">Quem faz parte de algum ministério, com os ministérios e as próximas escalas. Envie a cada um o <b>link de disponibilidade</b> para ele marcar quando pode servir.</p>
       <div id="lista-mm"></div></div>`;
     const membros = await getJSON('escalas/membros');
     document.getElementById('lista-mm').innerHTML = tabela(membros, [
@@ -634,8 +651,33 @@
       ['Próximas escalas', (m) => m.proximas.length
         ? m.proximas.slice(0, 4).map((p) => `<div class="prox-linha"><span class="min-dot" style="background:${esc(p.cor)}"></span> ${dataBR(p.data)}${p.hora ? ' ' + p.hora : ''} — ${esc(p.titulo)} <span class="sub-txt">(${esc(p.ministerio)})</span></div>`).join('')
         : '<span class="sub-txt">Sem escalas futuras.</span>'],
+      ['', (m) => `<button class="acao-link" data-link="${m.id}" data-nome="${esc(m.nome)}">🔗 Link disponibilidade</button>`],
     ], 'Nenhum membro em ministérios ainda. Vá em Ministérios › Membros.');
+
+    document.querySelectorAll('[data-link]').forEach((b) => b.addEventListener('click', async () => {
+      const r = await api('escalas/membros/' + b.dataset.link + '/token', { method: 'POST' });
+      const d = await r.json(); if (!r.ok) { alert('Erro ao gerar link'); return; }
+      const url = new URL('disponibilidade.html?t=' + d.token, location.href).href;
+      mostrarLink(b.dataset.nome, url);
+    }));
   };
+
+  // Modal com o link pronto p/ copiar / mandar no WhatsApp
+  function mostrarLink(nome, url) {
+    const zap = 'https://wa.me/?text=' + encodeURIComponent(`Oi, ${nome.split(' ')[0]}! Marque aqui os cultos/eventos em que você pode servir: ${url}`);
+    const { el, fechar } = abrirModal('Link de ' + esc(nome), `
+      <p class="desc">Envie este link para ${esc(nome.split(' ')[0])} marcar as datas em que pode servir. Ele é fixo — pode reenviar sempre.</p>
+      <div class="linha"><input type="text" id="lk-url" class="cresce" value="${esc(url)}" readonly onclick="this.select()"></div>
+      <div class="linha" style="margin-top:10px">
+        <button id="lk-copiar" class="pequeno">📋 Copiar link</button>
+        <a class="botao pequeno" href="${zap}" target="_blank" style="text-decoration:none">💬 Enviar no WhatsApp</a>
+      </div>
+      <p id="lk-msg" class="sub-txt"></p>`);
+    document.getElementById('lk-copiar').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(url); } catch (e) { document.getElementById('lk-url').select(); document.execCommand('copy'); }
+      document.getElementById('lk-msg').textContent = '✓ Link copiado!';
+    });
+  }
 
   // ══════════════════════════════════════════════
   //  CALENDÁRIO

@@ -294,3 +294,14 @@ CREATE TABLE IF NOT EXISTS banda_membros (
 
 -- flag: ministério trabalha por bandas (habilita o seletor de bandas na escala — ex.: Louvor)
 ALTER TABLE ministerios ADD COLUMN IF NOT EXISTS usa_bandas BOOLEAN DEFAULT FALSE;
+
+-- Fase 3: disponibilidade por membro (link público) + gerador automático
+ALTER TABLE membros ADD COLUMN IF NOT EXISTS escala_token VARCHAR(40) UNIQUE;
+CREATE TABLE IF NOT EXISTS disponibilidades (
+  igreja_id  INT NOT NULL REFERENCES igrejas(id),
+  membro_id  INT NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+  data       DATE NOT NULL,
+  criado_em  TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (membro_id, data)
+);
+CREATE INDEX IF NOT EXISTS idx_disp_data ON disponibilidades (igreja_id, data);

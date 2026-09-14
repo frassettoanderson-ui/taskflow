@@ -460,7 +460,14 @@ router.get('/eventos/:id/escala', async (req, res) => {
      WHERE n.igreja_id=$1 AND ( n.evento_id=$2 OR (n.culto_fixo_id=$3 AND $3 IS NOT NULL) )
      ORDER BY mi.nome, f.nome`, [ig(req), evId, ev.rows[0].culto_fixo_id]
   );
-  res.json({ evento: ev.rows[0], ministerios: mins.rows, escala: esc.rows, necessidades: nec.rows });
+  // disponibilidade marcada pelos membros para a data deste evento (Fase 3)
+  const disp = await db.query(
+    'SELECT membro_id FROM disponibilidades WHERE igreja_id=$1 AND data=$2', [ig(req), ev.rows[0].data]
+  );
+  res.json({
+    evento: ev.rows[0], ministerios: mins.rows, escala: esc.rows, necessidades: nec.rows,
+    disponiveis: disp.rows.map((r) => r.membro_id),
+  });
 });
 
 // ══════════════════════════════════════════════
@@ -597,6 +604,124 @@ router.get('/membros', async (req, res) => {
   mins.rows.forEach((r) => porMembro[r.membro_id]?.ministerios.push({ nome: r.nome, cor: r.cor }));
   prox.rows.forEach((r) => porMembro[r.membro_id]?.proximas.push(r));
   res.json(Object.values(porMembro));
+});
+
+// ── Token público do membro (link de disponibilidade) ──
+router.post('/membros/:id/token', async (req, res) => {
+  const id = Number(req.params.id);
+  const m = await db.query('SELECT escala_token FROM membros WHERE id=$1 AND igreja_id=$2', [id, ig(req)]);
+  if (!m.rows.length) return res.status(404).json({ erro: 'Membro não encontrado' });
+  let token = m.rows[0].escala_token;
+  if (!token) {
+    token = crypto.randomBytes(16).toString('hex');
+    await db.query('UPDATE membros SET escala_token=$1 WHERE id=$2', [token, id]);
+  }
+  res.json({ token });
+});
+
+// ══════════════════════════════════════════════
+//  GERADOR AUTOMÁTICO DE ESCALA (Fase 3)
+//  Preenche as vagas ainda abertas de um evento distribuindo o mais uniforme
+//  possível: respeita função, disponibilidade marcada, casais, bandas já
+//  aplicadas e não repete a mesma pessoa no mesmo dia.
+// ══════════════════════════════════════════════
+router.post('/eventos/:id/gerar', async (req, res) => {
+  const evId = Number(req.params.id);
+  const igId = ig(req);
+  const ev = await db.query(
+    `SELECT to_char(data,'YYYY-MM-DD') AS data, culto_fixo_id FROM eventos WHERE id=$1 AND igreja_id=$2`, [evId, igId]
+  );
+  if (!ev.rows.length) return res.status(404).json({ erro: 'Evento não encontrado' });
+  const data = ev.rows[0].data, fixoId = ev.rows[0].culto_fixo_id;
+
+  // vagas (necessidades) deste evento (próprias ou do molde do culto fixo)
+  const nec = await db.query(
+    `SELECT n.funcao_id, n.quantidade, f.nome AS funcao, f.casal, f.ministerio_id
+       FROM evento_necessidades n JOIN funcoes f ON f.id=n.funcao_id
+      WHERE n.igreja_id=$1 AND ( n.evento_id=$2 OR (n.culto_fixo_id=$3 AND $3 IS NOT NULL) )`,
+    [igId, evId, fixoId]
+  );
+  if (!nec.rows.length) return res.status(400).json({ erro: 'Defina as vagas deste culto/evento antes de gerar.' });
+
+  // quem já está escalado neste evento (por função) — não mexemos no que já existe
+  const jaEv = await db.query('SELECT ministerio_id, membro_id, funcao_id FROM escalas WHERE evento_id=$1', [evId]);
+  const contaFunc = {};                       // funcao_id -> qtde já escalada
+  const ocupadoDia = new Set();               // membros já comprometidos no dia (qualquer evento)
+  jaEv.rows.forEach((s) => { contaFunc[s.funcao_id] = (contaFunc[s.funcao_id] || 0) + 1; });
+  const mesmoDia = await db.query(
+    `SELECT DISTINCT s.membro_id FROM escalas s JOIN eventos e ON e.id=s.evento_id
+      WHERE e.igreja_id=$1 AND e.data=$2`, [igId, data]
+  );
+  mesmoDia.rows.forEach((r) => ocupadoDia.add(r.membro_id));
+
+  // disponibilidade marcada para a data
+  const disp = new Set((await db.query(
+    'SELECT membro_id FROM disponibilidades WHERE igreja_id=$1 AND data=$2', [igId, data]
+  )).rows.map((r) => r.membro_id));
+
+  // carga histórica (quantas vezes cada membro já foi escalado) p/ distribuir uniforme
+  const carga = {};
+  (await db.query('SELECT membro_id, COUNT(*)::int AS n FROM escalas WHERE igreja_id=$1 GROUP BY membro_id', [igId]))
+    .rows.forEach((r) => (carga[r.membro_id] = r.n));
+
+  // membros aptos por função (do ministério e que têm a função), com cônjuge
+  const aptosPorFunc = {};
+  for (const n of nec.rows) {
+    const r = await db.query(
+      `SELECT me.id, me.nome, me.conjuge_id
+         FROM ministerio_membros mm JOIN membros me ON me.id=mm.membro_id
+         JOIN membro_funcoes mf ON mf.membro_id=me.id
+        WHERE mm.ministerio_id=$1 AND mf.funcao_id=$2 AND me.igreja_id=$3`,
+      [n.ministerio_id, n.funcao_id, igId]
+    );
+    aptosPorFunc[n.funcao_id] = r.rows;
+  }
+
+  const inserir = async (mid, minId, fid) => {
+    try {
+      await db.query('INSERT INTO escalas (igreja_id, evento_id, ministerio_id, membro_id, funcao_id) VALUES ($1,$2,$3,$4,$5)',
+        [igId, evId, minId, mid, fid]);
+      return true;
+    } catch (e) { if (e.code === '23505') return false; throw e; }
+  };
+
+  let add = 0, semGente = [];
+  // ordena por vagas mais restritas primeiro (menos aptos) p/ não "gastar" pessoas versáteis
+  const ordem = [...nec.rows].sort((a, b) => (aptosPorFunc[a.funcao_id].length) - (aptosPorFunc[b.funcao_id].length));
+
+  for (const n of ordem) {
+    const alvo = n.quantidade * (n.casal ? 2 : 1);
+    let faltam = alvo - (contaFunc[n.funcao_id] || 0);
+    if (faltam <= 0) continue;
+
+    // candidatos: disponíveis, não ocupados no dia; casal precisa ter cônjuge
+    let cand = aptosPorFunc[n.funcao_id].filter((c) =>
+      disp.has(c.id) && !ocupadoDia.has(c.id) && (!n.casal || c.conjuge_id));
+    // menos carregados primeiro; desempate aleatório leve
+    cand.sort((a, b) => (carga[a.id] || 0) - (carga[b.id] || 0) || (a.id % 7) - (b.id % 7));
+
+    for (const c of cand) {
+      if (faltam <= 0) break;
+      if (ocupadoDia.has(c.id)) continue;
+      if (n.casal) {
+        if (ocupadoDia.has(c.conjuge_id)) continue;
+        const okA = await inserir(c.id, n.ministerio_id, n.funcao_id);
+        if (!okA) continue;
+        await inserir(c.conjuge_id, n.ministerio_id, n.funcao_id);
+        ocupadoDia.add(c.id); ocupadoDia.add(c.conjuge_id);
+        carga[c.id] = (carga[c.id] || 0) + 1; carga[c.conjuge_id] = (carga[c.conjuge_id] || 0) + 1;
+        add += 2; faltam -= 2;
+      } else {
+        const ok = await inserir(c.id, n.ministerio_id, n.funcao_id);
+        if (!ok) continue;
+        ocupadoDia.add(c.id); carga[c.id] = (carga[c.id] || 0) + 1;
+        add += 1; faltam -= 1;
+      }
+    }
+    if (faltam > 0) semGente.push({ funcao: n.funcao, faltam });
+  }
+
+  res.json({ ok: true, escalados: add, faltando: semGente });
 });
 
 module.exports = router;

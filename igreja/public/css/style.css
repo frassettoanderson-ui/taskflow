@@ -598,3 +598,8 @@ tbody tr:last-child td { border-bottom: none; }
 .chip-var { opacity:.6; font-style:italic; }
 .esc-banda { margin:6px 0 10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .esc-banda select { padding:6px 10px; border-radius:8px; }
+
+/* ─── Escalas: gerador automático (Fase 3) ─── */
+.esc-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; margin-bottom:12px;
+  background:rgba(201,162,74,.08); border:1px solid rgba(201,162,74,.35); border-radius:10px; }
+.esc-toolbar #esc-gerar { background:var(--accent,#c9a24a); color:#fff; border:none; }

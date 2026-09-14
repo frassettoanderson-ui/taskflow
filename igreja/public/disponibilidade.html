@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Minha Disponibilidade</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .disp-wrap { width:min(460px,94vw); margin:24px auto; }
+    .disp-card { background:var(--card,#fff); border-radius:16px; padding:22px 20px; box-shadow:0 6px 24px rgba(0,0,0,.08); }
+    .disp-head { text-align:center; margin-bottom:6px; }
+    .disp-head h1 { font-size:20px; margin:8px 0 2px; }
+    .disp-head p { color:#6b6459; font-size:.9rem; margin:0; }
+    .disp-mes { margin-top:18px; }
+    .disp-mes h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.06em; color:#9a9384; margin:0 0 8px; }
+    .disp-item { display:flex; align-items:center; gap:12px; padding:11px 12px; border:1px solid var(--linha,#e6e2d8); border-radius:12px; margin-bottom:8px; cursor:pointer; transition:.12s; }
+    .disp-item.on { border-color:var(--accent,#c9a24a); background:rgba(201,162,74,.08); }
+    .disp-item input { width:20px; height:20px; accent-color:var(--accent,#c9a24a); flex:none; }
+    .disp-data { font-weight:700; font-size:1.02rem; }
+    .disp-sub { color:#6b6459; font-size:.85rem; }
+    .disp-dia { text-align:center; min-width:44px; }
+    .disp-dia b { display:block; font-size:1.3rem; line-height:1; }
+    .disp-dia span { font-size:.72rem; text-transform:uppercase; color:#9a9384; }
+    .disp-txt { flex:1; }
+    .disp-barra { position:sticky; bottom:0; background:linear-gradient(transparent,var(--bg,#f6f4ee) 30%); padding:14px 0 6px; margin-top:10px; text-align:center; }
+    .disp-barra button { width:100%; padding:13px; font-size:1rem; }
+    #msg { text-align:center; margin-top:10px; font-weight:600; }
+    .disp-empty { text-align:center; color:#6b6459; padding:30px 0; }
+  </style>
+</head>
+<body class="tela-login" style="align-items:flex-start;background:var(--bg,#f6f4ee)">
+  <div class="disp-wrap">
+    <div class="disp-card">
+      <div class="disp-head">
+        <div class="logo-mark" style="margin:0 auto 4px">a</div>
+        <h1 id="titulo">Minha Disponibilidade</h1>
+        <p id="sub">Carregando…</p>
+      </div>
+      <div id="lista"></div>
+      <div class="disp-barra" id="barra" hidden>
+        <button id="salvar">Salvar disponibilidade</button>
+        <p id="msg"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const DIAS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+    const token = new URLSearchParams(location.search).get('t');
+    const marcadas = new Set();
+    const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const wd = (iso) => { const [a,m,d] = iso.split('-').map(Number); return DIAS[new Date(Date.UTC(a,m-1,d)).getUTCDay()]; };
+
+    async function carregar() {
+      if (!token) { document.getElementById('sub').textContent = 'Link inválido.'; return; }
+      let d;
+      try { const r = await fetch('api/publico/disponibilidade/' + encodeURIComponent(token)); d = await r.json(); if (!r.ok) throw new Error(d.erro); }
+      catch (e) { document.getElementById('sub').textContent = 'Link inválido ou expirado.'; return; }
+
+      document.getElementById('titulo').textContent = 'Olá, ' + d.membro.split(' ')[0] + '!';
+      document.getElementById('sub').textContent = 'Marque os cultos e eventos em que você PODE servir nos próximos 3 meses.';
+      d.marcadas.forEach((x) => marcadas.add(x));
+
+      // agrupa ocorrências por dia (pode ter mais de um culto no mesmo dia)
+      const porDia = {};
+      d.ocorrencias.forEach((o) => (porDia[o.data] = porDia[o.data] || []).push(o));
+      const dias = Object.keys(porDia).sort();
+
+      if (!dias.length) { document.getElementById('lista').innerHTML = '<p class="disp-empty">Nenhum culto ou evento cadastrado para os próximos meses.</p>'; return; }
+
+      // agrupa dias por mês
+      let html = '', mesAtual = '';
+      dias.forEach((iso) => {
+        const [a, m, dd] = iso.split('-');
+        const chaveMes = a + '-' + m;
+        if (chaveMes !== mesAtual) { if (mesAtual) html += '</div>'; html += `<div class="disp-mes"><h2>${MESES[+m-1]} ${a}</h2>`; mesAtual = chaveMes; }
+        const titulos = porDia[iso].map((o) => esc(o.titulo) + (o.hora ? ' · ' + o.hora : '')).join(' • ');
+        html += `<label class="disp-item ${marcadas.has(iso) ? 'on' : ''}" data-iso="${iso}">
+          <input type="checkbox" ${marcadas.has(iso) ? 'checked' : ''}>
+          <span class="disp-dia"><b>${+dd}</b><span>${wd(iso)}</span></span>
+          <span class="disp-txt"><span class="disp-sub">${titulos}</span></span>
+        </label>`;
+      });
+      html += '</div>';
+      document.getElementById('lista').innerHTML = html;
+      document.getElementById('barra').hidden = false;
+
+      document.querySelectorAll('.disp-item').forEach((el) => {
+        const cb = el.querySelector('input');
+        el.addEventListener('change', () => {
+          const iso = el.dataset.iso;
+          if (cb.checked) { marcadas.add(iso); el.classList.add('on'); }
+          else { marcadas.delete(iso); el.classList.remove('on'); }
+        });
+      });
+    }
+
+    document.getElementById('salvar').addEventListener('click', async () => {
+      const msg = document.getElementById('msg');
+      msg.className = ''; msg.textContent = 'Salvando…';
+      try {
+        const r = await fetch('api/publico/disponibilidade/' + encodeURIComponent(token), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ datas: [...marcadas] }),
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.erro);
+        msg.className = 'ok-msg'; msg.textContent = '✓ Salvo! Você marcou ' + d.total + ' data(s). Pode fechar.';
+      } catch (e) { msg.className = 'erro'; msg.textContent = 'Erro ao salvar. Tente de novo.'; }
+    });
+
+    carregar();
+  </script>
+</body>
+</html>
