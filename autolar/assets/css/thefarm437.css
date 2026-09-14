@@ -87,19 +87,19 @@
 @keyframes tf-rise { to { opacity: 1; transform: none } }
 
 /* céu: estrelas piscando + estrelas cadentes (montado via JS) */
-.tf-sky { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.tf-sky { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; } /* atrás do texto, acima do véu */
 .tf-sky__twinkle { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff;
   opacity: 0; animation: tf-twinkle var(--dur, 4s) ease-in-out var(--delay, 0s) infinite; }
 @keyframes tf-twinkle { 0%,100% { opacity: 0; transform: scale(.6) } 50% { opacity: var(--peak, .9); transform: scale(1.2) } }
 .tf-sky__shoot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: 0; z-index: 2;
   box-shadow: 0 0 12px 4px rgba(255,255,255,1), 0 0 36px 10px rgba(243,207,143,.6); will-change: transform, opacity;
-  animation: tf-shoot var(--cycle, 5s) linear infinite; }
-/* o percurso ocupa só os primeiros 26% do ciclo; o resto é "silêncio" (invisível) */
+  animation: tf-shoot 3s linear infinite; }
+/* ciclo de 3 s: cruza o céu nos primeiros 40% (~1,2 s); o resto é "silêncio" (invisível) */
 @keyframes tf-shoot {
   0%   { transform: rotate(var(--ang, 22deg)) scaleX(var(--flip, 1)) translateX(0); opacity: 0; }
-  2%   { opacity: 1; }
-  21%  { opacity: 1; }
-  26%  { transform: rotate(var(--ang, 22deg)) scaleX(var(--flip, 1)) translateX(var(--dist, 800px)); opacity: 0; }
+  3%   { opacity: 1; }
+  34%  { opacity: 1; }
+  40%  { transform: rotate(var(--ang, 22deg)) scaleX(var(--flip, 1)) translateX(var(--dist, 800px)); opacity: 0; }
   100% { transform: rotate(var(--ang, 22deg)) scaleX(var(--flip, 1)) translateX(var(--dist, 800px)); opacity: 0; }
 }
 .tf-sky__shoot::before { content: ""; position: absolute; right: 3px; top: 50%; height: 3px; width: var(--tail, 380px);

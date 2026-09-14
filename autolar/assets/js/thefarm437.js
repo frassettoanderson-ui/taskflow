@@ -26,27 +26,23 @@
       sky.appendChild(s);
     }
 
-    // estrelas cadentes: 6 elementos com animação CSS infinita (ciclos de 3,5–6,5 s, defasados),
-    // re-sorteando posição/ângulo/tamanho a cada volta => ~1 estrela por segundo, sempre em lugar diferente.
+    // estrela cadente: UMA por vez, ciclo fixo de 3 s (cruza em ~1,2 s, pausa o resto),
+    // re-sorteando posição/ângulo/direção a cada volta.
     function sortear(el) {
       var toRight = Math.random() < .7;
-      el.style.left = (toRight ? rand(2, 55) : rand(45, 98)) + '%';
-      el.style.top = rand(top + 1, Math.max(top + 6, bottom * .6)) + '%';
-      el.style.setProperty('--ang', ((toRight ? 1 : -1) * rand(12, 38)).toFixed(1) + 'deg');
+      el.style.left = (toRight ? rand(2, 50) : rand(50, 98)) + '%';
+      el.style.top = rand(top + 1, Math.max(top + 6, bottom * .55)) + '%';
+      el.style.setProperty('--ang', ((toRight ? 1 : -1) * rand(12, 34)).toFixed(1) + 'deg');
       el.style.setProperty('--flip', toRight ? '1' : '-1');
-      el.style.setProperty('--dist', Math.round(rand(600, 1200)) + 'px');
-      el.style.setProperty('--tail', Math.round(rand(320, 560)) + 'px');
-      el.classList.toggle('tf-sky__shoot--big', Math.random() < .25);
+      el.style.setProperty('--dist', Math.round(rand(700, 1200)) + 'px');
+      el.style.setProperty('--tail', Math.round(rand(300, 480)) + 'px');
+      el.classList.toggle('tf-sky__shoot--big', Math.random() < .3);
     }
-    for (var k = 0; k < 6; k++) {
-      var st = document.createElement('i');
-      st.className = 'tf-sky__shoot';
-      sortear(st);
-      st.style.setProperty('--cycle', rand(3.5, 6.5).toFixed(2) + 's');
-      st.style.animationDelay = rand(0, 4).toFixed(2) + 's';
-      st.addEventListener('animationiteration', function () { sortear(this); });
-      sky.appendChild(st);
-    }
+    var st = document.createElement('i');
+    st.className = 'tf-sky__shoot';
+    sortear(st);
+    st.addEventListener('animationiteration', function () { sortear(this); });
+    sky.appendChild(st);
   });
 
   /* ---- Vídeo aéreo: toca só quando visível; botão de tela cheia ---------- */
