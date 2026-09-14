@@ -586,3 +586,15 @@ tbody tr:last-child td { border-bottom: none; }
 .vaga-bloco{ padding:8px 0; border-top:1px solid var(--border); margin-top:6px; }
 .vaga-bloco:first-of-type{ border-top:0; margin-top:0; }
 .vaga-head{ display:flex; align-items:center; gap:8px; margin-bottom:5px; font-weight:600; }
+
+/* ─── Escalas: bandas ─── */
+.banda-nova { border-top:1px solid var(--linha,#e6e2d8); margin-top:14px; }
+.banda-grade { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; margin-top:8px; }
+.banda-pos { display:flex; flex-direction:column; gap:3px; font-size:.82rem; }
+.banda-pos span { color:#6b6459; }
+.banda-pos select { padding:6px 8px; }
+.banda-card { border:1px solid var(--linha,#e6e2d8); border-radius:10px; padding:10px 12px; margin-bottom:8px; }
+.banda-card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.chip-var { opacity:.6; font-style:italic; }
+.esc-banda { margin:6px 0 10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.esc-banda select { padding:6px 10px; border-radius:8px; }

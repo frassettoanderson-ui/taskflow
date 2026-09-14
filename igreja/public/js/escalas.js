@@ -38,6 +38,7 @@
           <label>Cor<input type="color" id="m-cor" value="#c9a24a"></label>
         </div>
         <label>Descrição<input type="text" id="m-desc" placeholder="opcional"></label>
+        <label class="check-linha"><input type="checkbox" id="m-bandas"> Trabalha por bandas (ex.: Louvor — o líder escolhe a banda na hora de montar a escala)</label>
         <button type="submit">Criar ministério</button>
         <p id="m-msg" class="erro"></p>
       </form>
@@ -54,6 +55,7 @@
         nome: document.getElementById('m-nome').value,
         cor: document.getElementById('m-cor').value,
         descricao: document.getElementById('m-desc').value,
+        usa_bandas: document.getElementById('m-bandas').checked,
       }) });
       const d = await r.json();
       if (!r.ok) { msg.textContent = d.erro; return; }
@@ -69,12 +71,14 @@
         ['Membros', (m) => `${m.qtd_membros}`],
         ['', (m) => `<button class="acao-link" data-funcoes="${m.id}">Funções</button>
                      <button class="acao-link" data-membros="${m.id}">Membros</button>
+                     ${m.usa_bandas ? `<button class="acao-link" data-bandas="${m.id}">Bandas</button>` : ''}
                      <button class="acao-link" data-edit="${m.id}">✎ Editar</button>
                      <button class="acao-link acao-del" data-del="${m.id}">✕ Excluir</button>`],
       ], 'Nenhum ministério criado ainda.');
 
       document.querySelectorAll('[data-funcoes]').forEach((b) => b.addEventListener('click', () => gerirFuncoes(b.dataset.funcoes)));
       document.querySelectorAll('[data-membros]').forEach((b) => b.addEventListener('click', () => gerirMembros(b.dataset.membros)));
+      document.querySelectorAll('[data-bandas]').forEach((b) => b.addEventListener('click', () => gerirBandas(b.dataset.bandas)));
       document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => editar(b.dataset.edit, mins)));
       document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Excluir este ministério? As escalas ligadas a ele serão removidas.')) return;
@@ -91,6 +95,7 @@
             <label>Cor<input type="color" id="e-cor" value="${esc(m.cor)}"></label>
           </div>
           <label>Descrição<input type="text" id="e-desc" value="${esc(m.descricao || '')}"></label>
+          <label class="check-linha"><input type="checkbox" id="e-bandas" ${m.usa_bandas ? 'checked' : ''}> Trabalha por bandas (ex.: Louvor)</label>
           <div class="linha"><button type="submit">Salvar</button></div>
           <p id="e-msg" class="erro"></p>
         </form>`);
@@ -100,6 +105,7 @@
           nome: document.getElementById('e-nome').value,
           cor: document.getElementById('e-cor').value,
           descricao: document.getElementById('e-desc').value,
+          usa_bandas: document.getElementById('e-bandas').checked,
         }) });
         const d = await r.json();
         if (!r.ok) { document.getElementById('e-msg').textContent = d.erro; return; }
@@ -239,6 +245,70 @@
         fechar(); listar();
       });
       pintarEquipe();
+    }
+
+    // Gerir as bandas de um ministério (presets de músicos por função)
+    async function gerirBandas(id) {
+      const det = await getJSON('escalas/ministerios/' + id);
+      const funcoes = det.funcoes || [];
+      const membros = det.membros || [];
+      const aptosDe = (fid) => membros.filter((m) => (m.funcoes || []).map(Number).includes(Number(fid)));
+      let bandas = await getJSON('escalas/ministerios/' + id + '/bandas');
+
+      const { el, fechar } = abrirModal('Bandas de ' + esc(det.nome), `
+        <p class="desc">Monte bandas fixando quem toca em cada função. Deixe <b>“— variável —”</b> nas posições que mudam (ficam em aberto pra escolher na hora).</p>
+        ${funcoes.length ? '' : '<p class="vazio">Crie as funções deste ministério primeiro (botão “Funções”).</p>'}
+        <div id="bd-lista"></div>
+        ${funcoes.length ? `<div class="banda-nova">
+          <h3 style="margin:16px 0 8px">Nova banda</h3>
+          <input type="text" id="bd-nome" class="cresce" placeholder="Nome da banda (ex.: Banda A, Banda Jovem…)" autocomplete="off">
+          <div class="banda-grade">${funcoes.map((f) => `
+            <label class="banda-pos"><span>${esc(f.nome)}</span>
+              <select data-bf="${f.id}"><option value="">— variável —</option>
+                ${aptosDe(f.id).map((m) => `<option value="${m.id}">${esc(m.nome)}</option>`).join('')}
+              </select></label>`).join('')}</div>
+          <div class="linha" style="margin-top:10px"><button id="bd-criar" class="pequeno">Criar banda</button><span id="bd-msg" class="sub-txt"></span></div>
+        </div>` : ''}`);
+
+      const pintar = () => {
+        document.getElementById('bd-lista').innerHTML = bandas.length
+          ? bandas.map((b) => {
+              const fixos = b.membros || [];
+              const idsFixos = new Set(fixos.map((x) => Number(x.funcao_id)));
+              const variaveis = funcoes.filter((f) => !idsFixos.has(Number(f.id)));
+              return `<div class="banda-card">
+                <div class="banda-card-head"><b>${esc(b.nome)}</b>
+                  <button class="mb2-rem" data-delb="${b.id}" title="Excluir">✕</button></div>
+                <div class="esc-chips">
+                  ${fixos.map((x) => `<span class="chip-pessoa">${esc(x.funcao)}: <b>${esc(x.membro)}</b></span>`).join('')}
+                  ${variaveis.map((f) => `<span class="chip-pessoa chip-var">${esc(f.nome)}: variável</span>`).join('')}
+                  ${fixos.length ? '' : (variaveis.length ? '' : '<span class="sub-txt">Vazia.</span>')}
+                </div>
+              </div>`;
+            }).join('')
+          : (funcoes.length ? '<p class="vazio">Nenhuma banda ainda.</p>' : '');
+        el.querySelectorAll('[data-delb]').forEach((b) => b.addEventListener('click', async () => {
+          if (!confirm('Excluir esta banda?')) return;
+          await api('escalas/bandas/' + b.dataset.delb, { method: 'DELETE' });
+          bandas = bandas.filter((x) => String(x.id) !== String(b.dataset.delb)); pintar();
+        }));
+      };
+
+      const btCriar = document.getElementById('bd-criar');
+      if (btCriar) btCriar.addEventListener('click', async () => {
+        const nome = document.getElementById('bd-nome').value.trim();
+        const msg = document.getElementById('bd-msg');
+        if (!nome) { msg.textContent = 'Dê um nome à banda.'; return; }
+        const mp = {};
+        el.querySelectorAll('[data-bf]').forEach((s) => { if (s.value) mp[s.dataset.bf] = Number(s.value); });
+        const r = await api('escalas/ministerios/' + id + '/bandas', { method: 'POST', body: JSON.stringify({ nome, membros: mp }) });
+        if (!r.ok) { msg.textContent = 'Erro ao salvar'; return; }
+        bandas = await getJSON('escalas/ministerios/' + id + '/bandas');
+        document.getElementById('bd-nome').value = '';
+        el.querySelectorAll('[data-bf]').forEach((s) => (s.value = ''));
+        msg.textContent = ''; pintar();
+      });
+      pintar();
     }
 
     listar();
@@ -459,16 +529,24 @@
   async function abrirEscala(eventoId, aoConcluir) {
     const { el, fechar } = abrirModal('Escala', `<div id="esc-body" class="sub-txt">Carregando…</div>`);
     const membrosPorMin = {};
+    const bandasPorMin = {};
 
     async function carregar() {
       const dados = await getJSON('escalas/eventos/' + eventoId + '/escala');
       const ev = dados.evento;
       el.querySelector('.modal-head h2').textContent = `Escala — ${ev.titulo} (${dataBR(ev.data)}${ev.hora ? ' ' + ev.hora : ''})`;
 
+      // quais ministérios trabalham por banda
+      const usaBanda = {}; (dados.ministerios || []).forEach((m) => (usaBanda[m.id] = m.usa_bandas === true));
+
       // carrega membros (com funções) dos ministérios necessários, só uma vez
       const idsMin = [...new Set(dados.necessidades.map((n) => n.ministerio_id))];
       await Promise.all(idsMin.filter((id) => !membrosPorMin[id]).map(async (id) => {
         membrosPorMin[id] = (await getJSON('escalas/ministerios/' + id)).membros;
+      }));
+      // carrega as bandas dos ministérios que trabalham por banda
+      await Promise.all(idsMin.filter((id) => usaBanda[id] && !bandasPorMin[id]).map(async (id) => {
+        bandasPorMin[id] = await getJSON('escalas/ministerios/' + id + '/bandas');
       }));
 
       const body = document.getElementById('esc-body');
@@ -488,8 +566,14 @@
       body.innerHTML = Object.entries(porMinNec).map(([minId, necs]) => {
         const membros = membrosPorMin[minId] || [];
         const cor = necs[0].cor, nomeMin = necs[0].ministerio;
+        const bandas = bandasPorMin[minId] || [];
+        const seletorBanda = (usaBanda[minId] && bandas.length)
+          ? `<div class="esc-banda"><select data-banda-min="${minId}"><option value="">🎸 Aplicar banda…</option>${bandas.map((b) => `<option value="${b.id}">${esc(b.nome)}</option>`).join('')}</select>
+             <span class="sub-txt">preenche os fixos; os variáveis você escolhe abaixo</span></div>`
+          : (usaBanda[minId] ? '<p class="sub-txt">Nenhuma banda cadastrada — monte em Ministérios › Bandas, ou escale manualmente abaixo.</p>' : '');
         return `<div class="esc-min">
           <div class="esc-min-head"><span class="min-dot" style="background:${esc(cor)}"></span> <b>${esc(nomeMin)}</b></div>
+          ${seletorBanda}
           ${necs.map((n) => {
             const jaFunc = escPorFunc[n.funcao_id] || [];
             const jaIds = new Set(jaFunc.map((s) => s.membro_id));
@@ -511,6 +595,14 @@
         </div>`;
       }).join('');
 
+      body.querySelectorAll('[data-banda-min]').forEach((sel) => sel.addEventListener('change', async () => {
+        if (!sel.value) return;
+        const r = await api('escalas/eventos/' + eventoId + '/aplicar-banda', { method: 'POST', body: JSON.stringify({ banda_id: sel.value }) });
+        const d = await r.json();
+        if (!r.ok) { alert(d.erro || 'Erro ao aplicar a banda'); return; }
+        if (d.jaOcupados) alert(`Banda aplicada. ${d.aplicados} escalado(s); ${d.jaOcupados} posição(ões) já estava(m) ocupada(s) e foi(ram) mantida(s).`);
+        await carregar(); if (aoConcluir) aoConcluir();
+      }));
       body.querySelectorAll('[data-rem]').forEach((b) => b.addEventListener('click', async () => {
         await api('escalas/escala/' + b.dataset.rem, { method: 'DELETE' });
         await carregar(); if (aoConcluir) aoConcluir();

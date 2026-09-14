@@ -274,3 +274,23 @@ CREATE TABLE IF NOT EXISTS evento_necessidades (
 );
 CREATE INDEX IF NOT EXISTS idx_nec_evento ON evento_necessidades(evento_id);
 CREATE INDEX IF NOT EXISTS idx_nec_fixo   ON evento_necessidades(culto_fixo_id);
+
+-- Bandas (presets de músicos por função dentro de um ministério — ex.: Louvor)
+CREATE TABLE IF NOT EXISTS bandas (
+  id            SERIAL PRIMARY KEY,
+  igreja_id     INT NOT NULL REFERENCES igrejas(id),
+  ministerio_id INT NOT NULL REFERENCES ministerios(id) ON DELETE CASCADE,
+  nome          VARCHAR(80) NOT NULL,
+  ativo         BOOLEAN DEFAULT TRUE,
+  criado_em     TIMESTAMP DEFAULT NOW()
+);
+-- membro fixo da banda numa função (função ausente = posição variável)
+CREATE TABLE IF NOT EXISTS banda_membros (
+  banda_id  INT NOT NULL REFERENCES bandas(id) ON DELETE CASCADE,
+  funcao_id INT NOT NULL REFERENCES funcoes(id) ON DELETE CASCADE,
+  membro_id INT NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+  PRIMARY KEY (banda_id, funcao_id)
+);
+
+-- flag: ministério trabalha por bandas (habilita o seletor de bandas na escala — ex.: Louvor)
+ALTER TABLE ministerios ADD COLUMN IF NOT EXISTS usa_bandas BOOLEAN DEFAULT FALSE;

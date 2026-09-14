@@ -145,21 +145,21 @@ router.put('/necessidades', async (req, res) => {
 });
 
 router.post('/ministerios', async (req, res) => {
-  const { nome, cor, descricao } = req.body;
+  const { nome, cor, descricao, usa_bandas } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome do ministério' });
   const { rows } = await db.query(
-    `INSERT INTO ministerios (igreja_id, nome, cor, descricao) VALUES ($1,$2,$3,$4) RETURNING *`,
-    [ig(req), nome.trim(), cor || '#c9a24a', (descricao || '').trim()]
+    `INSERT INTO ministerios (igreja_id, nome, cor, descricao, usa_bandas) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+    [ig(req), nome.trim(), cor || '#c9a24a', (descricao || '').trim(), usa_bandas === true]
   );
   res.status(201).json(rows[0]);
 });
 
 router.put('/ministerios/:id', async (req, res) => {
-  const { nome, cor, descricao, ativo } = req.body;
+  const { nome, cor, descricao, ativo, usa_bandas } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome do ministério' });
   await db.query(
-    `UPDATE ministerios SET nome=$1, cor=$2, descricao=$3, ativo=$4 WHERE id=$5 AND igreja_id=$6`,
-    [nome.trim(), cor || '#c9a24a', (descricao || '').trim(), ativo !== false, req.params.id, ig(req)]
+    `UPDATE ministerios SET nome=$1, cor=$2, descricao=$3, ativo=$4, usa_bandas=$5 WHERE id=$6 AND igreja_id=$7`,
+    [nome.trim(), cor || '#c9a24a', (descricao || '').trim(), ativo !== false, usa_bandas === true, req.params.id, ig(req)]
   );
   res.json({ ok: true });
 });
@@ -198,6 +198,125 @@ router.put('/ministerios/:id/membros', async (req, res) => {
     await client.query('ROLLBACK').catch(() => {});
     console.error(e); res.status(500).json({ erro: 'Erro ao salvar membros' });
   } finally { client.release(); }
+});
+
+// ══════════════════════════════════════════════
+//  BANDAS (presets de músicos por função — ex.: Louvor)
+//  Uma banda guarda, por função, quem toca fixo. Função sem membro = posição
+//  variável (fica em aberto p/ escolher na hora ou no gerador automático).
+// ══════════════════════════════════════════════
+
+// Lista as bandas de um ministério (com os membros fixos por função)
+router.get('/ministerios/:id/bandas', async (req, res) => {
+  const dono = await db.query('SELECT 1 FROM ministerios WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
+  if (!dono.rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
+  const { rows } = await db.query(
+    `SELECT b.id, b.nome, b.ativo,
+            COALESCE(json_agg(json_build_object(
+              'funcao_id', bm.funcao_id, 'funcao', f.nome, 'casal', f.casal,
+              'membro_id', bm.membro_id, 'membro', me.nome
+            ) ORDER BY f.nome) FILTER (WHERE bm.funcao_id IS NOT NULL), '[]') AS membros
+     FROM bandas b
+     LEFT JOIN banda_membros bm ON bm.banda_id = b.id
+     LEFT JOIN funcoes f ON f.id = bm.funcao_id
+     LEFT JOIN membros me ON me.id = bm.membro_id
+     WHERE b.ministerio_id=$1 AND b.igreja_id=$2 AND b.ativo=TRUE
+     GROUP BY b.id ORDER BY b.nome`, [req.params.id, ig(req)]
+  );
+  res.json(rows);
+});
+
+// Cria/edita banda. Body: { nome, membros: { funcao_id: membro_id, ... } }
+// funções ausentes/vazias = posições variáveis.
+router.post('/ministerios/:id/bandas', async (req, res) => {
+  const idMin = Number(req.params.id);
+  const { nome } = req.body;
+  if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome da banda' });
+  const dono = await db.query('SELECT 1 FROM ministerios WHERE id=$1 AND igreja_id=$2', [idMin, ig(req)]);
+  if (!dono.rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
+  const mapa = req.body.membros && typeof req.body.membros === 'object' ? req.body.membros : {};
+  const funcOk = new Set((await db.query('SELECT id FROM funcoes WHERE ministerio_id=$1', [idMin])).rows.map((r) => r.id));
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    const b = await client.query(
+      'INSERT INTO bandas (igreja_id, ministerio_id, nome) VALUES ($1,$2,$3) RETURNING id',
+      [ig(req), idMin, nome.trim()]
+    );
+    const bandaId = b.rows[0].id;
+    for (const [fid, mid] of Object.entries(mapa)) {
+      const f = Number(fid), mem = Number(mid);
+      if (!funcOk.has(f) || !mem) continue;
+      const ok = await client.query('SELECT 1 FROM membros WHERE id=$1 AND igreja_id=$2', [mem, ig(req)]);
+      if (!ok.rows.length) continue;
+      await client.query('INSERT INTO banda_membros (banda_id, funcao_id, membro_id) VALUES ($1,$2,$3)', [bandaId, f, mem]);
+    }
+    await client.query('COMMIT');
+    res.status(201).json({ ok: true, id: bandaId });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error(e); res.status(500).json({ erro: 'Erro ao salvar a banda' });
+  } finally { client.release(); }
+});
+
+// Atualiza banda (nome + membros fixos por função)
+router.put('/bandas/:id', async (req, res) => {
+  const bandaId = Number(req.params.id);
+  const { nome } = req.body;
+  if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome da banda' });
+  const b = await db.query('SELECT ministerio_id FROM bandas WHERE id=$1 AND igreja_id=$2', [bandaId, ig(req)]);
+  if (!b.rows.length) return res.status(404).json({ erro: 'Banda não encontrada' });
+  const idMin = b.rows[0].ministerio_id;
+  const mapa = req.body.membros && typeof req.body.membros === 'object' ? req.body.membros : {};
+  const funcOk = new Set((await db.query('SELECT id FROM funcoes WHERE ministerio_id=$1', [idMin])).rows.map((r) => r.id));
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE bandas SET nome=$1 WHERE id=$2', [nome.trim(), bandaId]);
+    await client.query('DELETE FROM banda_membros WHERE banda_id=$1', [bandaId]);
+    for (const [fid, mid] of Object.entries(mapa)) {
+      const f = Number(fid), mem = Number(mid);
+      if (!funcOk.has(f) || !mem) continue;
+      const ok = await client.query('SELECT 1 FROM membros WHERE id=$1 AND igreja_id=$2', [mem, ig(req)]);
+      if (!ok.rows.length) continue;
+      await client.query('INSERT INTO banda_membros (banda_id, funcao_id, membro_id) VALUES ($1,$2,$3)', [bandaId, f, mem]);
+    }
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error(e); res.status(500).json({ erro: 'Erro ao salvar a banda' });
+  } finally { client.release(); }
+});
+
+router.delete('/bandas/:id', async (req, res) => {
+  await db.query('DELETE FROM bandas WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
+  res.json({ ok: true });
+});
+
+// Aplica uma banda a um evento: escala os membros fixos nas suas funções.
+// Só preenche vagas ainda vazias; nunca dá double-booking no mesmo ministério.
+router.post('/eventos/:id/aplicar-banda', async (req, res) => {
+  const evId = Number(req.params.id);
+  const bandaId = Number(req.body.banda_id);
+  const igId = ig(req);
+  const ev = await db.query('SELECT 1 FROM eventos WHERE id=$1 AND igreja_id=$2', [evId, igId]);
+  if (!ev.rows.length) return res.status(404).json({ erro: 'Evento não encontrado' });
+  const b = await db.query('SELECT ministerio_id FROM bandas WHERE id=$1 AND igreja_id=$2', [bandaId, igId]);
+  if (!b.rows.length) return res.status(404).json({ erro: 'Banda não encontrada' });
+  const minId = b.rows[0].ministerio_id;
+  const membros = await db.query('SELECT funcao_id, membro_id FROM banda_membros WHERE banda_id=$1', [bandaId]);
+  let aplicados = 0, jaOcupados = 0;
+  for (const m of membros.rows) {
+    try {
+      await db.query(
+        `INSERT INTO escalas (igreja_id, evento_id, ministerio_id, membro_id, funcao_id) VALUES ($1,$2,$3,$4,$5)`,
+        [igId, evId, minId, m.membro_id, m.funcao_id]
+      );
+      aplicados++;
+    } catch (e) { if (e.code === '23505') jaOcupados++; else throw e; }
+  }
+  res.json({ ok: true, aplicados, jaOcupados, ministerio_id: minId });
 });
 
 // ══════════════════════════════════════════════
