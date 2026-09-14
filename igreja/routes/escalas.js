@@ -1,8 +1,16 @@
 const express = require('express');
+const crypto = require('crypto');
 const db = require('../db');
 const router = express.Router();
 
 const ig = (req) => req.session.usuario.igreja_id;
+
+// soma dias a uma data 'YYYY-MM-DD' sem cair na armadilha de fuso
+const addDias = (iso, n) => {
+  const [a, m, d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(a, m - 1, d + n));
+  return dt.toISOString().slice(0, 10);
+};
 
 // ══════════════════════════════════════════════
 //  MINISTÉRIOS
@@ -104,13 +112,39 @@ router.get('/eventos', async (req, res) => {
 });
 
 router.post('/eventos', async (req, res) => {
-  const { titulo, tipo, data, hora, observacao } = req.body;
+  const { titulo, tipo, data, hora, observacao, semanal, repetir_ate } = req.body;
   if (!titulo || !titulo.trim()) return res.status(400).json({ erro: 'Informe o título' });
   if (!data) return res.status(400).json({ erro: 'Informe a data' });
+  const t = tipo === 'evento' ? 'evento' : 'culto';
+  const vals = [ig(req), titulo.trim(), t, hora || '', (observacao || '').trim()];
+
+  // Culto semanal: gera uma ocorrência por semana (mesmo dia/horário) até a data-limite
+  if (t === 'culto' && semanal && /^\d{4}-\d{2}-\d{2}$/.test(repetir_ate || '') && repetir_ate > data) {
+    const datas = [];
+    for (let d = data; d <= repetir_ate && datas.length < 104; d = addDias(d, 7)) datas.push(d);
+    const serie = crypto.randomUUID();
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const dd of datas) {
+        await client.query(
+          `INSERT INTO eventos (igreja_id, titulo, tipo, data, hora, observacao, serie_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [vals[0], vals[1], vals[2], dd, vals[3], vals[4], serie]
+        );
+      }
+      await client.query('COMMIT');
+      return res.status(201).json({ criados: datas.length, serie: true, data: datas[0] });
+    } catch (e) {
+      await client.query('ROLLBACK').catch(() => {});
+      console.error(e); return res.status(500).json({ erro: 'Erro ao gerar a série' });
+    } finally { client.release(); }
+  }
+
   const { rows } = await db.query(
     `INSERT INTO eventos (igreja_id, titulo, tipo, data, hora, observacao)
      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *, to_char(data,'YYYY-MM-DD') AS data`,
-    [ig(req), titulo.trim(), tipo === 'evento' ? 'evento' : 'culto', data, hora || '', (observacao || '').trim()]
+    [vals[0], vals[1], vals[2], data, vals[3], vals[4]]
   );
   res.status(201).json(rows[0]);
 });
@@ -128,8 +162,18 @@ router.put('/eventos/:id', async (req, res) => {
 });
 
 router.delete('/eventos/:id', async (req, res) => {
+  // ?serie=1 remove todos os cultos da mesma série semanal
+  if (req.query.serie === '1') {
+    const r = await db.query(
+      `DELETE FROM eventos WHERE igreja_id=$1
+         AND serie_id = (SELECT serie_id FROM eventos WHERE id=$2 AND igreja_id=$1)
+         AND serie_id IS NOT NULL`,
+      [ig(req), req.params.id]
+    );
+    if (r.rowCount) return res.json({ ok: true, removidos: r.rowCount });
+  }
   await db.query('DELETE FROM eventos WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
-  res.json({ ok: true });
+  res.json({ ok: true, removidos: 1 });
 });
 
 // Escala de um evento: ministérios (que têm membros) + quem está escalado

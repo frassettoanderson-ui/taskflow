@@ -15,6 +15,7 @@
   const diaDoISO = (iso) => Number(iso.slice(8, 10));           // '2026-10-17' -> 17
   const mesLabel = (mes) => { const [a, m] = mes.split('-'); return `${MESES[m - 1]} ${a}`; };
   const proxMes = (mes, d) => { const [a, m] = mes.split('-').map(Number); const x = new Date(a, m - 1 + d, 1); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`; };
+  const addDiasISO = (iso, n) => { const [a, m, d] = iso.split('-').map(Number); const x = new Date(Date.UTC(a, m - 1, d + n)); return x.toISOString().slice(0, 10); };
   const tipoTag = (t) => t === 'evento'
     ? '<span class="badge pendente">Evento</span>' : '<span class="badge pago">Culto</span>';
 
@@ -151,6 +152,10 @@
           <label>Data *<input type="date" id="ev-data" required></label>
           <label>Horário<input type="time" id="ev-hora"></label>
         </div>
+        <div id="ev-rec">
+          <label class="check-linha"><input type="checkbox" id="ev-semanal"> Repetir toda semana (culto semanal)</label>
+          <label id="ev-ate-lbl" style="display:none; margin-top:8px">Repetir até<input type="date" id="ev-ate"></label>
+        </div>
         <label>Observação<input type="text" id="ev-obs" placeholder="opcional"></label>
         <button type="submit">Cadastrar</button>
         <p id="ev-msg" class="erro"></p>
@@ -166,6 +171,21 @@
     </div>`;
 
     document.getElementById('ev-data').value = hojeISOlocal();
+
+    // "Repetir toda semana" só aparece pra Culto; "Repetir até" só quando marcado
+    const sinc = () => {
+      const ehCulto = document.getElementById('ev-tipo').value === 'culto';
+      document.getElementById('ev-rec').style.display = ehCulto ? '' : 'none';
+      if (!ehCulto) document.getElementById('ev-semanal').checked = false;
+      const marc = document.getElementById('ev-semanal').checked;
+      document.getElementById('ev-ate-lbl').style.display = marc ? '' : 'none';
+      const ate = document.getElementById('ev-ate');
+      if (marc && !ate.value) ate.value = addDiasISO(document.getElementById('ev-data').value || hojeISOlocal(), 84); // ~3 meses
+    };
+    document.getElementById('ev-tipo').addEventListener('change', sinc);
+    document.getElementById('ev-semanal').addEventListener('change', sinc);
+    sinc();
+
     document.getElementById('fev').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('ev-msg');
@@ -175,12 +195,16 @@
         data: document.getElementById('ev-data').value,
         hora: document.getElementById('ev-hora').value,
         observacao: document.getElementById('ev-obs').value,
+        semanal: document.getElementById('ev-semanal').checked,
+        repetir_ate: document.getElementById('ev-ate').value,
       }) });
       const d = await r.json();
-      if (!r.ok) { msg.textContent = d.erro; return; }
-      mes = d.data.slice(0, 7);
+      if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
+      if (d.serie) { msg.className = 'ok-msg'; msg.textContent = `${d.criados} cultos semanais criados!`; }
+      mes = (d.data || document.getElementById('ev-data').value).slice(0, 7);
       document.getElementById('fev').reset();
       document.getElementById('ev-data').value = hojeISOlocal();
+      sinc();
       listar();
     });
 
@@ -192,7 +216,7 @@
       const evs = await getJSON('escalas/eventos?mes=' + mes);
       document.getElementById('lista-ev').innerHTML = tabela(evs, [
         ['Data', (e) => `<b>${diaDoISO(e.data)}</b> <span class="sub-txt">${DIAS[new Date(e.data + 'T12:00').getDay()]}${e.hora ? ' · ' + e.hora : ''}</span>`],
-        ['Título', (e) => `${esc(e.titulo)} ${tipoTag(e.tipo)}${e.observacao ? `<div class="sub-txt">${esc(e.observacao)}</div>` : ''}`],
+        ['Título', (e) => `${esc(e.titulo)} ${tipoTag(e.tipo)}${e.serie_id ? ' <span class="badge">🔁 semanal</span>' : ''}${e.observacao ? `<div class="sub-txt">${esc(e.observacao)}</div>` : ''}`],
         ['Escalados', (e) => `${e.qtd_escalados}`],
         ['', (e) => `<button class="acao-link" data-escalar="${e.id}">Montar escala</button>
                      <button class="acao-link" data-edev="${e.id}">✎</button>
@@ -201,9 +225,11 @@
 
       document.querySelectorAll('[data-escalar]').forEach((b) => b.addEventListener('click', () => abrirEscala(b.dataset.escalar, listar)));
       document.querySelectorAll('[data-edev]').forEach((b) => b.addEventListener('click', () => editarEvento(b.dataset.edev, evs, listar)));
-      document.querySelectorAll('[data-delev]').forEach((b) => b.addEventListener('click', async () => {
+      document.querySelectorAll('[data-delev]').forEach((b) => b.addEventListener('click', () => {
+        const ev = evs.find((x) => String(x.id) === String(b.dataset.delev));
+        if (ev && ev.serie_id) return excluirComSerie(ev, listar);
         if (!confirm('Excluir este evento e sua escala?')) return;
-        await api('escalas/eventos/' + b.dataset.delev, { method: 'DELETE' }); listar();
+        api('escalas/eventos/' + b.dataset.delev, { method: 'DELETE' }).then(listar);
       }));
     }
     listar();
@@ -235,6 +261,22 @@
       const d = await r.json();
       if (!r.ok) { document.getElementById('x-msg').textContent = d.erro; return; }
       fechar(); if (aoConcluir) aoConcluir();
+    });
+  }
+
+  // Excluir culto que faz parte de uma série semanal: só este OU toda a série
+  function excluirComSerie(ev, aoConcluir) {
+    const { fechar } = abrirModal('Excluir culto semanal', `
+      <p class="desc">"<b>${esc(ev.titulo)}</b>" (${dataBR(ev.data)}) faz parte de uma série semanal.</p>
+      <div class="linha" style="flex-wrap:wrap; gap:8px">
+        <button id="ex-este" class="ghost">Excluir só este</button>
+        <button id="ex-serie" class="acao-del" style="background:var(--vermelho-bg); color:var(--vermelho); border:0; padding:10px 16px; border-radius:8px; cursor:pointer">Excluir toda a série</button>
+      </div>`);
+    document.getElementById('ex-este').addEventListener('click', async () => {
+      await api('escalas/eventos/' + ev.id, { method: 'DELETE' }); fechar(); aoConcluir();
+    });
+    document.getElementById('ex-serie').addEventListener('click', async () => {
+      await api('escalas/eventos/' + ev.id + '?serie=1', { method: 'DELETE' }); fechar(); aoConcluir();
     });
   }
 

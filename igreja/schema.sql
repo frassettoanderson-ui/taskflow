@@ -220,3 +220,6 @@ CREATE TABLE IF NOT EXISTS escalas (
 );
 CREATE INDEX IF NOT EXISTS idx_escalas_evento ON escalas(evento_id);
 CREATE INDEX IF NOT EXISTS idx_escalas_membro ON escalas(igreja_id, membro_id);
+
+-- Recorrência de eventos: agrupa a série semanal (null = evento avulso)
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS serie_id UUID;
