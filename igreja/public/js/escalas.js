@@ -107,35 +107,56 @@
 
     async function gerirMembros(id) {
       const [det, todos] = await Promise.all([getJSON('escalas/ministerios/' + id), getJSON('membros?situacao=ativo')]);
-      const dentro = new Set(det.membros.map((m) => m.id));
-      const { fechar } = abrirModal('Membros de ' + esc(det.nome), `
-        <p class="desc">Marque quem faz parte deste ministério.</p>
-        <input type="text" id="mb-busca" class="cresce" placeholder="Buscar membro..." style="margin-bottom:10px">
-        <div id="mb-lista" class="check-list"></div>
-        <div class="linha" style="margin-top:12px"><button id="mb-salvar">Salvar</button></div>
-        <p id="mb-msg" class="erro"></p>`);
+      const porId = {}; todos.forEach((m) => (porId[m.id] = m));
+      const equipe = det.membros.map((m) => m.id);            // ids na ordem em que estão na equipe
 
-      const render = (filtro = '') => {
-        const f = filtro.toLowerCase();
-        document.getElementById('mb-lista').innerHTML = todos
-          .filter((m) => m.nome.toLowerCase().includes(f))
-          .map((m) => `<label class="check-item"><input type="checkbox" value="${m.id}" ${dentro.has(m.id) ? 'checked' : ''}> ${esc(m.nome)}</label>`)
-          .join('') || '<p class="vazio">Nenhum membro.</p>';
+      const { el, fechar } = abrirModal('Membros de ' + esc(det.nome), `
+        <div class="mb2">
+          <div class="mb2-busca">
+            <input type="text" id="mb-busca" placeholder="Buscar na igreja para adicionar…" autocomplete="off">
+            <div id="mb-result" class="mb2-result" hidden></div>
+          </div>
+          <div class="mb2-equipe-head"><b>Na equipe</b> <span id="mb-cont" class="sub-txt"></span></div>
+          <div id="mb-equipe" class="mb2-equipe"></div>
+          <div class="linha" style="margin-top:14px"><button id="mb-salvar">Salvar</button><span id="mb-msg" class="sub-txt"></span></div>
+        </div>`);
+
+      const pintarEquipe = () => {
+        document.getElementById('mb-cont').textContent = equipe.length + (equipe.length === 1 ? ' pessoa' : ' pessoas');
+        document.getElementById('mb-equipe').innerHTML = equipe.length
+          ? equipe.map((mid) => `<div class="mb2-item"><span>${esc(porId[mid] ? porId[mid].nome : '—')}</span>
+               <button class="mb2-rem" data-rem="${mid}" title="Remover">✕</button></div>`).join('')
+          : '<p class="vazio">Ninguém ainda. Busque acima para adicionar.</p>';
+        el.querySelectorAll('[data-rem]').forEach((b) => b.addEventListener('click', () => {
+          const i = equipe.indexOf(Number(b.dataset.rem)); if (i >= 0) equipe.splice(i, 1);
+          pintarEquipe(); buscar();
+        }));
       };
-      render();
-      document.getElementById('mb-busca').addEventListener('input', (e) => {
-        // preserva marcações antes de refiltrar
-        document.querySelectorAll('#mb-lista input:checked').forEach((c) => dentro.add(Number(c.value)));
-        document.querySelectorAll('#mb-lista input:not(:checked)').forEach((c) => dentro.delete(Number(c.value)));
-        render(e.target.value);
-      });
+
+      const buscar = () => {
+        const f = document.getElementById('mb-busca').value.trim().toLowerCase();
+        const box = document.getElementById('mb-result');
+        if (!f) { box.hidden = true; box.innerHTML = ''; return; }
+        const achados = todos.filter((m) => !equipe.includes(m.id) && m.nome.toLowerCase().includes(f)).slice(0, 30);
+        box.hidden = false;
+        box.innerHTML = achados.length
+          ? achados.map((m) => `<button class="mb2-add" data-add="${m.id}"><span>${esc(m.nome)}</span><span class="mb2-plus">+ adicionar</span></button>`).join('')
+          : '<div class="mb2-vazio">Nenhum membro encontrado.</div>';
+        box.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => {
+          const mid = Number(b.dataset.add);
+          if (!equipe.includes(mid)) equipe.push(mid);
+          document.getElementById('mb-busca').value = ''; buscar(); pintarEquipe();
+          document.getElementById('mb-busca').focus();
+        }));
+      };
+
+      document.getElementById('mb-busca').addEventListener('input', buscar);
       document.getElementById('mb-salvar').addEventListener('click', async () => {
-        document.querySelectorAll('#mb-lista input:checked').forEach((c) => dentro.add(Number(c.value)));
-        document.querySelectorAll('#mb-lista input:not(:checked)').forEach((c) => dentro.delete(Number(c.value)));
-        const r = await api('escalas/ministerios/' + id + '/membros', { method: 'PUT', body: JSON.stringify({ membros: [...dentro] }) });
+        const r = await api('escalas/ministerios/' + id + '/membros', { method: 'PUT', body: JSON.stringify({ membros: equipe }) });
         if (!r.ok) { document.getElementById('mb-msg').textContent = 'Erro ao salvar'; return; }
         fechar(); listar();
       });
+      pintarEquipe();
     }
 
     listar();
@@ -419,26 +440,38 @@
         const evs = porDia[dia] || [];
         const hoje = iso === hojeIso ? ' hoje' : '';
         const temEv = evs.length ? ' com-ev' : '';
-        const tipos = [...new Set(evs.map((e) => e.tipo))];
         const borda = evs.length ? ` style="--evcor:${tipoInfo(evs[0].tipo).cor}"` : '';
+        // chips de ministérios escalados no dia (um por ministério, com a contagem)
+        const chips = [];
+        evs.forEach((e) => {
+          const porMin = {};
+          e.escalados.forEach((s) => { (porMin[s.ministerio] = porMin[s.ministerio] || { cor: s.cor, n: 0 }).n++; });
+          Object.entries(porMin).forEach(([nome, o]) => chips.push({ i: e._i, nome, cor: o.cor, n: o.n }));
+        });
         celulas += `<div class="cal-cell${hoje}${temEv}"${borda}>
-          <div class="cal-tags">${tipos.map((t) => `<span class="cal-tag" style="background:${tipoInfo(t).cor}">${tipoInfo(t).nome}</span>`).join('')}</div>
+          <div class="cal-tags">${evs.map((e) => `<button class="cal-tag" data-ev="${e._i}" title="${esc(e.titulo)}${e.hora ? ' · ' + e.hora : ''}" style="background:${tipoInfo(e.tipo).cor}">${tipoInfo(e.tipo).nome}</button>`).join('')}</div>
           <span class="cal-dia">${dia}</span>
-          ${evs.map((e) => {
-            const cores = [...new Set(e.escalados.map((x) => x.cor))];
-            return `<button class="cal-ev" data-ev="${e._i}" title="${esc(e.titulo)}">
-              <span class="cal-ev-t">${e.hora ? e.hora + ' ' : ''}${esc(e.titulo)}</span>
-              ${e.escalados.length ? `<span class="cal-ev-dots">${cores.map((c) => `<i style="background:${esc(c)}"></i>`).join('')}<em>${e.escalados.length}</em></span>` : ''}
-            </button>`;
-          }).join('')}
+          ${chips.length
+            ? `<div class="cal-mins">${chips.map((c) => `<button class="cal-min" style="--c:${esc(c.cor)}" data-ev="${c.i}" data-min="${esc(c.nome)}">${esc(c.nome)}<i>${c.n}</i></button>`).join('')}</div>`
+            : (evs.length ? `<button class="cal-vazio" data-ev="${evs[0]._i}">+ montar escala</button>` : '')}
         </div>`;
       }
 
-      document.getElementById('cal').innerHTML = `
+      const cal = document.getElementById('cal');
+      cal.innerHTML = `
         <div class="cal-grid cal-head">${DIAS.map((d) => `<div class="cal-wd">${d}</div>`).join('')}</div>
         <div class="cal-grid">${celulas}</div>`;
 
-      document.querySelectorAll('[data-ev]').forEach((b) => b.addEventListener('click', () => verEvento(Number(b.dataset.ev), eventos, render)));
+      // clicar na TAG (ou "montar escala") abre o evento; clicar num MINISTÉRIO abre os escalados dele
+      cal.querySelectorAll('.cal-tag, .cal-vazio').forEach((b) => b.addEventListener('click', () => verEvento(Number(b.dataset.ev), eventos, render)));
+      cal.querySelectorAll('.cal-min').forEach((b) => b.addEventListener('click', () => verMinisterio(eventos[Number(b.dataset.ev)], b.dataset.min)));
+    }
+
+    function verMinisterio(e, nome) {
+      const nomes = e.escalados.filter((s) => s.ministerio === nome).map((s) => s.membro);
+      abrirModal(esc(nome) + ' — ' + dataBR(e.data), `
+        <p class="desc">${tipoTag(e.tipo)} ${esc(e.titulo)}${e.hora ? ' · ' + e.hora : ''}</p>
+        <div class="esc-chips">${nomes.map((n) => `<span class="chip-pessoa">${esc(n)}</span>`).join('') || '<span class="sub-txt">Ninguém escalado neste ministério.</span>'}</div>`);
     }
 
     function verEvento(idx, eventos, aoFechar) {
