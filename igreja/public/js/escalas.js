@@ -16,8 +16,14 @@
   const mesLabel = (mes) => { const [a, m] = mes.split('-'); return `${MESES[m - 1]} ${a}`; };
   const proxMes = (mes, d) => { const [a, m] = mes.split('-').map(Number); const x = new Date(a, m - 1 + d, 1); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}`; };
   const addDiasISO = (iso, n) => { const [a, m, d] = iso.split('-').map(Number); const x = new Date(Date.UTC(a, m - 1, d + n)); return x.toISOString().slice(0, 10); };
-  const tipoTag = (t) => t === 'evento'
-    ? '<span class="badge pendente">Evento</span>' : '<span class="badge pago">Culto</span>';
+  const TIPO = {
+    culto_fixo:     { nome: 'Culto fixo',     cor: '#fbbf24', cls: 'tag-fixo' },
+    evento:         { nome: 'Evento',         cor: '#93a4b8', cls: 'tag-evento' },
+    culto_especial: { nome: 'Culto especial', cor: '#a78bfa', cls: 'tag-especial' },
+  };
+  const tipoInfo = (t) => TIPO[t] || TIPO.evento;
+  const tipoTag = (t) => { const i = tipoInfo(t); return `<span class="tag-tipo ${i.cls}">${i.nome}</span>`; };
+  const DIASEM = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
   // ══════════════════════════════════════════════
   //  MINISTÉRIOS
@@ -145,24 +151,37 @@
       <h2>Novo culto / evento</h2>
       <form id="fev" class="form-grid">
         <div class="linha">
-          <label class="cresce">Título *<input type="text" id="ev-titulo" required placeholder="Culto da Família, Santa Ceia..."></label>
-          <label>Tipo<select id="ev-tipo"><option value="culto">Culto</option><option value="evento">Evento</option></select></label>
+          <label class="cresce">Título *<input type="text" id="ev-titulo" required placeholder="Culto de Domingo, Santa Ceia..."></label>
+          <label>Tipo<select id="ev-tipo">
+            <option value="culto_fixo">Culto fixo</option>
+            <option value="evento">Evento</option>
+            <option value="culto_especial">Culto especial</option>
+          </select></label>
+        </div>
+        <div id="ev-fixo">
+          <label>Dias da semana *</label>
+          <div class="dias-semana" id="ev-dias">${DIAS.map((d, i) => `<label class="dia-chip"><input type="checkbox" value="${i}"><span>${d}</span></label>`).join('')}</div>
+          <p class="desc">O culto fixo aparece toda semana, em todos os meses, nos dias marcados.</p>
+        </div>
+        <div class="linha" id="ev-datado" style="display:none">
+          <label>Data *<input type="date" id="ev-data"></label>
         </div>
         <div class="linha">
-          <label>Data *<input type="date" id="ev-data" required></label>
           <label>Horário<input type="time" id="ev-hora"></label>
+          <label id="ev-obs-lbl" style="display:none">Observação<input type="text" id="ev-obs" placeholder="opcional"></label>
         </div>
-        <div id="ev-rec">
-          <label class="check-linha"><input type="checkbox" id="ev-semanal"> Repetir toda semana (culto semanal)</label>
-          <label id="ev-ate-lbl" style="display:none; margin-top:8px">Repetir até<input type="date" id="ev-ate"></label>
-        </div>
-        <label>Observação<input type="text" id="ev-obs" placeholder="opcional"></label>
         <button type="submit">Cadastrar</button>
         <p id="ev-msg" class="erro"></p>
       </form>
     </div>
     <div class="painel">
+      <h2>Cultos fixos</h2>
+      <div id="lista-fixos"></div>
+    </div>
+    <div class="painel">
       <div class="toolbar toolbar-mes">
+        <b>Eventos e cultos especiais</b>
+        <span style="flex:1"></span>
         <button class="pequeno" id="mes-ant">‹</button>
         <b id="mes-lbl"></b>
         <button class="pequeno" id="mes-prox">›</button>
@@ -170,40 +189,38 @@
       <div id="lista-ev"></div>
     </div>`;
 
-    document.getElementById('ev-data').value = hojeISOlocal();
-
-    // "Repetir toda semana" só aparece pra Culto; "Repetir até" só quando marcado
     const sinc = () => {
-      const ehCulto = document.getElementById('ev-tipo').value === 'culto';
-      document.getElementById('ev-rec').style.display = ehCulto ? '' : 'none';
-      if (!ehCulto) document.getElementById('ev-semanal').checked = false;
-      const marc = document.getElementById('ev-semanal').checked;
-      document.getElementById('ev-ate-lbl').style.display = marc ? '' : 'none';
-      const ate = document.getElementById('ev-ate');
-      if (marc && !ate.value) ate.value = addDiasISO(document.getElementById('ev-data').value || hojeISOlocal(), 84); // ~3 meses
+      const t = document.getElementById('ev-tipo').value;
+      const fixo = t === 'culto_fixo';
+      document.getElementById('ev-fixo').style.display = fixo ? '' : 'none';
+      document.getElementById('ev-datado').style.display = fixo ? 'none' : '';
+      document.getElementById('ev-obs-lbl').style.display = fixo ? 'none' : '';
+      const dt = document.getElementById('ev-data');
+      if (!fixo && !dt.value) dt.value = hojeISOlocal();
     };
     document.getElementById('ev-tipo').addEventListener('change', sinc);
-    document.getElementById('ev-semanal').addEventListener('change', sinc);
     sinc();
 
     document.getElementById('fev').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('ev-msg');
-      const r = await api('escalas/eventos', { method: 'POST', body: JSON.stringify({
-        titulo: document.getElementById('ev-titulo').value,
-        tipo: document.getElementById('ev-tipo').value,
-        data: document.getElementById('ev-data').value,
-        hora: document.getElementById('ev-hora').value,
-        observacao: document.getElementById('ev-obs').value,
-        semanal: document.getElementById('ev-semanal').checked,
-        repetir_ate: document.getElementById('ev-ate').value,
-      }) });
+      const tipo = document.getElementById('ev-tipo').value;
+      const titulo = document.getElementById('ev-titulo').value;
+      const hora = document.getElementById('ev-hora').value;
+      let r;
+      if (tipo === 'culto_fixo') {
+        const dias = [...document.querySelectorAll('#ev-dias input:checked')].map((c) => Number(c.value));
+        if (!dias.length) { msg.className = 'erro'; msg.textContent = 'Marque ao menos um dia da semana.'; return; }
+        r = await api('escalas/cultos-fixos', { method: 'POST', body: JSON.stringify({ titulo, dias, hora }) });
+      } else {
+        r = await api('escalas/eventos', { method: 'POST', body: JSON.stringify({
+          titulo, tipo, data: document.getElementById('ev-data').value, hora,
+          observacao: document.getElementById('ev-obs').value }) });
+      }
       const d = await r.json();
       if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
-      if (d.serie) { msg.className = 'ok-msg'; msg.textContent = `${d.criados} cultos semanais criados!`; }
-      mes = (d.data || document.getElementById('ev-data').value).slice(0, 7);
+      if (d.data) mes = d.data.slice(0, 7);
       document.getElementById('fev').reset();
-      document.getElementById('ev-data').value = hojeISOlocal();
       sinc();
       listar();
     });
@@ -213,21 +230,35 @@
 
     async function listar() {
       document.getElementById('mes-lbl').textContent = mesLabel(mes);
+
+      // cultos fixos (regras)
+      const fixos = await getJSON('escalas/cultos-fixos');
+      document.getElementById('lista-fixos').innerHTML = tabela(fixos, [
+        ['Culto', (f) => `${esc(f.titulo)} ${tipoTag('culto_fixo')}`],
+        ['Dia da semana', (f) => DIASEM[f.dia_semana]],
+        ['Horário', (f) => f.hora || '—'],
+        ['', (f) => `<button class="acao-link" data-edfixo="${f.id}">✎ Editar</button>
+                     <button class="acao-link acao-del" data-delfixo="${f.id}">✕ Excluir</button>`],
+      ], 'Nenhum culto fixo. Crie um acima escolhendo o tipo "Culto fixo".');
+      document.querySelectorAll('[data-edfixo]').forEach((b) => b.addEventListener('click', () => editarFixo(b.dataset.edfixo, fixos, listar)));
+      document.querySelectorAll('[data-delfixo]').forEach((b) => b.addEventListener('click', async () => {
+        if (!confirm('Excluir este culto fixo? As escalas já montadas nele também serão removidas.')) return;
+        await api('escalas/cultos-fixos/' + b.dataset.delfixo, { method: 'DELETE' }); listar();
+      }));
+
+      // eventos datados do mês
       const evs = await getJSON('escalas/eventos?mes=' + mes);
       document.getElementById('lista-ev').innerHTML = tabela(evs, [
         ['Data', (e) => `<b>${diaDoISO(e.data)}</b> <span class="sub-txt">${DIAS[new Date(e.data + 'T12:00').getDay()]}${e.hora ? ' · ' + e.hora : ''}</span>`],
-        ['Título', (e) => `${esc(e.titulo)} ${tipoTag(e.tipo)}${e.serie_id ? ' <span class="badge">🔁 semanal</span>' : ''}${e.observacao ? `<div class="sub-txt">${esc(e.observacao)}</div>` : ''}`],
+        ['Título', (e) => `${esc(e.titulo)} ${tipoTag(e.tipo)}${e.observacao ? `<div class="sub-txt">${esc(e.observacao)}</div>` : ''}`],
         ['Escalados', (e) => `${e.qtd_escalados}`],
         ['', (e) => `<button class="acao-link" data-escalar="${e.id}">Montar escala</button>
                      <button class="acao-link" data-edev="${e.id}">✎</button>
                      <button class="acao-link acao-del" data-delev="${e.id}">✕</button>`],
-      ], 'Nenhum evento neste mês.');
-
+      ], 'Nenhum evento ou culto especial neste mês.');
       document.querySelectorAll('[data-escalar]').forEach((b) => b.addEventListener('click', () => abrirEscala(b.dataset.escalar, listar)));
       document.querySelectorAll('[data-edev]').forEach((b) => b.addEventListener('click', () => editarEvento(b.dataset.edev, evs, listar)));
       document.querySelectorAll('[data-delev]').forEach((b) => b.addEventListener('click', () => {
-        const ev = evs.find((x) => String(x.id) === String(b.dataset.delev));
-        if (ev && ev.serie_id) return excluirComSerie(ev, listar);
         if (!confirm('Excluir este evento e sua escala?')) return;
         api('escalas/eventos/' + b.dataset.delev, { method: 'DELETE' }).then(listar);
       }));
@@ -235,13 +266,36 @@
     listar();
   };
 
+  function editarFixo(id, fixos, aoConcluir) {
+    const f = fixos.find((x) => String(x.id) === String(id));
+    const { fechar } = abrirModal('Editar culto fixo', `
+      <form id="ff" class="form-grid">
+        <label>Título *<input type="text" id="f-titulo" value="${esc(f.titulo)}" required></label>
+        <div class="linha">
+          <label>Dia da semana<select id="f-dia">${DIASEM.map((d, i) => `<option value="${i}" ${i === f.dia_semana ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
+          <label>Horário<input type="time" id="f-hora" value="${esc(f.hora || '')}"></label>
+        </div>
+        <div class="linha"><button type="submit">Salvar</button></div>
+        <p id="f-msg" class="erro"></p>
+      </form>`);
+    document.getElementById('ff').addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      const r = await api('escalas/cultos-fixos/' + id, { method: 'PUT', body: JSON.stringify({
+        titulo: document.getElementById('f-titulo').value, dia_semana: document.getElementById('f-dia').value,
+        hora: document.getElementById('f-hora').value }) });
+      const d = await r.json();
+      if (!r.ok) { document.getElementById('f-msg').textContent = d.erro; return; }
+      fechar(); if (aoConcluir) aoConcluir();
+    });
+  }
+
   function editarEvento(id, evs, aoConcluir) {
     const e = evs.find((x) => String(x.id) === String(id));
     const { fechar } = abrirModal('Editar evento', `
       <form id="fee" class="form-grid">
         <div class="linha">
           <label class="cresce">Título *<input type="text" id="x-titulo" value="${esc(e.titulo)}" required></label>
-          <label>Tipo<select id="x-tipo"><option value="culto" ${e.tipo !== 'evento' ? 'selected' : ''}>Culto</option><option value="evento" ${e.tipo === 'evento' ? 'selected' : ''}>Evento</option></select></label>
+          <label>Tipo<select id="x-tipo"><option value="evento" ${e.tipo === 'evento' ? 'selected' : ''}>Evento</option><option value="culto_especial" ${e.tipo === 'culto_especial' ? 'selected' : ''}>Culto especial</option></select></label>
         </div>
         <div class="linha">
           <label>Data *<input type="date" id="x-data" value="${e.data}" required></label>
@@ -261,22 +315,6 @@
       const d = await r.json();
       if (!r.ok) { document.getElementById('x-msg').textContent = d.erro; return; }
       fechar(); if (aoConcluir) aoConcluir();
-    });
-  }
-
-  // Excluir culto que faz parte de uma série semanal: só este OU toda a série
-  function excluirComSerie(ev, aoConcluir) {
-    const { fechar } = abrirModal('Excluir culto semanal', `
-      <p class="desc">"<b>${esc(ev.titulo)}</b>" (${dataBR(ev.data)}) faz parte de uma série semanal.</p>
-      <div class="linha" style="flex-wrap:wrap; gap:8px">
-        <button id="ex-este" class="ghost">Excluir só este</button>
-        <button id="ex-serie" class="acao-del" style="background:var(--vermelho-bg); color:var(--vermelho); border:0; padding:10px 16px; border-radius:8px; cursor:pointer">Excluir toda a série</button>
-      </div>`);
-    document.getElementById('ex-este').addEventListener('click', async () => {
-      await api('escalas/eventos/' + ev.id, { method: 'DELETE' }); fechar(); aoConcluir();
-    });
-    document.getElementById('ex-serie').addEventListener('click', async () => {
-      await api('escalas/eventos/' + ev.id + '?serie=1', { method: 'DELETE' }); fechar(); aoConcluir();
     });
   }
 
@@ -367,11 +405,10 @@
       document.getElementById('c-lbl').textContent = mesLabel(mes);
       const { eventos } = await getJSON('escalas/calendario?mes=' + mes);
       const porDia = {};
-      eventos.forEach((e) => (porDia[diaDoISO(e.data)] = porDia[diaDoISO(e.data)] || []).push(e));
+      eventos.forEach((e, i) => { e._i = i; (porDia[diaDoISO(e.data)] = porDia[diaDoISO(e.data)] || []).push(e); });
 
       const [ano, m] = mes.split('-').map(Number);
-      const primeiro = new Date(ano, m - 1, 1);
-      const inicioSemana = primeiro.getDay();               // 0=Dom
+      const inicioSemana = new Date(ano, m - 1, 1).getDay();   // 0=Dom
       const diasNoMes = new Date(ano, m, 0).getDate();
       const hojeIso = hojeISOlocal();
 
@@ -381,13 +418,17 @@
         const iso = `${mes}-${String(dia).padStart(2, '0')}`;
         const evs = porDia[dia] || [];
         const hoje = iso === hojeIso ? ' hoje' : '';
-        celulas += `<div class="cal-cell${hoje}">
+        const temEv = evs.length ? ' com-ev' : '';
+        const tipos = [...new Set(evs.map((e) => e.tipo))];
+        const borda = evs.length ? ` style="--evcor:${tipoInfo(evs[0].tipo).cor}"` : '';
+        celulas += `<div class="cal-cell${hoje}${temEv}"${borda}>
+          <div class="cal-tags">${tipos.map((t) => `<span class="cal-tag" style="background:${tipoInfo(t).cor}">${tipoInfo(t).nome}</span>`).join('')}</div>
           <span class="cal-dia">${dia}</span>
           ${evs.map((e) => {
             const cores = [...new Set(e.escalados.map((x) => x.cor))];
-            return `<button class="cal-ev" data-ev="${e.id}" title="${esc(e.titulo)}">
+            return `<button class="cal-ev" data-ev="${e._i}" title="${esc(e.titulo)}">
               <span class="cal-ev-t">${e.hora ? e.hora + ' ' : ''}${esc(e.titulo)}</span>
-              <span class="cal-ev-dots">${cores.map((c) => `<i style="background:${esc(c)}"></i>`).join('')}${e.escalados.length ? '<em>' + e.escalados.length + '</em>' : ''}</span>
+              ${e.escalados.length ? `<span class="cal-ev-dots">${cores.map((c) => `<i style="background:${esc(c)}"></i>`).join('')}<em>${e.escalados.length}</em></span>` : ''}
             </button>`;
           }).join('')}
         </div>`;
@@ -397,11 +438,11 @@
         <div class="cal-grid cal-head">${DIAS.map((d) => `<div class="cal-wd">${d}</div>`).join('')}</div>
         <div class="cal-grid">${celulas}</div>`;
 
-      document.querySelectorAll('[data-ev]').forEach((b) => b.addEventListener('click', () => verEvento(b.dataset.ev, eventos, render)));
+      document.querySelectorAll('[data-ev]').forEach((b) => b.addEventListener('click', () => verEvento(Number(b.dataset.ev), eventos, render)));
     }
 
-    function verEvento(id, eventos, aoFechar) {
-      const e = eventos.find((x) => String(x.id) === String(id));
+    function verEvento(idx, eventos, aoFechar) {
+      const e = eventos[idx];
       const porMin = {};
       e.escalados.forEach((s) => (porMin[s.ministerio] = porMin[s.ministerio] || { cor: s.cor, nomes: [] }).nomes.push(s.membro));
       const corpo = `
@@ -412,7 +453,15 @@
           : '<p class="vazio">Ninguém escalado ainda.</p>'}
         <div class="linha" style="margin-top:14px"><button id="ver-montar">Montar escala</button></div>`;
       const { fechar } = abrirModal(esc(e.titulo), corpo);
-      document.getElementById('ver-montar').addEventListener('click', () => { fechar(); abrirEscala(id, aoFechar); });
+      document.getElementById('ver-montar').addEventListener('click', async () => {
+        fechar();
+        let eventoId = e.id;
+        if (!eventoId && e.fixo_id) { // ocorrência de culto fixo ainda não materializada
+          const r = await api('escalas/ocorrencia', { method: 'POST', body: JSON.stringify({ culto_fixo_id: e.fixo_id, data: e.data }) });
+          const d = await r.json(); if (!r.ok) { alert(d.erro || 'Erro'); return; } eventoId = d.id;
+        }
+        abrirEscala(eventoId, aoFechar);
+      });
     }
 
     render();

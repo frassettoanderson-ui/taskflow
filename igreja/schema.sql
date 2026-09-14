@@ -223,3 +223,17 @@ CREATE INDEX IF NOT EXISTS idx_escalas_membro ON escalas(igreja_id, membro_id);
 
 -- Recorrência de eventos: agrupa a série semanal (null = evento avulso)
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS serie_id UUID;
+
+-- Culto fixo: regra semanal por dia da semana (aparece todo mês, sem data final).
+-- As ocorrências viram evento concreto só quando alguém monta a escala daquele dia.
+CREATE TABLE IF NOT EXISTS cultos_fixos (
+  id         SERIAL PRIMARY KEY,
+  igreja_id  INT NOT NULL REFERENCES igrejas(id),
+  titulo     VARCHAR(120) NOT NULL,
+  dia_semana INT NOT NULL,             -- 0=Dom .. 6=Sáb
+  hora       VARCHAR(5) DEFAULT '',
+  ativo      BOOLEAN DEFAULT TRUE,
+  criado_em  TIMESTAMP DEFAULT NOW()
+);
+-- Liga uma ocorrência materializada (evento) à sua regra de culto fixo
+ALTER TABLE eventos ADD COLUMN IF NOT EXISTS culto_fixo_id INT REFERENCES cultos_fixos(id) ON DELETE CASCADE;

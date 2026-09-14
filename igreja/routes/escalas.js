@@ -95,10 +95,13 @@ router.put('/ministerios/:id/membros', async (req, res) => {
 //  EVENTOS / CULTOS
 // ══════════════════════════════════════════════
 
-// Lista eventos (opcional ?mes=YYYY-MM); traz total de escalados
+const DATADO = ['evento', 'culto_especial'];
+const norm = (t) => (DATADO.includes(t) ? t : 'evento');
+
+// Lista eventos DATADOS (evento | culto especial) do mês
 router.get('/eventos', async (req, res) => {
   const params = [ig(req)];
-  let where = 'e.igreja_id=$1';
+  let where = `e.igreja_id=$1 AND e.tipo IN ('evento','culto_especial')`;
   if (/^\d{4}-\d{2}$/.test(req.query.mes || '')) {
     params.push(req.query.mes + '-01');
     where += ` AND date_trunc('month', e.data) = date_trunc('month', $${params.length}::date)`;
@@ -112,39 +115,13 @@ router.get('/eventos', async (req, res) => {
 });
 
 router.post('/eventos', async (req, res) => {
-  const { titulo, tipo, data, hora, observacao, semanal, repetir_ate } = req.body;
+  const { titulo, tipo, data, hora, observacao } = req.body;
   if (!titulo || !titulo.trim()) return res.status(400).json({ erro: 'Informe o título' });
   if (!data) return res.status(400).json({ erro: 'Informe a data' });
-  const t = tipo === 'evento' ? 'evento' : 'culto';
-  const vals = [ig(req), titulo.trim(), t, hora || '', (observacao || '').trim()];
-
-  // Culto semanal: gera uma ocorrência por semana (mesmo dia/horário) até a data-limite
-  if (t === 'culto' && semanal && /^\d{4}-\d{2}-\d{2}$/.test(repetir_ate || '') && repetir_ate > data) {
-    const datas = [];
-    for (let d = data; d <= repetir_ate && datas.length < 104; d = addDias(d, 7)) datas.push(d);
-    const serie = crypto.randomUUID();
-    const client = await db.pool.connect();
-    try {
-      await client.query('BEGIN');
-      for (const dd of datas) {
-        await client.query(
-          `INSERT INTO eventos (igreja_id, titulo, tipo, data, hora, observacao, serie_id)
-           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-          [vals[0], vals[1], vals[2], dd, vals[3], vals[4], serie]
-        );
-      }
-      await client.query('COMMIT');
-      return res.status(201).json({ criados: datas.length, serie: true, data: datas[0] });
-    } catch (e) {
-      await client.query('ROLLBACK').catch(() => {});
-      console.error(e); return res.status(500).json({ erro: 'Erro ao gerar a série' });
-    } finally { client.release(); }
-  }
-
   const { rows } = await db.query(
     `INSERT INTO eventos (igreja_id, titulo, tipo, data, hora, observacao)
      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *, to_char(data,'YYYY-MM-DD') AS data`,
-    [vals[0], vals[1], vals[2], data, vals[3], vals[4]]
+    [ig(req), titulo.trim(), norm(tipo), data, hora || '', (observacao || '').trim()]
   );
   res.status(201).json(rows[0]);
 });
@@ -155,10 +132,67 @@ router.put('/eventos/:id', async (req, res) => {
   if (!data) return res.status(400).json({ erro: 'Informe a data' });
   await db.query(
     `UPDATE eventos SET titulo=$1, tipo=$2, data=$3, hora=$4, observacao=$5 WHERE id=$6 AND igreja_id=$7`,
-    [titulo.trim(), tipo === 'evento' ? 'evento' : 'culto', data, hora || '', (observacao || '').trim(),
-     req.params.id, ig(req)]
+    [titulo.trim(), norm(tipo), data, hora || '', (observacao || '').trim(), req.params.id, ig(req)]
   );
   res.json({ ok: true });
+});
+
+// ── CULTOS FIXOS (regra semanal por dia da semana) ──
+router.get('/cultos-fixos', async (req, res) => {
+  const { rows } = await db.query(
+    'SELECT * FROM cultos_fixos WHERE igreja_id=$1 AND ativo=TRUE ORDER BY dia_semana, hora', [ig(req)]
+  );
+  res.json(rows);
+});
+
+router.post('/cultos-fixos', async (req, res) => {
+  const { titulo, dias, hora } = req.body;
+  const lista = (Array.isArray(dias) ? dias : [dias]).map(Number).filter((d) => d >= 0 && d <= 6);
+  if (!titulo || !titulo.trim()) return res.status(400).json({ erro: 'Informe o título' });
+  if (!lista.length) return res.status(400).json({ erro: 'Selecione ao menos um dia da semana' });
+  const criados = [];
+  for (const d of [...new Set(lista)]) {
+    const { rows } = await db.query(
+      `INSERT INTO cultos_fixos (igreja_id, titulo, dia_semana, hora) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [ig(req), titulo.trim(), d, hora || '']
+    );
+    criados.push(rows[0]);
+  }
+  res.status(201).json({ ok: true, criados: criados.length });
+});
+
+router.put('/cultos-fixos/:id', async (req, res) => {
+  const { titulo, dia_semana, hora } = req.body;
+  if (!titulo || !titulo.trim()) return res.status(400).json({ erro: 'Informe o título' });
+  await db.query(
+    'UPDATE cultos_fixos SET titulo=$1, dia_semana=$2, hora=$3 WHERE id=$4 AND igreja_id=$5',
+    [titulo.trim(), Number(dia_semana), hora || '', req.params.id, ig(req)]
+  );
+  res.json({ ok: true });
+});
+
+router.delete('/cultos-fixos/:id', async (req, res) => {
+  await db.query('DELETE FROM cultos_fixos WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
+  res.json({ ok: true });
+});
+
+// Materializa (ou acha) o evento concreto de uma ocorrência de culto fixo, p/ montar escala
+router.post('/ocorrencia', async (req, res) => {
+  const { culto_fixo_id, data } = req.body;
+  if (!culto_fixo_id || !/^\d{4}-\d{2}-\d{2}$/.test(data || '')) return res.status(400).json({ erro: 'Dados inválidos' });
+  const fx = await db.query('SELECT * FROM cultos_fixos WHERE id=$1 AND igreja_id=$2', [culto_fixo_id, ig(req)]);
+  if (!fx.rows.length) return res.status(404).json({ erro: 'Culto fixo não encontrado' });
+  const ja = await db.query(
+    'SELECT id FROM eventos WHERE igreja_id=$1 AND culto_fixo_id=$2 AND data=$3', [ig(req), culto_fixo_id, data]
+  );
+  if (ja.rows.length) return res.json({ id: ja.rows[0].id });
+  const f = fx.rows[0];
+  const { rows } = await db.query(
+    `INSERT INTO eventos (igreja_id, titulo, tipo, data, hora, culto_fixo_id)
+     VALUES ($1,$2,'culto_fixo',$3,$4,$5) RETURNING id`,
+    [ig(req), f.titulo, data, f.hora, culto_fixo_id]
+  );
+  res.json({ id: rows[0].id });
 });
 
 router.delete('/eventos/:id', async (req, res) => {
@@ -232,21 +266,41 @@ router.delete('/escala/:id', async (req, res) => {
 //  CALENDÁRIO — eventos do mês com escala agrupada por ministério
 // ══════════════════════════════════════════════
 router.get('/calendario', async (req, res) => {
+  const igId = ig(req);
   const mes = /^\d{4}-\d{2}$/.test(req.query.mes || '') ? req.query.mes : new Date().toISOString().slice(0, 7);
-  const { rows } = await db.query(
-    `SELECT e.id, e.titulo, e.tipo, e.hora, to_char(e.data,'YYYY-MM-DD') AS data,
-            COALESCE(json_agg(json_build_object(
-              'ministerio', mi.nome, 'cor', mi.cor, 'membro', me.nome
-            ) ORDER BY mi.nome, me.nome) FILTER (WHERE s.id IS NOT NULL), '[]') AS escalados
+
+  // 1) eventos concretos do mês (datados + ocorrências de culto fixo já materializadas)
+  const { rows: concretos } = await db.query(
+    `SELECT e.id, e.titulo, e.tipo, e.hora, e.culto_fixo_id, to_char(e.data,'YYYY-MM-DD') AS data,
+            COALESCE(json_agg(json_build_object('ministerio', mi.nome, 'cor', mi.cor, 'membro', me.nome)
+              ORDER BY mi.nome, me.nome) FILTER (WHERE s.id IS NOT NULL), '[]') AS escalados
      FROM eventos e
-     LEFT JOIN escalas s     ON s.evento_id = e.id
+     LEFT JOIN escalas s      ON s.evento_id = e.id
      LEFT JOIN ministerios mi ON mi.id = s.ministerio_id
-     LEFT JOIN membros me      ON me.id = s.membro_id
+     LEFT JOIN membros me     ON me.id = s.membro_id
      WHERE e.igreja_id=$1 AND date_trunc('month', e.data) = date_trunc('month', ($2||'-01')::date)
      GROUP BY e.id ORDER BY e.data, e.hora`,
-    [ig(req), mes]
+    [igId, mes]
   );
-  res.json({ mes, eventos: rows });
+
+  // 2) regras de culto fixo → expande em ocorrências virtuais no mês (menos as já materializadas)
+  const { rows: fixos } = await db.query('SELECT * FROM cultos_fixos WHERE igreja_id=$1 AND ativo=TRUE', [igId]);
+  const materializado = new Set(concretos.filter((e) => e.culto_fixo_id).map((e) => e.culto_fixo_id + '|' + e.data));
+
+  const [ano, m] = mes.split('-').map(Number);
+  const diasNoMes = new Date(ano, m, 0).getDate();
+  const virtuais = [];
+  for (const f of fixos) {
+    for (let dia = 1; dia <= diasNoMes; dia++) {
+      if (new Date(ano, m - 1, dia).getDay() !== f.dia_semana) continue;
+      const data = `${mes}-${String(dia).padStart(2, '0')}`;
+      if (materializado.has(f.id + '|' + data)) continue;
+      virtuais.push({ id: null, fixo_id: f.id, titulo: f.titulo, tipo: 'culto_fixo', hora: f.hora, data, escalados: [] });
+    }
+  }
+
+  const eventos = [...concretos, ...virtuais].sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora));
+  res.json({ mes, eventos });
 });
 
 // ══════════════════════════════════════════════

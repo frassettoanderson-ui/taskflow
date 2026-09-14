@@ -507,3 +507,31 @@ tbody tr:last-child td { border-bottom: none; }
   .cal-ev-t{ font-size:.68rem; }
   .cal-wd{ font-size:.62rem; }
 }
+
+/* ── Escalas v2: tipos de evento, culto fixo, calendário com tag/borda ── */
+.tag-tipo{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:.72rem; font-weight:700;
+  letter-spacing:.02em; vertical-align:middle; color:#0c0c0f; }
+.tag-fixo{ background:#fbbf24; } .tag-evento{ background:#93a4b8; } .tag-especial{ background:#a78bfa; color:#100c18; }
+
+.dias-semana{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 2px; }
+.dia-chip{ cursor:pointer; }
+.dia-chip input{ position:absolute; opacity:0; width:0; height:0; }
+.dia-chip span{ display:inline-block; padding:8px 12px; border:1px solid var(--border-2); border-radius:8px;
+  color:var(--muted); font-size:.85rem; user-select:none; transition:.15s; }
+.dia-chip input:checked + span{ background:var(--accent-soft); border-color:var(--accent-2); color:var(--text); }
+
+/* calendário: mais respiro entre as linhas + tag no topo da célula */
+.cal-grid{ gap:12px; }
+.cal-cell{ min-height:128px; padding:0 7px 7px; position:relative; }
+.cal-cell .cal-tags{ display:flex; flex-wrap:wrap; gap:3px; min-height:22px; margin:0 -7px 4px;
+  padding:5px 7px 0; }
+.cal-tag{ font-size:.64rem; font-weight:700; padding:2px 7px; border-radius:6px; color:#0c0c0f; line-height:1.35;
+  white-space:nowrap; }
+.cal-cell.com-ev{ border-color:var(--evcor); box-shadow:0 0 0 1px var(--evcor) inset; }
+.cal-cell.com-ev.hoje{ box-shadow:0 0 0 2px var(--evcor) inset; }
+.cal-cell .cal-dia{ margin-top:2px; }
+@media (max-width:820px){
+  .cal-grid{ gap:7px; }
+  .cal-cell{ min-height:96px; }
+  .cal-tag{ font-size:.58rem; padding:1px 5px; }
+}
