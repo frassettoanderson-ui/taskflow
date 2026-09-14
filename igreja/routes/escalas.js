@@ -33,13 +33,14 @@ router.get('/ministerios/:id', async (req, res) => {
   );
   if (!rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
   const membros = await db.query(
-    `SELECT me.id, me.nome, me.telefone,
+    `SELECT me.id, me.nome, me.telefone, me.conjuge_id, c.nome AS conjuge_nome,
             COALESCE(array_agg(mf.funcao_id) FILTER (WHERE mf.funcao_id IS NOT NULL
               AND mf.funcao_id IN (SELECT id FROM funcoes WHERE ministerio_id=$1)), '{}') AS funcoes
      FROM ministerio_membros mm
      JOIN membros me ON me.id = mm.membro_id
+     LEFT JOIN membros c ON c.id = me.conjuge_id
      LEFT JOIN membro_funcoes mf ON mf.membro_id = me.id
-     WHERE mm.ministerio_id=$1 GROUP BY me.id ORDER BY me.nome`, [req.params.id]
+     WHERE mm.ministerio_id=$1 GROUP BY me.id, c.nome ORDER BY me.nome`, [req.params.id]
   );
   const funcoes = await db.query('SELECT * FROM funcoes WHERE ministerio_id=$1 AND ativo=TRUE ORDER BY nome', [req.params.id]);
   res.json({ ...rows[0], membros: membros.rows, funcoes: funcoes.rows });
@@ -47,27 +48,100 @@ router.get('/ministerios/:id', async (req, res) => {
 
 // ── Funções (cargos) de um ministério ──
 router.post('/ministerios/:id/funcoes', async (req, res) => {
-  const { nome } = req.body;
+  const { nome, casal } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome da função' });
   const dono = await db.query('SELECT 1 FROM ministerios WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
   if (!dono.rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
   const { rows } = await db.query(
-    'INSERT INTO funcoes (igreja_id, ministerio_id, nome) VALUES ($1,$2,$3) RETURNING *',
-    [ig(req), req.params.id, nome.trim()]
+    'INSERT INTO funcoes (igreja_id, ministerio_id, nome, casal) VALUES ($1,$2,$3,$4) RETURNING *',
+    [ig(req), req.params.id, nome.trim(), casal === true]
   );
   res.status(201).json(rows[0]);
 });
 
 router.put('/funcoes/:id', async (req, res) => {
-  const { nome } = req.body;
+  const { nome, casal } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome' });
-  await db.query('UPDATE funcoes SET nome=$1 WHERE id=$2 AND igreja_id=$3', [nome.trim(), req.params.id, ig(req)]);
+  await db.query('UPDATE funcoes SET nome=$1, casal=$2 WHERE id=$3 AND igreja_id=$4',
+    [nome.trim(), casal === true, req.params.id, ig(req)]);
   res.json({ ok: true });
 });
 
 router.delete('/funcoes/:id', async (req, res) => {
   await db.query('DELETE FROM funcoes WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
   res.json({ ok: true });
+});
+
+// ── Cônjuge de um membro (mútuo) ──
+router.put('/membros/:id/conjuge', async (req, res) => {
+  const id = Number(req.params.id);
+  const c = req.body.conjuge_id ? Number(req.body.conjuge_id) : null;
+  const meu = await db.query('SELECT conjuge_id FROM membros WHERE id=$1 AND igreja_id=$2', [id, ig(req)]);
+  if (!meu.rows.length) return res.status(404).json({ erro: 'Membro não encontrado' });
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    // desfaz o vínculo antigo dos dois lados
+    const antigo = meu.rows[0].conjuge_id;
+    if (antigo) await client.query('UPDATE membros SET conjuge_id=NULL WHERE id=$1', [antigo]);
+    await client.query('UPDATE membros SET conjuge_id=NULL WHERE conjuge_id=$1', [id]);
+    if (c) {
+      const ok = await client.query('SELECT 1 FROM membros WHERE id=$1 AND igreja_id=$2', [c, ig(req)]);
+      if (!ok.rows.length) throw new Error('conjuge inválido');
+      // limpa vínculo anterior do escolhido também
+      await client.query('UPDATE membros SET conjuge_id=NULL WHERE id=$1 OR conjuge_id=$1', [c]);
+      await client.query('UPDATE membros SET conjuge_id=$1 WHERE id=$2', [c, id]);
+      await client.query('UPDATE membros SET conjuge_id=$1 WHERE id=$2', [id, c]);
+    } else {
+      await client.query('UPDATE membros SET conjuge_id=NULL WHERE id=$1', [id]);
+    }
+    await client.query('COMMIT');
+    res.json({ ok: true });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    res.status(400).json({ erro: 'Não foi possível definir o cônjuge' });
+  } finally { client.release(); }
+});
+
+// ── Necessidades (vagas por função) de um culto fixo (molde) ou evento datado ──
+router.get('/necessidades', async (req, res) => {
+  const col = req.query.culto_fixo_id ? 'culto_fixo_id' : 'evento_id';
+  const val = Number(req.query.culto_fixo_id || req.query.evento_id);
+  if (!val) return res.json([]);
+  const { rows } = await db.query(
+    `SELECT n.id, n.funcao_id, n.quantidade, f.nome AS funcao, f.casal, mi.id AS ministerio_id, mi.nome AS ministerio, mi.cor
+     FROM evento_necessidades n JOIN funcoes f ON f.id=n.funcao_id JOIN ministerios mi ON mi.id=f.ministerio_id
+     WHERE n.igreja_id=$1 AND n.${col}=$2 ORDER BY mi.nome, f.nome`, [ig(req), val]
+  );
+  res.json(rows);
+});
+
+router.put('/necessidades', async (req, res) => {
+  const fixo = req.body.culto_fixo_id ? Number(req.body.culto_fixo_id) : null;
+  const evento = req.body.evento_id ? Number(req.body.evento_id) : null;
+  if (!fixo && !evento) return res.status(400).json({ erro: 'Informe o culto fixo ou evento' });
+  const itens = Array.isArray(req.body.itens) ? req.body.itens : [];
+  const client = await db.pool.connect();
+  try {
+    await client.query('BEGIN');
+    if (fixo) await client.query('DELETE FROM evento_necessidades WHERE culto_fixo_id=$1 AND igreja_id=$2', [fixo, ig(req)]);
+    else await client.query('DELETE FROM evento_necessidades WHERE evento_id=$1 AND igreja_id=$2', [evento, ig(req)]);
+    for (const it of itens) {
+      const q = Math.max(1, Number(it.quantidade) || 1);
+      const fid = Number(it.funcao_id);
+      const ok = await client.query('SELECT 1 FROM funcoes WHERE id=$1 AND igreja_id=$2', [fid, ig(req)]);
+      if (!ok.rows.length) continue;
+      await client.query(
+        'INSERT INTO evento_necessidades (igreja_id, evento_id, culto_fixo_id, funcao_id, quantidade) VALUES ($1,$2,$3,$4,$5)',
+        [ig(req), evento, fixo, fid, q]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ ok: true, total: itens.length });
+  } catch (e) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error(e); res.status(500).json({ erro: 'Erro ao salvar as vagas' });
+  } finally { client.release(); }
 });
 
 router.post('/ministerios', async (req, res) => {
@@ -256,44 +330,80 @@ router.get('/eventos/:id/escala', async (req, res) => {
 
   const mins = await db.query('SELECT * FROM ministerios WHERE igreja_id=$1 AND ativo=TRUE ORDER BY nome', [ig(req)]);
   const esc = await db.query(
-    `SELECT s.id, s.ministerio_id, s.membro_id, s.funcao, me.nome AS membro_nome
-     FROM escalas s JOIN membros me ON me.id = s.membro_id
+    `SELECT s.id, s.ministerio_id, s.membro_id, s.funcao_id, me.nome AS membro_nome, f.nome AS funcao_nome, f.casal
+     FROM escalas s JOIN membros me ON me.id = s.membro_id LEFT JOIN funcoes f ON f.id = s.funcao_id
      WHERE s.evento_id=$1 ORDER BY me.nome`, [evId]
   );
-  res.json({ evento: ev.rows[0], ministerios: mins.rows, escala: esc.rows });
+  // necessidades: do molde do culto fixo (se for ocorrência) ou do próprio evento
+  const nec = await db.query(
+    `SELECT n.funcao_id, n.quantidade, f.nome AS funcao, f.casal, mi.id AS ministerio_id, mi.nome AS ministerio, mi.cor
+     FROM evento_necessidades n JOIN funcoes f ON f.id=n.funcao_id JOIN ministerios mi ON mi.id=f.ministerio_id
+     WHERE n.igreja_id=$1 AND ( n.evento_id=$2 OR (n.culto_fixo_id=$3 AND $3 IS NOT NULL) )
+     ORDER BY mi.nome, f.nome`, [ig(req), evId, ev.rows[0].culto_fixo_id]
+  );
+  res.json({ evento: ev.rows[0], ministerios: mins.rows, escala: esc.rows, necessidades: nec.rows });
 });
 
 // ══════════════════════════════════════════════
 //  ESCALAÇÃO
 // ══════════════════════════════════════════════
 router.post('/escala', async (req, res) => {
-  const { evento_id, ministerio_id, membro_id, funcao } = req.body;
+  const { evento_id, ministerio_id, membro_id, funcao_id } = req.body;
   if (!evento_id || !ministerio_id || !membro_id)
     return res.status(400).json({ erro: 'Dados incompletos' });
-  // valida que tudo pertence à igreja
+  const igId = ig(req);
   const ok = await db.query(
     `SELECT (SELECT 1 FROM eventos WHERE id=$1 AND igreja_id=$4) AS e,
             (SELECT 1 FROM ministerios WHERE id=$2 AND igreja_id=$4) AS m,
-            (SELECT 1 FROM membros WHERE id=$3 AND igreja_id=$4) AS me`,
-    [evento_id, ministerio_id, membro_id, ig(req)]
+            (SELECT conjuge_id FROM membros WHERE id=$3 AND igreja_id=$4) AS conj`,
+    [evento_id, ministerio_id, membro_id, igId]
   );
   const v = ok.rows[0];
-  if (!v.e || !v.m || !v.me) return res.status(400).json({ erro: 'Registro inválido' });
-  try {
-    const { rows } = await db.query(
-      `INSERT INTO escalas (igreja_id, evento_id, ministerio_id, membro_id, funcao)
-       VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-      [ig(req), evento_id, ministerio_id, membro_id, (funcao || '').trim()]
-    );
-    res.status(201).json({ ok: true, id: rows[0].id });
-  } catch (e) {
-    if (e.code === '23505') return res.status(409).json({ erro: 'Esta pessoa já está escalada neste ministério.' });
-    console.error(e); res.status(500).json({ erro: 'Erro ao escalar' });
+  if (!v || v.e == null || v.m == null) return res.status(400).json({ erro: 'Registro inválido' });
+
+  // a função é casal?
+  let casal = false, fid = funcao_id ? Number(funcao_id) : null;
+  if (fid) {
+    const f = await db.query('SELECT casal FROM funcoes WHERE id=$1 AND ministerio_id=$2 AND igreja_id=$3', [fid, ministerio_id, igId]);
+    if (!f.rows.length) fid = null; else casal = f.rows[0].casal === true;
   }
+
+  const inserir = async (mid) => {
+    try {
+      const { rows } = await db.query(
+        `INSERT INTO escalas (igreja_id, evento_id, ministerio_id, membro_id, funcao_id) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+        [igId, evento_id, ministerio_id, mid, fid]
+      );
+      return rows[0].id;
+    } catch (e) { if (e.code === '23505') return null; throw e; }
+  };
+
+  try {
+    const id = await inserir(membro_id);
+    if (id === null) return res.status(409).json({ erro: 'Esta pessoa já está escalada neste ministério.' });
+    let aviso = null;
+    if (casal) {
+      if (v.conj) await inserir(v.conj);         // escala o cônjuge junto
+      else aviso = 'sem_conjuge';                // função de casal, mas sem cônjuge definido
+    }
+    res.status(201).json({ ok: true, id, aviso });
+  } catch (e) { console.error(e); res.status(500).json({ erro: 'Erro ao escalar' }); }
 });
 
 router.delete('/escala/:id', async (req, res) => {
-  await db.query('DELETE FROM escalas WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
+  const igId = ig(req);
+  const r = await db.query(
+    `SELECT s.evento_id, s.funcao_id, s.membro_id, f.casal, me.conjuge_id
+     FROM escalas s LEFT JOIN funcoes f ON f.id=s.funcao_id JOIN membros me ON me.id=s.membro_id
+     WHERE s.id=$1 AND s.igreja_id=$2`, [req.params.id, igId]
+  );
+  await db.query('DELETE FROM escalas WHERE id=$1 AND igreja_id=$2', [req.params.id, igId]);
+  // função de casal: remove o cônjuge da mesma função/evento também
+  const row = r.rows[0];
+  if (row && row.casal && row.conjuge_id && row.funcao_id) {
+    await db.query('DELETE FROM escalas WHERE igreja_id=$1 AND evento_id=$2 AND funcao_id=$3 AND membro_id=$4',
+      [igId, row.evento_id, row.funcao_id, row.conjuge_id]);
+  }
   res.json({ ok: true });
 });
 

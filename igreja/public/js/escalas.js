@@ -112,14 +112,18 @@
       const det = await getJSON('escalas/ministerios/' + id);
       const { el, fechar } = abrirModal('Funções de ' + esc(det.nome), `
         <p class="desc">Cargos deste ministério (ex.: guitarrista, tecladista, recepção).</p>
-        <form id="ff2" class="mb2-busca" style="margin-bottom:14px">
-          <input type="text" id="fn-nome" placeholder="Nova função e Enter…" autocomplete="off">
+        <form id="ff2" class="form-grid" style="margin-bottom:14px">
+          <div class="linha">
+            <input type="text" id="fn-nome" class="cresce" placeholder="Nova função…" autocomplete="off">
+            <button type="submit" class="pequeno">Adicionar</button>
+          </div>
+          <label class="check-linha"><input type="checkbox" id="fn-casal"> Sempre em casal (ao escalar uma pessoa, o cônjuge entra junto)</label>
         </form>
         <div id="fn-lista" class="mb2-equipe"></div>`);
 
       const pintar = () => {
         document.getElementById('fn-lista').innerHTML = det.funcoes.length
-          ? det.funcoes.map((f) => `<div class="mb2-item"><span>${esc(f.nome)}</span>
+          ? det.funcoes.map((f) => `<div class="mb2-item"><span>${esc(f.nome)} ${f.casal ? '<span class="tag-tipo tag-especial">casal</span>' : ''}</span>
                <button class="mb2-rem" data-delf="${f.id}" title="Excluir">✕</button></div>`).join('')
           : '<p class="vazio">Nenhuma função ainda.</p>';
         el.querySelectorAll('[data-delf]').forEach((b) => b.addEventListener('click', async () => {
@@ -130,9 +134,11 @@
       document.getElementById('ff2').addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = document.getElementById('fn-nome').value.trim(); if (!nome) return;
-        const r = await api('escalas/ministerios/' + id + '/funcoes', { method: 'POST', body: JSON.stringify({ nome }) });
+        const casal = document.getElementById('fn-casal').checked;
+        const r = await api('escalas/ministerios/' + id + '/funcoes', { method: 'POST', body: JSON.stringify({ nome, casal }) });
         const d = await r.json(); if (!r.ok) return;
-        det.funcoes.push(d); document.getElementById('fn-nome').value = ''; pintar();
+        det.funcoes.push(d);
+        document.getElementById('fn-nome').value = ''; document.getElementById('fn-casal').checked = false; pintar();
       });
       pintar();
     }
@@ -141,8 +147,10 @@
       const [det, todos] = await Promise.all([getJSON('escalas/ministerios/' + id), getJSON('membros?situacao=ativo')]);
       const porId = {}; todos.forEach((m) => (porId[m.id] = m));
       const funcoes = det.funcoes || [];
+      const temCasal = funcoes.some((f) => f.casal);
       const equipe = det.membros.map((m) => m.id);
       const fnDe = {}; det.membros.forEach((m) => (fnDe[m.id] = new Set((m.funcoes || []).map(Number))));
+      const conj = {}; todos.forEach((m) => { if (m.conjuge_id) conj[m.id] = m.conjuge_id; });
 
       const { el, fechar } = abrirModal('Membros de ' + esc(det.nome), `
         <div class="mb2">
@@ -163,6 +171,7 @@
                <div class="mb2-row"><span>${esc(porId[mid] ? porId[mid].nome : '—')}</span>
                  <button class="mb2-rem" data-rem="${mid}" title="Remover">✕</button></div>
                ${funcoes.length ? `<div class="mb2-funcs">${funcoes.map((f) => `<button type="button" class="fn-chip ${(fnDe[mid] || new Set()).has(f.id) ? 'on' : ''}" data-m="${mid}" data-f="${f.id}">${esc(f.nome)}</button>`).join('')}</div>` : ''}
+               ${temCasal ? `<div class="mb2-conj">💍 ${conj[mid] && porId[conj[mid]] ? esc(porId[conj[mid]].nome) : '<span class="sub-txt">sem cônjuge</span>'} <button type="button" class="acao-link" data-conj="${mid}">${conj[mid] ? 'trocar' : 'definir'}</button></div>` : ''}
              </div>`).join('')
           : '<p class="vazio">Ninguém ainda. Busque acima para adicionar.</p>';
         el.querySelectorAll('[data-rem]').forEach((b) => b.addEventListener('click', () => {
@@ -175,7 +184,35 @@
           if (fnDe[mid].has(fid)) fnDe[mid].delete(fid); else fnDe[mid].add(fid);
           b.classList.toggle('on');
         }));
+        el.querySelectorAll('[data-conj]').forEach((b) => b.addEventListener('click', () => escolherConjuge(Number(b.dataset.conj))));
       };
+
+      // escolhe/troca o cônjuge (grava na hora, é global do membro)
+      function escolherConjuge(mid) {
+        const { el: el2, fechar: fechar2 } = abrirModal('Cônjuge de ' + esc(porId[mid] ? porId[mid].nome : ''), `
+          <div class="mb2-busca"><input type="text" id="cj-busca" placeholder="Buscar o cônjuge na igreja…" autocomplete="off"><div id="cj-res" class="mb2-result" hidden></div></div>
+          ${conj[mid] ? '<button id="cj-remover" class="acao-link acao-del" style="margin-top:10px">Remover cônjuge atual</button>' : ''}`);
+        const salvar = async (cid) => {
+          const r = await api('membros/' + mid + '/conjuge', { method: 'PUT', body: JSON.stringify({ conjuge_id: cid }) });
+          if (!r.ok) return;
+          // atualiza os dois lados localmente
+          const antigo = conj[mid];
+          if (antigo) { delete conj[antigo]; }
+          for (const k in conj) if (conj[k] === mid) delete conj[k];
+          if (cid) { conj[mid] = cid; conj[cid] = mid; if (porId[cid]) porId[cid].conjuge_id = mid; if (porId[mid]) porId[mid].conjuge_id = cid; }
+          else { delete conj[mid]; if (porId[mid]) porId[mid].conjuge_id = null; }
+          fechar2(); pintarEquipe();
+        };
+        const rem = document.getElementById('cj-remover'); if (rem) rem.addEventListener('click', () => salvar(null));
+        document.getElementById('cj-busca').addEventListener('input', (e) => {
+          const f = e.target.value.trim().toLowerCase(); const box = document.getElementById('cj-res');
+          if (!f) { box.hidden = true; return; }
+          const ach = todos.filter((m) => m.id !== mid && m.nome.toLowerCase().includes(f)).slice(0, 30);
+          box.hidden = false;
+          box.innerHTML = ach.map((m) => `<button class="mb2-add" data-cj="${m.id}"><span>${esc(m.nome)}</span><span class="mb2-plus">escolher</span></button>`).join('') || '<div class="mb2-vazio">Nada encontrado.</div>';
+          box.querySelectorAll('[data-cj]').forEach((b) => b.addEventListener('click', () => salvar(Number(b.dataset.cj))));
+        });
+      }
 
       const buscar = () => {
         const f = document.getElementById('mb-busca').value.trim().toLowerCase();
@@ -303,9 +340,11 @@
         ['Culto', (f) => `${esc(f.titulo)} ${tipoTag('culto_fixo')}`],
         ['Dia da semana', (f) => DIASEM[f.dia_semana]],
         ['Horário', (f) => f.hora || '—'],
-        ['', (f) => `<button class="acao-link" data-edfixo="${f.id}">✎ Editar</button>
+        ['', (f) => `<button class="acao-link" data-vagasfixo="${f.id}">Vagas</button>
+                     <button class="acao-link" data-edfixo="${f.id}">✎ Editar</button>
                      <button class="acao-link acao-del" data-delfixo="${f.id}">✕ Excluir</button>`],
       ], 'Nenhum culto fixo. Crie um acima escolhendo o tipo "Culto fixo".');
+      document.querySelectorAll('[data-vagasfixo]').forEach((b) => b.addEventListener('click', () => definirVagas({ culto_fixo_id: b.dataset.vagasfixo })));
       document.querySelectorAll('[data-edfixo]').forEach((b) => b.addEventListener('click', () => editarFixo(b.dataset.edfixo, fixos, listar)));
       document.querySelectorAll('[data-delfixo]').forEach((b) => b.addEventListener('click', async () => {
         if (!confirm('Excluir este culto fixo? As escalas já montadas nele também serão removidas.')) return;
@@ -318,10 +357,12 @@
         ['Data', (e) => `<b>${diaDoISO(e.data)}</b> <span class="sub-txt">${DIAS[new Date(e.data + 'T12:00').getDay()]}${e.hora ? ' · ' + e.hora : ''}</span>`],
         ['Título', (e) => `${esc(e.titulo)} ${tipoTag(e.tipo)}${e.observacao ? `<div class="sub-txt">${esc(e.observacao)}</div>` : ''}`],
         ['Escalados', (e) => `${e.qtd_escalados}`],
-        ['', (e) => `<button class="acao-link" data-escalar="${e.id}">Montar escala</button>
+        ['', (e) => `<button class="acao-link" data-vagasev="${e.id}">Vagas</button>
+                     <button class="acao-link" data-escalar="${e.id}">Montar escala</button>
                      <button class="acao-link" data-edev="${e.id}">✎</button>
                      <button class="acao-link acao-del" data-delev="${e.id}">✕</button>`],
       ], 'Nenhum evento ou culto especial neste mês.');
+      document.querySelectorAll('[data-vagasev]').forEach((b) => b.addEventListener('click', () => definirVagas({ evento_id: b.dataset.vagasev })));
       document.querySelectorAll('[data-escalar]').forEach((b) => b.addEventListener('click', () => abrirEscala(b.dataset.escalar, listar)));
       document.querySelectorAll('[data-edev]').forEach((b) => b.addEventListener('click', () => editarEvento(b.dataset.edev, evs, listar)));
       document.querySelectorAll('[data-delev]').forEach((b) => b.addEventListener('click', () => {
@@ -384,51 +425,107 @@
     });
   }
 
-  // Modal: montar a escala de um evento (ministério por ministério)
+  // Definir as vagas (necessidades) de um culto fixo (molde) ou evento datado
+  async function definirVagas(alvo) {
+    const mins = await getJSON('escalas/ministerios');
+    const dets = await Promise.all(mins.map((m) => getJSON('escalas/ministerios/' + m.id)));
+    const q = new URLSearchParams(alvo).toString();
+    const atuais = await getJSON('escalas/necessidades?' + q);
+    const mapa = {}; atuais.forEach((n) => (mapa[n.funcao_id] = n.quantidade));
+    const comFunc = dets.filter((d) => d.funcoes.length);
+    const corpo = comFunc.length ? comFunc.map((d) => `
+      <div class="esc-min"><div class="esc-min-head"><span class="min-dot" style="background:${esc(d.cor)}"></span> <b>${esc(d.nome)}</b></div>
+        ${d.funcoes.map((f) => `<div class="vaga-linha">
+          <span class="vaga-nome">${esc(f.nome)} ${f.casal ? '<span class="tag-tipo tag-especial">casal</span>' : ''}</span>
+          <input type="number" min="0" class="vaga-q" data-f="${f.id}" value="${mapa[f.id] || 0}">
+          <span class="sub-txt">${f.casal ? 'casais' : 'pessoas'}</span>
+        </div>`).join('')}
+      </div>`).join('') : '<p class="vazio">Crie funções nos ministérios primeiro (Ministérios › Funções).</p>';
+    const { fechar } = abrirModal('Definir vagas', `
+      <p class="desc">Quantas pessoas de cada função este culto/evento precisa. Deixe 0 no que não usar.</p>
+      ${corpo}
+      <div class="linha" style="margin-top:12px"><button id="vg-salvar">Salvar vagas</button><span id="vg-msg" class="sub-txt"></span></div>`);
+    const bt = document.getElementById('vg-salvar');
+    if (bt) bt.addEventListener('click', async () => {
+      const itens = [...document.querySelectorAll('.vaga-q')]
+        .map((i) => ({ funcao_id: Number(i.dataset.f), quantidade: Number(i.value) || 0 })).filter((x) => x.quantidade > 0);
+      const r = await api('escalas/necessidades', { method: 'PUT', body: JSON.stringify({ ...alvo, itens }) });
+      if (!r.ok) { document.getElementById('vg-msg').textContent = 'Erro ao salvar'; return; }
+      fechar();
+    });
+  }
+
+  // Modal: montar a escala de um evento (por vagas/função; casais entram juntos)
   async function abrirEscala(eventoId, aoConcluir) {
-    const dados = await getJSON('escalas/eventos/' + eventoId + '/escala');
-    const detalhes = await Promise.all(dados.ministerios.map((m) => getJSON('escalas/ministerios/' + m.id)));
-    const membrosPorMin = {}; detalhes.forEach((d) => (membrosPorMin[d.id] = d.membros));
+    const { el, fechar } = abrirModal('Escala', `<div id="esc-body" class="sub-txt">Carregando…</div>`);
+    const membrosPorMin = {};
 
-    const ev = dados.evento;
-    const { el, fechar } = abrirModal(`Escala — ${esc(ev.titulo)} (${dataBR(ev.data)}${ev.hora ? ' ' + ev.hora : ''})`,
-      `<div id="esc-body"></div>`);
+    async function carregar() {
+      const dados = await getJSON('escalas/eventos/' + eventoId + '/escala');
+      const ev = dados.evento;
+      el.querySelector('.modal-head h2').textContent = `Escala — ${ev.titulo} (${dataBR(ev.data)}${ev.hora ? ' ' + ev.hora : ''})`;
 
-    function pintar() {
-      const porMin = {};
-      dados.escala.forEach((s) => (porMin[s.ministerio_id] = porMin[s.ministerio_id] || []).push(s));
-      document.getElementById('esc-body').innerHTML = dados.ministerios.length ? dados.ministerios.map((m) => {
-        const escalados = porMin[m.id] || [];
-        const jaIds = new Set(escalados.map((s) => s.membro_id));
-        const disp = (membrosPorMin[m.id] || []).filter((mm) => !jaIds.has(mm.id));
-        return `<div class="esc-min">
-          <div class="esc-min-head"><span class="min-dot" style="background:${esc(m.cor)}"></span> <b>${esc(m.nome)}</b></div>
-          <div class="esc-chips">
-            ${escalados.map((s) => `<span class="chip-pessoa">${esc(s.membro_nome)}<button class="chip-x" data-rem="${s.id}" title="Remover">✕</button></span>`).join('') || '<span class="sub-txt">Ninguém escalado.</span>'}
-          </div>
-          ${(membrosPorMin[m.id] || []).length
-            ? `<div class="esc-add"><select data-addmin="${m.id}"><option value="">+ escalar…</option>${disp.map((mm) => `<option value="${mm.id}">${esc(mm.nome)}</option>`).join('')}</select></div>`
-            : '<p class="sub-txt">Este ministério ainda não tem membros. Adicione em Ministérios › Membros.</p>'}
-        </div>`;
-      }).join('') : '<p class="vazio">Crie ministérios (com membros) para montar a escala.</p>';
-
-      el.querySelectorAll('[data-rem]').forEach((b) => b.addEventListener('click', async () => {
-        await api('escalas/escala/' + b.dataset.rem, { method: 'DELETE' });
-        dados.escala = dados.escala.filter((s) => String(s.id) !== String(b.dataset.rem));
-        pintar(); if (aoConcluir) aoConcluir();
+      // carrega membros (com funções) dos ministérios necessários, só uma vez
+      const idsMin = [...new Set(dados.necessidades.map((n) => n.ministerio_id))];
+      await Promise.all(idsMin.filter((id) => !membrosPorMin[id]).map(async (id) => {
+        membrosPorMin[id] = (await getJSON('escalas/ministerios/' + id)).membros;
       }));
-      el.querySelectorAll('[data-addmin]').forEach((sel) => sel.addEventListener('change', async () => {
-        const membroId = sel.value; if (!membroId) return;
+
+      const body = document.getElementById('esc-body');
+      if (!dados.necessidades.length) {
+        body.className = '';
+        body.innerHTML = `<p class="vazio">Nenhuma vaga definida para este culto/evento.<br>Defina em <b>Eventos › Vagas</b> primeiro.</p>`;
+        return;
+      }
+      // agrupa por ministério
+      const porMinNec = {};
+      dados.necessidades.forEach((n) => (porMinNec[n.ministerio_id] = porMinNec[n.ministerio_id] || []).push(n));
+      // escalados por função
+      const escPorFunc = {};
+      dados.escala.forEach((s) => (escPorFunc[s.funcao_id] = escPorFunc[s.funcao_id] || []).push(s));
+
+      body.className = '';
+      body.innerHTML = Object.entries(porMinNec).map(([minId, necs]) => {
+        const membros = membrosPorMin[minId] || [];
+        const cor = necs[0].cor, nomeMin = necs[0].ministerio;
+        return `<div class="esc-min">
+          <div class="esc-min-head"><span class="min-dot" style="background:${esc(cor)}"></span> <b>${esc(nomeMin)}</b></div>
+          ${necs.map((n) => {
+            const jaFunc = escPorFunc[n.funcao_id] || [];
+            const jaIds = new Set(jaFunc.map((s) => s.membro_id));
+            // quem pode: membros do ministério que têm a função
+            const aptos = membros.filter((mm) => (mm.funcoes || []).includes(n.funcao_id) && !jaIds.has(mm.id));
+            const alvo = n.quantidade * (n.casal ? 2 : 1);   // casal: 2 pessoas por casal
+            const faltam = Math.max(0, alvo - jaFunc.length);
+            return `<div class="vaga-bloco">
+              <div class="vaga-head">${esc(n.funcao)} ${n.casal ? '<span class="tag-tipo tag-especial">casal</span>' : ''}
+                <span class="sub-txt">${jaFunc.length}/${alvo}</span></div>
+              <div class="esc-chips">
+                ${jaFunc.map((s) => `<span class="chip-pessoa">${esc(s.membro_nome)}<button class="chip-x" data-rem="${s.id}" title="Remover">✕</button></span>`).join('') || '<span class="sub-txt">Ninguém.</span>'}
+              </div>
+              ${faltam > 0 ? (aptos.length
+                ? `<div class="esc-add"><select data-add-func="${n.funcao_id}" data-add-min="${minId}"><option value="">+ escalar…</option>${aptos.map((mm) => `<option value="${mm.id}">${esc(mm.nome)}</option>`).join('')}</select></div>`
+                : `<p class="sub-txt">Sem ninguém apto (marque a função “${esc(n.funcao)}” em Membros).</p>`) : ''}
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('');
+
+      body.querySelectorAll('[data-rem]').forEach((b) => b.addEventListener('click', async () => {
+        await api('escalas/escala/' + b.dataset.rem, { method: 'DELETE' });
+        await carregar(); if (aoConcluir) aoConcluir();
+      }));
+      body.querySelectorAll('[data-add-func]').forEach((sel) => sel.addEventListener('change', async () => {
+        if (!sel.value) return;
         const r = await api('escalas/escala', { method: 'POST', body: JSON.stringify({
-          evento_id: eventoId, ministerio_id: sel.dataset.addmin, membro_id: membroId }) });
+          evento_id: eventoId, ministerio_id: sel.dataset.addMin, membro_id: sel.value, funcao_id: sel.dataset.addFunc }) });
         const d = await r.json();
         if (!r.ok) { alert(d.erro || 'Erro ao escalar'); return; }
-        const mm = (membrosPorMin[sel.dataset.addmin] || []).find((x) => String(x.id) === String(membroId));
-        dados.escala.push({ id: d.id, ministerio_id: Number(sel.dataset.addmin), membro_id: Number(membroId), membro_nome: mm ? mm.nome : '' });
-        pintar(); if (aoConcluir) aoConcluir();
+        if (d.aviso === 'sem_conjuge') alert('Função de casal, mas esta pessoa está sem cônjuge definido. Defina o cônjuge em Ministérios › Membros.');
+        await carregar(); if (aoConcluir) aoConcluir();
       }));
     }
-    pintar();
+    carregar();
   }
 
   // ══════════════════════════════════════════════

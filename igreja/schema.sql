@@ -258,3 +258,19 @@ CREATE TABLE IF NOT EXISTS membro_funcoes (
 
 -- Escala pode registrar a função exercida
 ALTER TABLE escalas ADD COLUMN IF NOT EXISTS funcao_id INT REFERENCES funcoes(id) ON DELETE SET NULL;
+
+-- Fase 2: necessidade do evento (quantas vagas de cada função) + casais
+ALTER TABLE funcoes ADD COLUMN IF NOT EXISTS casal BOOLEAN DEFAULT FALSE;   -- vaga preenchida sempre por um casal
+ALTER TABLE membros ADD COLUMN IF NOT EXISTS conjuge_id INT REFERENCES membros(id) ON DELETE SET NULL;
+
+-- Necessidade: pertence a um culto fixo (molde, vale toda semana) OU a um evento datado
+CREATE TABLE IF NOT EXISTS evento_necessidades (
+  id            SERIAL PRIMARY KEY,
+  igreja_id     INT NOT NULL REFERENCES igrejas(id),
+  evento_id     INT REFERENCES eventos(id) ON DELETE CASCADE,
+  culto_fixo_id INT REFERENCES cultos_fixos(id) ON DELETE CASCADE,
+  funcao_id     INT NOT NULL REFERENCES funcoes(id) ON DELETE CASCADE,
+  quantidade    INT NOT NULL DEFAULT 1     -- casal: nº de casais; normal: nº de pessoas
+);
+CREATE INDEX IF NOT EXISTS idx_nec_evento ON evento_necessidades(evento_id);
+CREATE INDEX IF NOT EXISTS idx_nec_fixo   ON evento_necessidades(culto_fixo_id);
