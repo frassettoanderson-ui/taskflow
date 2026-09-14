@@ -193,7 +193,7 @@
           <div class="mb2-busca"><input type="text" id="cj-busca" placeholder="Buscar o cônjuge na igreja…" autocomplete="off"><div id="cj-res" class="mb2-result" hidden></div></div>
           ${conj[mid] ? '<button id="cj-remover" class="acao-link acao-del" style="margin-top:10px">Remover cônjuge atual</button>' : ''}`);
         const salvar = async (cid) => {
-          const r = await api('membros/' + mid + '/conjuge', { method: 'PUT', body: JSON.stringify({ conjuge_id: cid }) });
+          const r = await api('escalas/membros/' + mid + '/conjuge', { method: 'PUT', body: JSON.stringify({ conjuge_id: cid }) });
           if (!r.ok) return;
           // atualiza os dois lados localmente
           const antigo = conj[mid];
