@@ -48,6 +48,7 @@ router.use('/api/centros-custo', requireLogin, require('./routes/centrosCusto'))
 router.use('/api/formas-pagamento', requireLogin, require('./routes/formasPagamento'));
 router.use('/api/fornecedores', requireLogin, require('./routes/fornecedores'));
 router.use('/api/membros', requireLogin, require('./routes/membros'));
+router.use('/api/escalas', requireLogin, require('./routes/escalas'));
 router.use('/api/lancamentos', requireLogin, require('./routes/lancamentos'));
 router.use('/api/despesas-fixas', requireLogin, require('./routes/despesasFixas'));
 router.use('/api/dashboard', requireLogin, require('./routes/dashboard'));

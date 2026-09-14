@@ -169,3 +169,54 @@ UPDATE bancos SET nome = 'Sicoob' WHERE nome IN ('SICOBE', 'SICOOB', 'Sicobe');
 INSERT INTO formas_pagamento (igreja_id, nome)
   SELECT 1, f FROM (VALUES ('Pix'), ('Cartão'), ('Débito automático'), ('Dinheiro')) AS t(f)
   WHERE NOT EXISTS (SELECT 1 FROM formas_pagamento WHERE igreja_id = 1);
+
+-- ═══════════════════════════════════════════════
+--  ESCALAS — ministérios, eventos e escalação
+--  (visível só na área de TESTE por enquanto)
+-- ═══════════════════════════════════════════════
+
+-- Ministérios (louvor, sonoplastia, recepção...)
+CREATE TABLE IF NOT EXISTS ministerios (
+  id        SERIAL PRIMARY KEY,
+  igreja_id INT NOT NULL REFERENCES igrejas(id),
+  nome      VARCHAR(120) NOT NULL,
+  cor       VARCHAR(9)   DEFAULT '#c9a24a',
+  descricao VARCHAR(255) DEFAULT '',
+  ativo     BOOLEAN DEFAULT TRUE,
+  criado_em TIMESTAMP DEFAULT NOW()
+);
+
+-- Quem faz parte de cada ministério (N:N com membros; membro pode estar em vários)
+CREATE TABLE IF NOT EXISTS ministerio_membros (
+  ministerio_id INT NOT NULL REFERENCES ministerios(id) ON DELETE CASCADE,
+  membro_id     INT NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+  PRIMARY KEY (ministerio_id, membro_id)
+);
+
+-- Cultos e eventos da igreja
+CREATE TABLE IF NOT EXISTS eventos (
+  id         SERIAL PRIMARY KEY,
+  igreja_id  INT NOT NULL REFERENCES igrejas(id),
+  titulo     VARCHAR(120) NOT NULL,
+  tipo       VARCHAR(20) DEFAULT 'culto',  -- culto | evento
+  data       DATE NOT NULL,
+  hora       VARCHAR(5) DEFAULT '',        -- HH:MM
+  observacao VARCHAR(255) DEFAULT '',
+  ativo      BOOLEAN DEFAULT TRUE,
+  criado_em  TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_eventos_igreja_data ON eventos(igreja_id, data);
+
+-- Escala: membro escalado para um ministério em um evento
+CREATE TABLE IF NOT EXISTS escalas (
+  id            SERIAL PRIMARY KEY,
+  igreja_id     INT NOT NULL REFERENCES igrejas(id),
+  evento_id     INT NOT NULL REFERENCES eventos(id) ON DELETE CASCADE,
+  ministerio_id INT NOT NULL REFERENCES ministerios(id) ON DELETE CASCADE,
+  membro_id     INT NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+  funcao        VARCHAR(80) DEFAULT '',
+  criado_em     TIMESTAMP DEFAULT NOW(),
+  UNIQUE (evento_id, ministerio_id, membro_id)
+);
+CREATE INDEX IF NOT EXISTS idx_escalas_evento ON escalas(evento_id);
+CREATE INDEX IF NOT EXISTS idx_escalas_membro ON escalas(igreja_id, membro_id);

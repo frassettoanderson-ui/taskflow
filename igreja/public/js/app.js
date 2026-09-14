@@ -2092,6 +2092,9 @@ function marcarAniversarioNoMenu(qtd) {
     const bt = document.getElementById('badge-teste');
     if (bt) { bt.hidden = false; bt.title = 'Você está na área de testes — estes dados não são reais.'; }
     document.title = '[TESTE] ' + document.title;
+    // Escalas ainda em testes: menu visível só na área de teste
+    const esc = document.getElementById('menu-escalas');
+    if (esc) esc.style.display = '';
   }
   initShell();
   navegar('dashboard');
