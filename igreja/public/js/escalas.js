@@ -393,14 +393,8 @@
       const mins = await getJSON('escalas/ministerios');
       detsMin = await Promise.all(mins.map((m) => getJSON('escalas/ministerios/' + m.id)));
       const comFunc = detsMin.filter((d) => d.funcoes.length);
-      document.getElementById('ev-vagas').innerHTML = comFunc.length ? comFunc.map((d) => {
-        const total = d.funcoes.reduce((s, f) => s + (f.qtd_padrao == null ? 1 : f.qtd_padrao) * (f.casal ? 2 : 1), 0);
-        const resumo = d.funcoes.filter((f) => (f.qtd_padrao == null ? 1 : f.qtd_padrao) > 0)
-          .map((f) => `${f.qtd_padrao == null ? 1 : f.qtd_padrao}× ${esc(f.nome)}`).join(', ');
-        return `<label class="min-check"><input type="checkbox" class="ev-min" data-min="${d.id}">
-          <span class="min-dot" style="background:${esc(d.cor)}"></span>
-          <span class="min-check-txt"><b>${esc(d.nome)}</b> <span class="sub-txt">${resumo || 'sem funções com quantidade'} · ${total} pessoa(s)</span></span></label>`;
-      }).join('')
+      document.getElementById('ev-vagas').innerHTML = comFunc.length ? `<div class="min-lista">${comFunc.map((d) => `
+        <label class="min-check"><input type="checkbox" class="ev-min" data-min="${d.id}"><span class="min-dot" style="background:${esc(d.cor)}"></span><span class="min-check-nome">${esc(d.nome)}</span></label>`).join('')}</div>`
         : '<p class="vazio">Nenhum ministério com funções ainda. Crie em Ministérios › Funções (pode cadastrar o evento agora e definir as vagas depois).</p>';
     })();
 
