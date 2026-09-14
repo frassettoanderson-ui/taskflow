@@ -237,3 +237,24 @@ CREATE TABLE IF NOT EXISTS cultos_fixos (
 );
 -- Liga uma ocorrência materializada (evento) à sua regra de culto fixo
 ALTER TABLE eventos ADD COLUMN IF NOT EXISTS culto_fixo_id INT REFERENCES cultos_fixos(id) ON DELETE CASCADE;
+
+-- Funções (cargos) dentro de um ministério: Louvor→guitarrista/tecladista; Staff→recepção...
+CREATE TABLE IF NOT EXISTS funcoes (
+  id            SERIAL PRIMARY KEY,
+  igreja_id     INT NOT NULL REFERENCES igrejas(id),
+  ministerio_id INT NOT NULL REFERENCES ministerios(id) ON DELETE CASCADE,
+  nome          VARCHAR(80) NOT NULL,
+  ativo         BOOLEAN DEFAULT TRUE,
+  criado_em     TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_funcoes_min ON funcoes(ministerio_id);
+
+-- Funções que um membro exerce (dentro do ministério da função)
+CREATE TABLE IF NOT EXISTS membro_funcoes (
+  membro_id INT NOT NULL REFERENCES membros(id) ON DELETE CASCADE,
+  funcao_id INT NOT NULL REFERENCES funcoes(id) ON DELETE CASCADE,
+  PRIMARY KEY (membro_id, funcao_id)
+);
+
+-- Escala pode registrar a função exercida
+ALTER TABLE escalas ADD COLUMN IF NOT EXISTS funcao_id INT REFERENCES funcoes(id) ON DELETE SET NULL;

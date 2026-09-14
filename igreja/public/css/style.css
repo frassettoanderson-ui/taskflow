@@ -568,3 +568,12 @@ tbody tr:last-child td { border-bottom: none; }
   background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:.92rem; }
 .mb2-rem{ background:none; border:0; color:var(--muted); cursor:pointer; font-size:.9rem; padding:2px 6px; border-radius:6px; }
 .mb2-rem:hover{ color:var(--vermelho); background:var(--vermelho-bg); }
+
+/* ── Escalas: funções (cargos) por membro ── */
+.mb2-item-col{ flex-direction:column; align-items:stretch; gap:8px; }
+.mb2-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.mb2-funcs{ display:flex; flex-wrap:wrap; gap:5px; }
+.fn-chip{ cursor:pointer; background:none; border:1px solid var(--border-2); color:var(--muted);
+  border-radius:999px; padding:3px 11px; font-size:.78rem; font-family:inherit; transition:.15s; }
+.fn-chip:hover{ border-color:var(--muted); color:var(--text); }
+.fn-chip.on{ background:var(--accent-soft); border-color:var(--accent-2); color:var(--text); font-weight:600; }

@@ -33,11 +33,41 @@ router.get('/ministerios/:id', async (req, res) => {
   );
   if (!rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
   const membros = await db.query(
-    `SELECT me.id, me.nome, me.telefone FROM ministerio_membros mm
+    `SELECT me.id, me.nome, me.telefone,
+            COALESCE(array_agg(mf.funcao_id) FILTER (WHERE mf.funcao_id IS NOT NULL
+              AND mf.funcao_id IN (SELECT id FROM funcoes WHERE ministerio_id=$1)), '{}') AS funcoes
+     FROM ministerio_membros mm
      JOIN membros me ON me.id = mm.membro_id
-     WHERE mm.ministerio_id=$1 ORDER BY me.nome`, [req.params.id]
+     LEFT JOIN membro_funcoes mf ON mf.membro_id = me.id
+     WHERE mm.ministerio_id=$1 GROUP BY me.id ORDER BY me.nome`, [req.params.id]
   );
-  res.json({ ...rows[0], membros: membros.rows });
+  const funcoes = await db.query('SELECT * FROM funcoes WHERE ministerio_id=$1 AND ativo=TRUE ORDER BY nome', [req.params.id]);
+  res.json({ ...rows[0], membros: membros.rows, funcoes: funcoes.rows });
+});
+
+// ── Funções (cargos) de um ministério ──
+router.post('/ministerios/:id/funcoes', async (req, res) => {
+  const { nome } = req.body;
+  if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome da função' });
+  const dono = await db.query('SELECT 1 FROM ministerios WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
+  if (!dono.rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
+  const { rows } = await db.query(
+    'INSERT INTO funcoes (igreja_id, ministerio_id, nome) VALUES ($1,$2,$3) RETURNING *',
+    [ig(req), req.params.id, nome.trim()]
+  );
+  res.status(201).json(rows[0]);
+});
+
+router.put('/funcoes/:id', async (req, res) => {
+  const { nome } = req.body;
+  if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome' });
+  await db.query('UPDATE funcoes SET nome=$1 WHERE id=$2 AND igreja_id=$3', [nome.trim(), req.params.id, ig(req)]);
+  res.json({ ok: true });
+});
+
+router.delete('/funcoes/:id', async (req, res) => {
+  await db.query('DELETE FROM funcoes WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
+  res.json({ ok: true });
 });
 
 router.post('/ministerios', async (req, res) => {
@@ -65,23 +95,28 @@ router.delete('/ministerios/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// Define a lista de membros de um ministério (substitui a atual)
+// Define a lista de membros de um ministério (substitui a atual) + funções de cada um
 router.put('/ministerios/:id/membros', async (req, res) => {
   const idMin = req.params.id;
   const ids = Array.isArray(req.body.membros) ? req.body.membros.map(Number).filter(Boolean) : [];
+  const funcMap = req.body.funcoes && typeof req.body.funcoes === 'object' ? req.body.funcoes : {};
   const dono = await db.query('SELECT 1 FROM ministerios WHERE id=$1 AND igreja_id=$2', [idMin, ig(req)]);
   if (!dono.rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
+  const funcOk = new Set((await db.query('SELECT id FROM funcoes WHERE ministerio_id=$1', [idMin])).rows.map((r) => r.id));
   const client = await db.pool.connect();
   try {
     await client.query('BEGIN');
     await client.query('DELETE FROM ministerio_membros WHERE ministerio_id=$1', [idMin]);
+    // limpa as funções deste ministério de todos, depois regrava
+    await client.query('DELETE FROM membro_funcoes WHERE funcao_id IN (SELECT id FROM funcoes WHERE ministerio_id=$1)', [idMin]);
     for (const mid of ids) {
-      await client.query(
-        `INSERT INTO ministerio_membros (ministerio_id, membro_id)
-         SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM membros WHERE id=$2 AND igreja_id=$3)
-         ON CONFLICT DO NOTHING`,
-        [idMin, mid, ig(req)]
-      );
+      const ok = await client.query('SELECT 1 FROM membros WHERE id=$1 AND igreja_id=$2', [mid, ig(req)]);
+      if (!ok.rows.length) continue;
+      await client.query('INSERT INTO ministerio_membros (ministerio_id, membro_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [idMin, mid]);
+      const fns = Array.isArray(funcMap[mid]) ? funcMap[mid].map(Number).filter((f) => funcOk.has(f)) : [];
+      for (const f of fns) {
+        await client.query('INSERT INTO membro_funcoes (membro_id, funcao_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [mid, f]);
+      }
     }
     await client.query('COMMIT');
     res.json({ ok: true, total: ids.length });

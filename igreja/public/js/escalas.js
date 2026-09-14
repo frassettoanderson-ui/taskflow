@@ -67,11 +67,13 @@
       document.getElementById('lista-min').innerHTML = tabela(mins, [
         ['Ministério', (m) => `<span class="min-dot" style="background:${esc(m.cor)}"></span> <b>${esc(m.nome)}</b>${m.descricao ? `<div class="sub-txt">${esc(m.descricao)}</div>` : ''}`],
         ['Membros', (m) => `${m.qtd_membros}`],
-        ['', (m) => `<button class="acao-link" data-membros="${m.id}">Membros</button>
+        ['', (m) => `<button class="acao-link" data-funcoes="${m.id}">Funções</button>
+                     <button class="acao-link" data-membros="${m.id}">Membros</button>
                      <button class="acao-link" data-edit="${m.id}">✎ Editar</button>
                      <button class="acao-link acao-del" data-del="${m.id}">✕ Excluir</button>`],
       ], 'Nenhum ministério criado ainda.');
 
+      document.querySelectorAll('[data-funcoes]').forEach((b) => b.addEventListener('click', () => gerirFuncoes(b.dataset.funcoes)));
       document.querySelectorAll('[data-membros]').forEach((b) => b.addEventListener('click', () => gerirMembros(b.dataset.membros)));
       document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => editar(b.dataset.edit, mins)));
       document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
@@ -105,10 +107,42 @@
       });
     }
 
+    // Gerir as funções (cargos) de um ministério
+    async function gerirFuncoes(id) {
+      const det = await getJSON('escalas/ministerios/' + id);
+      const { el, fechar } = abrirModal('Funções de ' + esc(det.nome), `
+        <p class="desc">Cargos deste ministério (ex.: guitarrista, tecladista, recepção).</p>
+        <form id="ff2" class="mb2-busca" style="margin-bottom:14px">
+          <input type="text" id="fn-nome" placeholder="Nova função e Enter…" autocomplete="off">
+        </form>
+        <div id="fn-lista" class="mb2-equipe"></div>`);
+
+      const pintar = () => {
+        document.getElementById('fn-lista').innerHTML = det.funcoes.length
+          ? det.funcoes.map((f) => `<div class="mb2-item"><span>${esc(f.nome)}</span>
+               <button class="mb2-rem" data-delf="${f.id}" title="Excluir">✕</button></div>`).join('')
+          : '<p class="vazio">Nenhuma função ainda.</p>';
+        el.querySelectorAll('[data-delf]').forEach((b) => b.addEventListener('click', async () => {
+          await api('escalas/funcoes/' + b.dataset.delf, { method: 'DELETE' });
+          det.funcoes = det.funcoes.filter((x) => String(x.id) !== String(b.dataset.delf)); pintar();
+        }));
+      };
+      document.getElementById('ff2').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nome = document.getElementById('fn-nome').value.trim(); if (!nome) return;
+        const r = await api('escalas/ministerios/' + id + '/funcoes', { method: 'POST', body: JSON.stringify({ nome }) });
+        const d = await r.json(); if (!r.ok) return;
+        det.funcoes.push(d); document.getElementById('fn-nome').value = ''; pintar();
+      });
+      pintar();
+    }
+
     async function gerirMembros(id) {
       const [det, todos] = await Promise.all([getJSON('escalas/ministerios/' + id), getJSON('membros?situacao=ativo')]);
       const porId = {}; todos.forEach((m) => (porId[m.id] = m));
-      const equipe = det.membros.map((m) => m.id);            // ids na ordem em que estão na equipe
+      const funcoes = det.funcoes || [];
+      const equipe = det.membros.map((m) => m.id);
+      const fnDe = {}; det.membros.forEach((m) => (fnDe[m.id] = new Set((m.funcoes || []).map(Number))));
 
       const { el, fechar } = abrirModal('Membros de ' + esc(det.nome), `
         <div class="mb2">
@@ -117,6 +151,7 @@
             <div id="mb-result" class="mb2-result" hidden></div>
           </div>
           <div class="mb2-equipe-head"><b>Na equipe</b> <span id="mb-cont" class="sub-txt"></span></div>
+          ${funcoes.length ? '' : '<p class="desc">Dica: crie as funções em “Funções” para marcar o cargo de cada um.</p>'}
           <div id="mb-equipe" class="mb2-equipe"></div>
           <div class="linha" style="margin-top:14px"><button id="mb-salvar">Salvar</button><span id="mb-msg" class="sub-txt"></span></div>
         </div>`);
@@ -124,12 +159,21 @@
       const pintarEquipe = () => {
         document.getElementById('mb-cont').textContent = equipe.length + (equipe.length === 1 ? ' pessoa' : ' pessoas');
         document.getElementById('mb-equipe').innerHTML = equipe.length
-          ? equipe.map((mid) => `<div class="mb2-item"><span>${esc(porId[mid] ? porId[mid].nome : '—')}</span>
-               <button class="mb2-rem" data-rem="${mid}" title="Remover">✕</button></div>`).join('')
+          ? equipe.map((mid) => `<div class="mb2-item mb2-item-col">
+               <div class="mb2-row"><span>${esc(porId[mid] ? porId[mid].nome : '—')}</span>
+                 <button class="mb2-rem" data-rem="${mid}" title="Remover">✕</button></div>
+               ${funcoes.length ? `<div class="mb2-funcs">${funcoes.map((f) => `<button type="button" class="fn-chip ${(fnDe[mid] || new Set()).has(f.id) ? 'on' : ''}" data-m="${mid}" data-f="${f.id}">${esc(f.nome)}</button>`).join('')}</div>` : ''}
+             </div>`).join('')
           : '<p class="vazio">Ninguém ainda. Busque acima para adicionar.</p>';
         el.querySelectorAll('[data-rem]').forEach((b) => b.addEventListener('click', () => {
           const i = equipe.indexOf(Number(b.dataset.rem)); if (i >= 0) equipe.splice(i, 1);
           pintarEquipe(); buscar();
+        }));
+        el.querySelectorAll('.fn-chip').forEach((b) => b.addEventListener('click', () => {
+          const mid = Number(b.dataset.m), fid = Number(b.dataset.f);
+          fnDe[mid] = fnDe[mid] || new Set();
+          if (fnDe[mid].has(fid)) fnDe[mid].delete(fid); else fnDe[mid].add(fid);
+          b.classList.toggle('on');
         }));
       };
 
@@ -152,7 +196,8 @@
 
       document.getElementById('mb-busca').addEventListener('input', buscar);
       document.getElementById('mb-salvar').addEventListener('click', async () => {
-        const r = await api('escalas/ministerios/' + id + '/membros', { method: 'PUT', body: JSON.stringify({ membros: equipe }) });
+        const funcMap = {}; equipe.forEach((mid) => { funcMap[mid] = [...(fnDe[mid] || [])]; });
+        const r = await api('escalas/ministerios/' + id + '/membros', { method: 'PUT', body: JSON.stringify({ membros: equipe, funcoes: funcMap }) });
         if (!r.ok) { document.getElementById('mb-msg').textContent = 'Erro ao salvar'; return; }
         fechar(); listar();
       });
