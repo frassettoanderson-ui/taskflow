@@ -305,3 +305,6 @@ CREATE TABLE IF NOT EXISTS disponibilidades (
   PRIMARY KEY (membro_id, data)
 );
 CREATE INDEX IF NOT EXISTS idx_disp_data ON disponibilidades (igreja_id, data);
+
+-- quantidade padrão de pessoas por função (config interna do ministério; usada ao montar o evento)
+ALTER TABLE funcoes ADD COLUMN IF NOT EXISTS qtd_padrao INT DEFAULT 1;

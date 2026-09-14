@@ -50,11 +50,12 @@ router.get('/ministerios/:id', async (req, res) => {
 router.post('/ministerios/:id/funcoes', async (req, res) => {
   const { nome, casal } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome da função' });
+  const qtd = Math.max(0, Number(req.body.qtd_padrao));
   const dono = await db.query('SELECT 1 FROM ministerios WHERE id=$1 AND igreja_id=$2', [req.params.id, ig(req)]);
   if (!dono.rows.length) return res.status(404).json({ erro: 'Ministério não encontrado' });
   const { rows } = await db.query(
-    'INSERT INTO funcoes (igreja_id, ministerio_id, nome, casal) VALUES ($1,$2,$3,$4) RETURNING *',
-    [ig(req), req.params.id, nome.trim(), casal === true]
+    'INSERT INTO funcoes (igreja_id, ministerio_id, nome, casal, qtd_padrao) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+    [ig(req), req.params.id, nome.trim(), casal === true, Number.isFinite(qtd) ? qtd : 1]
   );
   res.status(201).json(rows[0]);
 });
@@ -62,8 +63,9 @@ router.post('/ministerios/:id/funcoes', async (req, res) => {
 router.put('/funcoes/:id', async (req, res) => {
   const { nome, casal } = req.body;
   if (!nome || !nome.trim()) return res.status(400).json({ erro: 'Informe o nome' });
-  await db.query('UPDATE funcoes SET nome=$1, casal=$2 WHERE id=$3 AND igreja_id=$4',
-    [nome.trim(), casal === true, req.params.id, ig(req)]);
+  const qtd = Math.max(0, Number(req.body.qtd_padrao));
+  await db.query('UPDATE funcoes SET nome=$1, casal=$2, qtd_padrao=$3 WHERE id=$4 AND igreja_id=$5',
+    [nome.trim(), casal === true, Number.isFinite(qtd) ? qtd : 1, req.params.id, ig(req)]);
   res.json({ ok: true });
 });
 

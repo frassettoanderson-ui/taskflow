@@ -609,3 +609,14 @@ tbody tr:last-child td { border-bottom: none; }
 .ev-vagas-head { margin-bottom:8px; }
 .ev-vagas-head .sub-txt { display:block; font-weight:400; }
 #ev-vagas .esc-min { margin-bottom:8px; }
+
+/* ─── Escalas: seleção de ministérios no cadastro + qtd por função ─── */
+.min-check { display:flex; align-items:center; gap:10px; padding:11px 12px; border:1px solid var(--linha,#e6e2d8); border-radius:10px; margin-bottom:8px; cursor:pointer; }
+.min-check:hover { border-color:var(--accent,#c9a24a); }
+.min-check input { width:18px; height:18px; accent-color:var(--accent,#c9a24a); flex:none; }
+.min-check .min-dot { flex:none; }
+.min-check-txt { line-height:1.3; }
+.fn-item { display:flex; align-items:center; gap:10px; }
+.fn-item-nome { flex:1; }
+.fn-item-qtd { display:flex; align-items:center; gap:5px; font-size:.82rem; color:#6b6459; }
+.fn-item-qtd input { width:58px; }

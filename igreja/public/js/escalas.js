@@ -117,10 +117,11 @@
     async function gerirFuncoes(id) {
       const det = await getJSON('escalas/ministerios/' + id);
       const { el, fechar } = abrirModal('Funções de ' + esc(det.nome), `
-        <p class="desc">Cargos deste ministério (ex.: guitarrista, tecladista, recepção).</p>
+        <p class="desc">Cargos deste ministério e quantas pessoas de cada um normalmente trabalham. Essa quantidade é usada automaticamente quando o ministério é escalado num culto/evento.</p>
         <form id="ff2" class="form-grid" style="margin-bottom:14px">
           <div class="linha">
             <input type="text" id="fn-nome" class="cresce" placeholder="Nova função…" autocomplete="off">
+            <label style="flex:none">Qtd<input type="number" id="fn-qtd" min="0" value="1" style="width:64px"></label>
             <button type="submit" class="pequeno">Adicionar</button>
           </div>
           <label class="check-linha"><input type="checkbox" id="fn-casal"> Sempre em casal (ao escalar uma pessoa, o cônjuge entra junto)</label>
@@ -129,22 +130,30 @@
 
       const pintar = () => {
         document.getElementById('fn-lista').innerHTML = det.funcoes.length
-          ? det.funcoes.map((f) => `<div class="mb2-item"><span>${esc(f.nome)} ${f.casal ? '<span class="tag-tipo tag-especial">casal</span>' : ''}</span>
+          ? det.funcoes.map((f) => `<div class="mb2-item fn-item">
+               <span class="fn-item-nome">${esc(f.nome)} ${f.casal ? '<span class="tag-tipo tag-especial">casal</span>' : ''}</span>
+               <label class="fn-item-qtd">Qtd <input type="number" min="0" value="${f.qtd_padrao == null ? 1 : f.qtd_padrao}" data-qtdf="${f.id}"></label>
                <button class="mb2-rem" data-delf="${f.id}" title="Excluir">✕</button></div>`).join('')
           : '<p class="vazio">Nenhuma função ainda.</p>';
         el.querySelectorAll('[data-delf]').forEach((b) => b.addEventListener('click', async () => {
           await api('escalas/funcoes/' + b.dataset.delf, { method: 'DELETE' });
           det.funcoes = det.funcoes.filter((x) => String(x.id) !== String(b.dataset.delf)); pintar();
         }));
+        el.querySelectorAll('[data-qtdf]').forEach((inp) => inp.addEventListener('change', async () => {
+          const f = det.funcoes.find((x) => String(x.id) === String(inp.dataset.qtdf));
+          const q = Math.max(0, Number(inp.value) || 0); inp.value = q; if (f) f.qtd_padrao = q;
+          await api('escalas/funcoes/' + inp.dataset.qtdf, { method: 'PUT', body: JSON.stringify({ nome: f.nome, casal: f.casal, qtd_padrao: q }) });
+        }));
       };
       document.getElementById('ff2').addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = document.getElementById('fn-nome').value.trim(); if (!nome) return;
         const casal = document.getElementById('fn-casal').checked;
-        const r = await api('escalas/ministerios/' + id + '/funcoes', { method: 'POST', body: JSON.stringify({ nome, casal }) });
+        const qtd_padrao = Math.max(0, Number(document.getElementById('fn-qtd').value) || 0);
+        const r = await api('escalas/ministerios/' + id + '/funcoes', { method: 'POST', body: JSON.stringify({ nome, casal, qtd_padrao }) });
         const d = await r.json(); if (!r.ok) return;
         det.funcoes.push(d);
-        document.getElementById('fn-nome').value = ''; document.getElementById('fn-casal').checked = false; pintar();
+        document.getElementById('fn-nome').value = ''; document.getElementById('fn-qtd').value = '1'; document.getElementById('fn-casal').checked = false; pintar();
       });
       pintar();
     }
@@ -344,7 +353,7 @@
           <label id="ev-obs-lbl" style="display:none">Observação<input type="text" id="ev-obs" placeholder="opcional"></label>
         </div>
         <div class="ev-vagas-sec">
-          <div class="ev-vagas-head"><b>Quem vai trabalhar</b> <span class="sub-txt">quantas pessoas de cada função este culto/evento precisa (deixe 0 no que não usar)</span></div>
+          <div class="ev-vagas-head"><b>Quais ministérios vão trabalhar</b> <span class="sub-txt">marque os ministérios deste culto/evento. As funções e quantidades vêm da configuração de cada ministério.</span></div>
           <div id="ev-vagas">Carregando ministérios…</div>
         </div>
         <button type="submit">Cadastrar</button>
@@ -378,24 +387,33 @@
     document.getElementById('ev-tipo').addEventListener('change', sinc);
     sinc();
 
-    // Picker de vagas (ministérios × funções × quantidade) dentro do cadastro
+    // Seleção de ministérios; funções/quantidades vêm da config de cada ministério
+    let detsMin = [];
     (async () => {
       const mins = await getJSON('escalas/ministerios');
-      const dets = await Promise.all(mins.map((m) => getJSON('escalas/ministerios/' + m.id)));
-      const comFunc = dets.filter((d) => d.funcoes.length);
-      document.getElementById('ev-vagas').innerHTML = comFunc.length ? comFunc.map((d) => `
-        <div class="esc-min"><div class="esc-min-head"><span class="min-dot" style="background:${esc(d.cor)}"></span> <b>${esc(d.nome)}</b></div>
-          ${d.funcoes.map((f) => `<div class="vaga-linha">
-            <span class="vaga-nome">${esc(f.nome)} ${f.casal ? '<span class="tag-tipo tag-especial">casal</span>' : ''}</span>
-            <input type="number" min="0" class="vaga-q" data-f="${f.id}" value="0">
-            <span class="sub-txt">${f.casal ? 'casais' : 'pessoas'}</span>
-          </div>`).join('')}
-        </div>`).join('')
+      detsMin = await Promise.all(mins.map((m) => getJSON('escalas/ministerios/' + m.id)));
+      const comFunc = detsMin.filter((d) => d.funcoes.length);
+      document.getElementById('ev-vagas').innerHTML = comFunc.length ? comFunc.map((d) => {
+        const total = d.funcoes.reduce((s, f) => s + (f.qtd_padrao == null ? 1 : f.qtd_padrao) * (f.casal ? 2 : 1), 0);
+        const resumo = d.funcoes.filter((f) => (f.qtd_padrao == null ? 1 : f.qtd_padrao) > 0)
+          .map((f) => `${f.qtd_padrao == null ? 1 : f.qtd_padrao}× ${esc(f.nome)}`).join(', ');
+        return `<label class="min-check"><input type="checkbox" class="ev-min" data-min="${d.id}">
+          <span class="min-dot" style="background:${esc(d.cor)}"></span>
+          <span class="min-check-txt"><b>${esc(d.nome)}</b> <span class="sub-txt">${resumo || 'sem funções com quantidade'} · ${total} pessoa(s)</span></span></label>`;
+      }).join('')
         : '<p class="vazio">Nenhum ministério com funções ainda. Crie em Ministérios › Funções (pode cadastrar o evento agora e definir as vagas depois).</p>';
     })();
 
-    const coletarVagas = () => [...document.querySelectorAll('#ev-vagas .vaga-q')]
-      .map((i) => ({ funcao_id: Number(i.dataset.f), quantidade: Number(i.value) || 0 })).filter((x) => x.quantidade > 0);
+    // expande os ministérios marcados nas vagas (funcao × quantidade padrão)
+    const coletarVagas = () => {
+      const marcados = new Set([...document.querySelectorAll('.ev-min:checked')].map((c) => Number(c.dataset.min)));
+      const itens = [];
+      detsMin.filter((d) => marcados.has(d.id)).forEach((d) => d.funcoes.forEach((f) => {
+        const q = f.qtd_padrao == null ? 1 : f.qtd_padrao;
+        if (q > 0) itens.push({ funcao_id: f.id, quantidade: q });
+      }));
+      return itens;
+    };
 
     document.getElementById('fev').addEventListener('submit', async (e) => {
       e.preventDefault();
