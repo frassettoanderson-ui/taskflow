@@ -343,6 +343,10 @@
           <label>Horário<input type="time" id="ev-hora"></label>
           <label id="ev-obs-lbl" style="display:none">Observação<input type="text" id="ev-obs" placeholder="opcional"></label>
         </div>
+        <div class="ev-vagas-sec">
+          <div class="ev-vagas-head"><b>Quem vai trabalhar</b> <span class="sub-txt">quantas pessoas de cada função este culto/evento precisa (deixe 0 no que não usar)</span></div>
+          <div id="ev-vagas">Carregando ministérios…</div>
+        </div>
         <button type="submit">Cadastrar</button>
         <p id="ev-msg" class="erro"></p>
       </form>
@@ -374,12 +378,32 @@
     document.getElementById('ev-tipo').addEventListener('change', sinc);
     sinc();
 
+    // Picker de vagas (ministérios × funções × quantidade) dentro do cadastro
+    (async () => {
+      const mins = await getJSON('escalas/ministerios');
+      const dets = await Promise.all(mins.map((m) => getJSON('escalas/ministerios/' + m.id)));
+      const comFunc = dets.filter((d) => d.funcoes.length);
+      document.getElementById('ev-vagas').innerHTML = comFunc.length ? comFunc.map((d) => `
+        <div class="esc-min"><div class="esc-min-head"><span class="min-dot" style="background:${esc(d.cor)}"></span> <b>${esc(d.nome)}</b></div>
+          ${d.funcoes.map((f) => `<div class="vaga-linha">
+            <span class="vaga-nome">${esc(f.nome)} ${f.casal ? '<span class="tag-tipo tag-especial">casal</span>' : ''}</span>
+            <input type="number" min="0" class="vaga-q" data-f="${f.id}" value="0">
+            <span class="sub-txt">${f.casal ? 'casais' : 'pessoas'}</span>
+          </div>`).join('')}
+        </div>`).join('')
+        : '<p class="vazio">Nenhum ministério com funções ainda. Crie em Ministérios › Funções (pode cadastrar o evento agora e definir as vagas depois).</p>';
+    })();
+
+    const coletarVagas = () => [...document.querySelectorAll('#ev-vagas .vaga-q')]
+      .map((i) => ({ funcao_id: Number(i.dataset.f), quantidade: Number(i.value) || 0 })).filter((x) => x.quantidade > 0);
+
     document.getElementById('fev').addEventListener('submit', async (e) => {
       e.preventDefault();
       const msg = document.getElementById('ev-msg');
       const tipo = document.getElementById('ev-tipo').value;
       const titulo = document.getElementById('ev-titulo').value;
       const hora = document.getElementById('ev-hora').value;
+      const itens = coletarVagas();
       let r;
       if (tipo === 'culto_fixo') {
         const dias = [...document.querySelectorAll('#ev-dias input:checked')].map((c) => Number(c.value));
@@ -392,6 +416,14 @@
       }
       const d = await r.json();
       if (!r.ok) { msg.className = 'erro'; msg.textContent = d.erro; return; }
+      // grava as vagas do que acabou de ser criado
+      if (itens.length) {
+        if (tipo === 'culto_fixo') {
+          await Promise.all((d.ids || []).map((cfid) => api('escalas/necessidades', { method: 'PUT', body: JSON.stringify({ culto_fixo_id: cfid, itens }) })));
+        } else if (d.id) {
+          await api('escalas/necessidades', { method: 'PUT', body: JSON.stringify({ evento_id: d.id, itens }) });
+        }
+      }
       if (d.data) mes = d.data.slice(0, 7);
       document.getElementById('fev').reset();
       sinc();

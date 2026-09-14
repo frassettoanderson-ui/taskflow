@@ -386,7 +386,7 @@ router.post('/cultos-fixos', async (req, res) => {
     );
     criados.push(rows[0]);
   }
-  res.status(201).json({ ok: true, criados: criados.length });
+  res.status(201).json({ ok: true, criados: criados.length, ids: criados.map((c) => c.id) });
 });
 
 router.put('/cultos-fixos/:id', async (req, res) => {
