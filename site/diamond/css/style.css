@@ -126,18 +126,20 @@ h2.titulo em { font-style: normal; color: var(--laranja-2); }
   display: flex; flex-direction: column; align-items: center; pointer-events: none;
 }
 .hero-title {
-  text-align: center; margin: 0;
+  position: relative; text-align: center; margin: 0;
   font-family: var(--display); font-size: clamp(3.6rem, min(13vw, 19vh), 11rem); line-height: .86; color: var(--creme);
   letter-spacing: -.005em; text-transform: uppercase;
   text-shadow: 0 2px 0 rgba(217,131,42,.25), 0 14px 40px rgba(75,86,61,.2);
   transform-origin: 50% 20%;
 }
-.hero-title .dia { display: inline-block; width: .32em; height: .32em; vertical-align: super; margin-left: .06em; color: var(--creme); opacity: .9; }
+/* o diamante fica fora do fluxo pra não deslocar o centro visual da palavra */
+.hero-title .dia { position: absolute; right: -.42em; top: .02em; width: .3em; height: .3em; color: var(--creme); opacity: .9; }
 .hero-title .dia svg { width: 100%; height: 100%; }
 
+/* eyebrow: o JS ajusta o tamanho pra ficar com a MESMA largura de "DIAMOND" */
 .hero-eyebrow {
-  margin: 0 0 .6vh; font-family: var(--cond); font-weight: 600; font-size: clamp(.78rem, 1.4vw, 1.05rem);
-  letter-spacing: .38em; text-transform: uppercase; color: var(--laranja-2);
+  margin: 0 0 .2vh; font-family: var(--cond); font-weight: 600; font-size: 1rem; white-space: nowrap;
+  letter-spacing: .34em; text-indent: .34em; text-transform: uppercase; color: var(--laranja-2); line-height: 1.1;
 }
 /* arco: SVG cobre o hero inteiro; o path é calculado no JS a partir do círculo do sol */
 .hero-arc { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -162,12 +164,17 @@ h2.titulo em { font-style: normal; color: var(--laranja-2); }
 }
 .hero-quando { margin-bottom: 14px; }
 .hero-quando b { color: var(--sol); font-weight: 700; }
-.hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.hero-cta { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.btn-xl { padding: 22px 46px; font-size: 1.25rem; letter-spacing: .16em; }
+.hero-saiba {
+  font-family: var(--cond); font-weight: 600; font-size: .82rem; letter-spacing: .28em; text-transform: uppercase;
+  color: rgba(246,227,209,.85); text-decoration: none; border-bottom: 1px solid rgba(246,227,209,.45); padding-bottom: 2px;
+}
+.hero-saiba:hover { color: var(--creme); border-color: var(--creme); }
+@media (max-width: 720px) { .btn-xl { padding: 19px 38px; font-size: 1.1rem; } }
 /* telas paisagem: bloco ainda mais enxuto pra ficar abaixo da colina */
 @media (min-aspect-ratio: 16/10) and (min-width: 721px) {
-  .hero-bottom { padding-top: 50px; padding-bottom: 12px; }
-  .hero-cta .btn-lg { padding: 14px 28px; font-size: 1rem; }
-  .hero-cta .btn { padding: 12px 22px; }
+  .hero-bottom { padding-top: 50px; padding-bottom: 14px; }
   .hero-hint { display: none; }
 }
 .hero-hint {
@@ -358,8 +365,7 @@ h2.titulo em { font-style: normal; color: var(--laranja-2); }
 .cta-fixo b { color: var(--sol); }
 .cta-fixo .btn { padding: 11px 18px; font-size: .86rem; }
 .cta-fixo.on { transform: translateY(0); }
-.cta-fixo { display: flex; }
-@media (min-width: 721px) { .cta-fixo { left: auto; right: 24px; bottom: 24px; border-radius: 999px; padding: 8px 8px 8px 20px; box-shadow: 0 12px 34px rgba(0,0,0,.28); } }
+@media (max-width: 720px) { .cta-fixo { display: flex; } }
 
 /* ── reveal ─────────────────────────────────────────── */
 .reveal { opacity: 0; transform: translateY(22px); transition: opacity .8s ease, transform .8s cubic-bezier(.2,.7,.2,1); transition-delay: calc(var(--i, 0) * 90ms); }

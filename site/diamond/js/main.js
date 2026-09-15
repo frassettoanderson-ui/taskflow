@@ -35,7 +35,7 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
     } catch { topStops = null; }
   }
   // círculo do sol dentro do frame (medido nos frames): topo em fração da altura, raio em fração da largura
-  const SUN = portrait ? { cx: .5, top: .173, r: .48 } : { cx: .5, top: .50, r: .265 };
+  const SUN = portrait ? { cx: .5, top: .173, r: .48 } : { cx: .5, top: .497, r: .215 };
   let geom = null; // posição do frame no canvas (px do canvas) → usado pra alinhar o arco ao sol
   let dpr = 1;
   function paint(img) {
@@ -69,8 +69,14 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
     const cy = oy + SUN.top * geom.ih * sc + sunR;
     arc.setAttribute('viewBox', `0 0 ${W} ${H}`);
 
-    // onde termina o bloco título+eyebrow (medido com o tamanho natural)
+    // eyebrow com a mesma largura da palavra DIAMOND
     if (title) title.style.fontSize = '';
+    const eyebrow = top && top.querySelector('.hero-eyebrow');
+    if (eyebrow && title) {
+      eyebrow.style.fontSize = '';
+      const tw = title.getBoundingClientRect().width, ew = eyebrow.getBoundingClientRect().width;
+      if (tw > 0 && ew > 0) eyebrow.style.fontSize = (parseFloat(getComputedStyle(eyebrow).fontSize) * tw / ew).toFixed(2) + 'px';
+    }
     const sr = stick.getBoundingClientRect();
     const tr = top ? top.getBoundingClientRect() : sr;
     const topo = tr.top - sr.top, base = tr.bottom - sr.top;
@@ -81,7 +87,7 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
     let R, alpha, len;
     const maxA = portrait ? 1.7 : 1.25;                        // meio-ângulo máximo (~97° / ~72°)
     for (let i = 0; i < 5; i++) {
-      R = sunR + f * .55;
+      R = sunR + f * .75;                                      // linha de base do texto logo fora do disco
       if (portrait) R = Math.max(sunR * .5, Math.min(R, cy - base - f * 1.15 - 6));
       arcTxt.style.fontSize = f + 'px';
       arcTxt.style.letterSpacing = (f * .26) + 'px';
