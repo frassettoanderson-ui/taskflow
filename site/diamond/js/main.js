@@ -34,6 +34,10 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
       topStops = []; for (let i = 0; i < n; i++) topStops.push(`rgb(${d[i * 4]},${d[i * 4 + 1]},${d[i * 4 + 2]})`);
     } catch { topStops = null; }
   }
+  // círculo do sol dentro do frame (medido nos frames): topo em fração da altura, raio em fração da largura
+  const SUN = portrait ? { cx: .5, top: .173, r: .48 } : { cx: .5, top: .50, r: .265 };
+  let geom = null; // posição do frame no canvas (px do canvas) → usado pra alinhar o arco ao sol
+  let dpr = 1;
   function paint(img) {
     const cw = canvas.width, ch = canvas.height, iw = img.naturalWidth, ih = img.naturalHeight;
     const a = cw / ch, head = Math.round(ch * headroom(a));
@@ -48,7 +52,63 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
       ctx.fillRect(0, 0, cw, head + 2);
     } else { y = (ch - h) / 2; }
     ctx.drawImage(img, x, y, w, h);
-    hero.style.setProperty('--head', (head / ch * 100).toFixed(1) + '%');
+    const g2 = { s, x, y, iw, ih };
+    if (!geom || geom.s !== s || geom.x !== x || geom.y !== y) { geom = g2; layoutHero(); }
+  }
+
+  // posiciona o texto curvo acompanhando o sol e garante que o título fique acima dele
+  const arc = $('#hero-arc'), arcPath = arc && arc.querySelector('#arco'), arcTxt = arc && arc.querySelector('.arc-txt'), arcRef = arc && arc.querySelector('.arc-ref');
+  const top = $('#hero-top');
+  function layoutHero() {
+    if (!arc || !geom) return;
+    const W = stick.clientWidth, H = stick.clientHeight;
+    const sc = geom.s / dpr;                                   // px do frame → px CSS
+    const ox = geom.x / dpr, oy = geom.y / dpr;
+    const cx = ox + SUN.cx * geom.iw * sc;
+    const sunR = SUN.r * geom.iw * sc;
+    const cy = oy + SUN.top * geom.ih * sc + sunR;
+    arc.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+    // onde termina o bloco título+eyebrow (medido com o tamanho natural)
+    if (title) title.style.fontSize = '';
+    const sr = stick.getBoundingClientRect();
+    const tr = top ? top.getBoundingClientRect() : sr;
+    const topo = tr.top - sr.top, base = tr.bottom - sr.top;
+
+    // fonte proporcional ao sol; no desktop o texto fica logo FORA do disco (halo);
+    // no celular o sol é enorme e começa no topo, então o arco fica concêntrico mas POR DENTRO do disco, abaixo do título
+    let f = Math.max(15, Math.min(portrait ? 28 : 44, sunR * (portrait ? .095 : .12)));
+    let R, alpha, len;
+    const maxA = portrait ? 1.7 : 1.25;                        // meio-ângulo máximo (~97° / ~72°)
+    for (let i = 0; i < 5; i++) {
+      R = sunR + f * .55;
+      if (portrait) R = Math.max(sunR * .5, Math.min(R, cy - base - f * 1.15 - 6));
+      arcTxt.style.fontSize = f + 'px';
+      arcTxt.style.letterSpacing = (f * .2) + 'px';
+      arcPath.setAttribute('d', `M ${cx - 4000} ${cy} A 4000 4000 0 0 1 ${cx + 4000} ${cy}`); // provisório, só pra medir
+      len = arcTxt.getComputedTextLength();
+      alpha = (len * 1.04) / (2 * R);
+      if (alpha <= maxA) break;
+      f = Math.max(13, f * (maxA / alpha) * .98);
+    }
+    const p = t => [cx + R * Math.sin(t), cy - R * Math.cos(t)];
+    const [x1, y1] = p(-alpha), [x2, y2] = p(alpha);
+    arcPath.setAttribute('d', `M ${x1.toFixed(1)} ${y1.toFixed(1)} A ${R.toFixed(1)} ${R.toFixed(1)} 0 ${alpha > Math.PI / 2 ? 1 : 0} 1 ${x2.toFixed(1)} ${y2.toFixed(1)}`);
+    // referência bíblica logo abaixo do arco
+    arcRef.style.fontSize = Math.max(10, f * .42) + 'px';
+    arcRef.style.letterSpacing = (f * .14) + 'px';
+    arcRef.setAttribute('x', cx.toFixed(1));
+    arcRef.setAttribute('y', (cy - R + f * 1.15).toFixed(1));
+
+    // desktop: se o título invadir o arco, reduz o título
+    if (!portrait && top && title) {
+      const limite = cy - R - f * 1.05 - 6;
+      if (base > limite && base > topo) {
+        const fs = parseFloat(getComputedStyle(title).fontSize);
+        const k = Math.max(.45, (limite - topo) / (base - topo));
+        title.style.fontSize = (fs * k).toFixed(1) + 'px';
+      }
+    }
   }
   function draw(force) {
     const k = nearest(current);
@@ -57,9 +117,10 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
     if (fallback && !fallback.hidden) fallback.hidden = true;
   }
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     canvas.width = Math.round(stick.clientWidth * dpr);
     canvas.height = Math.round(stick.clientHeight * dpr);
+    geom = null;
     draw(true);
   }
 

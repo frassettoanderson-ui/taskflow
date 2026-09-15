@@ -21,7 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
   <link rel="preload" as="image" href="img/frames/w/f_001.webp" media="(min-aspect-ratio: 4/5)" />
   <link rel="preload" as="image" href="img/frames/m/f_001.webp" media="(max-aspect-ratio: 4/5)" />
-  <link rel="stylesheet" href="css/style.css?v=3" />
+  <link rel="stylesheet" href="css/style.css?v=4" />
 </head>
 <body>
 
@@ -54,18 +54,20 @@
       <div class="hero-ui">
         <div class="hero-meta" aria-hidden="true"><span>Imbituba</span><span>2026</span><span>Brasil</span></div>
 
-        <div class="hero-top">
+        <div class="hero-top" id="hero-top">
+          <p class="hero-eyebrow">Conferência de mulheres</p>
           <h1 class="hero-title" id="hero-title">Diamond<span class="dia"><svg aria-hidden="true"><use href="#ico-diamante"/></svg></span></h1>
-          <svg class="hero-arc" viewBox="0 0 900 250" aria-hidden="true">
-            <defs><path id="arco" d="M 30 240 A 560 560 0 0 1 870 240" /></defs>
-            <text><textPath href="#arco" startOffset="50%" text-anchor="middle">Olharam para Ele, e foram iluminados.</textPath></text>
-          </svg>
-          <p class="hero-verso">Salmos 34:5</p>
         </div>
 
+        <!-- texto curvo acompanhando o sol (geometria calculada no main.js) -->
+        <svg class="hero-arc" id="hero-arc" aria-hidden="true">
+          <defs><path id="arco" d="" /></defs>
+          <text class="arc-txt"><textPath href="#arco" startOffset="50%" text-anchor="middle">Olharam para Ele, e foram iluminados.</textPath></text>
+          <text class="arc-ref" text-anchor="middle">Salmos 34:5</text>
+        </svg>
+
         <div class="hero-bottom">
-          <p class="hero-quando">Conferência de mulheres · <b>23 e 24 de outubro</b></p>
-          <p class="hero-sub">Igreja Abarim · Imbituba/SC · Inscrição R$ 30,00</p>
+          <p class="hero-quando"><b>23 e 24 de outubro</b> · Igreja Abarim · Imbituba/SC</p>
           <div class="hero-cta">
             <a href="#inscricao" class="btn btn-laranja btn-lg" data-cta>Garantir minha vaga</a>
             <a href="#sobre" class="btn btn-linha-claro">Saiba mais</a>
@@ -297,6 +299,6 @@
     </div>
   </div>
 
-  <script src="js/main.js?v=3"></script>
+  <script src="js/main.js?v=4"></script>
 </body>
 </html>
