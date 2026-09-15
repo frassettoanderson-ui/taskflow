@@ -467,3 +467,12 @@ h2.titulo em { font-style: normal; color: var(--laranja-2); }
   .galeria-item.g-a { grid-column: span 2; grid-row: span 2; }
   .galeria-item.g-b { grid-column: span 2; grid-row: span 1; }
 }
+
+/* Cartão "em breve" (desativado temporariamente enquanto a conta MP nova amadurece) */
+.pay-cartao-off[disabled] { opacity: .55; cursor: not-allowed; pointer-events: none; }
+.pill-embreve {
+  display: inline-block; margin-left: 8px; padding: 2px 9px; border-radius: 999px;
+  background: var(--noite); color: var(--sol); font-family: var(--cond); font-weight: 700;
+  font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; vertical-align: middle;
+}
+.pay-cartao-nota { display: block; margin-top: 2px; color: var(--tinta-2); font-size: .8rem; text-align: center; }

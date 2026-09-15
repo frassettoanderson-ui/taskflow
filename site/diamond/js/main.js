@@ -200,15 +200,9 @@ $('#ano').textContent = new Date().getFullYear();
 
   $$('[data-cta]').forEach(a => { if (a.getAttribute('href') === '#') { a.href = fallback; a.target = '_blank'; a.rel = 'noopener'; } });
 
-  fetch(API + '/config').then(r => r.json()).then(c => {
-    enabled = !!c.enabled;
-    if (c.valorCartao) {
-      const v = Number(c.valorCartao).toFixed(2).replace('.', ',');
-      const txt = 'No cartão: R$ ' + v + (c.maxParcelas > 1 ? ' · em até ' + c.maxParcelas + 'x' : '') + ' (taxas da operadora inclusas)';
-      const nota = $('.pay-cartao-nota'); if (nota) { nota.textContent = txt; nota.hidden = false; }
-      const pc = $('#preco-cartao'); if (pc) { pc.textContent = txt; pc.hidden = false; }
-    }
-  }).catch(() => {});
+  // Cartão temporariamente desativado (conta MP nova: antifraude recusando). Só PIX por ora.
+  // Para reativar: remover `disabled` do botão data-cartao no index.html e restaurar a nota com o valor.
+  fetch(API + '/config').then(r => r.json()).then(c => { enabled = !!c.enabled; }).catch(() => {});
 
   const steps = $$('.pay-step', pay);
   const show = name => { pay.hidden = false; document.body.style.overflow = 'hidden'; steps.forEach(s => s.hidden = s.dataset.step !== name); };
