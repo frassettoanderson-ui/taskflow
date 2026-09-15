@@ -1,0 +1,2 @@
+# vídeo de origem (25 MB) fica fora do git — os frames em img/frames/ são o que o site usa
+video/*.mp4

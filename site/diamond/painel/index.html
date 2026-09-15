@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#F0D6C4" />
+  <title>Painel · Conferência Diamond</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="../img/favicon.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --papel:#F0D6C4; --papel2:#E9CDB7; --creme:#F6E3D1; --pessego:#E6BD9D; --sol:#F7C26E; --laranja:#EF992D; --laranja2:#D9832A;
+      --oliva:#6A6F49; --floresta:#4B563D; --noite:#27352D; --tinta:#2B2A26; --tinta2:#5E5A50; --line:rgba(43,42,38,.16);
+      --ok:#4f7d4e; --warn:#b76a1b; --bad:#a83a25;
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    [hidden]{display:none!important}
+    body{margin:0;background:var(--papel);color:var(--tinta);font-family:'Barlow',system-ui,sans-serif;font-size:16px}
+    a{color:var(--laranja2)}
+    .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 80px}
+    header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+    header .marca{font-family:'Anton',sans-serif;font-size:1.7rem;line-height:1;color:var(--noite);letter-spacing:.01em}
+    header .marca svg{width:16px;height:16px;color:var(--laranja2);vertical-align:super;margin-left:3px}
+    header .sub{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.78rem;letter-spacing:.24em;text-transform:uppercase;color:var(--tinta2)}
+    header .acoes{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:999px;cursor:pointer;
+      font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.88rem;letter-spacing:1.3px;text-transform:uppercase;text-decoration:none;
+      border:2px solid var(--noite);background:transparent;color:var(--noite);transition:.18s}
+    .btn:hover{background:var(--noite);color:var(--creme)}
+    .btn-laranja{background:var(--laranja);border-color:var(--laranja);color:var(--noite)}
+    .btn-laranja:hover{background:var(--laranja2);border-color:var(--laranja2);color:var(--noite)}
+    .btn[disabled]{opacity:.5;pointer-events:none}
+
+    .zap{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--creme);border:1.5px solid var(--line);border-radius:14px;padding:14px 18px;margin-bottom:16px}
+    .zap .dot{width:12px;height:12px;border-radius:50%;background:#999;flex:none}
+    .zap.open .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(79,125,78,.18)}
+    .zap.off .dot{background:var(--bad);box-shadow:0 0 0 4px rgba(168,58,37,.18)}
+    .zap b{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .zap .info{color:var(--tinta2);font-size:.9rem}
+    .zap .acoes{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
+    .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px}
+    .card{background:var(--creme);border:1.5px solid var(--line);border-radius:14px;padding:16px 18px}
+    .card b{display:block;font-family:'Anton',sans-serif;font-size:2rem;line-height:1;color:var(--noite)}
+    .card span{display:block;margin-top:5px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.74rem;letter-spacing:.16em;text-transform:uppercase;color:var(--tinta2)}
+    .card.ok b{color:var(--ok)} .card.warn b{color:var(--warn)} .card.gold b{color:var(--laranja2)}
+
+    .abas{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1.5px solid var(--line);margin-bottom:14px}
+    .aba{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border:0;background:transparent;cursor:pointer;
+      font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.86rem;letter-spacing:1.2px;text-transform:uppercase;
+      color:var(--tinta2);border-bottom:2.5px solid transparent;margin-bottom:-1.5px;transition:.18s}
+    .aba:hover{color:var(--tinta)}
+    .aba.on{color:var(--laranja2);border-bottom-color:var(--laranja2)}
+    .aba i{font-style:normal;min-width:22px;padding:2px 7px;border-radius:999px;background:rgba(43,42,38,.08);font-size:.74rem}
+    .barra{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+    .barra input{flex:1;min-width:200px;padding:11px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--creme);color:var(--tinta);font:inherit;font-size:.95rem}
+    .barra input:focus{outline:none;border-color:var(--laranja2)}
+
+    .tabela{border:1.5px solid var(--line);border-radius:14px;overflow:auto;background:var(--creme)}
+    table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:820px}
+    th{background:var(--papel2);text-align:left;padding:12px 14px;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.74rem;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta2);white-space:nowrap}
+    td{padding:12px 14px;border-top:1px solid var(--line);vertical-align:middle}
+    td.nome{font-weight:600}
+    th.ord,td.ord{width:50px;text-align:center}
+    td.ord{font-family:'Anton',sans-serif;color:var(--laranja2)}
+    .tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+    .t-pago{background:rgba(79,125,78,.16);color:var(--ok)} .t-pend{background:rgba(183,106,27,.16);color:var(--warn)} .t-neg{background:rgba(168,58,37,.14);color:var(--bad)}
+    .t-sim{background:rgba(79,125,78,.16);color:var(--ok)} .t-nao{background:rgba(168,58,37,.14);color:var(--bad)}
+    .pos{display:flex;gap:5px;flex-wrap:wrap}
+    .pos i{font-style:normal;display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;background:rgba(43,42,38,.07);color:var(--tinta2)}
+    .pos i.ok{background:rgba(79,125,78,.16);color:var(--ok)} .pos i.bad{background:rgba(168,58,37,.14);color:var(--bad)} .pos i.warn{background:rgba(183,106,27,.16);color:var(--warn)}
+    .mini{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;cursor:pointer;border:1.5px solid var(--noite);background:transparent;color:var(--noite);white-space:nowrap;
+      font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:.9px;text-transform:uppercase;transition:.18s}
+    .mini:hover{background:var(--noite);color:var(--creme)} .mini[disabled]{opacity:.5;pointer-events:none}
+    .lapis{border:1.5px solid var(--line);background:transparent;color:var(--tinta2);cursor:pointer;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center}
+    .lapis:hover{border-color:var(--laranja2);color:var(--laranja2)}
+    .lapis svg{width:15px;height:15px}
+    td.acoes{white-space:nowrap;text-align:right} td.acoes>*+*{margin-left:6px}
+    .msg{font-size:.76rem;color:var(--tinta2)} .msg.erro{color:var(--bad)} .msg.ok{color:var(--ok)}
+    .forma{display:block;margin-top:4px;font-size:.72rem;letter-spacing:.06em;color:var(--tinta2)}
+    .login{position:fixed;inset:0;z-index:150;background:var(--papel);display:grid;place-items:center;padding:20px}
+    .login-box{width:min(380px,100%);text-align:center}
+    .login-box .marca{font-family:'Anton',sans-serif;font-size:2.6rem;color:var(--noite);line-height:1}
+    .login-box p{margin:8px 0 22px;color:var(--tinta2)}
+    .login-box input{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid var(--line);background:var(--creme);color:var(--tinta);font:inherit;font-size:1rem;text-align:center;letter-spacing:.06em}
+    .login-box input:focus{outline:none;border-color:var(--laranja2)}
+    .login-box .btn{width:100%;margin-top:12px;padding:14px}
+    .login-box .erro{margin:14px 0 0;font-size:.85rem;color:var(--bad)}
+    .fundo{position:fixed;inset:0;z-index:100;background:rgba(39,53,45,.7);display:grid;place-items:center;padding:20px}
+    .caixa{width:min(440px,100%);background:var(--papel);border-radius:18px;padding:26px;text-align:center}
+    .caixa h3{margin:0 0 4px;font-family:'Anton',sans-serif;font-weight:400;font-size:1.5rem;text-transform:uppercase}
+    .caixa p.quem{margin:0 0 16px;font-size:.88rem;color:var(--tinta2)}
+    .caixa label{display:block;text-align:left;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.72rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--tinta2);margin:12px 0 5px}
+    .caixa input,.caixa select{width:100%;padding:11px 13px;border-radius:12px;border:1.5px solid var(--line);background:var(--creme);color:var(--tinta);font:inherit;font-size:.95rem}
+    .caixa input:focus,.caixa select:focus{outline:none;border-color:var(--laranja2)}
+    .caixa .fim{display:flex;gap:10px;justify-content:center;margin-top:20px}
+    .caixa img.qr{width:260px;height:260px;margin:10px auto;border-radius:12px;background:#fff;padding:8px;border:1.5px solid var(--line)}
+    .vazio{padding:44px 20px;text-align:center;color:var(--tinta2)}
+    .aviso{margin-bottom:16px;padding:12px 16px;border-radius:12px;border:1.5px solid rgba(183,106,27,.35);background:rgba(183,106,27,.08);color:var(--warn);font-size:.9rem}
+    .rodape{margin-top:14px;font-size:.8rem;color:var(--tinta2);text-align:center}
+    @media (max-width:720px){ .wrap{padding:18px 12px 70px} header .acoes{width:100%;margin-left:0} .zap .acoes{margin-left:0;width:100%} }
+  </style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="ico-diamante" viewBox="0 0 24 24"><path fill="currentColor" d="M6.2 3h11.6L23 9.2 12 21.6 1 9.2 6.2 3Zm1 2L4.3 8.6h4.2L10.2 5H7.2Zm6.6 0 1.7 3.6h4.2L16.8 5h-3Zm-2.3.3L9.9 8.6h4.2l-1.6-3.3ZM4.6 10.6 11 17.9l-2.6-7.3H4.6Zm5.9 0L12 17.4l1.5-6.8h-3Zm5.1 0-2.6 7.3 6.4-7.3h-3.8Z"/></symbol>
+  </svg>
+  <div class="wrap">
+    <header>
+      <div>
+        <div class="marca">Diamond<svg><use href="#ico-diamante"/></svg></div>
+        <div class="sub" id="sub">Painel de inscritas · 23 e 24.10.2026</div>
+      </div>
+      <div class="acoes">
+        <button class="btn" id="atualizar">Atualizar</button>
+        <button class="btn" id="lancar">+ Lançar manual</button>
+        <a class="btn btn-laranja" id="csv" href="#">Baixar planilha</a>
+      </div>
+    </header>
+
+    <div class="zap" id="zap">
+      <span class="dot"></span>
+      <div><b>WhatsApp da pastora</b><div class="info" id="zap-info">verificando…</div></div>
+      <div class="acoes">
+        <button class="mini" id="zap-qr" hidden>Parear (QR code)</button>
+      </div>
+    </div>
+
+    <div id="alerta" class="aviso" hidden></div>
+    <div class="cards" id="cards"></div>
+
+    <div class="abas" id="abas">
+      <button class="aba on" data-f="pagos">Pagas <i id="c-pagos">0</i></button>
+      <button class="aba" data-f="pendentes">Pendentes <i id="c-pendentes">0</i></button>
+      <button class="aba" data-f="recusados">Recusados <i id="c-recusados">0</i></button>
+      <button class="aba" data-f="fora">Fora do grupo <i id="c-fora">0</i></button>
+      <button class="aba" data-f="todos">Todas <i id="c-todos">0</i></button>
+    </div>
+    <div class="barra"><input id="busca" type="search" placeholder="Buscar por nome, WhatsApp ou e-mail…" /></div>
+
+    <div class="tabela">
+      <table>
+        <thead><tr>
+          <th class="ord">#</th><th>Nome</th><th>WhatsApp</th><th>Pagamento</th><th>No grupo</th><th>Pós-pagamento</th><th>Inscrita em</th><th></th>
+        </tr></thead>
+        <tbody id="linhas"><tr><td colspan="8" class="vazio">Carregando…</td></tr></tbody>
+      </table>
+    </div>
+    <p class="rodape" id="rodape"></p>
+  </div>
+
+  <div class="login" id="login" hidden>
+    <div class="login-box">
+      <div class="marca">Diamond</div>
+      <p>Informe a chave de acesso do painel.</p>
+      <input id="lg-chave" type="password" placeholder="Chave de acesso" autocomplete="current-password" />
+      <button class="btn btn-laranja" id="lg-entrar">Entrar</button>
+      <p class="erro" id="lg-erro" hidden></p>
+    </div>
+  </div>
+
+  <div class="fundo" id="manual" hidden>
+    <div class="caixa">
+      <h3>Lançar inscrição manual</h3>
+      <p class="quem">Para quem pagou por fora do site. Entra como paga e recebe o grupo + áudio automaticamente.</p>
+      <label for="mn-nome">Nome</label><input id="mn-nome" type="text" placeholder="Nome completo" />
+      <label for="mn-fone">WhatsApp (com DDD)</label><input id="mn-fone" type="tel" inputmode="numeric" placeholder="48999999999" />
+      <label for="mn-email">E-mail (opcional)</label><input id="mn-email" type="email" placeholder="email@exemplo.com" />
+      <label for="mn-metodo">Forma de pagamento</label>
+      <select id="mn-metodo"><option value="dinheiro">Dinheiro</option><option value="pix">PIX (fora do site)</option><option value="transferencia">Transferência</option><option value="cartao">Cartão (maquininha)</option></select>
+      <label for="mn-valor">Valor (R$)</label><input id="mn-valor" type="text" inputmode="decimal" value="30,00" />
+      <p class="msg erro" id="mn-erro" hidden></p>
+      <div class="fim"><button class="btn" id="mn-cancelar">Cancelar</button><button class="btn btn-laranja" id="mn-salvar">Lançar como paga</button></div>
+    </div>
+  </div>
+
+  <div class="fundo" id="editor" hidden>
+    <div class="caixa">
+      <h3>Editar inscrita</h3>
+      <p class="quem" id="ed-quem"></p>
+      <label for="ed-nome">Nome</label><input id="ed-nome" type="text" />
+      <label for="ed-fone">WhatsApp (com DDD)</label><input id="ed-fone" type="tel" inputmode="numeric" />
+      <p class="msg erro" id="ed-erro" hidden></p>
+      <div class="fim"><button class="btn" id="ed-cancelar">Cancelar</button><button class="btn btn-laranja" id="ed-salvar">Salvar</button></div>
+    </div>
+  </div>
+
+  <div class="fundo" id="qrbox" hidden>
+    <div class="caixa">
+      <h3>Parear o WhatsApp</h3>
+      <p class="quem">No celular da pastora: WhatsApp › Configurações › Aparelhos conectados › Conectar aparelho › escanear.</p>
+      <img class="qr" id="qr-img" alt="QR code" hidden />
+      <p class="msg" id="qr-msg">Gerando QR code…</p>
+      <div class="fim"><button class="btn" id="qr-fechar">Fechar</button></div>
+    </div>
+  </div>
+
+<script>
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+let KEY = params.get('key') || localStorage.getItem('diamond_key') || '';
+if (params.get('key')) { localStorage.setItem('diamond_key', KEY); history.replaceState(null,'',location.pathname); }
+let dados = null, filtro = 'pagos', termo = '';
+const esc = s => String(s==null?'':s).replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const fone = w => { const d = String(w||'').replace(/\D/g,'').replace(/^55/,''); return d.length >= 10 ? `(${d.slice(0,2)}) ${d.slice(2,-4)}-${d.slice(-4)}` : (w||''); };
+const dataBr = s => { if(!s) return '—'; const d=new Date(s); return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); };
+const real = n => 'R$ ' + Number(n||0).toFixed(2).replace('.',',');
+const api = (p, opts) => fetch('../api/' + p + (p.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(KEY), opts);
+const post = (p, body) => api(p, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }).then(r => r.json());
+
+function pedirChave(msg) { $('#login').hidden = false; const e = $('#lg-erro'); if (msg) { e.textContent = msg; e.hidden = false; } else e.hidden = true; $('#lg-chave').focus(); }
+$('#lg-entrar').addEventListener('click', () => { const v = $('#lg-chave').value.trim(); if (!v) return pedirChave('Digite a chave.');
+  KEY = v; localStorage.setItem('diamond_key', KEY); $('#login').hidden = true; $('#lg-chave').value = ''; carregar(true); });
+$('#lg-chave').addEventListener('keydown', e => { if (e.key === 'Enter') $('#lg-entrar').click(); });
+
+async function carregar(forcar) {
+  if (!KEY) { pedirChave(); return; }
+  const btn = $('#atualizar'); btn.disabled = true; btn.textContent = 'Atualizando…';
+  try {
+    const r = await api('painel' + (forcar ? '?atualizar=1' : ''));
+    if (r.status === 401) { localStorage.removeItem('diamond_key'); KEY=''; pedirChave('Chave incorreta.'); return; }
+    dados = await r.json();
+    $('#csv').href = `../api/admin?key=${encodeURIComponent(KEY)}&csv=1`;
+    render();
+  } catch (e) { alerta('Não consegui carregar: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Atualizar'; }
+}
+function alerta(msg){ const a=$('#alerta'); a.textContent=msg; a.hidden=!msg; }
+
+function render() {
+  if (!dados) return;
+  const { resumo, grupo, inscritos, whatsapp } = dados;
+  // WhatsApp da pastora
+  const z = $('#zap'); z.classList.remove('open','off');
+  const st = whatsapp?.estado || 'nao_configurado';
+  if (st === 'open') { z.classList.add('open'); $('#zap-info').textContent = `Conectado (instância ${whatsapp.instancia})` + (whatsapp.audio ? ' · áudio da pastora pronto' : ' · ⚠ sem áudio da pastora ainda'); $('#zap-qr').hidden = true; }
+  else if (st === 'nao_configurado') { $('#zap-info').textContent = 'Evolution não configurada no servidor.'; $('#zap-qr').hidden = true; }
+  else { z.classList.add('off'); $('#zap-info').textContent = `Desconectado (${st}) — o pós-pagamento automático não roda até parear.`; $('#zap-qr').hidden = false; }
+
+  alerta(grupo ? '' : 'Grupo do WhatsApp ainda não lido — defina GRUPO_WHATSAPP e conecte o WhatsApp da pastora. Os pagamentos continuam corretos.');
+  $('#sub').textContent = grupo ? `Grupo "${grupo.nome}" · ${grupo.total} no grupo` : 'Painel de inscritas · 23 e 24.10.2026';
+  $('#cards').innerHTML = `
+    <div class="card ok"><b>${resumo.pagos}</b><span>Inscrições pagas</span></div>
+    <div class="card gold"><b>${real(resumo.arrecadado)}</b><span>Arrecadado</span></div>
+    <div class="card ok"><b>${resumo.noGrupo}</b><span>Pagas no grupo</span></div>
+    <div class="card warn"><b>${resumo.foraGrupo}</b><span>Pagas fora do grupo</span></div>
+    <div class="card"><b>${resumo.pendentes}</b><span>Pendentes</span></div>`;
+  const cont = { pagos: inscritos.filter(r => r.status === 'approved').length, pendentes: inscritos.filter(r => r.status === 'pending').length,
+    recusados: inscritos.filter(r => r.status !== 'approved' && r.status !== 'pending').length,
+    fora: inscritos.filter(r => r.status === 'approved' && r.noGrupo === false).length, todos: inscritos.length };
+  for (const k in cont) { const el = document.getElementById('c-' + k); if (el) el.textContent = cont[k]; }
+
+  let lista = inscritos;
+  if (filtro === 'pagos') lista = lista.filter(r => r.status === 'approved');
+  if (filtro === 'pendentes') lista = lista.filter(r => r.status === 'pending');
+  if (filtro === 'recusados') lista = lista.filter(r => r.status !== 'approved' && r.status !== 'pending');
+  if (filtro === 'fora') lista = lista.filter(r => r.status === 'approved' && r.noGrupo === false);
+  if (termo) { const t = termo.toLowerCase(), td = termo.replace(/\D/g,'');
+    lista = lista.filter(r => (r.nome||'').toLowerCase().includes(t) || (r.email||'').toLowerCase().includes(t) || (td && String(r.whatsapp||'').includes(td))); }
+
+  const formaLabel = r => { const m = { pix:'PIX', cartao:'Cartão', dinheiro:'Dinheiro', transferencia:'Transferência' }[r.metodo] || r.metodo || ''; return r.manual ? (m + ' · lançado') : m; };
+  const tagPag = s => s === 'approved' ? '<span class="tag t-pago">Paga</span>' : s === 'pending' ? '<span class="tag t-pend">Pendente</span>' : `<span class="tag t-neg">${s === 'rejected' ? 'Recusado' : esc(s)}</span>`;
+  const tagGrupo = r => r.noGrupo === true ? '<span class="tag t-sim">Sim</span>' : (r.status === 'approved' ? '<button class="mini" data-add="' + r.id + '">Adicionar</button>' : '—');
+  const cls = v => !v ? '' : (v === 'enviado' || v === 'adicionado' || v === 'ja_no_grupo') ? 'ok' : v === 'sem_audio' ? 'warn' : 'bad';
+  const rot = v => !v ? '—' : ({ enviado:'ok', adicionado:'ok', ja_no_grupo:'já estava', sem_audio:'sem áudio', privacidade:'privacidade', saiu_recente:'saiu há pouco', bloqueou:'bloqueou', grupo_indisponivel:'sem grupo', evolution_nao_configurado:'sem whatsapp' }[v] || (v.startsWith('falhou') ? 'falhou' : v));
+  const pos = r => r.status !== 'approved' ? '—' : `<div class="pos">
+      <i class="${cls(r.pos?.grupo)}" title="${esc(r.pos?.grupo||'')}">grupo: ${rot(r.pos?.grupo)}</i>
+      <i class="${cls(r.pos?.texto)}" title="${esc(r.pos?.texto||'')}">texto: ${rot(r.pos?.texto)}</i>
+      <i class="${cls(r.pos?.audio)}" title="${esc(r.pos?.audio||'')}">áudio: ${rot(r.pos?.audio)}</i></div>`;
+  const LAPIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+
+  $('#linhas').innerHTML = lista.length ? lista.map(r => `
+    <tr>
+      <td class="ord">${r.ordem || '–'}</td>
+      <td class="nome">${esc(r.nome)}<span class="forma">${esc(r.email||'')}</span></td>
+      <td><a href="https://wa.me/55${String(r.whatsapp||'').replace(/\D/g,'').replace(/^55/,'')}" target="_blank" rel="noopener">${fone(r.whatsapp)}</a></td>
+      <td>${tagPag(r.status)}${r.status === 'approved' ? `<span class="forma">${formaLabel(r)} · ${real(r.valor)}</span>` : ''}</td>
+      <td id="g-${r.id}">${tagGrupo(r)}</td>
+      <td>${pos(r)}</td>
+      <td>${dataBr(r.criado)}</td>
+      <td class="acoes">
+        ${r.status === 'approved' ? `<button class="mini" data-texto="${r.id}">Texto</button><button class="mini" data-audio="${r.id}">Áudio</button><button class="mini" data-tudo="${r.id}" title="Roda grupo + texto + áudio de novo">Refazer tudo</button>` : ''}
+        <button class="lapis" data-edit="${r.id}" title="Editar">${LAPIS}</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="8" class="vazio">Nenhum registro com esse filtro.</td></tr>';
+  $('#rodape').textContent = `${lista.length} de ${inscritos.length} registros · atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
+}
+
+// ações da tabela
+$('#linhas').addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.edit) return abrirEditor(b.dataset.edit);
+  const acao = b.dataset.add ? ['grupo/adicionar', b.dataset.add] : b.dataset.texto ? ['convite', b.dataset.texto]
+             : b.dataset.audio ? ['audio', b.dataset.audio] : b.dataset.tudo ? ['pos/reenviar', b.dataset.tudo] : null;
+  if (!acao) return;
+  const t = b.textContent; b.disabled = true; b.textContent = '…';
+  try {
+    const d = await post(acao[0], { id: acao[1] });
+    if (d.ok) { b.textContent = acao[0] === 'pos/reenviar' ? 'Na fila' : 'OK ✓'; setTimeout(() => carregar(true), acao[0] === 'pos/reenviar' ? 20000 : 1500); }
+    else { b.textContent = 'Falhou'; b.title = d.resultado || d.detalhe || d.error || ''; b.disabled = false; }
+  } catch { b.textContent = 'Erro'; b.disabled = false; }
+});
+
+// editor
+let editando = null;
+function abrirEditor(id) { const r = (dados?.inscritos||[]).find(x => x.id === id); if (!r) return; editando = id;
+  $('#ed-quem').textContent = r.email || ''; $('#ed-nome').value = r.nome || ''; $('#ed-fone').value = r.whatsapp || ''; $('#ed-erro').hidden = true; $('#editor').hidden = false; }
+const fecharEditor = () => { $('#editor').hidden = true; editando = null; };
+$('#ed-cancelar').addEventListener('click', fecharEditor);
+$('#ed-salvar').addEventListener('click', async () => {
+  const f = $('#ed-fone').value.replace(/\D/g, ''); const erro = $('#ed-erro');
+  if (f.replace(/^55/, '').length < 10) { erro.textContent = 'Telefone inválido.'; erro.hidden = false; return; }
+  const r = await api('inscrito/' + editando, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ whatsapp: f, nome: $('#ed-nome').value }) });
+  if (!r.ok) { erro.textContent = 'Não consegui salvar.'; erro.hidden = false; return; }
+  fecharEditor(); carregar(true);
+});
+
+// manual
+$('#lancar').addEventListener('click', () => { $('#mn-nome').value=''; $('#mn-fone').value=''; $('#mn-email').value=''; $('#mn-metodo').value='dinheiro'; $('#mn-valor').value='30,00'; $('#mn-erro').hidden=true; $('#manual').hidden=false; $('#mn-nome').focus(); });
+$('#mn-cancelar').addEventListener('click', () => { $('#manual').hidden = true; });
+$('#mn-salvar').addEventListener('click', async () => {
+  const nome = $('#mn-nome').value.trim(), f = $('#mn-fone').value.replace(/\D/g,''), valor = ($('#mn-valor').value||'').replace(/[^0-9,.]/g,'').replace(',','.'); const erro = $('#mn-erro');
+  if (nome.length < 3) { erro.textContent = 'Informe o nome completo.'; erro.hidden = false; return; }
+  if (f.replace(/^55/,'').length < 10) { erro.textContent = 'Telefone inválido.'; erro.hidden = false; return; }
+  const d = await post('manual', { nome, whatsapp: f, email: $('#mn-email').value.trim(), metodo: $('#mn-metodo').value, valor });
+  if (!d.ok) { erro.textContent = d.error || 'Não consegui lançar.'; erro.hidden = false; return; }
+  $('#manual').hidden = true; carregar(true);
+});
+
+// parear WhatsApp (QR)
+let qrTimer = null;
+$('#zap-qr').addEventListener('click', async () => { $('#qrbox').hidden = false; $('#qr-img').hidden = true; $('#qr-msg').textContent = 'Gerando QR code…'; puxarQr(); });
+async function puxarQr() {
+  try {
+    const d = await api('whatsapp/qr').then(r => r.json());
+    if (d.estado === 'open') { $('#qr-msg').textContent = '✓ Conectado!'; $('#qr-img').hidden = true; clearTimeout(qrTimer); setTimeout(() => { $('#qrbox').hidden = true; carregar(true); }, 1500); return; }
+    if (d.qr) { $('#qr-img').src = d.qr.startsWith('data:') ? d.qr : 'data:image/png;base64,' + d.qr; $('#qr-img').hidden = false; $('#qr-msg').textContent = 'Escaneie com o celular da pastora. O código renova sozinho.'; }
+    else $('#qr-msg').textContent = d.detalhe || d.error || 'Aguardando…';
+  } catch { $('#qr-msg').textContent = 'Erro ao gerar o QR.'; }
+  if (!$('#qrbox').hidden) qrTimer = setTimeout(puxarQr, 15000);
+}
+$('#qr-fechar').addEventListener('click', () => { $('#qrbox').hidden = true; clearTimeout(qrTimer); });
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('#editor').hidden = true; $('#manual').hidden = true; $('#qrbox').hidden = true; clearTimeout(qrTimer); } });
+$('#atualizar').addEventListener('click', () => carregar(true));
+$('#busca').addEventListener('input', e => { termo = e.target.value.trim(); render(); });
+$('#abas').addEventListener('click', e => { const b = e.target.closest('.aba'); if (!b) return; document.querySelectorAll('.aba').forEach(c => c.classList.toggle('on', c === b)); filtro = b.dataset.f; render(); });
+carregar();
+setInterval(() => carregar(false), 60000);
+</script>
+</body>
+</html>

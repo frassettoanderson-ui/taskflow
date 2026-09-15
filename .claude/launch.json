@@ -2,28 +2,17 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "oxfitness-manutencao",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8123", "--directory", "oxfitness-manutencao"],
-      "port": 8123
+      "name": "site-abarim",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:/Users/ander/AppData/Local/Temp/claude/C--Users-ander-Downloads-taskflow-backup-completo/a78a9433-0fe7-47a0-99b6-2c16c26f5399/scratchpad/serve-site.js"],
+      "port": 8765
     },
     {
-      "name": "julius-landing",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8129", "--directory", "financas/landing"],
-      "port": 8129
-    },
-    {
-      "name": "abarim-site",
-      "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8131", "--directory", "site"],
-      "port": 8131
-    },
-    {
-      "name": "deskcomm",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--dir", "DeskcommCRM", "dev"],
-      "port": 3000
+      "name": "raniandark-pdv",
+      "cwd": "C:/Users/ander/OneDrive/Área de Trabalho/raniandark-pdv/web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5600
     }
   ]
 }
