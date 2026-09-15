@@ -77,14 +77,14 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
 
     // fonte proporcional ao sol; no desktop o texto fica logo FORA do disco (halo);
     // no celular o sol é enorme e começa no topo, então o arco fica concêntrico mas POR DENTRO do disco, abaixo do título
-    let f = Math.max(15, Math.min(portrait ? 28 : 44, sunR * (portrait ? .095 : .12)));
+    let f = Math.max(14, Math.min(portrait ? 24 : 36, sunR * (portrait ? .082 : .095)));
     let R, alpha, len;
     const maxA = portrait ? 1.7 : 1.25;                        // meio-ângulo máximo (~97° / ~72°)
     for (let i = 0; i < 5; i++) {
       R = sunR + f * .55;
       if (portrait) R = Math.max(sunR * .5, Math.min(R, cy - base - f * 1.15 - 6));
       arcTxt.style.fontSize = f + 'px';
-      arcTxt.style.letterSpacing = (f * .2) + 'px';
+      arcTxt.style.letterSpacing = (f * .26) + 'px';
       arcPath.setAttribute('d', `M ${cx - 4000} ${cy} A 4000 4000 0 0 1 ${cx + 4000} ${cy}`); // provisório, só pra medir
       len = arcTxt.getComputedTextLength();
       alpha = (len * 1.04) / (2 * R);
@@ -169,7 +169,8 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
 const nav = $('#nav'), ctaFixo = $('#cta-fixo');
 const onScrollUi = () => {
   const y = window.scrollY;
-  nav.classList.toggle('solid', y > 60);
+  if (nav) nav.classList.toggle('solid', y > 60);
+  // CTA flutuante entra depois do hero (não tem mais barra fixa no topo)
   if (ctaFixo) ctaFixo.classList.toggle('on', y > window.innerHeight * 1.6);
 };
 window.addEventListener('scroll', onScrollUi, { passive: true });
