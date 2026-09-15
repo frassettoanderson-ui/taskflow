@@ -230,7 +230,7 @@ h2.titulo em { font-style: normal; color: var(--laranja-2); }
 .selo span { display: block; margin-top: 6px; font-family: var(--cond); font-weight: 600; font-size: .8rem; letter-spacing: .18em; text-transform: uppercase; color: var(--tinta-2); }
 
 /* VERSÍCULO (bloco escuro) */
-.verso { background: var(--floresta); color: var(--creme); text-align: center; position: relative; overflow: hidden; }
+.verso { background: var(--floresta); color: var(--creme); text-align: center; position: relative; overflow: hidden; padding-block: clamp(48px, 7vw, 82px); }
 .verso::before {
   content: ""; position: absolute; left: 50%; top: 50%; width: 120vmax; height: 120vmax; transform: translate(-50%,-50%);
   background: radial-gradient(circle at center, rgba(247,194,110,.16) 0%, rgba(239,153,45,.06) 22%, transparent 45%);
