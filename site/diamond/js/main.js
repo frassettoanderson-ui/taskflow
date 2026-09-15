@@ -22,7 +22,8 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
   const nearest = i => { for (let k = i; k >= 0; k--) if (ready(k)) return k; return -1; };
 
   // em telas paisagem, reserva uma faixa no topo (papel) pro título não cair em cima da copa
-  const headroom = a => a >= 2.1 ? .19 : a >= 1.85 ? .16 : a >= 1.6 ? .12 : a >= 1.35 ? .07 : 0;
+  // o vídeo novo já tem papel de sobra em cima; só reserva faixa em telas ultra-largas
+  const headroom = a => a >= 2.3 ? .06 : 0;
   let topStops = null; // cores amostradas da linha de cima do 1º frame → preenchimento sem emenda
   function amostrarTopo(img) {
     try {
