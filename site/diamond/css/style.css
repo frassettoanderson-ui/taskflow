@@ -122,12 +122,12 @@ h2.titulo em { font-style: normal; color: var(--laranja-2); }
   opacity: .8;
 }
 .hero-top {
-  position: absolute; left: 0; right: 0; top: 9vh; top: 9svh;
+  position: absolute; left: 0; right: 0; top: 8vh; top: 8svh;
   display: flex; flex-direction: column; align-items: center; pointer-events: none;
 }
 .hero-title {
   text-align: center; margin: 0;
-  font-family: var(--display); font-size: clamp(4rem, 15vw, 12rem); line-height: .86; color: var(--creme);
+  font-family: var(--display); font-size: clamp(3.6rem, min(13vw, 19vh), 11rem); line-height: .86; color: var(--creme);
   letter-spacing: -.005em; text-transform: uppercase;
   text-shadow: 0 2px 0 rgba(217,131,42,.25), 0 14px 40px rgba(75,86,61,.2);
   transform-origin: 50% 20%;
@@ -135,7 +135,7 @@ h2.titulo em { font-style: normal; color: var(--laranja-2); }
 .hero-title .dia { display: inline-block; width: .32em; height: .32em; vertical-align: super; margin-left: .06em; color: var(--creme); opacity: .9; }
 .hero-title .dia svg { width: 100%; height: 100%; }
 
-.hero-arc { width: min(94vw, 860px); margin-top: -1.2vh; overflow: visible; display: block; }
+.hero-arc { width: min(88vw, 780px, 118vh); margin-top: -1vh; overflow: visible; display: block; }
 .hero-arc text {
   font-family: var(--cond); font-weight: 500; font-size: 40px; letter-spacing: 8px; text-transform: uppercase; fill: var(--creme);
   paint-order: stroke; stroke: rgba(75,86,61,.22); stroke-width: 1.2px;

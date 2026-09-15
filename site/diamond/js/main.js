@@ -21,10 +21,33 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
   const ready = i => frames[i] && frames[i].complete && frames[i].naturalWidth > 0;
   const nearest = i => { for (let k = i; k >= 0; k--) if (ready(k)) return k; return -1; };
 
+  // em telas paisagem, reserva uma faixa no topo (papel) pro título não cair em cima da copa
+  const headroom = a => a >= 2.1 ? .19 : a >= 1.85 ? .16 : a >= 1.6 ? .12 : a >= 1.35 ? .07 : 0;
+  let topStops = null; // cores amostradas da linha de cima do 1º frame → preenchimento sem emenda
+  function amostrarTopo(img) {
+    try {
+      const n = 12, c = document.createElement('canvas'); c.width = n; c.height = 1;
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0, img.naturalWidth, Math.max(1, Math.round(img.naturalHeight * .01)), 0, 0, n, 1);
+      const d = x.getImageData(0, 0, n, 1).data;
+      topStops = []; for (let i = 0; i < n; i++) topStops.push(`rgb(${d[i * 4]},${d[i * 4 + 1]},${d[i * 4 + 2]})`);
+    } catch { topStops = null; }
+  }
   function paint(img) {
     const cw = canvas.width, ch = canvas.height, iw = img.naturalWidth, ih = img.naturalHeight;
-    const s = Math.max(cw / iw, ch / ih), w = iw * s, h = ih * s;
-    ctx.drawImage(img, (cw - w) / 2, (ch - h) / 2, w, h);
+    const a = cw / ch, head = Math.round(ch * headroom(a));
+    let s = Math.max(cw / iw, (ch - head) / ih), w = iw * s, h = ih * s;
+    let x = (cw - w) / 2, y = head;
+    if (head > 0) {
+      if (topStops) {
+        const g = ctx.createLinearGradient(0, 0, cw, 0);
+        topStops.forEach((c, i) => g.addColorStop(i / (topStops.length - 1), c));
+        ctx.fillStyle = g;
+      } else ctx.fillStyle = '#F0D6C4';
+      ctx.fillRect(0, 0, cw, head + 2);
+    } else { y = (ch - h) / 2; }
+    ctx.drawImage(img, x, y, w, h);
+    hero.style.setProperty('--head', (head / ch * 100).toFixed(1) + '%');
   }
   function draw(force) {
     const k = nearest(current);
@@ -50,7 +73,7 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
     });
   }
   async function loadAll() {
-    await load(0); draw(true);
+    await load(0); if (frames[0]) amostrarTopo(frames[0]); draw(true);
     let next = 1;
     const worker = async () => { while (next < N) { const i = next++; await load(i); } };
     await Promise.all([worker(), worker(), worker(), worker()]);
