@@ -345,6 +345,7 @@ function render() {
       <td class="esconde">${dataBr(r.criado)}</td>
       <td class="acoes">
         ${r.noGrupo === true ? '' : `<button class="mini" data-convite="${r.id}">Enviar convite</button>`}
+        <button class="mini" data-boasvindas="${r.id}" title="Enviar o áudio de boas-vindas do pastor">${r.boasVindas ? '🔊 Reenviar áudio' : '🔊 Áudio'}</button>
         <button class="lapis" data-edit="${r.id}" title="Editar">${LAPIS}</button>
       </td>
     </tr>`).join('') : '<tr><td colspan="8" class="vazio">Nenhum registro com esse filtro.</td></tr>';
@@ -373,6 +374,20 @@ $('#linhas').addEventListener('click', async e => {
       else { conv.textContent = 'Falhou - tentar'; conv.disabled = false;
              conv.title = (d.error === 'whatsapp_desconectado') ? 'WhatsApp do painel desconectado' : (d.detalhe || ''); }
     } catch (err) { conv.textContent = 'Erro - tentar'; conv.disabled = false; }
+    return;
+  }
+  const bv = e.target.closest('[data-boasvindas]');
+  if (bv) {
+    bv.disabled = true; bv.textContent = 'Enviando...';
+    try {
+      const r = await fetch('../api/boasvindas?key=' + encodeURIComponent(KEY), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: bv.dataset.boasvindas }),
+      });
+      const d = await r.json();
+      if (d.ok) { bv.textContent = '🔊 Áudio enviado'; bv.style.borderColor = '#4ea86a'; bv.style.color = '#7cc994'; }
+      else { bv.textContent = '🔊 Falhou - tentar'; bv.disabled = false; bv.title = d.detalhe || d.error || ''; }
+    } catch (err) { bv.textContent = '🔊 Erro - tentar'; bv.disabled = false; }
     return;
   }
   const add = e.target.closest('[data-add]');

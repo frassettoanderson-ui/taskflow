@@ -131,10 +131,7 @@ app.get('/api/status/:id', async (req, res) => {
   if (!rec) return res.status(404).json({ error: 'nao_encontrado' });
   if (rec.status !== 'approved' && rec.mp_id && TOKEN) {
     const r = await mp('/v1/payments/' + rec.mp_id);
-    if (r.ok && r.body.status === 'approved') {
-      rec.status = 'approved'; rec.pago = new Date().toISOString();
-      limparPendentes(rec); save();
-    }
+    if (r.ok && r.body.status === 'approved') aprovar(rec);
   }
   res.json({ status: rec.status, grupo: rec.status === 'approved' ? GRUPO : undefined });
 });
@@ -152,12 +149,8 @@ app.post('/api/webhook', async (req, res) => {
     const rec = db[ref];
     if (rec) {
       rec.mp_id = paymentId;
-      if (r.body.status === 'approved' && rec.status !== 'approved') {
-        rec.status = 'approved'; rec.pago = new Date().toISOString();
-        limparPendentes(rec);
-      }
-      else if (rec.status === 'pending') rec.status = r.body.status;
-      save();
+      if (r.body.status === 'approved') aprovar(rec);
+      else { if (rec.status === 'pending') rec.status = r.body.status; save(); }
     }
   } catch (e) { console.error('webhook', e); }
 });
@@ -168,6 +161,43 @@ const EVO_KEY = process.env.EVOLUTION_KEY || '';
 const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || 'nauta';
 // instância do número que é ADMIN do grupo — é ela que consegue adicionar participantes
 const EVO_ADD_INSTANCE = process.env.EVOLUTION_ADD_INSTANCE || 'abarim';
+
+// ── áudio de boas-vindas do pastor: enviado automaticamente ao confirmar a inscrição ──
+const MEDIA = path.join(__dirname, 'media');
+function arquivoBoasVindas() {
+  try { const f = fs.readdirSync(MEDIA).find(n => /^boas-vindas\.(ogg|opus|mp3|m4a|aac|wav)$/i.test(n)); return f ? path.join(MEDIA, f) : null; }
+  catch { return null; }
+}
+// manda o áudio como mensagem de voz (PTT) pelo número do pastor; grava rec.boasVindas p/ não repetir
+async function enviarBoasVindas(rec) {
+  if (!EVO_KEY) return 'sem_whatsapp';
+  const f = arquivoBoasVindas(); if (!f) return 'sem_audio';
+  const numero = '55' + digits(rec.whatsapp).replace(/^55/, '');
+  const b64 = fs.readFileSync(f).toString('base64');
+  try {
+    await fetch(`${EVO_URL}/chat/sendPresence/${EVO_ADD_INSTANCE}`, {
+      method: 'POST', headers: { apikey: EVO_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: numero, presence: 'recording', delay: 4000 }),
+    }).catch(() => {});
+    await new Promise(r => setTimeout(r, 4000));
+    const r = await fetch(`${EVO_URL}/message/sendWhatsAppAudio/${EVO_ADD_INSTANCE}`, {
+      method: 'POST', headers: { apikey: EVO_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ number: numero, audio: b64, encoding: true }),
+    });
+    const b = await r.json().catch(() => ({}));
+    if (r.ok && b.key) { rec.boasVindas = new Date().toISOString(); save(); console.log('boas-vindas enviado ->', rec.nome); return 'enviado'; }
+    console.error('boas-vindas falhou', rec.nome, (b && (b.message || b.error)) || r.status);
+    return 'falhou';
+  } catch (e) { console.error('boas-vindas', e.message); return 'falhou'; }
+}
+// marca a inscrição como paga (uma vez) e dispara o áudio de boas-vindas do pastor
+function aprovar(rec) {
+  rec.status = 'approved';
+  rec.pago = rec.pago || new Date().toISOString();
+  limparPendentes(rec);
+  save();
+  if (!rec.boasVindas) enviarBoasVindas(rec).catch(e => console.error('boasvindas', e));
+}
 let grupoJid = process.env.GRUPO_JID || '';
 const GRUPO_CODE = (String(GRUPO).match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/) || [])[1] || '';
 
@@ -266,8 +296,7 @@ app.post('/api/manual', (req, res) => {
   const rec = { id, nome, email, whatsapp, valor, metodo, mp_id: null,
     status: 'approved', criado: new Date().toISOString(), pago: new Date().toISOString(), manual: true };
   db[id] = rec;
-  limparPendentes(rec);
-  save();
+  aprovar(rec);
   res.json({ ok: true, inscrito: rec });
 });
 
@@ -353,6 +382,15 @@ app.post('/api/convite', async (req, res) => {
   } catch (e) {
     return res.status(502).json({ error: 'falha_envio', detalhe: e.message });
   }
+});
+
+// (re)envia o áudio de boas-vindas do pastor manualmente (ex.: pros que já pagaram antes do recurso)
+app.post('/api/boasvindas', async (req, res) => {
+  if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).json({ error: 'nao_autorizado' });
+  const rec = db[req.body.id];
+  if (!rec) return res.status(404).json({ error: 'nao_encontrado' });
+  const r = await enviarBoasVindas(rec);
+  res.json({ ok: r === 'enviado', detalhe: r });
 });
 
 // ── vigia de conexão: se a instância cair, tenta reconectar sozinho ───────
