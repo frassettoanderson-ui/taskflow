@@ -171,8 +171,10 @@ const EVO_INSTANCE = process.env.EVOLUTION_INSTANCE || 'diamond';   // instânci
 let grupoJid = process.env.GRUPO_JID || '';
 const GRUPO_CODE = (String(GRUPO).match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/) || [])[1] || '';
 
+// timeout curto: com a instância desconectada a Evolution pode segurar a requisição por minutos
 const evo = (p, opts = {}) => fetch(EVO_URL + p, {
   ...opts, headers: { apikey: EVO_KEY, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+  signal: AbortSignal.timeout(opts.timeout || 8000),
 }).then(async r => ({ ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) }));
 
 const chaveFone = s => { const d = digits(s).replace(/^55/, ''); return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d; };
@@ -259,7 +261,7 @@ async function enviarAudio(rec) {
   }).catch(() => {});
   await dormir(6000);
   const r = await evo(`/message/sendWhatsAppAudio/${EVO_INSTANCE}`, {
-    method: 'POST', body: JSON.stringify({ number: numeroZap(rec), audio: b64, encoding: true }),
+    method: 'POST', body: JSON.stringify({ number: numeroZap(rec), audio: b64, encoding: true }), timeout: 60000,
   });
   return (r.ok && r.body && r.body.key) ? 'enviado' : 'falhou:' + ((r.body && (r.body.message || JSON.stringify(r.body.response || r.body.error))) || r.status).toString().slice(0, 160);
 }
