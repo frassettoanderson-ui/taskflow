@@ -166,6 +166,13 @@ const $$ = (s, c = document) => [...c.querySelectorAll(s)];
   if (reduce) { hero.style.height = '100vh'; current = N - 1; }
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', () => { resize(); onScroll(); });
+  // recalcula o layout DEPOIS que as fontes carregam (o título/arco são medidos com getComputedTextLength;
+  // no iOS/webview do Instagram o 1º cálculo roda com fonte fallback e sai errado). Também reprocessa
+  // em alguns momentos-chave como rede de segurança.
+  const relayout = () => { geom = null; resize(); onScroll(); };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+  window.addEventListener('load', relayout);
+  [300, 900, 2000].forEach((t) => setTimeout(relayout, t));
   resize();
   loadAll();
   tick();
