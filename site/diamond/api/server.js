@@ -234,7 +234,7 @@ async function adicionarNoGrupo(rec) {
 const textoConfirmacao = rec =>
   `Oi, ${primeiroNome(rec)}! Sua inscrição na *Conferência Diamond* está confirmada. ✨\n\n` +
   `📅 Sexta 23/10 às 19h30 · Sábado 24/10 às 16h e 19h\n📍 Igreja Abarim — Av. 21 de Junho, 288, Centro, Imbituba/SC\n\n` +
-  (GRUPO ? `Este é o grupo das inscritas, onde vamos passar todos os avisos:\n${GRUPO}` : `Em breve você recebe o link do grupo das inscritas.`);
+  (GRUPO ? `Entre no nosso grupo das inscritas pelo link abaixo 👇 é por lá que vamos passar todos os avisos:\n${GRUPO}` : `Em breve você recebe o link do grupo das inscritas.`);
 
 async function enviarTexto(rec) {
   if (!EVO_KEY) return 'evolution_nao_configurado';
@@ -269,6 +269,9 @@ async function enviarAudio(rec) {
 // fluxo automático após o pagamento: grupo → texto → áudio (com pausas naturais)
 const filaPos = [];
 let rodandoPos = false;
+// ADICIONAR_GRUPO=0 no .env => NÃO adiciona a pessoa no grupo automaticamente;
+// só envia o CONVITE por mensagem (o texto já traz o link do grupo) + o áudio.
+const ADD_GRUPO = process.env.ADICIONAR_GRUPO !== '0';
 async function posPagamento(rec) {
   filaPos.push(rec);
   if (rodandoPos) return;
@@ -277,7 +280,11 @@ async function posPagamento(rec) {
     while (filaPos.length) {
       const r = filaPos.shift();
       r.pos = r.pos || {};
-      try { r.pos.grupo = await adicionarNoGrupo(r); } catch (e) { r.pos.grupo = 'falhou:' + e.message; }
+      if (ADD_GRUPO) {
+        try { r.pos.grupo = await adicionarNoGrupo(r); } catch (e) { r.pos.grupo = 'falhou:' + e.message; }
+      } else {
+        r.pos.grupo = 'convite'; // não adiciona; convida por mensagem
+      }
       save();
       await dormir(2500);
       try { r.pos.texto = await enviarTexto(r); } catch (e) { r.pos.texto = 'falhou:' + e.message; }
