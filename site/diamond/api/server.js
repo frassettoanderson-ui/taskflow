@@ -280,16 +280,28 @@ async function posPagamento(rec) {
     while (filaPos.length) {
       const r = filaPos.shift();
       r.pos = r.pos || {};
+      let enviarConvite = true; // manda o texto com o link do grupo?
       if (ADD_GRUPO) {
         try { r.pos.grupo = await adicionarNoGrupo(r); } catch (e) { r.pos.grupo = 'falhou:' + e.message; }
       } else {
-        r.pos.grupo = 'convite'; // não adiciona; convida por mensagem
+        // modo convite: só manda o link pra quem AINDA NÃO está no grupo (quem já entrou pelo site não recebe de novo)
+        try {
+          const g = await grupoInfo(false);
+          const membros = new Set(g?.membros || []);
+          if (membros.size && membros.has(chaveFone(r.whatsapp))) {
+            r.pos.grupo = 'ja_no_grupo'; r.pos.texto = 'ja_no_grupo'; enviarConvite = false;
+          } else {
+            r.pos.grupo = 'convite';
+          }
+        } catch (e) { r.pos.grupo = 'convite'; } // se não conseguir ler o grupo, convida por segurança
       }
       save();
       await dormir(2500);
-      try { r.pos.texto = await enviarTexto(r); } catch (e) { r.pos.texto = 'falhou:' + e.message; }
-      save();
-      await dormir(3000);
+      if (enviarConvite) {
+        try { r.pos.texto = await enviarTexto(r); } catch (e) { r.pos.texto = 'falhou:' + e.message; }
+        save();
+        await dormir(3000);
+      }
       try { r.pos.audio = await enviarAudio(r); } catch (e) { r.pos.audio = 'falhou:' + e.message; }
       r.pos.em = new Date().toISOString();
       save();
