@@ -14,6 +14,9 @@ export const env = {
   port: Number(process.env.PORT ?? 4002),
   appUrl: process.env.APP_URL ?? 'http://localhost:5174',
   apiUrl: process.env.API_URL ?? 'http://localhost:4002',
+  // Prefixo publico quando servido sob um caminho (ex.: "/gestoroa" atras do dominio da Nauta).
+  // Vazio = servido na raiz (dev / standalone).
+  publicBasePath: (process.env.PUBLIC_BASE_PATH ?? '').replace(/\/$/, ''),
 
   databaseUrl: required('DATABASE_URL', 'postgresql://gestoroa:gestoroa@localhost:5432/gestoroa?schema=public'),
 
@@ -24,6 +27,14 @@ export const env = {
     refreshExpires: process.env.JWT_REFRESH_EXPIRES ?? '7d',
     refreshCookieName: process.env.REFRESH_COOKIE_NAME ?? 'goa_refresh',
     cookieSecure: process.env.COOKIE_SECURE === 'true',
+  },
+
+  // Login unico vindo do sistema da Nauta (SSO por token HMAC assinado com segredo compartilhado).
+  sso: {
+    secret: process.env.SSO_SHARED_SECRET ?? '',
+    // Escritorio (tenant) em que os usuarios do SSO entram. Se vazio e houver apenas
+    // um escritorio ativo, usa esse automaticamente.
+    escritorioId: process.env.SSO_ESCRITORIO_ID ?? '',
   },
 
   tz: process.env.TZ ?? 'America/Sao_Paulo',

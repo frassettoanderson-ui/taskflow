@@ -13,6 +13,7 @@ import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { validate } from '../../middleware/validate.js';
 import { authenticate } from '../../middleware/auth.js';
 import * as authService from './auth.service.js';
+import { loginViaSso } from './sso.service.js';
 import {
   registrarEscritorioSchema,
   loginSchema,
@@ -34,18 +35,22 @@ function uploadPerfil(sub: string) {
   });
 }
 
+// Caminho do cookie de refresh. Sob um base path (ex.: /gestoroa) o navegador chama
+// /gestoroa/api/v1/auth/..., entao o cookie precisa carregar esse prefixo.
+const REFRESH_COOKIE_PATH = `${env.publicBasePath}/api/v1/auth`;
+
 function setRefreshCookie(res: Response, token: string): void {
   res.cookie(env.jwt.refreshCookieName, token, {
     httpOnly: true,
     secure: env.jwt.cookieSecure,
     sameSite: 'lax',
     maxAge: durationToMs(env.jwt.refreshExpires),
-    path: '/api/v1/auth',
+    path: REFRESH_COOKIE_PATH,
   });
 }
 
 function clearRefreshCookie(res: Response): void {
-  res.clearCookie(env.jwt.refreshCookieName, { path: '/api/v1/auth' });
+  res.clearCookie(env.jwt.refreshCookieName, { path: REFRESH_COOKIE_PATH });
 }
 
 function meta(req: Request): authService.SessionMeta {
@@ -72,6 +77,16 @@ router.post('/login', validate({ body: loginSchema }), async (req, res) => {
   const { sessao, refreshToken } = await authService.login(req.body, meta(req));
   setRefreshCookie(res, refreshToken);
   return ok(res, sessao);
+});
+
+// SSO vindo do sistema da Nauta: recebe o token assinado (form POST), cria a sessao,
+// grava o cookie de refresh e redireciona para a raiz do app (que entra logado sozinho).
+router.post('/sso', async (req, res) => {
+  const token = String(req.body?.token ?? '');
+  if (!token) throw Errors.validacao('Token de SSO ausente.');
+  const refreshToken = await loginViaSso(token, meta(req));
+  setRefreshCookie(res, refreshToken);
+  return res.redirect(303, `${env.publicBasePath}/`);
 });
 
 router.post('/refresh', async (req, res) => {

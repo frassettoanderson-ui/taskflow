@@ -10,7 +10,8 @@ export function getAccessToken() {
   return accessToken;
 }
 
-const BASE = '/api/v1';
+// Respeita o base path do build (/ em dev, /gestoroa/ em producao) para bater na API certa.
+const BASE = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api/v1`;
 
 export class ApiError extends Error {
   constructor(
