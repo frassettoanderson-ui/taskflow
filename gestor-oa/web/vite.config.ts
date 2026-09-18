@@ -13,8 +13,8 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         manifest: {
-          name: 'GestorOA',
-          short_name: 'GestorOA',
+          name: 'Obrigô',
+          short_name: 'Obrigô',
           description: 'Gestao de obrigacoes acessorias',
           theme_color: '#0f5c5e',
           background_color: '#f1f5f4',

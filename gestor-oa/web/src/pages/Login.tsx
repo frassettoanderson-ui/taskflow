@@ -67,7 +67,7 @@ export default function Login() {
           {carregando ? 'Entrando...' : 'Entrar'}
         </button>
         <div className="text-center">
-          <Link to="/esqueci-senha" className="text-sm text-petroleo-600 hover:underline">
+          <Link to="/esqueci-senha" className="text-sm text-marca-600 hover:underline">
             Esqueci minha senha
           </Link>
         </div>
