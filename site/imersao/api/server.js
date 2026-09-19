@@ -191,12 +191,17 @@ async function enviarBoasVindas(rec) {
   } catch (e) { console.error('boas-vindas', e.message); return 'falhou'; }
 }
 // marca a inscrição como paga (uma vez) e dispara o áudio de boas-vindas do pastor
+const bvEnviando = new Set(); // ids com áudio de boas-vindas em envio agora (trava anti-duplicidade)
 function aprovar(rec) {
   rec.status = 'approved';
   rec.pago = rec.pago || new Date().toISOString();
   limparPendentes(rec);
   save();
-  if (!rec.boasVindas) enviarBoasVindas(rec).catch(e => console.error('boasvindas', e));
+  // trava síncrona: se webhook + status confirmam quase juntos, só UM dispara o áudio (evita boas-vindas em dobro)
+  if (!rec.boasVindas && !bvEnviando.has(rec.id)) {
+    bvEnviando.add(rec.id);
+    enviarBoasVindas(rec).catch(e => console.error('boasvindas', e)).finally(() => bvEnviando.delete(rec.id));
+  }
 }
 let grupoJid = process.env.GRUPO_JID || '';
 const GRUPO_CODE = (String(GRUPO).match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/) || [])[1] || '';
