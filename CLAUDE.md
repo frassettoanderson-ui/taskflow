@@ -1,6 +1,6 @@
 # Índice de Projetos — taskflow_backup_completo
 
-> Pasta guarda-chuva (backup) com **9 projetos independentes**, cada um na sua subpasta.
+> Pasta guarda-chuva (backup) com **11 projetos independentes**, cada um na sua subpasta.
 > Para continuar um projeto: **abra um chat novo apontando o diretório de trabalho para a subpasta dele** — o `CLAUDE.md` de cada pasta carrega o contexto automaticamente.
 
 ## Mapa rápido
@@ -8,6 +8,7 @@
 | Pasta | Projeto | Stack | Como continuar |
 |-------|---------|-------|----------------|
 | `academia/` | **Taskflow** — gestão de ocorrências/tarefas (Kanban + chat + notificações) | PHP + MySQL (Hostinger) | abrir chat em `academia/` |
+| `betel/` | **Movimento Betel** — site institucional do movimento de mulheres (Imbituba/SC) | HTML/CSS/JS puro | abrir chat em `betel/` |
 | `autolar/` | **Autolar** — site automóveis+imóveis + admin | PHP puro + MySQL | abrir chat em `autolar/` |
 | `financas/` | **Finanças da Família** — PWA de finanças pessoais | Node/TS + Prisma/Postgres + React/Vite | abrir chat em `financas/` |
 | `gestor-oa/` | **GestorOA** — SaaS de obrigações acessórias | Monorepo Node/TS + Prisma + React PWA | abrir chat em `gestor-oa/` |
@@ -16,6 +17,7 @@
 | `restaurante/` | **Sistema para Restaurantes** — SaaS de canal próprio + portal/marketplace | Monorepo TS: NestJS + Next.js + Prisma/Postgres + Redis | abrir chat em `restaurante/` |
 | `site/` | **Abarim** — landing Casa de Oração (Imbituba/SC) | HTML/CSS/JS puro | abrir chat em `site/` |
 | `transcritor-video/` | **Transcritor YouTube** — áudio→txt em PT | Python (yt-dlp + faster-whisper) | abrir chat em `transcritor-video/` |
+| `xadrez-mestre/` | **Xadrez Mestre** — extensão coach para chess.com (Stockfish local + IA explica) | Extensão MV3 (JS puro) + Gemini | abrir chat em `xadrez-mestre/` |
 
 ## Observações
 - `financas/` é um **repositório git próprio** embutido; os demais fazem parte deste repo raiz.

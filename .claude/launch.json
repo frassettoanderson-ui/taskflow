@@ -2,17 +2,44 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "betel",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/ander/AppData/Local/Temp/claude/C--Users-ander-Downloads-taskflow-backup-completo/5593a208-fcc9-4ef5-9fab-e4299be7f356/scratchpad/serve-betel.js"
+      ],
+      "port": 8120
+    },
+    {
       "name": "site-abarim",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["C:/Users/ander/AppData/Local/Temp/claude/C--Users-ander-Downloads-taskflow-backup-completo/a78a9433-0fe7-47a0-99b6-2c16c26f5399/scratchpad/serve-site.js"],
+      "runtimeArgs": [
+        "C:/Users/ander/AppData/Local/Temp/claude/C--Users-ander-Downloads-taskflow-backup-completo/a78a9433-0fe7-47a0-99b6-2c16c26f5399/scratchpad/serve-site.js"
+      ],
       "port": 8765
     },
     {
       "name": "raniandark-pdv",
       "cwd": "C:/Users/ander/OneDrive/Área de Trabalho/raniandark-pdv/web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 5600
+    },
+    {
+      "name": "oxfitness",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "C:/Users/ander/Downloads/oxfitness",
+        "--",
+        "-p",
+        "3010"
+      ],
+      "port": 3010
     }
   ]
 }
