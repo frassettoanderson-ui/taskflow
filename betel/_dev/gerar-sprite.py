@@ -20,6 +20,7 @@ SIMBOLOS = [
     ("lg-ramo", "simbolo.svg"),            # so o ramo de oliveira
     ("lg-flor", "flor.svg"),               # margarida, ornamento das secoes
     ("lg-folha", "folha.svg"),             # folha de oliveira solta, usada na vinha
+    ("lg-botao", "botao.svg"),             # botao de flor fechado, usado na vinha
 ]
 
 

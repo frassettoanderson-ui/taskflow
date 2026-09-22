@@ -565,7 +565,8 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
   transform-box:fill-box;
   transform-origin:0 50%;         /* folha: cresce a partir do pe, no caule */
 }
-.vinha__esc--flor{transform-origin:50% 50%}   /* flor e botao: abrem do centro */
+.vinha__esc--flor{transform-origin:50% 50%}   /* flor: abre do centro */
+.vinha__esc--botao{transform-origin:50% 0}    /* botao: cresce a partir do no */
 .vinha__folha{fill:currentColor;opacity:.72}
 .vinha__flor{fill:currentColor;opacity:.6}
 .vinha__botao{fill:currentColor;opacity:.7}

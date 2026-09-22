@@ -80,8 +80,8 @@
     var h = secao.offsetHeight;
     var lado = indice % 2 === 0 ? 'dir' : 'esq';
     var rnd = semente(indice + 7);
-    var estreita = window.innerWidth < 760;
-    var larg = estreita ? 220 : LARG;
+    /* mais estreita em telas medias, para nao entrar por baixo da coluna de texto */
+    var larg = window.innerWidth < 760 ? 200 : window.innerWidth < 1240 ? 250 : LARG;
 
     var svg = el('svg', {
       'class': 'vinha vinha--' + lado,
@@ -92,7 +92,7 @@
     svg.style.setProperty('--p', '0');
 
     /* caule: curvas suaves descendo, serpenteando de um lado para o outro */
-    var meio = larg * 0.42, amp = larg * 0.22;
+    var meio = larg * 0.4, amp = larg * 0.2;
     var y = -20, x = meio + (rnd() - 0.5) * amp;
     var d = 'M' + x.toFixed(1) + ' ' + y.toFixed(1);
     var passo = 240 + rnd() * 80;
@@ -136,10 +136,13 @@
         var rot = ang + ladoFolha * (48 + rnd() * 26);
         var gr = el('g', { transform: 'rotate(' + rot.toFixed(1) + ')' }, g);
         var ge = el('g', { 'class': 'vinha__esc' }, gr);
-        uso('#lg-folha', { x: 0, y: -comp * 0.36 / 2, width: comp, height: comp * 0.36, 'class': 'vinha__folha' }, ge);
+        uso('#lg-folha', { x: 0, y: -comp * 0.34 * 0.59, width: comp, height: comp * 0.34, 'class': 'vinha__folha' }, ge);
         if (botaoAqui) {
-          var gb = el('g', { 'class': 'vinha__esc vinha__esc--flor' }, g);
-          el('circle', { r: (3.5 + rnd() * 3).toFixed(1), 'class': 'vinha__botao' }, gb);
+          /* o botao nasce do mesmo no, apontando para o lado oposto da folha */
+          var tamB = 9 + rnd() * 6;
+          var gb0 = el('g', { transform: 'rotate(' + (ang - ladoFolha * (70 + rnd() * 20) - 90).toFixed(1) + ')' }, g);
+          var gb = el('g', { 'class': 'vinha__esc vinha__esc--botao' }, gb0);
+          uso('#lg-botao', { x: -tamB * 0.75 / 2, y: 0, width: tamB * 0.75, height: tamB, 'class': 'vinha__botao' }, gb);
         }
       }
       n++;
