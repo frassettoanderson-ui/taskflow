@@ -56,9 +56,11 @@ button,input,textarea,select{font:inherit;color:inherit}
 a{color:inherit}
 
 html{scroll-behavior:smooth}
+/* "reduzir movimento": desliga so o que anima sozinho (entrada do hero).
+   Reveals e vinha sao guiados pelo scroll da propria pessoa e ficam. */
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
+  .hero__marca,.hero__mulheres,.hero__tagline,.hero__sub,.hero__acoes{animation-duration:.01ms !important}
 }
 
 body{
@@ -134,8 +136,6 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
    entao a proporcao de cada lockup fica declarada aqui. */
 .nav__marca svg,
 .rodape__marca{aspect-ratio:914/584}
-/* o hero usa o lockup sem "MOVIMENTO" (ele sumiria inteiro atras das mulheres) */
-.hero__marca{aspect-ratio:9045/4887}
 
 /* ramo de oliveira como ornamento */
 .ramo{
@@ -216,98 +216,70 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
   .nav__links a::after{display:none}
 }
 
-/* ---------- hero ---------- */
+/* ---------- hero ----------
+   camadas: 0 fundo da marca | 1 vinha (plantada pelo JS) | 2 logo |
+   3 mulheres (recorte com alfa) | 4 veu | 5 texto.
+   Nao ha foto de fundo: as mulheres vem recortadas e o fundo e um degrade
+   quente da paleta, entao o logo claro tem contraste garantido e "nasce"
+   atras das cabecas. */
 .hero{
-  position:relative;min-height:100svh;
-  display:grid;place-items:center;
-  padding:calc(var(--nav-h) + 3rem) 0 5.5rem;
-  overflow:hidden;color:var(--creme);
-  text-align:center;
+  position:relative;height:100svh;min-height:560px;
+  overflow:hidden;color:var(--creme);text-align:center;
 }
-/* --- camadas do hero ---
-   0 foto de fundo | 1 sombra (so no fundo) | 2 logo | 3 recorte das mulheres
-   | 4 veu geral | 5 texto.
-   A sombra escurece SO o fundo, entao a marca clara ganha contraste contra o
-   fundo de estudio (que e claro) e as mulheres continuam iluminadas na frente.
-   .hero__conteudo e position:relative SEM z-index de proposito: sem contexto
-   de empilhamento proprio, o logo (z 2) consegue ficar atras do recorte (z 3)
-   enquanto o texto (z 5) fica na frente de tudo. */
-.hero__foto{position:absolute;inset:0;z-index:0}
-.hero__foto img{width:100%;height:100%;object-fit:cover;object-position:center 45%}
-
-.hero__sombra{
-  position:absolute;inset:0;z-index:1;pointer-events:none;
+.hero__fundo{
+  position:absolute;inset:0;z-index:0;
   background:
-    linear-gradient(180deg,rgba(28,21,16,.78) 0%,rgba(28,21,16,.66) 42%,rgba(28,21,16,.5) 70%,rgba(28,21,16,.55) 100%);
+    radial-gradient(90% 70% at 50% 28%,rgba(200,169,119,.3) 0%,rgba(200,169,119,0) 60%),
+    radial-gradient(120% 90% at 50% 100%,#3a2c21 0%,#241c15 70%);
 }
+.hero .vinha{z-index:1}
 
-/* mesmo enquadramento da foto de fundo — precisa bater pixel a pixel */
-.hero__recorte{
-  position:absolute;inset:0;z-index:3;pointer-events:none;
-  width:100%;height:100%;object-fit:cover;object-position:center 45%;
+/* marca: dimensionada pela ALTURA do hero, para a relacao com as cabecas
+   (que tambem sao % da altura) ser a mesma em qualquer tela */
+.hero__marca{
+  position:absolute;left:50%;bottom:59%;z-index:2;
+  /* limitada pela altura (37svh) e pela largura (92vw) — o que for menor */
+  width:min(92vw,calc(37svh * 1.851),780px);height:auto;
+  aspect-ratio:9045/4887;
+  transform:translateX(-50%);
+  color:var(--creme);
+  filter:drop-shadow(0 12px 40px rgba(20,14,10,.45));
 }
+/* as mulheres ocupam sempre os 66% de baixo do hero, centradas; nas telas
+   estreitas as laterais saem do quadro e ficam as duas do meio */
+.hero__mulheres{
+  position:absolute;left:50%;bottom:0;z-index:3;
+  height:66%;width:auto;max-width:none;
+  transform:translateX(-50%);
+  pointer-events:none;
+  filter:drop-shadow(0 30px 50px rgba(20,14,10,.45));
+}
+@media (min-aspect-ratio:2/1){ .hero__mulheres{height:auto;width:100%;max-width:1500px} }
 .hero__veu{
   position:absolute;inset:0;z-index:4;pointer-events:none;
-  background:
-    radial-gradient(130% 78% at 50% 32%,rgba(36,28,21,0) 0%,rgba(36,28,21,.2) 56%,rgba(36,28,21,.5) 100%),
-    linear-gradient(180deg,rgba(36,28,21,.26) 0%,rgba(36,28,21,0) 20%,rgba(36,28,21,.2) 46%,rgba(36,28,21,.64) 100%);
+  background:linear-gradient(180deg,rgba(36,28,21,0) 45%,rgba(36,28,21,.55) 78%,rgba(36,28,21,.82) 100%);
 }
-.hero__conteudo{position:relative;width:var(--larg-media)}
-.hero__tagline,.hero__sub,.hero__acoes{position:relative;z-index:5}
-
-/* LOGO GRANDE — e o heroi da tela. Fica na camada 2, atras das mulheres. */
-.hero__marca{
-  position:relative;z-index:2;
-  width:clamp(285px,54vw,720px);
-  height:auto;margin:0 auto;
-  color:var(--creme);
-  /* sobe a marca para que so a base das letras fique atras delas */
-  --marca-sobe:-22%;
-  transform:translateY(var(--marca-sobe));
-  filter:drop-shadow(0 10px 38px rgba(20,14,10,.5));
+.hero__conteudo{
+  position:absolute;left:50%;bottom:clamp(2.2rem,7svh,5rem);z-index:5;
+  transform:translateX(-50%);width:var(--larg-media);
 }
 .hero__tagline{
-  margin-top:clamp(1.7rem,3.4vw,2.7rem);
   font-family:var(--f-display);
-  font-size:clamp(1.3rem,.95rem + 1.65vw,2.15rem);
-  line-height:1.35;
-  color:var(--creme);
-  text-shadow:0 2px 26px rgba(20,14,10,.55);
+  font-size:clamp(1.35rem,.95rem + 1.7vw,2.2rem);
+  line-height:1.3;color:var(--creme);
+  text-shadow:0 2px 26px rgba(20,14,10,.6);
 }
 .hero__sub{
-  margin-top:1.2rem;
-  font-size:clamp(.92rem,.88rem + .3vw,1.05rem);
-  line-height:1.8;font-weight:340;
+  margin-top:.9rem;
+  font-size:clamp(.9rem,.86rem + .3vw,1.02rem);
+  line-height:1.75;font-weight:340;
   color:rgba(245,238,231,.9);
-  max-width:36ch;margin-inline:auto;
+  max-width:40ch;margin-inline:auto;
   text-shadow:0 2px 20px rgba(20,14,10,.6);
 }
 .hero__acoes{
-  margin-top:clamp(2.1rem,4vw,3rem);
-  display:flex;flex-wrap:wrap;gap:.9rem;justify-content:center;
-}
-.hero__rolar{
-  position:absolute;left:50%;bottom:2.1rem;transform:translateX(-50%);
-  z-index:5;display:flex;flex-direction:column;align-items:center;gap:.75rem;
-  color:rgba(245,238,231,.72);
-  font-size:.62rem;letter-spacing:.32em;text-transform:uppercase;font-weight:500;
-  text-decoration:none;
-}
-.hero__rolar i{
-  display:block;width:1px;height:46px;
-  background:linear-gradient(180deg,rgba(245,238,231,.7),transparent);
-  animation:desce 2.8s var(--ease) infinite;
-}
-/* em telas baixas a seta encosta nos botoes — some com ela */
-@media (max-height:780px){
-  .hero__rolar{display:none}
-  .hero{padding-bottom:3rem}
-}
-@keyframes desce{
-  0%{transform:scaleY(.2);transform-origin:top}
-  50%{transform:scaleY(1);transform-origin:top}
-  50.1%{transform:scaleY(1);transform-origin:bottom}
-  100%{transform:scaleY(.2);transform-origin:bottom}
+  margin-top:clamp(1.3rem,2.6vw,2rem);
+  display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;
 }
 
 /* ---------- botoes ---------- */
@@ -535,22 +507,17 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
   .revela{opacity:1;transform:none}
 }
 
-/* entrada do hero */
-.hero__tagline,.hero__sub,.hero__acoes{
-  opacity:0;animation:sobe 1.35s var(--ease) forwards;
-}
-.hero__tagline{animation-delay:.45s}
-.hero__sub{animation-delay:.62s}
-.hero__acoes{animation-delay:.8s}
+/* entrada do hero — os elementos ficam visiveis por padrao; a animacao so
+   parte de opacity:0 (assim, se ela nao rodar por qualquer motivo, nada some) */
+.hero__tagline,.hero__sub,.hero__acoes{animation:sobe 1.3s var(--ease) both}
+.hero__tagline{animation-delay:.9s}
+.hero__sub{animation-delay:1.05s}
+.hero__acoes{animation-delay:1.2s}
 @keyframes sobe{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
-
-/* a marca tem keyframe proprio: o `to` precisa terminar no deslocamento
-   que a coloca atras das mulheres, senao a animacao zera o transform */
-.hero__marca{opacity:0;animation:sobe-marca 1.35s var(--ease) .15s forwards}
-@keyframes sobe-marca{
-  from{opacity:0;transform:translateY(calc(var(--marca-sobe) + 22px))}
-  to{opacity:1;transform:translateY(var(--marca-sobe))}
-}
+.hero__marca{animation:nasce-marca 1.6s cubic-bezier(.2,1.1,.35,1) .2s both}
+@keyframes nasce-marca{from{opacity:0;transform:translateX(-50%) translateY(26px) scale(.94)}to{opacity:1;transform:translateX(-50%)}}
+.hero__mulheres{animation:nasce-mulheres 1.5s var(--ease) .55s both}
+@keyframes nasce-mulheres{from{opacity:0;transform:translateX(-50%) translateY(40px)}to{opacity:1;transform:translateX(-50%)}}
 
 /* acessibilidade */
 :focus-visible{outline:2px solid var(--camel);outline-offset:3px;border-radius:2px}
@@ -560,54 +527,59 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 }
 .pular:focus{left:1rem;top:1rem}
 
+
 /* ============================================================
-   JARDIM — ramos e flores que "nascem" no fundo conforme a pagina rola
+   VINHA — brotos que crescem junto com o scroll
    ============================================================
-   Cada secao tem um .jardim (camada absoluta, atras do conteudo) com
-   varios .broto. O JS calcula o quanto a secao ja entrou na tela (0..1)
-   e, quando passa do data-inicio de cada broto, adiciona .nasceu — a
-   transicao com overshoot faz o "brotar". Depois de nascer, um balanco
-   lento e continuo mantem tudo vivo. */
+   O SVG e criado pelo JS (uma vinha por .hero/.secao, alternando o lado).
+   --p (0..1) e o progresso suavizado da secao na janela; cada broto tem --t
+   (posicao ao longo do caule). O caule se desenha via stroke-dashoffset (JS)
+   e cada folha/flor cresce quando --p passa do seu --t, com 9% de folga
+   para o "brotar" ser gradual. Nada disso usa listeners por elemento: e um
+   custom property por secao por quadro. */
 .secao{position:relative;overflow:hidden}
 .secao > .container{position:relative;z-index:1}
-.jardim{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 
-.broto{
-  position:absolute;
-  width:var(--tam);height:auto;
+.vinha{
+  position:absolute;top:0;z-index:0;pointer-events:none;
+  height:100%;width:auto;
   color:var(--camel);
-  opacity:0;
-  /* nasce do "pe" do ramo: origem embaixo, no centro */
-  transform-origin:50% 100%;
-  transform:scale(.08) rotate(calc(var(--rot) - 18deg)) scaleX(var(--esp,1));
-  transition:
-    transform 1.9s cubic-bezier(.2,1.25,.35,1),
-    opacity 1.1s var(--ease);
-  will-change:transform,opacity;
+  overflow:visible;
 }
-.broto--ramo{aspect-ratio:1317/908}
-.broto--flor{aspect-ratio:1/1;transform-origin:50% 50%}
-.broto--camel{color:var(--camel);opacity:0}
-.broto--salvia{color:var(--salvia)}
+.vinha--esq{left:0}
+.vinha--dir{right:0;transform:scaleX(-1)}
+.fundo-bege .vinha{color:#a88a5a}
+.fundo-escuro .vinha{color:var(--camel)}
 
-.broto.nasceu{
-  opacity:.28;
-  transform:scale(1) rotate(var(--rot)) scaleX(var(--esp,1));
-  animation:balanca 9s ease-in-out 1.9s infinite alternate;
+.vinha__caule{
+  fill:none;stroke:currentColor;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round;
+  opacity:.62;
 }
-.broto--flor.nasceu{opacity:.22}
-.fundo-escuro .broto.nasceu{opacity:.2}
-.fundo-bege .broto.nasceu{opacity:.32}
+.vinha__broto{
+  /* escala = quanto o caule ja passou da posicao deste broto */
+  --s:clamp(0,calc((var(--p) - var(--t)) / .09),1);
+}
+.vinha__esc{
+  transform:scale(var(--s));
+  transform-box:fill-box;
+  transform-origin:0 50%;         /* folha: cresce a partir do pe, no caule */
+}
+.vinha__esc--flor{transform-origin:50% 50%}   /* flor e botao: abrem do centro */
+.vinha__folha{fill:currentColor;opacity:.72}
+.vinha__flor{fill:currentColor;opacity:.6}
+.vinha__botao{fill:currentColor;opacity:.7}
 
-/* cada broto balanca num ritmo diferente. Os atrasos ficam >= 1.9s de
-   proposito: antes disso a transicao de "brotar" ainda esta rodando e um
-   atraso negativo faria a animacao atropelar o crescimento. */
-.broto:nth-child(2n).nasceu{animation-duration:10.5s;animation-delay:2.2s;animation-direction:alternate-reverse}
-.broto:nth-child(3n).nasceu{animation-duration:12s;animation-delay:2.6s}
+.fundo-escuro .vinha__caule{opacity:.5}
+.fundo-escuro .vinha__folha{opacity:.55}
+.hero .vinha__caule{opacity:.5}
+.hero .vinha__folha,.hero .vinha__flor{opacity:.5}
 
-@keyframes balanca{
-  from{transform:scale(1) rotate(calc(var(--rot) - 2.5deg)) scaleX(var(--esp,1))}
-  to  {transform:scale(1.03) rotate(calc(var(--rot) + 2.5deg)) scaleX(var(--esp,1))}
+/* nas telas estreitas a vinha fica mais fina e mais discreta, porque as
+   fotos ocupam a largura toda e ela aparece so nas beiradas */
+@media (max-width:759px){
+  .vinha__caule{stroke-width:1.6;opacity:.55}
+  .vinha__folha{opacity:.6}
 }
 
 /* ---------- reveals mais fortes ---------- */
@@ -619,32 +591,29 @@ figure.revela{
   transition:opacity 1.1s var(--ease),transform 1.4s var(--ease),clip-path 1.4s var(--ease);
 }
 figure.revela.visivel{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
-/* fotos da galeria pares mantem o deslocamento editorial depois do reveal */
 @media (min-width:760px){
   .galeria figure.revela:nth-child(even){transform:translateY(calc(34px + clamp(18px,3vw,44px))) scale(.965)}
   .galeria figure.revela.visivel:nth-child(even){transform:translateY(clamp(18px,3vw,44px))}
 }
 
-/* titulos sobem um pouco mais e com leve "respiro" de tracking */
+/* titulos sobem mais e "assentam" o tracking */
 .titulo.revela{transform:translateY(30px);letter-spacing:.02em}
 .titulo.revela.visivel{letter-spacing:-.01em}
 
 /* rotulo: as letras se abrem */
+.rotulo{transition:letter-spacing 1.3s var(--ease),opacity 1s var(--ease)}
 .rotulo.revela{letter-spacing:.6em;opacity:0}
 .rotulo.revela.visivel{letter-spacing:.3em;opacity:1}
-.rotulo{transition:letter-spacing 1.3s var(--ease),opacity 1s var(--ease)}
 
-/* filete: as linhas se desenham a partir do ramo */
-.filete.revela::before,.filete.revela::after{
-  transform:scaleX(0);transition:transform 1.3s var(--ease) .25s;
-}
+/* filete: as linhas se desenham a partir do ramo, que brota no meio */
+.filete.revela::before,.filete.revela::after{transform:scaleX(0);transition:transform 1.3s var(--ease) .25s}
 .filete.revela::before{transform-origin:right}
 .filete.revela::after{transform-origin:left}
 .filete.revela.visivel::before,.filete.revela.visivel::after{transform:scaleX(1)}
 .filete.revela .ramo{transform:scale(.4) rotate(-20deg);transition:transform 1.4s cubic-bezier(.2,1.2,.35,1)}
 .filete.revela.visivel .ramo{transform:none}
 
-/* cards (pilares, eixos, retratos, dados) entram em cascata mais espacada */
+/* cards em cascata mais espacada */
 .pilar.revela,.eixo.revela,.retrato.revela{transform:translateY(40px)}
 .eixo.revela[data-atraso="1"]{transition-delay:.18s}
 .eixo.revela[data-atraso="2"]{transition-delay:.36s}
@@ -656,11 +625,9 @@ figure.revela.visivel{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
 .verso.revela.visivel span:nth-child(2){transition-delay:.18s}
 .verso.revela.visivel span:nth-child(3){transition-delay:.36s}
 
-/* botoes chegam por ultimo, subindo */
-.btn.revela{transform:translateY(20px)}
-
-@media (prefers-reduced-motion:reduce){
-  .broto{transition:none;animation:none !important;opacity:.22;transform:rotate(var(--rot)) scaleX(var(--esp,1))}
-  figure.revela,.titulo.revela,.rotulo.revela,.verso.revela span{transition:none;transform:none;clip-path:none;opacity:1;letter-spacing:inherit}
-  .filete.revela::before,.filete.revela::after,.filete.revela .ramo{transform:none;transition:none}
+/* fotos grandes ganham um parallax leve (JS nao precisa: e so o reveal + hover) */
+.manifesto__figura img,.promessa__figura img,.encontro__figura img{
+  transition:transform 1.2s var(--ease);
 }
+.manifesto__figura:hover img,.promessa__figura:hover img,.encontro__figura:hover img{transform:scale(1.03)}
+

@@ -19,7 +19,7 @@
 <link rel="icon" href="assets/img/logo/simbolo.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/prata.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/montserrat-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/betel.css">
+<link rel="stylesheet" href="assets/css/betel.css?v=4">
 
 <script type="application/ld+json">
 {
@@ -90,6 +90,8 @@
 <ellipse cx="100.0" cy="44.0" rx="9.5" ry="34.0" transform="rotate(308.6 100 100)"/>
 <ellipse cx="100.0" cy="47.0" rx="9.5" ry="31.0" transform="rotate(339.3 100 100)"/>
 <circle cx="100" cy="100" r="15"/></symbol>
+<symbol id="lg-folha" viewBox="0 0 44 16" fill="currentColor"><path d="M0 8 C10 -6 30 -8 44 8 C30 6.6 10 6.6 0 8 Z"/>
+<path d="M0 8 C10 22 30 24 44 8 C30 9.4 10 9.4 0 8 Z"/></symbol>
 </svg>
 <!--SPRITE:FIM-->
 
@@ -116,17 +118,17 @@
 
 <!-- ============ HERO ============ -->
 <section class="hero" id="topo">
-  <!-- O hero e montado em camadas para a marca ficar ATRAS das mulheres:
-       foto de fundo -> logo -> recorte das mulheres (PNG com alfa) -> veu -> texto -->
-  <div class="hero__foto">
-    <img src="assets/img/fotos/equipe/img-9954.webp" alt="Mulheres do Movimento Betel reunidas ao redor de uma mesa posta, com lampião, xícaras e pães" fetchpriority="high" width="1600" height="1066">
-  </div>
-  <span class="hero__sombra" aria-hidden="true"></span>
-  <img class="hero__recorte" src="assets/img/fotos/equipe/img-9954-recorte.webp" alt="" aria-hidden="true" fetchpriority="high" width="1600" height="1066">
+  <!-- Hero em camadas: fundo da marca -> vinha (JS) -> logo -> mulheres (recorte
+       com alfa, enviado pelo cliente) -> veu -> texto. -->
+  <div class="hero__fundo" aria-hidden="true"></div>
+  <svg class="hero__marca" role="img" aria-label="Betel"><use href="#lg-betel-puro"></use></svg>
+  <img class="hero__mulheres" src="assets/img/fotos/equipe/hero-mulheres.webp"
+       srcset="assets/img/fotos/equipe/hero-mulheres@900.webp 900w, assets/img/fotos/equipe/hero-mulheres.webp 1600w"
+       sizes="(max-width:700px) 1100px, 1600px"
+       alt="As quatro mulheres do Movimento Betel sentadas ao redor de uma mesa posta no chão, com lampião, xícaras, flores e pão"
+       fetchpriority="high" width="1600" height="731">
   <span class="hero__veu" aria-hidden="true"></span>
   <div class="hero__conteudo">
-    <svg class="hero__marca" role="img" aria-label="Movimento Betel"><use href="#lg-betel-puro"></use></svg>
-
     <p class="hero__tagline">O lugar onde Deus fala.</p>
     <p class="hero__sub">Um movimento de mulheres que decidiram parar, ouvir e ser transformadas — de dentro para fora.</p>
     <div class="hero__acoes">
@@ -134,16 +136,10 @@
       <a class="btn btn--linha" href="https://www.instagram.com/movimento.betel/" target="_blank" rel="noopener">Instagram</a>
     </div>
   </div>
-  <a class="hero__rolar" href="#manifesto" aria-label="Rolar para baixo"><span>Role</span><i></i></a>
 </section>
 
 <!-- ============ 01 — POR QUE BETEL ============ -->
 <section class="secao" id="manifesto">
-  <div class="jardim" aria-hidden="true">
-    <svg class="broto broto--ramo broto--camel" style="right:-2%;top:6%;--tam:clamp(140px,22vw,300px);--rot:-28deg" data-inicio=".08"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--camel" style="right:4%;top:58%;--tam:clamp(70px,9vw,120px);--rot:12deg" data-inicio=".32"><use href="#lg-flor"></use></svg>
-    <svg class="broto broto--ramo broto--salvia" style="left:-3%;top:70%;--tam:clamp(120px,18vw,240px);--rot:160deg;--esp:-1" data-inicio=".45"><use href="#lg-ramo"></use></svg>
-  </div>
   <div class="container">
     <div class="manifesto__grade">
 
@@ -181,12 +177,6 @@
 
 <!-- ============ 02 — O ENCONTRO ============ -->
 <section class="secao fundo-bege" id="encontro">
-  <div class="jardim" aria-hidden="true">
-    <svg class="broto broto--ramo broto--camel" style="left:-3%;top:4%;--tam:clamp(130px,20vw,280px);--rot:20deg;--esp:-1" data-inicio=".06"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--salvia" style="right:-1%;top:30%;--tam:clamp(80px,10vw,140px);--rot:-8deg" data-inicio=".22"><use href="#lg-flor"></use></svg>
-    <svg class="broto broto--ramo broto--camel" style="right:-2%;top:62%;--tam:clamp(150px,24vw,320px);--rot:-150deg" data-inicio=".42"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--camel" style="left:6%;top:82%;--tam:clamp(56px,7vw,96px);--rot:30deg" data-inicio=".58"><use href="#lg-flor"></use></svg>
-  </div>
   <div class="container">
     <div class="container-media centro">
       <span class="rotulo revela">O encontro</span>
@@ -226,11 +216,6 @@
 
 <!-- ============ 03 — EIXOS ============ -->
 <section class="secao">
-  <div class="jardim" aria-hidden="true">
-    <svg class="broto broto--ramo broto--salvia" style="right:-4%;top:10%;--tam:clamp(160px,26vw,340px);--rot:-20deg" data-inicio=".08"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--camel" style="left:2%;top:12%;--tam:clamp(64px,8vw,110px);--rot:0deg" data-inicio=".28"><use href="#lg-flor"></use></svg>
-    <svg class="broto broto--ramo broto--camel" style="left:-2%;top:66%;--tam:clamp(130px,20vw,260px);--rot:200deg;--esp:-1" data-inicio=".48"><use href="#lg-ramo"></use></svg>
-  </div>
   <div class="container">
     <div class="container-media centro">
       <span class="rotulo revela">No que a gente se apoia</span>
@@ -264,11 +249,6 @@
 
 <!-- ============ 04 — A PROMESSA ============ -->
 <section class="secao fundo-escuro">
-  <div class="jardim" aria-hidden="true">
-    <svg class="broto broto--ramo broto--camel" style="left:-2%;top:8%;--tam:clamp(150px,24vw,320px);--rot:24deg;--esp:-1" data-inicio=".1"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--salvia" style="left:5%;top:70%;--tam:clamp(70px,9vw,120px);--rot:-14deg" data-inicio=".4"><use href="#lg-flor"></use></svg>
-    <svg class="broto broto--ramo broto--camel" style="right:-3%;top:74%;--tam:clamp(120px,18vw,240px);--rot:-160deg" data-inicio=".5"><use href="#lg-ramo"></use></svg>
-  </div>
   <div class="container">
     <div class="promessa__grade">
       <div class="centro">
@@ -303,12 +283,6 @@
 
 <!-- ============ 05 — OS ENCONTROS ============ -->
 <section class="secao fundo-creme-quente" id="encontros">
-  <div class="jardim" aria-hidden="true">
-    <svg class="broto broto--ramo broto--camel" style="right:-3%;top:2%;--tam:clamp(140px,22vw,300px);--rot:-26deg" data-inicio=".06"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--salvia" style="left:-1%;top:24%;--tam:clamp(76px,10vw,130px);--rot:18deg" data-inicio=".2"><use href="#lg-flor"></use></svg>
-    <svg class="broto broto--ramo broto--camel" style="left:-4%;top:78%;--tam:clamp(160px,26vw,340px);--rot:170deg;--esp:-1" data-inicio=".5"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--camel" style="right:3%;top:86%;--tam:clamp(60px,8vw,100px);--rot:-30deg" data-inicio=".62"><use href="#lg-flor"></use></svg>
-  </div>
   <div class="container">
     <div class="container-media centro">
       <span class="rotulo revela">Os encontros</span>
@@ -333,12 +307,6 @@
 
 <!-- ============ 06 — QUEM SOMOS ============ -->
 <section class="secao" id="quem-somos">
-  <div class="jardim" aria-hidden="true">
-    <svg class="broto broto--ramo broto--salvia" style="left:-3%;top:6%;--tam:clamp(150px,24vw,320px);--rot:22deg;--esp:-1" data-inicio=".08"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--camel" style="right:2%;top:8%;--tam:clamp(70px,9vw,120px);--rot:6deg" data-inicio=".26"><use href="#lg-flor"></use></svg>
-    <svg class="broto broto--ramo broto--camel" style="right:-2%;top:70%;--tam:clamp(130px,20vw,270px);--rot:-155deg" data-inicio=".48"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--salvia" style="left:5%;top:80%;--tam:clamp(56px,7vw,96px);--rot:40deg" data-inicio=".6"><use href="#lg-flor"></use></svg>
-  </div>
   <div class="container">
     <div class="container-media centro">
       <span class="rotulo revela">Quem caminha à frente</span>
@@ -366,11 +334,6 @@
 
 <!-- ============ 07 — PARTICIPAR ============ -->
 <section class="secao fundo-bege" id="participar">
-  <div class="jardim" aria-hidden="true">
-    <svg class="broto broto--ramo broto--camel" style="right:-4%;top:8%;--tam:clamp(160px,26vw,340px);--rot:-24deg" data-inicio=".08"><use href="#lg-ramo"></use></svg>
-    <svg class="broto broto--flor broto--camel" style="left:4%;top:56%;--tam:clamp(80px,10vw,140px);--rot:-10deg" data-inicio=".34"><use href="#lg-flor"></use></svg>
-    <svg class="broto broto--ramo broto--salvia" style="left:-3%;top:72%;--tam:clamp(120px,18vw,240px);--rot:165deg;--esp:-1" data-inicio=".5"><use href="#lg-ramo"></use></svg>
-  </div>
   <div class="container">
     <div class="encontro">
       <div class="centro">
@@ -449,7 +412,7 @@
   </div>
 </footer>
 
-<script src="assets/js/betel.js" defer></script>
+<script src="assets/js/betel.js?v=4" defer></script>
 <script>document.getElementById('ano').textContent=new Date().getFullYear();</script>
 </body>
 </html>

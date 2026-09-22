@@ -19,6 +19,7 @@ SIMBOLOS = [
     ("lg-betel-puro", "betel.svg"),        # so "Betel" + ramo (usado no hero)
     ("lg-ramo", "simbolo.svg"),            # so o ramo de oliveira
     ("lg-flor", "flor.svg"),               # margarida, ornamento das secoes
+    ("lg-folha", "folha.svg"),             # folha de oliveira solta, usada na vinha
 ]
 
 
