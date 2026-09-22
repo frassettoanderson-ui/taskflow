@@ -460,6 +460,8 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
   grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
 }
 .dados > div{background:var(--bege);padding:1.6rem 1.15rem;text-align:center}
+/* no celular 3 celulas viravam 2 + 1 orfa: empilha */
+@media (max-width:519px){.dados{grid-template-columns:1fr}.dados > div{padding:1.15rem 1rem}}
 .dados dt{
   font-size:.62rem;letter-spacing:.24em;text-transform:uppercase;
   color:var(--camel);font-weight:600;margin-bottom:.65rem;
