@@ -70,6 +70,12 @@ Existe **uma segunda paleta**, do selo de evento **"Betel — Mulheres de Águas
 
 **Logos.** Os SVGs originais vieram com o logo pequeno dentro de um quadro 1920×1080; foram recortados no bounding box real e passados para `fill="currentColor"`, então a cor vem do CSS. Variantes geradas: `betel-movimento.svg` (lockup completo), `betel.svg` (só "Betel" + ramo), `simbolo.svg` (só o ramo, usado como favicon e ornamento) e `betel-aguas-vivas.svg` (selo de evento).
 
+### Jardim: ramos e flores que nascem ao rolar
+
+Cada `.secao` tem um `.jardim` (camada absoluta atrás do `.container`, que ganhou `z-index:1`) com vários `.broto` — o ramo da marca (`#lg-ramo`) e uma margarida desenhada no mesmo espírito (`assets/img/logo/flor.svg`, `#lg-flor`). Posição, tamanho, rotação e espelho vêm de variáveis inline (`--tam`, `--rot`, `--esp`), e cada broto tem um `data-inicio` (0..1): o JS calcula o quanto a seção já entrou na tela e, ao passar desse ponto, adiciona `.nasceu`. A transição com overshoot faz o "brotar" a partir do pé; depois um `@keyframes balanca` lento mantém tudo vivo. Uma vez nascido, não volta à semente ao rolar para cima. Os atrasos do balanço são ≥ 1.9s de propósito — um atraso negativo atropelaria a transição de crescimento.
+
+Os reveals também foram reforçados: fotos entram com zoom leve e "cortina" (`clip-path`), rótulos abrem o tracking, os filetes se desenham a partir do ramo, os versos sobem linha a linha. Tudo desliga em `prefers-reduced-motion`.
+
 ## Armadilhas já encontradas
 
 - **`aspect-ratio` vs. atributo `height`.** As `<img>` têm `width`/`height` no HTML (bom para evitar layout shift), mas isso vira `height` fixo e **anula o `aspect-ratio` do CSS**. Por isso o reset tem `img{height:auto}`. Se tirar, as fotos voltam a renderizar com 1600px de altura.
