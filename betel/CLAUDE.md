@@ -18,6 +18,12 @@ assets/img/fotos/       webp em 2 larguras: nome.webp (1600px) e nome@800.webp (
 _dev/gerar-sprite.py    injeta os logos como <symbol> no index.html (idempotente)
 ```
 
+### No ar
+
+**http://89.117.79.163:8120/** — VPS antiga, nginx estatico em `/var/www/betel`, site `/etc/nginx/sites-enabled/betel`. Sem dominio ainda, por isso e servido por porta (o `ufw` da maquina esta inativo, entao a porta responde de fora).
+
+Deploy = `bash _dev/deploy.sh` (tar por ssh; nao mexe em `/var/www/taskflow` nem em nenhum outro app da VPS). Quando houver dominio: trocar o `listen 8120` por 80/443 + `server_name` e rodar o certbot.
+
 ### Servidor de desenvolvimento
 
 `preview_start` com o nome **`betel`** (definido em `.claude/launch.json` na raiz do repo) — sobe em `http://localhost:8120`. Nunca rodar servidor pelo Bash.
@@ -51,7 +57,7 @@ Existe **uma segunda paleta**, do selo de evento **"Betel — Mulheres de Águas
 ## Pendências
 
 - **Nomes da liderança.** Os quatro retratos em "Quem caminha à frente" estão **sem legenda** de propósito — não dá para saber pelas fotos quem é quem. As contas citadas nos posts são `@gessuiporto`, `@jadivignochi`, `@juliana_nunesc` e `@nina.fsouza`. Confirmar com elas antes de legendar (há um `TODO` no HTML).
-- **Domínio e hospedagem** ainda não definidos. As URLs absolutas (`canonical`, `og:image`, JSON-LD, `sitemap.xml`, `robots.txt`) estão com `https://movimentobetel.com.br/` como palpite — **trocar quando o domínio for decidido**.
+- **Domínio.** As URLs absolutas (`canonical`, `og:image`, JSON-LD, `sitemap.xml`, `robots.txt`) estão com `https://movimentobetel.com.br/` como palpite — **trocar quando o domínio for decidido**. Enquanto isso o site responde por IP:porta, o que serve para revisão mas não para divulgar.
 - **Warbler Banner** na web, se o cliente tiver Creative Cloud.
 - Textos de fé e citação bíblica (Gênesis 28.16) foram redigidos a partir das legendas do próprio Instagram; **revisar com a liderança** antes de publicar.
 
