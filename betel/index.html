@@ -13,13 +13,13 @@
 <meta property="og:site_name" content="Movimento Betel">
 <meta property="og:title" content="Movimento Betel — O lugar onde Deus fala">
 <meta property="og:description" content="Um lugar de encontro para mulheres: mesa, oração e palavra. Encontros mensais em Imbituba, Santa Catarina.">
-<meta property="og:image" content="https://movimentobetel.com.br/assets/img/fotos/equipe/img-9954.webp">
+<meta property="og:image" content="https://movimentobetel.com.br/assets/img/fotos/equipe/img-9962.webp">
 <meta name="twitter:card" content="summary_large_image">
 
 <link rel="icon" href="assets/img/logo/simbolo.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/prata.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/montserrat-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/betel.css?v=6">
+<link rel="stylesheet" href="assets/css/betel.css?v=7">
 
 <script type="application/ld+json">
 {
@@ -101,19 +101,20 @@
 
 <!-- ============ HERO ============ -->
 <section class="hero" id="topo">
-  <!-- Hero em camadas: fundo da marca -> ramos -> logo -> mulheres (recorte
-       com alfa, enviado pelo cliente) -> veu -> texto. -->
-  <div class="hero__fundo" aria-hidden="true"></div>
+  <!-- Hero em camadas: foto da praia -> ramos -> logo -> mulheres (recorte com
+       alfa da MESMA foto, mesmo enquadramento) -> veu -> texto.
+       O horizonte da foto esta a 43% da altura; object-position 50% 43% nas
+       duas camadas de foto faz o horizonte cair SEMPRE a 43% do hero, em
+       qualquer tela — e a base do "Betel" e ancorada nessa mesma linha. -->
+  <div class="hero__foto">
+    <img src="assets/img/fotos/equipe/img-9962.webp" alt="As quatro mulheres do Movimento Betel de mãos dadas na beira do mar" fetchpriority="high" width="1600" height="1067">
+  </div>
   <div class="jardim" aria-hidden="true">
     <svg class="broto broto--camel" style="right:-3%;top:8%;--tam:clamp(150px,22vw,320px);--rot:-24deg;--t:.0" aria-hidden="true"><use href="#lg-ramo"></use></svg>
     <svg class="broto broto--camel" style="left:-4%;top:40%;--tam:clamp(120px,18vw,260px);--rot:18deg;--t:.25;--esp:-1" aria-hidden="true"><use href="#lg-ramo"></use></svg>
   </div>
   <svg class="hero__marca" role="img" aria-label="Betel"><use href="#lg-betel-puro"></use></svg>
-  <img class="hero__mulheres" src="assets/img/fotos/equipe/hero-mulheres.webp"
-       srcset="assets/img/fotos/equipe/hero-mulheres@900.webp 900w, assets/img/fotos/equipe/hero-mulheres.webp 1600w"
-       sizes="(max-width:700px) 1100px, 1600px"
-       alt="As quatro mulheres do Movimento Betel sentadas ao redor de uma mesa posta no chão, com lampião, xícaras, flores e pão"
-       fetchpriority="high" width="1600" height="731">
+  <img class="hero__mulheres" src="assets/img/fotos/equipe/img-9962-recorte.webp" alt="" aria-hidden="true" fetchpriority="high" width="1600" height="1067">
   <span class="hero__veu" aria-hidden="true"></span>
   <div class="hero__conteudo">
     <p class="hero__tagline">O lugar onde Deus fala.</p>
@@ -430,7 +431,7 @@
   </div>
 </footer>
 
-<script src="assets/js/betel.js?v=6" defer></script>
+<script src="assets/js/betel.js?v=7" defer></script>
 <script>document.getElementById('ano').textContent=new Date().getFullYear();</script>
 </body>
 </html>

@@ -218,46 +218,39 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 }
 
 /* ---------- hero ----------
-   camadas: 0 fundo da marca | 1 ramos (.jardim) | 2 logo |
-   3 mulheres (recorte com alfa) | 4 veu | 5 texto.
-   Nao ha foto de fundo: as mulheres vem recortadas e o fundo e um degrade
-   quente da paleta, entao o logo claro tem contraste garantido e "nasce"
-   atras das cabecas. */
+   camadas: 0 foto da praia | 1 ramos (.jardim) | 2 logo | 3 mulheres (recorte
+   com alfa da mesma foto) | 4 veu | 5 texto.
+   --horizonte = onde esta a linha do mar na foto (fracao da altura). As duas
+   camadas de foto usam object-position 50% var(--horizonte): o ponto da
+   imagem nessa fracao alinha com a mesma fracao do container, entao o
+   horizonte cai sempre em 43% do hero, seja qual for o recorte. */
 .hero{
+  --horizonte:43%;
   position:relative;height:100svh;min-height:560px;
   overflow:hidden;color:var(--creme);text-align:center;
 }
-.hero__fundo{
-  position:absolute;inset:0;z-index:0;
-  background:
-    radial-gradient(90% 70% at 50% 28%,rgba(200,169,119,.3) 0%,rgba(200,169,119,0) 60%),
-    radial-gradient(120% 90% at 50% 100%,#3a2c21 0%,#241c15 70%);
-}
-
-/* marca: dimensionada pela ALTURA do hero, para a relacao com as cabecas
-   (que tambem sao % da altura) ser a mesma em qualquer tela */
-.hero__marca{
-  position:absolute;left:50%;bottom:59%;z-index:2;
-  /* limitada pela altura (37svh) e pela largura (92vw) — o que for menor */
-  width:min(92vw,calc(37svh * 1.851),780px);height:auto;
-  aspect-ratio:9045/4887;
-  transform:translateX(-50%);
-  color:var(--creme);
-  filter:drop-shadow(0 12px 40px rgba(20,14,10,.45));
-}
-/* as mulheres ocupam sempre os 66% de baixo do hero, centradas; nas telas
-   estreitas as laterais saem do quadro e ficam as duas do meio */
+.hero__foto{position:absolute;inset:0;z-index:0}
+.hero__foto img,
 .hero__mulheres{
-  position:absolute;left:50%;bottom:0;z-index:3;
-  height:66%;width:auto;max-width:none;
-  transform:translateX(-50%);
-  pointer-events:none;
-  filter:drop-shadow(0 30px 50px rgba(20,14,10,.45));
+  position:absolute;inset:0;
+  width:100%;height:100%;object-fit:cover;object-position:50% var(--horizonte);
 }
-@media (min-aspect-ratio:2/1){ .hero__mulheres{height:auto;width:100%;max-width:1500px} }
+.hero__mulheres{z-index:3;pointer-events:none}
+
+/* marca: a base das letras encosta na linha do horizonte */
+.hero__marca{
+  position:absolute;left:50%;top:var(--horizonte);z-index:2;
+  width:min(90vw,860px,calc(52svh * 1.851));height:auto;
+  aspect-ratio:9045/4887;
+  transform:translate(-50%,-99%);
+  color:var(--creme);
+  filter:drop-shadow(0 10px 34px rgba(20,14,10,.35));
+}
 .hero__veu{
   position:absolute;inset:0;z-index:4;pointer-events:none;
-  background:linear-gradient(180deg,rgba(36,28,21,0) 45%,rgba(36,28,21,.55) 78%,rgba(36,28,21,.82) 100%);
+  background:
+    linear-gradient(180deg,rgba(36,28,21,.42) 0%,rgba(36,28,21,0) 26%),
+    linear-gradient(180deg,rgba(36,28,21,0) 52%,rgba(36,28,21,.5) 80%,rgba(36,28,21,.78) 100%);
 }
 .hero__conteudo{
   position:absolute;left:50%;bottom:clamp(2.2rem,7svh,5rem);z-index:5;
@@ -273,7 +266,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
   margin-top:.9rem;
   font-size:clamp(.9rem,.86rem + .3vw,1.02rem);
   line-height:1.75;font-weight:340;
-  color:rgba(245,238,231,.9);
+  color:rgba(245,238,231,.92);
   max-width:40ch;margin-inline:auto;
   text-shadow:0 2px 20px rgba(20,14,10,.6);
 }
@@ -515,9 +508,9 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 .hero__acoes{animation-delay:1.2s}
 @keyframes sobe{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 .hero__marca{animation:nasce-marca 1.6s cubic-bezier(.2,1.1,.35,1) .2s both}
-@keyframes nasce-marca{from{opacity:0;transform:translateX(-50%) translateY(26px) scale(.94)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes nasce-marca{from{opacity:0;transform:translate(-50%,calc(-99% + 26px)) scale(.94)}to{opacity:1;transform:translate(-50%,-99%)}}
 .hero__mulheres{animation:nasce-mulheres 1.5s var(--ease) .55s both}
-@keyframes nasce-mulheres{from{opacity:0;transform:translateX(-50%) translateY(40px)}to{opacity:1;transform:translateX(-50%)}}
+@keyframes nasce-mulheres{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
 
 /* acessibilidade */
 :focus-visible{outline:2px solid var(--camel);outline-offset:3px;border-radius:2px}

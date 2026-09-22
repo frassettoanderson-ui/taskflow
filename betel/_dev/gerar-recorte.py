@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Gera o recorte (PNG com alfa -> webp) das mulheres da foto do hero, para que o
+Gera o recorte (webp com alfa) das mulheres da foto do hero (praia, IMG_9962), para que o
 logo possa ficar ATRAS delas no site.
 
 O recorte precisa ter EXATAMENTE as mesmas dimensoes da foto de fundo
-(assets/img/fotos/equipe/img-9954.webp), porque as duas camadas usam o mesmo
+(assets/img/fotos/equipe/img-9962.webp), porque as duas camadas usam o mesmo
 object-fit/object-position no CSS e tem que bater pixel a pixel.
 
 Requer: pip install "rembg[cpu]"
@@ -19,11 +19,11 @@ from rembg import new_session, remove
 # foto original em alta, direto da pasta entregue pelo designer
 ORIGEM = (
     r"C:/Users/ander/Downloads/Betel/ENSAIO DAS 4 JUNTAS -20260921T225807Z-1-001"
-    r"/ENSAIO DAS 4 JUNTAS/IMG_9954.JPG"
+    r"/ENSAIO DAS 4 JUNTAS/IMG_9962.JPG"
 )
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FUNDO = os.path.join(RAIZ, "assets", "img", "fotos", "equipe", "img-9954.webp")
-DESTINO = os.path.join(RAIZ, "assets", "img", "fotos", "equipe", "img-9954-recorte.webp")
+FUNDO = os.path.join(RAIZ, "assets", "img", "fotos", "equipe", "img-9962.webp")
+DESTINO = os.path.join(RAIZ, "assets", "img", "fotos", "equipe", "img-9962-recorte.webp")
 
 alvo = Image.open(FUNDO).size
 print("fundo:", alvo)
