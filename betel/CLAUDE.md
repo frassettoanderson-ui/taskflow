@@ -57,7 +57,6 @@ Os reveals também são fortes: fotos com zoom + cortina (`clip-path`), rótulos
 ## Pendências
 
 - **Nomes da liderança.** Os quatro retratos em "Quem caminha à frente" estão **sem legenda** de propósito — não dá para saber pelas fotos quem é quem. As contas citadas nos posts são `@gessuiporto`, `@jadivignochi`, `@juliana_nunesc` e `@nina.fsouza`. Confirmar com elas antes de legendar (há um `TODO` no HTML).
-- **Domínio.** As URLs absolutas (`canonical`, `og:image`, JSON-LD, `sitemap.xml`, `robots.txt`) estão com `https://movimentobetel.com.br/` como palpite — **trocar quando o domínio for decidido**. Enquanto isso o site responde por IP:porta, o que serve para revisão mas não para divulgar.
 - **Warbler Banner** na web, se o cliente tiver Creative Cloud.
 - Textos de fé e citação bíblica (Gênesis 28.16) foram redigidos a partir das legendas do próprio Instagram; **revisar com a liderança** antes de publicar.
 
