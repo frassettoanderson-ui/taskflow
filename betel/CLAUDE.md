@@ -16,7 +16,30 @@ assets/fonts/           prata.woff2 (display) + montserrat-var.woff2 (texto), su
 assets/img/logo/        SVGs com fill=currentColor
 assets/img/fotos/       webp em 2 larguras: nome.webp (1600px) e nome@800.webp (800px)
 _dev/gerar-sprite.py    injeta os logos como <symbol> no index.html (idempotente)
+_dev/gerar-recorte.py   recorta as mulheres da foto do hero (rembg) -> webp com alfa
+_dev/deploy.sh          envia para a VPS por ssh
 ```
+
+### O hero em camadas (marca ATRAS das mulheres)
+
+O efeito pedido pelo cliente: o logo parece estar atrás das moças. É feito com duas
+cópias da mesma foto empilhadas, e o logo no meio:
+
+| z | camada | o que é |
+|---|---|---|
+| 0 | `.hero__foto img` | a foto inteira |
+| 1 | `.hero__sombra` | escurece **só o fundo**, para a marca clara ganhar contraste contra o ciclorama (que é claro) |
+| 2 | `.hero__marca` | o logo |
+| 3 | `.hero__recorte` | as mulheres + os objetos da frente, recortados com alfa |
+| 4 | `.hero__veu` | véu geral, unifica as duas camadas e segura a leitura do texto |
+| 5 | texto e botões | sempre nítidos |
+
+Regras que sustentam isso e quebram fácil se mexidas:
+
+- `.hero__conteudo` é `position:relative` **sem `z-index`** de propósito. Se ganhar um `z-index`, vira contexto de empilhamento próprio e o logo não consegue mais ficar atrás do recorte.
+- `.hero__recorte` tem que usar **exatamente** o mesmo `object-fit`/`object-position` e as mesmas dimensões da foto de fundo, senão as camadas desencontram.
+- A marca do hero tem **keyframe próprio** (`sobe-marca`). Ela fica deslocada com `translateY(var(--marca-sobe))`, e a animação de entrada padrão terminava em `transform:none` — o que zerava o deslocamento.
+- O hero usa o lockup **sem "MOVIMENTO"** (`#lg-betel-puro`): a palavra menor sumia inteira atrás das cabeças. O lockup completo segue no topo e no rodapé.
 
 ### No ar
 
@@ -52,7 +75,8 @@ Existe **uma segunda paleta**, do selo de evento **"Betel — Mulheres de Águas
 - **`aspect-ratio` vs. atributo `height`.** As `<img>` têm `width`/`height` no HTML (bom para evitar layout shift), mas isso vira `height` fixo e **anula o `aspect-ratio` do CSS**. Por isso o reset tem `img{height:auto}`. Se tirar, as fotos voltam a renderizar com 1600px de altura.
 - **`<use href="#...">` não herda a proporção do `<symbol>`.** Todo `<svg>` que usa o sprite precisa de `aspect-ratio` no CSS, senão vira 150px de altura (o default). Já declarado para `.nav__marca svg`, `.hero__marca`, `.rodape__marca` e `.ramo`.
 - **Grades com `auto-fit`** deixavam cards órfãos em telas médias (3 pilares em 2 colunas, 4 retratos em 3 colunas). As colunas agora são explícitas por breakpoint.
-- **Preview pane:** com viewport emulado acima da largura do painel, o screenshot sai pintado só em parte. Para conferir visual, usar a largura nativa do painel ou o preset mobile.
+- **Preview pane:** com viewport emulado acima da largura do painel, o screenshot às vezes sai pintado só em parte. Se acontecer, usar a largura nativa do painel ou o preset mobile.
+- **Recorte do hero:** foi feito com `rembg` (isnet-general-use + alpha matting) rodando local, e **não** com API generativa de imagem — essas redesenham a foto, e aqui o recorte precisa bater pixel a pixel com o fundo. O modelo baixa ~179MB na primeira execução.
 
 ## Pendências
 

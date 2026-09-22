@@ -133,8 +133,9 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
    Um <svg><use href="#..."></svg> nao herda a proporcao do <symbol>,
    entao a proporcao de cada lockup fica declarada aqui. */
 .nav__marca svg,
-.hero__marca,
 .rodape__marca{aspect-ratio:914/584}
+/* o hero usa o lockup sem "MOVIMENTO" (ele sumiria inteiro atras das mulheres) */
+.hero__marca{aspect-ratio:9045/4887}
 
 /* ramo de oliveira como ornamento */
 .ramo{
@@ -223,22 +224,47 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
   overflow:hidden;color:var(--creme);
   text-align:center;
 }
+/* --- camadas do hero ---
+   0 foto de fundo | 1 sombra (so no fundo) | 2 logo | 3 recorte das mulheres
+   | 4 veu geral | 5 texto.
+   A sombra escurece SO o fundo, entao a marca clara ganha contraste contra o
+   fundo de estudio (que e claro) e as mulheres continuam iluminadas na frente.
+   .hero__conteudo e position:relative SEM z-index de proposito: sem contexto
+   de empilhamento proprio, o logo (z 2) consegue ficar atras do recorte (z 3)
+   enquanto o texto (z 5) fica na frente de tudo. */
 .hero__foto{position:absolute;inset:0;z-index:0}
 .hero__foto img{width:100%;height:100%;object-fit:cover;object-position:center 45%}
-.hero__foto::after{
-  content:"";position:absolute;inset:0;
-  background:
-    radial-gradient(120% 80% at 50% 40%,rgba(36,28,21,.18) 0%,rgba(36,28,21,.52) 62%,rgba(36,28,21,.8) 100%),
-    linear-gradient(180deg,rgba(36,28,21,.5) 0%,rgba(36,28,21,.14) 26%,rgba(36,28,21,.64) 100%);
-}
-.hero__conteudo{position:relative;z-index:1;width:var(--larg-media)}
 
-/* LOGO GRANDE — e o heroi da tela */
+.hero__sombra{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:
+    linear-gradient(180deg,rgba(28,21,16,.78) 0%,rgba(28,21,16,.66) 42%,rgba(28,21,16,.5) 70%,rgba(28,21,16,.55) 100%);
+}
+
+/* mesmo enquadramento da foto de fundo — precisa bater pixel a pixel */
+.hero__recorte{
+  position:absolute;inset:0;z-index:3;pointer-events:none;
+  width:100%;height:100%;object-fit:cover;object-position:center 45%;
+}
+.hero__veu{
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:
+    radial-gradient(130% 78% at 50% 32%,rgba(36,28,21,0) 0%,rgba(36,28,21,.2) 56%,rgba(36,28,21,.5) 100%),
+    linear-gradient(180deg,rgba(36,28,21,.26) 0%,rgba(36,28,21,0) 20%,rgba(36,28,21,.2) 46%,rgba(36,28,21,.64) 100%);
+}
+.hero__conteudo{position:relative;width:var(--larg-media)}
+.hero__tagline,.hero__sub,.hero__acoes{position:relative;z-index:5}
+
+/* LOGO GRANDE — e o heroi da tela. Fica na camada 2, atras das mulheres. */
 .hero__marca{
-  width:clamp(265px,44vw,600px);
+  position:relative;z-index:2;
+  width:clamp(285px,54vw,720px);
   height:auto;margin:0 auto;
   color:var(--creme);
-  filter:drop-shadow(0 14px 44px rgba(20,14,10,.55));
+  /* sobe a marca para que so a base das letras fique atras delas */
+  --marca-sobe:-22%;
+  transform:translateY(var(--marca-sobe));
+  filter:drop-shadow(0 10px 38px rgba(20,14,10,.5));
 }
 .hero__tagline{
   margin-top:clamp(1.7rem,3.4vw,2.7rem);
@@ -262,7 +288,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 }
 .hero__rolar{
   position:absolute;left:50%;bottom:2.1rem;transform:translateX(-50%);
-  z-index:1;display:flex;flex-direction:column;align-items:center;gap:.75rem;
+  z-index:5;display:flex;flex-direction:column;align-items:center;gap:.75rem;
   color:rgba(245,238,231,.72);
   font-size:.62rem;letter-spacing:.32em;text-transform:uppercase;font-weight:500;
   text-decoration:none;
@@ -510,14 +536,21 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 }
 
 /* entrada do hero */
-.hero__marca,.hero__tagline,.hero__sub,.hero__acoes{
+.hero__tagline,.hero__sub,.hero__acoes{
   opacity:0;animation:sobe 1.35s var(--ease) forwards;
 }
-.hero__marca{animation-delay:.15s}
 .hero__tagline{animation-delay:.45s}
 .hero__sub{animation-delay:.62s}
 .hero__acoes{animation-delay:.8s}
 @keyframes sobe{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+
+/* a marca tem keyframe proprio: o `to` precisa terminar no deslocamento
+   que a coloca atras das mulheres, senao a animacao zera o transform */
+.hero__marca{opacity:0;animation:sobe-marca 1.35s var(--ease) .15s forwards}
+@keyframes sobe-marca{
+  from{opacity:0;transform:translateY(calc(var(--marca-sobe) + 22px))}
+  to{opacity:1;transform:translateY(var(--marca-sobe))}
+}
 
 /* acessibilidade */
 :focus-visible{outline:2px solid var(--camel);outline-offset:3px;border-radius:2px}

@@ -16,6 +16,7 @@ HTML = os.path.join(RAIZ, "index.html")
 
 SIMBOLOS = [
     ("lg-betel", "betel-movimento.svg"),   # lockup completo: Betel + MOVIMENTO
+    ("lg-betel-puro", "betel.svg"),        # so "Betel" + ramo (usado no hero)
     ("lg-ramo", "simbolo.svg"),            # so o ramo de oliveira
 ]
 
