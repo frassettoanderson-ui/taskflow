@@ -19,7 +19,7 @@
 <link rel="icon" href="assets/img/logo/simbolo.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/prata.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/montserrat-var.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/betel.css?v=7">
+<link rel="stylesheet" href="assets/css/betel.css?v=8">
 
 <script type="application/ld+json">
 {
@@ -113,7 +113,13 @@
     <svg class="broto broto--camel" style="right:-3%;top:8%;--tam:clamp(150px,22vw,320px);--rot:-24deg;--t:.0" aria-hidden="true"><use href="#lg-ramo"></use></svg>
     <svg class="broto broto--camel" style="left:-4%;top:40%;--tam:clamp(120px,18vw,260px);--rot:18deg;--t:.25;--esp:-1" aria-hidden="true"><use href="#lg-ramo"></use></svg>
   </div>
-  <svg class="hero__marca" role="img" aria-label="Betel"><use href="#lg-betel-puro"></use></svg>
+  <!-- palco: janela que vai do topo do hero ate o horizonte, com overflow
+       escondido. Ao rolar, a marca desce dentro dela e "afunda" no mar. -->
+  <div class="hero__palco" aria-hidden="false">
+    <div class="hero__mov">
+      <svg class="hero__marca" role="img" aria-label="Betel"><use href="#lg-betel-puro"></use></svg>
+    </div>
+  </div>
   <img class="hero__mulheres" src="assets/img/fotos/equipe/img-9962-recorte.webp" alt="" aria-hidden="true" fetchpriority="high" width="1600" height="1067">
   <span class="hero__veu" aria-hidden="true"></span>
   <div class="hero__conteudo">
@@ -431,7 +437,7 @@
   </div>
 </footer>
 
-<script src="assets/js/betel.js?v=7" defer></script>
+<script src="assets/js/betel.js?v=8" defer></script>
 <script>document.getElementById('ano').textContent=new Date().getFullYear();</script>
 </body>
 </html>

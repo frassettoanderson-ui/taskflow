@@ -60,6 +60,18 @@
     return p < 0 ? 0 : p > 1 ? 1 : p;
   }
 
+  /* por do sol: a marca do hero afunda no horizonte conforme a pagina rola.
+     0 no topo da pagina, 1 quando ja se rolou 55% da altura do hero. */
+  var hero = document.querySelector('.hero');
+  var mov = document.querySelector('.hero__mov');
+  var sol = { atual: 0, alvo: 0 };
+  function afundar() {
+    if (!hero) return 0;
+    var v = window.scrollY / (hero.offsetHeight * 0.55);
+    v = v < 0 ? 0 : v > 1 ? 1 : v;
+    return v * v * (3 - 2 * v);           /* suaviza as pontas */
+  }
+
   var rodando = false;
   function quadro() {
     var pendente = false;
@@ -72,12 +84,19 @@
       else { j.atual += delta * passo; pendente = true; }
       j.el.style.setProperty('--p', j.atual.toFixed(4));
     }
+    if (mov) {
+      var d = sol.alvo - sol.atual;
+      if (Math.abs(d) < 0.0015) { sol.atual = sol.alvo; }
+      else { sol.atual += d * Math.max(passo, 0.22); pendente = true; }
+      mov.style.setProperty('--afunda', sol.atual.toFixed(4));
+    }
     if (pendente) window.requestAnimationFrame(quadro);
     else rodando = false;
   }
   function medir() {
     navAoRolar();
     for (var i = 0; i < jardins.length; i++) jardins[i].alvo = progressoDe(jardins[i]);
+    sol.alvo = afundar();
     if (!rodando) { rodando = true; window.requestAnimationFrame(quadro); }
   }
 

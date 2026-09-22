@@ -237,12 +237,24 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 }
 .hero__mulheres{z-index:3;pointer-events:none}
 
-/* marca: a base das letras encosta na linha do horizonte */
+/* marca: a base das letras encosta na linha do horizonte.
+   .hero__palco vai do topo do hero ate o horizonte e esconde o que passa
+   dele; .hero__mov desce com --afunda (0..1, escrito pelo JS conforme a
+   pagina rola), entao o "Betel" vai afundando no mar como um sol. */
+.hero__palco{
+  position:absolute;left:0;right:0;top:0;height:var(--horizonte);
+  z-index:2;overflow:hidden;pointer-events:none;
+}
+.hero__mov{
+  --afunda:0;
+  position:absolute;left:50%;bottom:0;
+  width:min(76vw,700px,calc(44svh * 1.851));
+  transform:translate(-50%,calc(var(--afunda) * 104%));
+  will-change:transform;
+}
 .hero__marca{
-  position:absolute;left:50%;top:var(--horizonte);z-index:2;
-  width:min(90vw,860px,calc(52svh * 1.851));height:auto;
+  display:block;width:100%;height:auto;
   aspect-ratio:9045/4887;
-  transform:translate(-50%,-99%);
   color:var(--creme);
   filter:drop-shadow(0 10px 34px rgba(20,14,10,.35));
 }
@@ -508,7 +520,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 .hero__acoes{animation-delay:1.2s}
 @keyframes sobe{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 .hero__marca{animation:nasce-marca 1.6s cubic-bezier(.2,1.1,.35,1) .2s both}
-@keyframes nasce-marca{from{opacity:0;transform:translate(-50%,calc(-99% + 26px)) scale(.94)}to{opacity:1;transform:translate(-50%,-99%)}}
+@keyframes nasce-marca{from{opacity:0;transform:translateY(26px) scale(.94)}to{opacity:1;transform:none}}
 .hero__mulheres{animation:nasce-mulheres 1.5s var(--ease) .55s both}
 @keyframes nasce-mulheres{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
 
