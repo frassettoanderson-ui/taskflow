@@ -264,6 +264,32 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
     linear-gradient(180deg,rgba(36,28,21,.42) 0%,rgba(36,28,21,0) 26%),
     linear-gradient(180deg,rgba(36,28,21,0) 52%,rgba(36,28,21,.5) 80%,rgba(36,28,21,.78) 100%);
 }
+/* celular em pe: com object-fit:cover so duas apareciam. Aqui a foto passa a
+   ter 200vw de largura (as quatro ocupam o meio da foto, 25%-75%, que e
+   exatamente 100vw), ancorada no rodape; o ceu acima e completado com um
+   degrade na cor do topo da foto. O horizonte muda de lugar, entao
+   --horizonte e recalculado: a foto tem 133.4vw de altura e o mar esta a 43%
+   dela -> 100svh - 133.4vw + 57.4vw. */
+@media (max-aspect-ratio:3/4){
+  .hero{--horizonte:calc(100svh - 76vw);background:linear-gradient(180deg,#a6ccd9 0%,#a3cad8 100%)}
+  .hero__foto{background:transparent}
+  .hero__foto img,
+  .hero__mulheres{
+    /* centrada por left, nao por transform: a animacao de entrada das
+       mulheres termina em transform:none e desalinharia as camadas */
+    left:calc(50% - 100vw);top:auto;bottom:0;width:200vw;max-width:none;height:133.4vw;
+    object-fit:fill;object-position:50% 50%;
+  }
+  /* esfuma a emenda entre o degrade do ceu e o topo da foto */
+  .hero__foto::after{
+    content:"";position:absolute;left:0;right:0;top:calc(100% - 133.4vw);height:16vw;
+    background:linear-gradient(180deg,#a3cad8 0%,rgba(163,202,216,0) 100%);
+  }
+  /* o ceu (topo) fica vazio: tagline, subtitulo e botoes sobem para la;
+     abaixo vem o logo no horizonte e as quatro inteiras, sem nada por cima */
+  .hero__conteudo{top:calc(var(--nav-h) + .5rem);bottom:auto}
+  .hero__tagline{font-size:clamp(1.45rem,7vw,2rem)}
+}
 .hero__conteudo{
   position:absolute;left:50%;bottom:clamp(2.2rem,7svh,5rem);z-index:5;
   transform:translateX(-50%);width:var(--larg-media);
@@ -524,7 +550,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.12}
 .hero__marca{animation:nasce-marca 1.6s cubic-bezier(.2,1.1,.35,1) .2s both}
 @keyframes nasce-marca{from{opacity:0;transform:translateY(26px) scale(.94)}to{opacity:1;transform:none}}
 .hero__mulheres{animation:nasce-mulheres 1.5s var(--ease) .55s both}
-@keyframes nasce-mulheres{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+@keyframes nasce-mulheres{from{opacity:0}to{opacity:1}}
 
 /* acessibilidade */
 :focus-visible{outline:2px solid var(--camel);outline-offset:3px;border-radius:2px}
