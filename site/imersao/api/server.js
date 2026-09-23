@@ -172,7 +172,7 @@ function arquivoBoasVindas() {
 async function enviarBoasVindas(rec) {
   if (!EVO_KEY) return 'sem_whatsapp';
   const f = arquivoBoasVindas(); if (!f) return 'sem_audio';
-  const numero = '55' + digits(rec.whatsapp).replace(/^55/, '');
+  const numero = numeroZap(rec);
   const b64 = fs.readFileSync(f).toString('base64');
   try {
     await fetch(`${EVO_URL}/chat/sendPresence/${EVO_ADD_INSTANCE}`, {
@@ -214,6 +214,9 @@ const chaveFone = s => {
   if (d.length >= 12 && d.startsWith('55')) d = d.slice(2);
   return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d;
 };
+// monta o número pra ENVIAR (E.164 sem +): remove código do país só se for internacional (12-13 díg.), depois prefixa 55.
+// Sem isso, DDD 55 (RS) perde o DDD e o envio falha.
+const numeroZap = rec => { let d = digits(rec.whatsapp); if (d.length >= 12 && d.startsWith('55')) d = d.slice(2); return '55' + d; };
 
 // quando um pagamento é aprovado, remove as tentativas pendentes da mesma pessoa
 // (ex.: gerou o PIX, não pagou na hora, e depois se inscreveu de novo e pagou)
@@ -336,8 +339,7 @@ app.post('/api/grupo/adicionar', async (req, res) => {
   if (!jid) return res.status(503).json({ error: 'grupo_indisponivel' });
 
   // WhatsApp usa o número com 55 e, em geral, sem o 9º dígito para linhas antigas
-  const base = digits(rec.whatsapp).replace(/^55/, '');
-  const alvo = '55' + base;
+  const alvo = numeroZap(rec);
   try {
     const r = await fetch(`${EVO_URL}/group/updateParticipant/${EVO_ADD_INSTANCE}?groupJid=${encodeURIComponent(jid)}`, {
       method: 'POST',
@@ -368,7 +370,7 @@ app.post('/api/convite', async (req, res) => {
   if (!EVO_KEY) return res.status(503).json({ error: 'whatsapp_desconectado' });
   if (!GRUPO) return res.status(400).json({ error: 'sem_link_grupo' });
 
-  const numero = '55' + digits(rec.whatsapp).replace(/^55/, '');
+  const numero = numeroZap(rec);
   const primeiro = String(rec.nome || '').split(' ')[0] || '';
   const texto =
     `Olá ${primeiro}! Sua inscrição na *Imersão Bravos* está confirmada. ✅\n\n` +
