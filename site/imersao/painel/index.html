@@ -175,11 +175,12 @@
             <th class="esconde">E-mail</th>
             <th>Pagamento</th>
             <th>No grupo</th>
+            <th>Áudio</th>
             <th class="esconde">Inscrito em</th>
             <th></th>
           </tr>
         </thead>
-        <tbody id="linhas"><tr><td colspan="8" class="vazio">Carregando…</td></tr></tbody>
+        <tbody id="linhas"><tr><td colspan="9" class="vazio">Carregando…</td></tr></tbody>
       </table>
     </div>
 
@@ -332,6 +333,10 @@ function render() {
   const tagGrupo = r => r.noGrupo === true
     ? '<span class="tag t-sim">Sim</span>'
     : '<button class="mini" data-add="' + r.id + '">Adicionar no grupo</button>';
+  // áudio de boas-vindas: recebeu => "Sim"; não recebeu => botão "Enviar áudio"
+  const tagAudio = r => r.boasVindas
+    ? '<span class="tag t-sim">Sim</span>'
+    : '<button class="mini" data-boasvindas="' + r.id + '">Enviar áudio</button>';
   const LAPIS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
   $('#linhas').innerHTML = lista.length ? lista.map(r => `
@@ -342,13 +347,13 @@ function render() {
       <td class="esconde">${esc(r.email)}</td>
       <td>${tagPag(r.status)}${r.status === 'approved' ? `<span class="forma ${r.manual ? 'manual' : ''}">${formaLabel(r)}</span>` : ''}</td>
       <td id="g-${r.id}">${tagGrupo(r)}</td>
+      <td id="au-${r.id}">${r.status === 'approved' ? tagAudio(r) : '—'}</td>
       <td class="esconde">${dataBr(r.criado)}</td>
       <td class="acoes">
         ${r.noGrupo === true ? '' : `<button class="mini" data-convite="${r.id}">Enviar convite</button>`}
-        <button class="mini" data-boasvindas="${r.id}" title="Enviar o áudio de boas-vindas do pastor">${r.boasVindas ? '🔊 Reenviar áudio' : '🔊 Áudio'}</button>
         <button class="lapis" data-edit="${r.id}" title="Editar">${LAPIS}</button>
       </td>
-    </tr>`).join('') : '<tr><td colspan="8" class="vazio">Nenhum registro com esse filtro.</td></tr>';
+    </tr>`).join('') : '<tr><td colspan="9" class="vazio">Nenhum registro com esse filtro.</td></tr>';
 
   $('#rodape').textContent = `${lista.length} de ${inscritos.length} registros · atualizado ${new Date().toLocaleTimeString('pt-BR')}`;
 }
@@ -378,6 +383,7 @@ $('#linhas').addEventListener('click', async e => {
   }
   const bv = e.target.closest('[data-boasvindas]');
   if (bv) {
+    const cel = document.getElementById('au-' + bv.dataset.boasvindas);
     bv.disabled = true; bv.textContent = 'Enviando...';
     try {
       const r = await fetch('../api/boasvindas?key=' + encodeURIComponent(KEY), {
@@ -385,9 +391,9 @@ $('#linhas').addEventListener('click', async e => {
         body: JSON.stringify({ id: bv.dataset.boasvindas }),
       });
       const d = await r.json();
-      if (d.ok) { bv.textContent = '🔊 Áudio enviado'; bv.style.borderColor = '#4ea86a'; bv.style.color = '#7cc994'; }
-      else { bv.textContent = '🔊 Falhou - tentar'; bv.disabled = false; bv.title = d.detalhe || d.error || ''; }
-    } catch (err) { bv.textContent = '🔊 Erro - tentar'; bv.disabled = false; }
+      if (d.ok) { if (cel) cel.innerHTML = '<span class="tag t-sim">Sim</span>'; }
+      else { bv.textContent = 'Falhou - tentar'; bv.disabled = false; bv.title = d.detalhe || d.error || ''; }
+    } catch (err) { bv.textContent = 'Erro - tentar'; bv.disabled = false; }
     return;
   }
   const add = e.target.closest('[data-add]');
