@@ -143,7 +143,7 @@
     <div class="tabela">
       <table>
         <thead><tr>
-          <th class="ord">#</th><th>Nome</th><th>WhatsApp</th><th>Pagamento</th><th>No grupo</th><th>Pós-pagamento</th><th>Inscrita em</th><th></th>
+          <th class="ord">#</th><th>Nome</th><th>WhatsApp</th><th>Pagamento</th><th>No grupo</th><th>Áudio</th><th>Inscrita em</th><th></th>
         </tr></thead>
         <tbody id="linhas"><tr><td colspan="8" class="vazio">Carregando…</td></tr></tbody>
       </table>
@@ -262,7 +262,8 @@ function render() {
 
   const formaLabel = r => { const m = { pix:'PIX', cartao:'Cartão', dinheiro:'Dinheiro', transferencia:'Transferência' }[r.metodo] || r.metodo || ''; return r.manual ? (m + ' · lançado') : m; };
   const tagPag = s => s === 'approved' ? '<span class="tag t-pago">Paga</span>' : s === 'pending' ? '<span class="tag t-pend">Pendente</span>' : `<span class="tag t-neg">${s === 'rejected' ? 'Recusado' : esc(s)}</span>`;
-  const tagGrupo = r => r.noGrupo === true ? '<span class="tag t-sim">Sim</span>' : (r.status === 'approved' ? '<button class="mini" data-add="' + r.id + '">Adicionar</button>' : '—');
+  const tagGrupo = r => r.noGrupo === true ? '<span class="tag t-sim">Sim</span>' : (r.status === 'approved' ? '<button class="mini" data-texto="' + r.id + '">Enviar convite</button>' : '—');
+  const tagAudio = r => (r.pos && r.pos.audio === 'enviado') ? '<span class="tag t-sim">Sim</span>' : (r.status === 'approved' ? '<button class="mini" data-audio="' + r.id + '">Enviar áudio</button>' : '—');
   const cls = v => !v ? '' : (v === 'enviado' || v === 'adicionado' || v === 'ja_no_grupo') ? 'ok' : v === 'sem_audio' ? 'warn' : 'bad';
   const rot = v => !v ? '—' : ({ enviado:'ok', adicionado:'ok', ja_no_grupo:'já estava', sem_audio:'sem áudio', privacidade:'privacidade', saiu_recente:'saiu há pouco', bloqueou:'bloqueou', grupo_indisponivel:'sem grupo', evolution_nao_configurado:'sem whatsapp' }[v] || (v.startsWith('falhou') ? 'falhou' : v));
   const pos = r => r.status !== 'approved' ? '—' : `<div class="pos">
@@ -278,10 +279,9 @@ function render() {
       <td><a href="https://wa.me/55${String(r.whatsapp||'').replace(/\D/g,'').replace(/^55/,'')}" target="_blank" rel="noopener">${fone(r.whatsapp)}</a></td>
       <td>${tagPag(r.status)}${r.status === 'approved' ? `<span class="forma">${formaLabel(r)} · ${real(r.valor)}</span>` : ''}</td>
       <td id="g-${r.id}">${tagGrupo(r)}</td>
-      <td>${pos(r)}</td>
+      <td id="au-${r.id}">${tagAudio(r)}</td>
       <td>${dataBr(r.criado)}</td>
       <td class="acoes">
-        ${r.status === 'approved' ? `<button class="mini" data-texto="${r.id}">Texto</button><button class="mini" data-audio="${r.id}">Áudio</button><button class="mini" data-tudo="${r.id}" title="Roda grupo + texto + áudio de novo">Refazer tudo</button>` : ''}
         <button class="lapis" data-edit="${r.id}" title="Editar">${LAPIS}</button>
       </td>
     </tr>`).join('') : '<tr><td colspan="8" class="vazio">Nenhum registro com esse filtro.</td></tr>';
