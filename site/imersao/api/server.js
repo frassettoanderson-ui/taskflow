@@ -208,7 +208,10 @@ const GRUPO_CODE = (String(GRUPO).match(/chat\.whatsapp\.com\/([A-Za-z0-9]+)/) |
 
 // o WhatsApp guarda números BR sem o 9º dígito — compara DDD + últimos 8
 const chaveFone = s => {
-  const d = digits(s).replace(/^55/, '');
+  // remove o código do país 55 SÓ em número de tamanho internacional (12-13 dígitos);
+  // senão o "55" pode ser o DDD (ex.: RS) e não deve ser removido. Depois usa DDD + últimos 8.
+  let d = digits(s);
+  if (d.length >= 12 && d.startsWith('55')) d = d.slice(2);
   return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d;
 };
 

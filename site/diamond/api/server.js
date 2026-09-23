@@ -177,7 +177,9 @@ const evo = (p, opts = {}) => fetch(EVO_URL + p, {
   signal: AbortSignal.timeout(opts.timeout || 8000),
 }).then(async r => ({ ok: r.ok, status: r.status, body: await r.json().catch(() => ({})) }));
 
-const chaveFone = s => { const d = digits(s).replace(/^55/, ''); return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d; };
+// chave p/ casar números: remove o código do país 55 SÓ quando o número tem tamanho de internacional
+// (12-13 dígitos) — senão o "55" pode ser o DDD (ex.: RS), que NÃO deve ser removido. Depois usa DDD + últimos 8.
+const chaveFone = s => { let d = digits(s); if (d.length >= 12 && d.startsWith('55')) d = d.slice(2); return d.length >= 10 ? d.slice(0, 2) + d.slice(-8) : d; };
 const numeroZap = rec => '55' + digits(rec.whatsapp).replace(/^55/, '');
 const primeiroNome = rec => String(rec.nome || '').split(' ')[0] || '';
 const dormir = ms => new Promise(r => setTimeout(r, ms));
