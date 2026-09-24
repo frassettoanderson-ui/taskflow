@@ -32,3 +32,10 @@ SESSOES = {
     "ny":         (16, 21),  # tarde americana
     "pos_ny":     (21, 24),  # virada do dia, liquidez minima
 }
+
+# Barras com spread anomalo sao descartadas antes da analise.
+# Na virada do dia do servidor (21h UTC no MetaQuotes-Demo) o spread do
+# EURUSD pula de ~3 para ~15 pontos e o volume cai a um sexto. Padroes
+# detectados nessa janela produzem "borda" que nao existe na pratica:
+# o movimento medido e alargamento de spread, nao preco.
+LIMITE_SPREAD_MEDIANAS = 3.0
