@@ -21,18 +21,14 @@ ANOS_PADRAO = 12
 # Com o padrao (100000) o M5 devolve so ~1,3 ano. Foi elevado para
 # 2147483647 em 24/09/2026, liberando os 12 anos completos.
 
-# Janelas de sessao em horario UTC (inicio inclusivo, fim exclusivo).
-# Forex roda 24h, mas Toquio, Londres e NY tem comportamentos distintos.
-# Segmentar por sessao costuma separar padrao com borda de padrao inutil.
+# Janelas de sessao em UTC, **disjuntas** (inicio inclusivo, fim exclusivo).
+# Faixas sobrepostas se mascaram e a contagem por sessao fica errada; por isso
+# a sobreposicao Londres+NY — onde mora o maior volume do dia — e uma faixa
+# propria em vez de ficar escondida dentro de "londres" ou de "ny".
 SESSOES = {
-    "sydney":  (21, 6),
-    "toquio":  (0, 9),
-    "londres": (7, 16),
-    "ny":      (12, 21),
-}
-
-# Sobreposicoes: onde mora a maior parte do volume
-SOBREPOSICOES = {
-    "londres_ny": (12, 16),
-    "toquio_londres": (7, 9),
+    "asia":       (0, 7),    # Toquio/Sydney: baixa liquidez, tende a range
+    "londres":    (7, 12),   # abertura europeia
+    "londres_ny": (12, 16),  # sobreposicao: maior volume e maior amplitude
+    "ny":         (16, 21),  # tarde americana
+    "pos_ny":     (21, 24),  # virada do dia, liquidez minima
 }
