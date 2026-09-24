@@ -12,6 +12,15 @@ PARES = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD"]
 
 TIMEFRAMES = ["M1", "M5", "M15", "M30", "H1", "H4", "D1"]
 
+# Padrao do download em lote.
+# M5 = operacional; M15 = confirmacao; H1 = contexto de tendencia.
+TF_PADRAO = ["M5", "M15", "H1"]
+ANOS_PADRAO = 12
+
+# ATENCAO: o terminal limita barras por "MaxBars" em config/common.ini.
+# Com o padrao (100000) o M5 devolve so ~1,3 ano. Foi elevado para
+# 2147483647 em 24/09/2026, liberando os 12 anos completos.
+
 # Janelas de sessao em horario UTC (inicio inclusivo, fim exclusivo).
 # Forex roda 24h, mas Toquio, Londres e NY tem comportamentos distintos.
 # Segmentar por sessao costuma separar padrao com borda de padrao inutil.
