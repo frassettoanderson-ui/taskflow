@@ -192,6 +192,39 @@ grafico", e por isso nao testadas aqui): microestrutura e fluxo, carry,
 sazonalidade de calendario, cointegracao entre pares, regime de
 volatilidade.
 
+## Quarta rodada: XAU/USD e estrategias de livro (24/09/2026)
+
+O usuario esclareceu o objetivo real: **apoio a decisao para day trade**,
+comecando por ouro (XAU/USD), sem estrategia propria definida. Baixados
+20 anos de XAUUSD (M5 a D1) e implementadas 7 estrategias publicadas,
+com os parametros dos autores — nao com parametros ajustados ate agradar.
+
+Estrategias em `src/estrategias.py`: Opening Range Breakout de Londres e de
+NY (Crabel/Fisher), RSI(2) de Connors, reversao nas Bandas de Bollinger,
+canal de Donchian 20 (Tartarugas), reversao ao VWAP diario e cruzamento
+9/21 com filtro de media 200.
+
+Cada uma testada com tres relacoes risco/retorno (1:1, 1:2, 1:3):
+**81 combinacoes, 4 positivas no treino, 0 aprovadas na validacao.**
+
+Custo do ouro em R (stop = 1 ATR): M5 0,161 | M15 0,082 | H1 0,025 | D1 0,002.
+Em M5 o ouro e o ativo mais caro medido no projeto — acima do EURUSD (0,154).
+
+### O exemplo didatico que saiu daqui
+
+RSI(2) de Connors, ouro M5, 48.799 operacoes:
+**54,5% de acerto** (acima do breakeven de 53,48%) e **-0,146R** por
+operacao. Acerta mais da metade das vezes e perde dinheiro do mesmo jeito.
+
+E a demonstracao mais limpa de que taxa de acerto e a metrica errada — e de
+por que ela e a que todo curso vende.
+
+As 4 candidatas mostram o outro erro classico, escolher pelo passado:
+
+    cruzamento_filtrado 1:3 H1   treino +0,143R -> validacao -0,003R
+    rsi2_connors 1:1 H1          treino +0,051R -> validacao -0,046R
+    rsi2_connors 1:2 H1          treino +0,089R -> validacao -0,072R
+
 ## Estado
 - [x] Ambiente MT5 + Python
 - [x] Camada de dados (download, parquet, fuso do servidor, filtro de spread)
@@ -206,5 +239,6 @@ volatilidade.
 - [x] Teste placebo para calibrar a linha de base do acaso
 - [x] Terceira rodada em H4/D1 (20 anos) — conclusiva
 - [x] Terminal visual com grafico, padroes marcados e niveis desenhados
-- [ ] Reposicionar como laboratorio de validacao de estrategias
+- [x] Laboratorio de validacao de estrategias (testar_estrategias.py)
+- [ ] Dados da B3 (WIN/WDO) — exige conta demo em corretora brasileira
 - [ ] Filtro de calendario economico (NFP, CPI, FOMC)
