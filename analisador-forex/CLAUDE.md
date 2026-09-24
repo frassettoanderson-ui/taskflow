@@ -112,6 +112,54 @@ de 10%. O pipeline nao inventa borda e nao vaza futuro.
 O placebo e linha de base, nao gabarito: FDR de 10% admite falsa descoberta
 por definicao, entao resultado real dentro da linha de base nao e descoberta.
 
+## Terceira rodada: H4/D1 e a conclusao do projeto (24/09/2026)
+
+Baixados 20 anos de H4 e D1 dos 7 majors. A pergunta era: com o custo
+praticamente eliminado, os padroes passam a ter borda?
+
+Expectativa media dos 14 padroes, 7 majors, com custo real e com spread zero:
+
+    tf    custo em R   com spread   spread zero      sinais
+    M5        0,1539      -0,2358       -0,0236   4.707.620
+    M15       0,0759      -0,1337       -0,0274   1.483.547
+    H1        0,0288      -0,0718       -0,0290     354.403
+    H4        0,0196      -0,0294       -0,0022     150.869
+    D1        0,0033      -0,0037       +0,0024      24.960
+
+**A expectativa converge para zero conforme o custo vai a zero, em todos os
+timeframes.** Nao fica positiva: fica neutra. Em D1, onde o spread custa
+0,0033R (47x menos que em M5), a expectativa e -0,0037R — indistinguivel
+de zero.
+
+### Conclusao
+
+Os padroes graficos classicos implementados aqui, isolados ou em
+confluencia com niveis, **nao tem poder preditivo** nos 7 majors, em 5
+timeframes, ao longo de 20 anos e ~6,7 milhoes de sinais avaliados. O que
+decide o resultado de operar por eles e exclusivamente o custo.
+
+Isso nao e opiniao nem ceticismo a priori: e o que sobrou depois de
+detectar, medir com entrada realista, descontar custo real, corrigir
+multiplos testes, validar fora da amostra e calibrar contra placebo.
+
+### Para onde a ferramenta vale a pena ir
+
+O pipeline em si continua valioso — mudou o uso, nao a qualidade:
+
+**Como laboratorio de validacao.** Qualquer estrategia (propria, herdada ou
+comprada de terceiro) pode ser submetida a este mesmo crivo. Responder
+"essa estrategia tem borda?" com entrada realista, custo real, correcao de
+multiplos testes, validacao fora da amostra e linha de base do acaso e um
+produto de verdade — e e exatamente o que falta no mercado de sinais.
+
+**Como marcador visual.** Detectar e desenhar padroes e niveis no grafico
+segue util para leitura e estudo, desde que sem promessa de borda.
+
+**Hipoteses com base teorica diferente** (fora do escopo de "padrao
+grafico", e por isso nao testadas aqui): microestrutura e fluxo, carry,
+sazonalidade de calendario, cointegracao entre pares, regime de
+volatilidade.
+
 ## Estado
 - [x] Ambiente MT5 + Python
 - [x] Camada de dados (download, parquet, fuso do servidor, filtro de spread)
@@ -124,6 +172,7 @@ por definicao, entao resultado real dentro da linha de base nao e descoberta.
 - [x] Confluencia (padrao x nivel, padrao x padrao)
 - [x] Descoberta em duas etapas (treino/validacao fora da amostra)
 - [x] Teste placebo para calibrar a linha de base do acaso
-- [ ] Terceira rodada em H4/D1, onde o custo em R e menor
+- [x] Terceira rodada em H4/D1 (20 anos) — conclusiva
+- [ ] Reposicionar como laboratorio de validacao de estrategias
+- [ ] Interface com grafico (lightweight-charts) para marcacao visual
 - [ ] Filtro de calendario economico (NFP, CPI, FOMC)
-- [ ] Interface com grafico (lightweight-charts)
