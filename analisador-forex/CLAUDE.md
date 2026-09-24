@@ -59,6 +59,59 @@ Dois artefatos encontrados e neutralizados no caminho:
   +0,035R (p=0,24, ou seja nada) e carregava o conjunto. Agora cada metade
   precisa ser significativa sozinha.
 
+## Segunda rodada: confluencia + niveis (24/09/2026)
+
+4.440 hipoteses (padrao x localizacao no nivel, e pares de padroes
+concordando em ate 3 barras), com descoberta em duas etapas:
+treino nos primeiros 60%, validacao nos 40% finais nunca tocados.
+
+Resultado: **0 aprovadas** (binaria nem teve candidatas).
+
+### O que foi aprendido, que vale mais que o resultado
+
+**1. A confluencia com niveis funciona — e e pequena demais.**
+Teste pareado, 797 trios (mesmo padrao, mesmo par, mesmo contexto):
+
+    livre        -0,1524R
+    reversao     -0,1311R   (+0,0213R sobre livre, p < 0,0001)
+    rompimento   -0,1396R   (+0,0127R sobre livre, p < 0,0001)
+
+O nivel carrega informacao real e estatisticamente solida. So que o efeito
+e uma ordem de grandeza menor que o buraco a cobrir.
+
+**2. Combinar dois padroes PIORA** (-0,172R contra -0,136R do padrao solto).
+Exigir confirmacao atrasa a entrada e corta amostra sem agregar informacao.
+
+**3. O custo e o vilao, nao a falta de padrao.** Mesmos sinais com spread zero:
+
+    EURUSD M5   -0,148R -> -0,033R
+    EURUSD H1   -0,042R -> -0,022R
+    GBPUSD H1   -0,057R -> -0,027R
+
+Sem custo a expectativa fica em torno de -0,02/-0,03R, que e aproximadamente
+o vies da regra conservadora de desempate (stop vence quando stop e alvo
+caem na mesma barra). Ou seja: **os padroes sao indistinguiveis de aleatorio,
+e o custo transforma neutro em perdedor.**
+
+**4. O custo em R desaba conforme o timeframe cresce** (stop = 1 ATR):
+
+    M5   0,154R     M15  0,076R     H1   0,029R
+
+E a unica direcao estruturalmente favoravel que os dados apontam. Dai a
+terceira rodada em H4/D1.
+
+**5. A distribuicao nula nao e centrada em zero.** Apenas 6,2% das hipoteses
+tem expectativa positiva no treino (mediana -0,142R). Esperar "1% de
+candidatas com alfa 0,01" estava errado: o custo desloca a distribuicao
+inteira para baixo.
+
+### Teste placebo (placebo.py)
+Pipeline rodado sobre series embaralhadas (vela mantem a forma, sequencia
+destruida): **1 aprovacao em 25 rodadas** (0,04/rodada), compativel com FDR
+de 10%. O pipeline nao inventa borda e nao vaza futuro.
+O placebo e linha de base, nao gabarito: FDR de 10% admite falsa descoberta
+por definicao, entao resultado real dentro da linha de base nao e descoberta.
+
 ## Estado
 - [x] Ambiente MT5 + Python
 - [x] Camada de dados (download, parquet, fuso do servidor, filtro de spread)
@@ -67,9 +120,10 @@ Dois artefatos encontrados e neutralizados no caminho:
 - [x] Camada estatistica (Wilson, binomial, bootstrap, Benjamini-Hochberg)
 - [x] Validacao de estabilidade temporal
 - [x] Relatorio ranqueado (analisar.py -> CSV)
-- [ ] Confluencia: combinar padroes em vez de avaliar isolados
-- [ ] Varredura de parametros (expiracao, R:R) — exige ampliar a correcao
-      de multiplos testes junto, senao vira data mining
+- [x] Niveis de suporte/resistencia por clusterizacao de toques
+- [x] Confluencia (padrao x nivel, padrao x padrao)
+- [x] Descoberta em duas etapas (treino/validacao fora da amostra)
+- [x] Teste placebo para calibrar a linha de base do acaso
+- [ ] Terceira rodada em H4/D1, onde o custo em R e menor
 - [ ] Filtro de calendario economico (NFP, CPI, FOMC)
-- [ ] Niveis de suporte/resistencia por clusterizacao de toques
 - [ ] Interface com grafico (lightweight-charts)
