@@ -14,11 +14,43 @@ Nada aparece na interface sem passar pelo filtro estatistico.
 
 ## Estrutura
 ```
-config.py            pares, timeframes, janelas de sessao (UTC)
-diagnostico.py       checa terminal, conta e simbolos
-baixar.py            CLI de download do historico -> dados/*.parquet
-src/dados/           conexao MT5, download, offset de fuso do servidor
+config.py                 pares, timeframes, sessoes (UTC), limites
+diagnostico.py            checa terminal, conta e simbolos
+baixar.py                 download do historico -> dados/*.parquet
+analisar.py               backtest padrao a padrao -> CSV
+analisar_confluencia.py   descoberta em duas etapas -> CSV
+placebo.py                linha de base do acaso (series embaralhadas)
+exportar.py               gera os JSON que o terminal web consome
+src/dados/                conexao MT5, download em blocos, fuso do servidor
+src/padroes/              14 detectores, niveis S/R, confluencia
+src/backtest/             motor, estatistica, relatorio, descoberta
+web/                      terminal visual (lightweight-charts)
 ```
+
+## Terminal visual
+
+```bash
+python exportar.py        # gera web/dados/*.json (35 arquivos, ~200 KB cada)
+```
+Depois abrir o preview `analisador-forex` (porta 8420) ou servir `web/` com
+qualquer servidor estatico.
+
+Estetica deliberada de **instrumento de medicao** (osciloscopio de bancada):
+fundo quase preto, fosforo ambar, monoespacada, reguas de 1px, densidade
+alta, zero brilho decorativo. Coerente com a premissa do projeto — a
+ferramenta mede, nao promete.
+
+Decisoes da interface que existem por causa dos resultados:
+- o painel da direita mostra o desempenho **medido** de cada padrao,
+  inclusive quando o numero e ruim (que e a maioria). Esconder seria o
+  contrario do projeto
+- a barra de cada padrao tem um risco ambar fixo no breakeven: da para ver
+  de relance quem nao alcanca o custo
+- o filtro chama-se "so acima do custo **(media bruta)**" e o rodape avisa
+  que media bruta nao e vantagem comprovada — sem isso a tela contradiria
+  a analise, ja que ~79 de 490 combinacoes ficam positivas por acaso
+- rotulo no marcador so quando ha um unico padrao selecionado; com varios
+  o texto vira ruido e a cor/seta ja informam
 
 ## Regras que nao se negociam
 1. **Spread real sempre descontado.** O MT5 entrega spread por barra; usar
@@ -173,6 +205,6 @@ volatilidade.
 - [x] Descoberta em duas etapas (treino/validacao fora da amostra)
 - [x] Teste placebo para calibrar a linha de base do acaso
 - [x] Terceira rodada em H4/D1 (20 anos) — conclusiva
+- [x] Terminal visual com grafico, padroes marcados e niveis desenhados
 - [ ] Reposicionar como laboratorio de validacao de estrategias
-- [ ] Interface com grafico (lightweight-charts) para marcacao visual
 - [ ] Filtro de calendario economico (NFP, CPI, FOMC)

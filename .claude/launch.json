@@ -19,7 +19,7 @@
     },
     {
       "name": "raniandark-pdv",
-      "cwd": "C:/Users/ander/OneDrive/Área de Trabalho/raniandark-pdv/web",
+      "cwd": "C:/Users/ander/OneDrive/\u00c1rea de Trabalho/raniandark-pdv/web",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -40,6 +40,19 @@
         "3010"
       ],
       "port": 3010
+    },
+    {
+      "name": "analisador-forex",
+      "cwd": "C:/Users/ander/Downloads/taskflow_backup_completo/analisador-forex",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8420",
+        "--directory",
+        "web"
+      ],
+      "port": 8420
     }
   ]
 }

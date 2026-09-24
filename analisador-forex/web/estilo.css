@@ -1,0 +1,321 @@
+/* Terminal de analise — estetica de instrumento de medicao.
+   Nada de card arredondado, sombra difusa ou gradiente decorativo: a
+   referencia e um osciloscopio de bancada. Fundo quase preto levemente
+   esverdeado, fosforo ambar, reguas de 1px, tipografia monoespacada e
+   densidade alta. O brilho existe so onde ha informacao. */
+
+:root {
+  --fundo:        #0a0b09;
+  --painel:       #101210;
+  --painel-alto:  #161814;
+  --regua:        #24271f;
+  --regua-forte:  #363a2e;
+
+  --texto:        #c9cdbf;
+  --texto-forte:  #eef0e6;
+  --texto-fraco:  #6c7264;
+
+  --ambar:        #e0a33c;
+  --ambar-fraco:  #7a5a21;
+  --alta:         #5aa06a;
+  --baixa:        #c9553f;
+
+  --rail: 232px;
+  --painel-dir: 336px;
+
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --tecnica: "Martian Mono", var(--mono);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--fundo);
+  color: var(--texto);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Grao fino por cima de tudo: da textura de tubo sem atrapalhar leitura. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9;
+  opacity: .035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.rotulo {
+  font-family: var(--tecnica);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- estrutura ---------- */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--rail) 1fr var(--painel-dir);
+  grid-template-rows: 44px 1fr;
+  height: 100vh;
+}
+
+/* ---------- barra de leitura superior ---------- */
+
+.leitura {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--regua-forte);
+  background: var(--painel);
+}
+
+.marca {
+  width: var(--rail);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 16px;
+  border-right: 1px solid var(--regua-forte);
+  flex: none;
+}
+
+.marca b {
+  font-family: var(--tecnica);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--texto-forte);
+}
+
+.diodo {
+  width: 6px; height: 6px;
+  background: var(--ambar);
+  box-shadow: 0 0 6px var(--ambar);
+  animation: pulsa 3.4s ease-in-out infinite;
+}
+@keyframes pulsa { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+
+.mostradores { display: flex; flex: 1; overflow-x: auto; scrollbar-width: none; }
+.mostradores::-webkit-scrollbar { display: none; }
+
+.mostrador {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 18px;
+  border-right: 1px solid var(--regua);
+  white-space: nowrap;
+  flex: none;
+}
+.mostrador span { font-size: 12px; color: var(--texto-forte); }
+.mostrador span.destaque { color: var(--ambar); }
+
+/* ---------- rail esquerdo ---------- */
+
+.rail {
+  border-right: 1px solid var(--regua-forte);
+  background: var(--painel);
+  overflow-y: auto;
+  padding-bottom: 24px;
+}
+
+.bloco { border-bottom: 1px solid var(--regua); padding: 14px 16px; }
+.bloco > .rotulo { display: block; margin-bottom: 10px; }
+
+.grade-pares {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--regua);
+  border: 1px solid var(--regua);
+}
+
+.grade-pares button,
+.fileira-tf button {
+  background: var(--painel-alto);
+  border: 0;
+  color: var(--texto-fraco);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  padding: 7px 4px;
+  cursor: pointer;
+  transition: color .12s, background .12s;
+}
+.grade-pares button:hover,
+.fileira-tf button:hover { color: var(--texto-forte); background: #1d201a; }
+
+.grade-pares button[aria-pressed="true"],
+.fileira-tf button[aria-pressed="true"] {
+  background: var(--ambar);
+  color: #171206;
+  font-weight: 600;
+}
+
+.fileira-tf {
+  display: grid;
+  grid-auto-flow: column;
+  gap: 1px;
+  background: var(--regua);
+  border: 1px solid var(--regua);
+}
+
+.controle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  cursor: pointer;
+  user-select: none;
+}
+.controle span { font-size: 11px; color: var(--texto); }
+.controle input { accent-color: var(--ambar); cursor: pointer; }
+
+/* ---------- area do grafico ---------- */
+
+/* O grafico ocupa o espaco todo e o aviso vira faixa propria no rodape:
+   flutuando por cima ele escondia justamente as velas mais recentes. */
+.palco {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--fundo);
+  min-width: 0;
+}
+#grafico { flex: 1; min-height: 0; }
+
+.aviso {
+  flex: none;
+  padding: 8px 16px;
+  background: var(--painel);
+  border-top: 1px solid var(--regua-forte);
+  box-shadow: inset 2px 0 0 var(--ambar);
+  font-size: 10.5px;
+  color: var(--texto-fraco);
+  letter-spacing: .02em;
+}
+.aviso b { color: var(--ambar); font-weight: 500; }
+
+.carregando {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  background: var(--fundo);
+  z-index: 6;
+  transition: opacity .25s;
+}
+.carregando.oculto { opacity: 0; pointer-events: none; }
+
+/* ---------- painel direito ---------- */
+
+.painel {
+  border-left: 1px solid var(--regua-forte);
+  background: var(--painel);
+  overflow-y: auto;
+  padding-bottom: 32px;
+}
+
+.cabeca {
+  position: sticky; top: 0;
+  background: var(--painel);
+  border-bottom: 1px solid var(--regua-forte);
+  padding: 13px 16px 11px;
+  z-index: 2;
+}
+
+.padrao {
+  border-bottom: 1px solid var(--regua);
+  padding: 11px 16px;
+  cursor: pointer;
+  transition: background .12s;
+  border-left: 2px solid transparent;
+}
+.padrao:hover { background: var(--painel-alto); }
+.padrao.ativo { background: var(--painel-alto); border-left-color: var(--ambar); }
+
+.padrao-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.padrao-nome {
+  font-size: 12px;
+  color: var(--texto-forte);
+  letter-spacing: .01em;
+}
+.padrao.ativo .padrao-nome { color: var(--ambar); }
+.padrao-n { font-size: 10px; color: var(--texto-fraco); }
+.padrao-desc { font-size: 10.5px; color: var(--texto-fraco); margin-top: 1px; }
+
+.medidas { display: flex; gap: 16px; margin-top: 7px; }
+.medida { display: flex; flex-direction: column; gap: 1px; }
+.medida i {
+  font-family: var(--tecnica);
+  font-style: normal;
+  font-size: 8px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+.medida b { font-size: 12px; font-weight: 500; color: var(--texto); }
+.medida b.ruim { color: var(--baixa); }
+.medida b.bom { color: var(--alta); }
+
+/* Barra do breakeven: a marca fixa e o custo, a barra e o desempenho. */
+.trilho {
+  position: relative;
+  height: 3px;
+  margin-top: 8px;
+  background: #1c1f18;
+  overflow: hidden;
+}
+.trilho i { position: absolute; top: 0; bottom: 0; left: 0; background: var(--baixa); }
+.trilho i.bom { background: var(--alta); }
+.trilho u {
+  position: absolute; top: -2px; bottom: -2px;
+  width: 1px;
+  background: var(--ambar);
+}
+
+.nota {
+  font-size: 10px;
+  color: var(--texto-fraco);
+  margin-top: 6px;
+  letter-spacing: .01em;
+}
+
+.rodape-painel {
+  padding: 14px 16px;
+  font-size: 10px;
+  color: var(--texto-fraco);
+  line-height: 1.6;
+}
+.rodape-painel b { color: var(--texto); font-weight: 500; }
+
+@media (max-width: 1180px) {
+  .app { grid-template-columns: var(--rail) 1fr; }
+  .painel { display: none; }
+}
+
+.vazio { padding: 22px 16px; }
+.vazio .rotulo { display: block; color: var(--ambar); margin-bottom: 8px; }
+.vazio p { font-size: 11px; color: var(--texto-fraco); line-height: 1.6; }
+
+.controle em {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--texto-fraco);
+}

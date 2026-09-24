@@ -1,4 +1,6 @@
 dados/*.parquet
+web/dados/*.json
 __pycache__/
 *.pyc
 *.log
+*.csv

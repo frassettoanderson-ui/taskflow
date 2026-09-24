@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analisador Forex</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Martian+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="leitura">
+    <div class="marca">
+      <i class="diodo"></i>
+      <b>ANALISADOR&nbsp;FX</b>
+    </div>
+    <div class="mostradores" id="mostradores"></div>
+  </header>
+
+  <aside class="rail">
+    <div class="bloco">
+      <span class="rotulo">Par</span>
+      <div class="grade-pares" id="pares"></div>
+    </div>
+
+    <div class="bloco">
+      <span class="rotulo">Timeframe</span>
+      <div class="fileira-tf" id="timeframes"></div>
+    </div>
+
+    <div class="bloco">
+      <span class="rotulo">Camadas</span>
+      <label class="controle">
+        <span>Suporte / resistência</span>
+        <input type="checkbox" id="ver-niveis" checked>
+      </label>
+      <label class="controle">
+        <span>Marcar padrões</span>
+        <input type="checkbox" id="ver-padroes" checked>
+      </label>
+      <label class="controle">
+        <span>Só acima do custo <em>(média bruta)</em></span>
+        <input type="checkbox" id="so-validos">
+      </label>
+    </div>
+
+    <div class="bloco">
+      <span class="rotulo">Seleção</span>
+      <label class="controle">
+        <span>Marcar todos</span>
+        <input type="checkbox" id="todos">
+      </label>
+      <p class="nota" id="contagem">nenhum padrão marcado</p>
+    </div>
+  </aside>
+
+  <main class="palco">
+    <div id="grafico"></div>
+    <div class="carregando" id="carregando"><span class="rotulo">carregando série…</span></div>
+    <p class="aviso">
+      <b>Leia antes de operar.</b> Os padrões aqui são detecção, não recomendação.
+      Em 6,7 milhões de sinais testados, nenhum apresentou vantagem estatística
+      estável depois do custo. Use como leitura de contexto.
+    </p>
+  </main>
+
+  <aside class="painel">
+    <div class="cabeca">
+      <span class="rotulo">Padrões &middot; desempenho medido</span>
+    </div>
+    <div id="lista"></div>
+    <div class="rodape-painel" id="rodape"></div>
+  </aside>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
