@@ -10,6 +10,10 @@ MT5_PATH = r"C:\Program Files\MetaTrader 5\terminal64.exe"
 # Pares majors: spread baixo e liquidez alta. Exoticos nao sobrevivem ao custo.
 PARES = ["EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF", "NZDUSD"]
 
+# Ativos da B3. Use as series continuas ($) para historico: o contrato
+# individual (WINZ26) vira po a cada vencimento e nao da serie longa.
+ATIVOS_B3 = ["WIN$", "WDO$", "IND$", "DOL$"]
+
 TIMEFRAMES = ["M1", "M5", "M15", "M30", "H1", "H4", "D1"]
 
 # Padrao do download em lote.
@@ -39,3 +43,13 @@ SESSOES = {
 # detectados nessa janela produzem "borda" que nao existe na pratica:
 # o movimento medido e alargamento de spread, nao preco.
 LIMITE_SPREAD_MEDIANAS = 3.0
+
+# Sessoes da B3 em UTC. O pregao e das 9h as 18h de Brasilia (UTC-3), entao
+# 12h-21h UTC — nada a ver com as janelas do Forex, que roda 24h.
+# O horario de verao americano desloca isso em uma hora em parte do ano.
+SESSOES_B3 = {
+    "abertura":  (12, 13),  # 9h-10h BRT: maior volume e maior amplitude
+    "manha":     (13, 16),
+    "tarde":     (16, 19),
+    "fechamento": (19, 21),  # 16h-18h BRT: ajuste e leilao
+}
