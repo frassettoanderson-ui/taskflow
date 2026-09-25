@@ -111,14 +111,14 @@ async function main() {
     // Identificador CNPJ
     if (cnpj) {
       const ja = await goa.empresaIdentificador.findFirst({ where: { empresaId: emp.id, tipo: 'CNPJ' } });
-      if (!ja) await goa.empresaIdentificador.create({ data: { empresaId: emp.id, tipo: 'CNPJ', valor: cnpj } });
+      if (!ja) await goa.empresaIdentificador.create({ data: { escritorioId: esc.id, empresaId: emp.id, tipo: 'CNPJ', valor: cnpj } });
       else if (ja.valor !== cnpj) await goa.empresaIdentificador.update({ where: { id: ja.id }, data: { valor: cnpj } });
     }
     // Contato principal (titular)
     const nomeContato = nz(c.cli_nome_completo) || nz(c.l_nome);
     if (nomeContato) {
       const jaC = await goa.empresaContato.findFirst({ where: { empresaId: emp.id, nome: nomeContato } });
-      if (!jaC) await goa.empresaContato.create({ data: { empresaId: emp.id, nome: nomeContato, email: nz(c.cli_email) || nz(c.l_email), whatsapp: nz(c.emp_telefone) || nz(c.l_whatsapp), cargo: 'Titular' } });
+      if (!jaC) await goa.empresaContato.create({ data: { escritorioId: esc.id, empresaId: emp.id, nome: nomeContato, email: nz(c.cli_email) || nz(c.l_email), whatsapp: nz(c.emp_telefone) || nz(c.l_whatsapp), cargo: 'Titular' } });
     }
   }
 
