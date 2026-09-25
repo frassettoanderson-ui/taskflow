@@ -13,14 +13,17 @@ import type {
 } from '../../lib/tipos';
 import { formatarIdent, formatarBytes, LABEL_TIPO_IDENT } from '../../lib/tipos';
 import SecObrigacoes from './SecObrigacoes';
+import SecContratoSocios from './SecContratoSocios';
+import { FileSignature } from 'lucide-react';
 
 const INP = 'block w-full rounded border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-700 outline-none focus:border-marca-400 focus:ring-1 focus:ring-marca-100';
 const LBL = 'mb-1 block text-[13px] font-bold text-slate-700';
 
 // As 12 secoes da ficha, na ordem/icones do original
-type SecaoKey = 'endereco' | 'comentarios' | 'tags' | 'processos' | 'contatos' | 'obrigacoes' | 'gruposEnvio' | 'tarefas' | 'recorrentes' | 'solicitacoes' | 'responsaveis' | 'anexos';
+type SecaoKey = 'endereco' | 'contrato' | 'comentarios' | 'tags' | 'processos' | 'contatos' | 'obrigacoes' | 'gruposEnvio' | 'tarefas' | 'recorrentes' | 'solicitacoes' | 'responsaveis' | 'anexos';
 const SECOES: { key: SecaoKey; icon: typeof MapPin; titulo: string }[] = [
   { key: 'endereco', icon: MapPin, titulo: 'Endereco e inscricoes' },
+  { key: 'contrato', icon: FileSignature, titulo: 'Contrato, imoveis e socios' },
   { key: 'comentarios', icon: MessageCircle, titulo: 'Comentarios e anotacoes gerais' },
   { key: 'tags', icon: TagIcon, titulo: 'Tags da empresa' },
   { key: 'processos', icon: CheckSquare, titulo: 'Gestao de Processos' },
@@ -361,6 +364,7 @@ function SecaoConteudo(props: {
   const { secao, empresa, podeEditar, tags, tagIds, setTagIds, departamentos, usuarios, onMudou, recargaObrig } = props;
   switch (secao) {
     case 'endereco': return <SecEndereco empresa={empresa} podeEditar={podeEditar} onMudou={onMudou} />;
+    case 'contrato': return <SecContratoSocios empresa={empresa} podeEditar={podeEditar} onMudou={onMudou} />;
     case 'comentarios': return <SecComentarios empresa={empresa} departamentos={departamentos} onMudou={onMudou} />;
     case 'tags': return <SecTags tags={tags} tagIds={tagIds} setTagIds={setTagIds} />;
     case 'contatos': return <SecContatos empresa={empresa} podeEditar={podeEditar} onMudou={onMudou} />;

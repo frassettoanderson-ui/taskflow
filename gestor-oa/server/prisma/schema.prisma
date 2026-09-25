@@ -268,6 +268,48 @@ model Departamento {
   @@index([escritorioId])
 }
 
+// Fila do envio agrupado/agendado de guias por e-mail (e-Continuo). Quando o robo baixa
+// uma guia, ela entra aqui (PENDENTE) e e' enviada agrupada por empresa conforme o
+// "envioAgendado" do departamento (ou manualmente, pela ficha do departamento).
+model GuiaAgendada {
+  id             String    @id @default(cuid())
+  escritorioId   String
+  empresaId      String
+  departamentoId String?
+  entregaId      String?
+  documentoId    String?
+  obrigacaoNome  String
+  anexoNome      String?
+  dataReferencia DateTime  @default(now())
+  status         String    @default("PENDENTE") // PENDENTE | ENVIADO | CANCELADO
+  enviadoEm      DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([escritorioId, departamentoId, status])
+  @@index([escritorioId, empresaId, status])
+}
+
+// Fila (outbox) de mensagens de WhatsApp via Evolution. Como a conexao NAO e' oficial,
+// o envio nao pode ser em lote/rapido (risco de bloqueio do numero) - um worker drena
+// esta fila devagar, com intervalo aleatorio + limite por hora.
+model WhatsAppMensagem {
+  id           String    @id @default(cuid())
+  escritorioId String
+  numero       String
+  tipo         String    // TEXTO | DOCUMENTO
+  texto        String?
+  documentoId  String?
+  fileName     String?
+  caption      String?
+  status       String    @default("PENDENTE") // PENDENTE | ENVIADO | ERRO
+  tentativas   Int       @default(0)
+  erro         String?
+  createdAt    DateTime  @default(now())
+  enviadoEm    DateTime?
+
+  @@index([escritorioId, status, createdAt])
+}
+
 model Tag {
   id            String   @id @default(cuid())
   escritorioId  String
@@ -322,10 +364,30 @@ model Empresa {
   dataEntrada        DateTime?
   dataSaida          DateTime?
 
+  // ── Unificação com o ERP (Nauta/Atuan) — cadastro único: contrato, comercial, imóvel, sócios ──
+  diaVencimento        Int?              // dia do mês do vencimento do honorário
+  primeiroVencimento   DateTime?         // 1º vencimento acordado (do lead)
+  valorAbertura        Decimal?  @db.Decimal(12, 2)
+  negociacaoObs        String?           // condições especiais negociadas (vai no contrato)
+  interesse            String?           // tipo de contrato: Abrir minha empresa / Trocar de contador / Deixar de ser MEI / BPO ...
+  emAbertura           Boolean   @default(false) // empresa em processo de abertura (ainda sem CNPJ/dados)
+  atividade            String?
+  capitalSocial        Decimal?  @db.Decimal(14, 2)
+  inscricaoImobiliaria String?
+  areaOcupada          String?
+  areaEdificacao       String?
+  proprietarioNome     String?
+  proprietarioCpf      String?
+  usaGlp               Boolean?
+  filiais              Json?             // [{ cnpj, fantasia, municipio, estado, telefone }]
+  nautaClienteId       String?   @unique // vínculo com clientes.id do ERP (ponte até a fusão)
+  nautaLeadId          String?           // vínculo com leads.id do ERP (honorário/Asaas/onboarding)
+
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   deletedAt          DateTime?
 
+  socios             EmpresaSocio[]
   identificadores    EmpresaIdentificador[]
   contatos           EmpresaContato[]
   anexos             EmpresaAnexo[]
@@ -344,6 +406,38 @@ model Empresa {
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
+}
+
+// Quadro societário da empresa (vindo do ERP). ordem 1 = titular/sócio administrador.
+model EmpresaSocio {
+  id            String   @id @default(cuid())
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  ordem         Int      @default(1)
+  nomeCompleto  String
+  cpf           String?
+  rg            String?
+  nascimento    String?
+  nomePai       String?
+  nomeMae       String?
+  participacao  Decimal? @db.Decimal(5, 2)
+  estadoCivil   String?
+  reciboIrpf    String?
+  tituloEleitor String?
+  senhaGov      String?
+  email         String?
+  telefone      String?
+  cep           String?
+  endereco      String?
+  bairro        String?
+  cidadeEstado  String?
+  docUrl        String?
+  certUrl       String?
+  certSenha     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([empresaId])
 }
 
 model EmpresaTarefaAgendada {
@@ -810,10 +904,15 @@ model DocumentoGED {
   uploadedById  String?
   createdAt     DateTime @default(now())
 
+  // App do cliente: "ciente/OK" dado pelo cliente (por empresa). null = pendente.
+  cienteEm      DateTime?
+  cientePorId   String?
+
   protocolos    Protocolo[]
 
   @@index([escritorioId, empresaId, raiz])
   @@index([empresaId, nomeArquivo])
+  @@index([empresaId, raiz, cienteEm])
 }
 
 model Protocolo {
@@ -898,10 +997,14 @@ model AssinaturaDocumento {
   obrigacaoNome String   // casado por nome com a obrigacao da empresa
   // palavras/regex que identificam o tipo (todas devem casar)
   palavras      Json     @default("[]")
+  // palavras NEGATIVAS: se QUALQUER uma aparecer, esta assinatura NAO casa (ex.: FGTS exclui "Recibo de Pagamento")
+  exclusoes     Json     @default("[]")
   // regex para extrair competencia e vencimento
   regexCompetencia String?
   regexVencimento  String?
   ativo         Boolean  @default(true)
+  // origem da assinatura: MANUAL (cadastrada) ou IA (o robo aprendeu via IA na Revisao)
+  origem        String   @default("MANUAL")
   // Base de conhecimento e-Continuo
   enviaEmail    String   @default("Imediato")    // Imediato | Agendado | Nao
   copiaLocal    Boolean  @default(true)            // mantem copia local (GED)

@@ -3,6 +3,20 @@ import { aplicarRegime } from '../obrigacao/empresaObrigacao.service.js';
 import { prisma } from '../../prisma.js';
 import { Errors } from '../../lib/errors.js';
 import { soDigitos, identificadorValido } from '../../lib/identificadores.js';
+import { sincronizarComNauta } from '../../lib/nautaBridge.js';
+import type { SocioInput } from './empresa.schemas.js';
+
+// Campos do sócio no formato do Prisma (sem id/empresaId).
+function mapSocio(s: SocioInput, ordem: number) {
+  const nz = (v: unknown) => { const x = String(v ?? '').trim(); return x ? x : null; };
+  return {
+    ordem, nomeCompleto: s.nomeCompleto.trim(), cpf: nz(s.cpf), rg: nz(s.rg), nascimento: nz(s.nascimento),
+    nomePai: nz(s.nomePai), nomeMae: nz(s.nomeMae), participacao: s.participacao ?? null, estadoCivil: nz(s.estadoCivil),
+    reciboIrpf: nz(s.reciboIrpf), tituloEleitor: nz(s.tituloEleitor), senhaGov: nz(s.senhaGov), email: nz(s.email),
+    telefone: nz(s.telefone), cep: nz(s.cep), endereco: nz(s.endereco), bairro: nz(s.bairro), cidadeEstado: nz(s.cidadeEstado),
+    docUrl: nz(s.docUrl), certUrl: nz(s.certUrl), certSenha: nz(s.certSenha),
+  };
+}
 import type { AuthUser } from '../../middleware/auth.js';
 import type { ParsedPagination } from '../../lib/http.js';
 
@@ -104,6 +118,7 @@ export async function listar(
       numero: e.numero,
       razaoSocial: e.razaoSocial,
       nomeFantasia: e.nomeFantasia,
+      apelidoEcontinuo: e.apelidoEcontinuo ?? null,
       ativo: e.ativo,
       cnpj: e.identificadores[0]?.valor ?? null,
       telefone: e.telefone ?? null,
@@ -124,6 +139,7 @@ export async function obter(escritorioId: string, id: string) {
     where: { id, escritorioId, deletedAt: null },
     include: {
       identificadores: { orderBy: { createdAt: 'asc' } },
+      socios: { orderBy: { ordem: 'asc' } },
       contatos: { orderBy: { nome: 'asc' } },
       anexos: { orderBy: { createdAt: 'desc' } },
       comentarios: {
@@ -199,6 +215,25 @@ interface CriarInput {
   dataSaida?: string | null;
   tagIds?: string[];
   identificadores?: { tipo: string; valor: string; apelido?: string | null }[];
+  // Unificação com o ERP
+  diaVencimento?: number | null;
+  primeiroVencimento?: string | null;
+  valorAbertura?: number | null;
+  negociacaoObs?: string | null;
+  interesse?: string | null;
+  emAbertura?: boolean;
+  atividade?: string | null;
+  capitalSocial?: number | null;
+  inscricaoImobiliaria?: string | null;
+  areaOcupada?: string | null;
+  areaEdificacao?: string | null;
+  proprietarioNome?: string | null;
+  proprietarioCpf?: string | null;
+  usaGlp?: boolean | null;
+  filiais?: unknown[] | null;
+  socios?: SocioInput[];
+  nautaClienteId?: string | null;
+  nautaLeadId?: string | null;
 }
 
 // Proximo [ID] sequencial sugerido para o cadastro de uma nova empresa.
@@ -250,6 +285,25 @@ export async function criar(escritorioId: string, input: CriarInput) {
       ativo: input.ativo ?? true,
       dataEntrada: input.dataEntrada ? new Date(input.dataEntrada) : null,
       dataSaida: input.dataSaida ? new Date(input.dataSaida) : null,
+      // Unificação com o ERP
+      diaVencimento: input.diaVencimento ?? null,
+      primeiroVencimento: input.primeiroVencimento ? new Date(input.primeiroVencimento) : null,
+      valorAbertura: input.valorAbertura ?? null,
+      negociacaoObs: input.negociacaoObs || null,
+      interesse: input.interesse || null,
+      emAbertura: input.emAbertura ?? false,
+      atividade: input.atividade || null,
+      capitalSocial: input.capitalSocial ?? null,
+      inscricaoImobiliaria: input.inscricaoImobiliaria || null,
+      areaOcupada: input.areaOcupada || null,
+      areaEdificacao: input.areaEdificacao || null,
+      proprietarioNome: input.proprietarioNome || null,
+      proprietarioCpf: input.proprietarioCpf || null,
+      usaGlp: input.usaGlp ?? null,
+      filiais: input.filiais == null ? undefined : (input.filiais as Prisma.InputJsonValue),
+      nautaClienteId: input.nautaClienteId || null,
+      nautaLeadId: input.nautaLeadId || null,
+      socios: input.socios?.length ? { create: input.socios.map((s, i) => mapSocio(s, i + 1)) } : undefined,
       tags: input.tagIds?.length
         ? { create: input.tagIds.map((tagId) => ({ tagId })) }
         : undefined,
@@ -270,6 +324,7 @@ export async function criar(escritorioId: string, input: CriarInput) {
   if (input.regimeTributarioId) {
     try { await aplicarRegime(escritorioId, nova.id, input.regimeTributarioId); } catch { /* nao bloqueia o cadastro */ }
   }
+  void sincronizarComNauta(nova.id);
   return nova;
 }
 
@@ -291,7 +346,7 @@ export async function editar(
       }
     : undefined;
 
-  return prisma.empresa.update({
+  const atualizada = await prisma.empresa.update({
     where: { id },
     data: {
       razaoSocial: input.razaoSocial ?? empresa.razaoSocial,
@@ -348,10 +403,31 @@ export async function editar(
           : input.dataSaida
             ? new Date(input.dataSaida)
             : null,
+      // Unificação com o ERP
+      diaVencimento: input.diaVencimento === undefined ? empresa.diaVencimento : input.diaVencimento,
+      primeiroVencimento: input.primeiroVencimento === undefined ? empresa.primeiroVencimento : (input.primeiroVencimento ? new Date(input.primeiroVencimento) : null),
+      valorAbertura: input.valorAbertura === undefined ? empresa.valorAbertura : input.valorAbertura,
+      negociacaoObs: input.negociacaoObs === undefined ? empresa.negociacaoObs : input.negociacaoObs || null,
+      interesse: input.interesse === undefined ? empresa.interesse : input.interesse || null,
+      emAbertura: input.emAbertura ?? empresa.emAbertura,
+      atividade: input.atividade === undefined ? empresa.atividade : input.atividade || null,
+      capitalSocial: input.capitalSocial === undefined ? empresa.capitalSocial : input.capitalSocial,
+      inscricaoImobiliaria: input.inscricaoImobiliaria === undefined ? empresa.inscricaoImobiliaria : input.inscricaoImobiliaria || null,
+      areaOcupada: input.areaOcupada === undefined ? empresa.areaOcupada : input.areaOcupada || null,
+      areaEdificacao: input.areaEdificacao === undefined ? empresa.areaEdificacao : input.areaEdificacao || null,
+      proprietarioNome: input.proprietarioNome === undefined ? empresa.proprietarioNome : input.proprietarioNome || null,
+      proprietarioCpf: input.proprietarioCpf === undefined ? empresa.proprietarioCpf : input.proprietarioCpf || null,
+      usaGlp: input.usaGlp === undefined ? empresa.usaGlp : input.usaGlp,
+      filiais: input.filiais === undefined ? undefined : (input.filiais == null ? Prisma.JsonNull : (input.filiais as Prisma.InputJsonValue)),
+      nautaClienteId: input.nautaClienteId === undefined ? empresa.nautaClienteId : input.nautaClienteId || null,
+      nautaLeadId: input.nautaLeadId === undefined ? empresa.nautaLeadId : input.nautaLeadId || null,
+      socios: input.socios ? { deleteMany: {}, create: input.socios.map((s, i) => mapSocio(s, i + 1)) } : undefined,
       tags: tagOps,
     },
     include: { identificadores: true, tags: { include: { tag: true } } },
   });
+  void sincronizarComNauta(atualizada.id);
+  return atualizada;
 }
 
 export async function excluir(escritorioId: string, id: string) {

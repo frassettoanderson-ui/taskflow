@@ -14,7 +14,56 @@ export const identificadorInput = z.object({
   apelido: z.string().optional().nullable(),
 });
 
+// Sócio (quadro societário vindo do ERP). ordem 1 = titular.
+export const socioSchema = z.object({
+  nomeCompleto: z.string().min(2, 'Nome do socio e obrigatorio.'),
+  cpf: z.string().optional().nullable(),
+  rg: z.string().optional().nullable(),
+  nascimento: z.string().optional().nullable(),
+  nomePai: z.string().optional().nullable(),
+  nomeMae: z.string().optional().nullable(),
+  participacao: z.number().min(0).max(100).optional().nullable(),
+  estadoCivil: z.string().optional().nullable(),
+  reciboIrpf: z.string().optional().nullable(),
+  tituloEleitor: z.string().optional().nullable(),
+  senhaGov: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  telefone: z.string().optional().nullable(),
+  cep: z.string().optional().nullable(),
+  endereco: z.string().optional().nullable(),
+  bairro: z.string().optional().nullable(),
+  cidadeEstado: z.string().optional().nullable(),
+  docUrl: z.string().optional().nullable(),
+  certUrl: z.string().optional().nullable(),
+  certSenha: z.string().optional().nullable(),
+});
+export type SocioInput = z.infer<typeof socioSchema>;
+
+const filialSchema = z.object({
+  cnpj: z.string().optional().nullable(), fantasia: z.string().optional().nullable(),
+  municipio: z.string().optional().nullable(), estado: z.string().optional().nullable(), telefone: z.string().optional().nullable(),
+});
+
 export const criarEmpresaSchema = z.object({
+  // ── Unificação com o ERP (contrato / comercial / imóvel / sócios) ──
+  diaVencimento: z.number().int().min(1).max(31).optional().nullable(),
+  primeiroVencimento: z.string().optional().nullable().or(z.literal('')),
+  valorAbertura: z.number().min(0).optional().nullable(),
+  negociacaoObs: z.string().optional().nullable(),
+  interesse: z.string().optional().nullable(),
+  emAbertura: z.boolean().optional(),
+  atividade: z.string().optional().nullable(),
+  capitalSocial: z.number().min(0).optional().nullable(),
+  inscricaoImobiliaria: z.string().optional().nullable(),
+  areaOcupada: z.string().optional().nullable(),
+  areaEdificacao: z.string().optional().nullable(),
+  proprietarioNome: z.string().optional().nullable(),
+  proprietarioCpf: z.string().optional().nullable(),
+  usaGlp: z.boolean().optional().nullable(),
+  filiais: z.array(filialSchema).optional().nullable(),
+  socios: z.array(socioSchema).optional(),
+  nautaClienteId: z.string().optional().nullable(),
+  nautaLeadId: z.string().optional().nullable(),
   razaoSocial: z.string().min(2, 'Razao social e obrigatoria.'),
   nomeFantasia: z.string().optional().nullable(),
   numero: z.number().int().min(0).max(99999).optional().nullable(),

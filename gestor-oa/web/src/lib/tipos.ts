@@ -46,6 +46,7 @@ export interface EmpresaLista {
   numero: number | null;
   razaoSocial: string;
   nomeFantasia: string | null;
+  apelidoEcontinuo: string | null;
   ativo: boolean;
   cnpj: string | null;
   telefone: string | null;
@@ -110,9 +111,38 @@ export interface Responsavel {
   usuarioId: string;
 }
 
+// Sócio (quadro societário). ordem 1 = titular.
+export interface Socio {
+  id?: string; ordem?: number; nomeCompleto: string;
+  cpf?: string | null; rg?: string | null; nascimento?: string | null; nomePai?: string | null; nomeMae?: string | null;
+  participacao?: number | string | null; estadoCivil?: string | null; reciboIrpf?: string | null; tituloEleitor?: string | null;
+  senhaGov?: string | null; email?: string | null; telefone?: string | null; cep?: string | null; endereco?: string | null;
+  bairro?: string | null; cidadeEstado?: string | null; docUrl?: string | null; certUrl?: string | null; certSenha?: string | null;
+}
+export interface Filial { cnpj?: string | null; fantasia?: string | null; municipio?: string | null; estado?: string | null; telefone?: string | null }
+
 export interface EmpresaDetalhe {
   id: string;
   numero: number | null;
+  // Unificação com o ERP (contrato / comercial / imóvel / sócios)
+  diaVencimento: number | null;
+  primeiroVencimento: string | null;
+  valorAbertura: string | number | null;
+  negociacaoObs: string | null;
+  interesse: string | null;
+  emAbertura: boolean;
+  atividade: string | null;
+  capitalSocial: string | number | null;
+  inscricaoImobiliaria: string | null;
+  areaOcupada: string | null;
+  areaEdificacao: string | null;
+  proprietarioNome: string | null;
+  proprietarioCpf: string | null;
+  usaGlp: boolean | null;
+  filiais: Filial[] | null;
+  nautaClienteId: string | null;
+  nautaLeadId: string | null;
+  socios: Socio[];
   honorario: string | number | null;
   apelidoEcontinuo: string | null;
   grupoEmpresaId: string | null;
@@ -586,9 +616,11 @@ export interface AssinaturaDocumento {
   nome: string;
   obrigacaoNome: string;
   palavras: string[];
+  exclusoes?: string[];
   regexCompetencia: string | null;
   regexVencimento: string | null;
   ativo: boolean;
+  origem?: string; // MANUAL | IA (robo aprendeu via IA)
   enviaEmail?: string;
   copiaLocal?: boolean;
   aoReenviar?: string;

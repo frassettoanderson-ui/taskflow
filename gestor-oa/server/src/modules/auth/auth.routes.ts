@@ -86,7 +86,10 @@ router.post('/sso', async (req, res) => {
   if (!token) throw Errors.validacao('Token de SSO ausente.');
   const refreshToken = await loginViaSso(token, meta(req));
   setRefreshCookie(res, refreshToken);
-  return res.redirect(303, `${env.publicBasePath}/`);
+  // `next` = rota interna do app para abrir direto (ex.: /empresas/nova). Só caminhos relativos simples.
+  const next = String(req.body?.next ?? '');
+  const destino = /^\/[A-Za-z0-9\-_/]*(\?[A-Za-z0-9\-_=&%]*)?$/.test(next) ? next : '/';
+  return res.redirect(303, `${env.publicBasePath}${destino}`);
 });
 
 router.post('/refresh', async (req, res) => {

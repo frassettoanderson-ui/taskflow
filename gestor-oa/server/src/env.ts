@@ -19,6 +19,8 @@ export const env = {
   publicBasePath: (process.env.PUBLIC_BASE_PATH ?? '').replace(/\/$/, ''),
 
   databaseUrl: required('DATABASE_URL', 'postgresql://gestoroa:gestoroa@localhost:5432/gestoroa?schema=public'),
+  // Banco do ERP (Nauta/Atuan) para a ponte de sincronização do cadastro de clientes (vazio = ponte desligada).
+  nautaDatabaseUrl: process.env.NAUTA_DATABASE_URL ?? '',
 
   jwt: {
     accessSecret: required('JWT_ACCESS_SECRET', 'dev-access-secret'),
