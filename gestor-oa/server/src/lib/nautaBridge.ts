@@ -46,7 +46,7 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
          cli_email=COALESCE($32, cli_email), cli_endereco=$33, cli_bairro=$34, cli_cep=$35, cli_cidade_estado=$36,
          cli_doc_url=$37, cli_cert_url=$38, cli_cert_senha=$39,
          situacao=$40, atualizado_em=NOW()
-       WHERE id=$1`,
+       WHERE id=$1::uuid`,
       e.nautaClienteId,
       nz(e.razaoSocial), nz(e.nomeFantasia), cnpj, nz(e.regimeTributario?.nome), endereco, nz(e.bairro), nz(e.cep),
       cidadeEstado, nz(e.telefone), nz(e.emailPrincipal), nz(e.atividade), num(e.capitalSocial),
@@ -60,13 +60,13 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
     );
 
     // Quadro societário: espelha inteiro (o ERP também apaga/reinsere ao salvar)
-    await db.$executeRawUnsafe(`DELETE FROM cliente_socios WHERE cliente_id=$1`, e.nautaClienteId);
+    await db.$executeRawUnsafe(`DELETE FROM cliente_socios WHERE cliente_id=$1::uuid`, e.nautaClienteId);
     for (let i = 0; i < e.socios.length; i++) {
       const s = e.socios[i];
       await db.$executeRawUnsafe(
         `INSERT INTO cliente_socios (id, cliente_id, ordem, nome_completo, rg, cpf, nascimento, nome_pai, nome_mae, participacao,
            estado_civil, recibo_irpf, titulo_eleitor, doc_url, cert_url, cert_senha, senha_gov)
-         VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9::numeric, $10, $11, $12, $13, $14, $15, $16)`,
+         VALUES (gen_random_uuid(), $1::uuid, $2::int, $3, $4, $5, $6, $7, $8, $9::numeric, $10, $11, $12, $13, $14, $15, $16)`,
         e.nautaClienteId, i, s.nomeCompleto, nz(s.rg), nz(s.cpf), nz(s.nascimento), nz(s.nomePai), nz(s.nomeMae),
         num(s.participacao), nz(s.estadoCivil), nz(s.reciboIrpf), nz(s.tituloEleitor), nz(s.docUrl), nz(s.certUrl),
         nz(s.certSenha), nz(s.senhaGov),
@@ -81,7 +81,7 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
            negociacao_obs=$4, honorario_vencimento=COALESCE($5::date, honorario_vencimento),
            interesse=COALESCE($6, interesse), nome=COALESCE($7, nome),
            email=COALESCE($8, email), whatsapp=COALESCE($9, whatsapp)
-         WHERE id=$1`,
+         WHERE id=$1::uuid`,
         e.nautaLeadId, num(e.honorario), num(e.valorAbertura), nz(e.negociacaoObs),
         e.primeiroVencimento ? e.primeiroVencimento.toISOString().slice(0, 10) : null,
         nz(e.interesse), nz(t?.nomeCompleto), nz(e.emailPrincipal), nz(e.telefone),
