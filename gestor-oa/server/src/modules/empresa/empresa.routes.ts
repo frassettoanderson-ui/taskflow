@@ -63,7 +63,7 @@ router.get('/proximo-numero', async (req, res) => {
 const sTxt = (v: unknown) => (v == null ? '' : String(v).trim());
 const fmtCep = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
 const fmtTel = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return /^\d{10,11}$/.test(d) ? d.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : d; };
-interface DadosCnpj { razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string }
+interface DadosCnpj { razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string; atividade: string }
 
 async function buscarJson(url: string): Promise<Record<string, unknown> | null> {
   try {
@@ -79,6 +79,7 @@ function normPlano(d: Record<string, unknown>): DadosCnpj {
     logradouro: [sTxt(d.descricao_tipo_de_logradouro), sTxt(d.logradouro)].filter(Boolean).join(' ').trim(),
     numeroEndereco: sTxt(d.numero), complemento: sTxt(d.complemento), bairro: sTxt(d.bairro),
     cidade: sTxt(d.municipio), uf: sTxt(d.uf), telefone: fmtTel(d.ddd_telefone_1), email: sTxt(d.email).toLowerCase(),
+    atividade: sTxt(d.cnae_fiscal_descricao),
   };
 }
 // Formato aninhado da publica.cnpj.ws
@@ -91,21 +92,42 @@ function normCnpjWs(d: Record<string, unknown>): DadosCnpj {
     logradouro: [sTxt(e.tipo_logradouro), sTxt(e.logradouro)].filter(Boolean).join(' ').trim(),
     numeroEndereco: sTxt(e.numero), complemento: sTxt(e.complemento), bairro: sTxt(e.bairro),
     cidade: sTxt(cid.nome), uf: sTxt(est.sigla), telefone: fmtTel(`${sTxt(e.ddd1)}${sTxt(e.telefone1)}`), email: sTxt(e.email).toLowerCase(),
+    atividade: sTxt((e.atividade_principal as Record<string, unknown> | undefined)?.descricao),
   };
 }
 
-router.get('/consulta-cnpj/:cnpj', async (req, res) => {
-  const cnpj = (req.params.cnpj || '').replace(/\D/g, '');
-  if (cnpj.length !== 14) throw Errors.validacao('Informe um CNPJ valido (14 digitos).');
-
+async function consultarCnpj(cnpj: string): Promise<DadosCnpj> {
   let dados: DadosCnpj | null = null;
   const a = await buscarJson(`https://minhareceita.org/${cnpj}`);
   if (a && a.razao_social) dados = normPlano(a);
   if (!dados) { const b = await buscarJson(`https://publica.cnpj.ws/cnpj/${cnpj}`); if (b && b.razao_social) dados = normCnpjWs(b); }
   if (!dados) { const c = await buscarJson(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`); if (c && c.razao_social) dados = normPlano(c); }
-
   if (!dados) throw Errors.validacao('Nao foi possivel consultar o CNPJ agora (servicos indisponiveis ou limite atingido). Tente de novo em instantes.');
-  return ok(res, dados);
+  return dados;
+}
+
+router.get('/consulta-cnpj/:cnpj', async (req, res) => {
+  const cnpj = (req.params.cnpj || '').replace(/\D/g, '');
+  if (cnpj.length !== 14) throw Errors.validacao('Informe um CNPJ valido (14 digitos).');
+  return ok(res, await consultarCnpj(cnpj));
+});
+
+// ---------- Atualizar cadastro pela Receita (botao "Atualizar" da lista) ----------
+// Reconsulta o CNPJ da empresa e sobrescreve os dados cadastrais publicos (razao social,
+// fantasia, endereco, telefone, atividade). So' campos que vieram preenchidos; e-mail e
+// socios nao sao tocados. Passa pelo svc.editar (auditoria + ponte com o ERP).
+router.post('/:id/atualizar-cnpj', requirePermission('empresas_editar'), async (req, res) => {
+  const empresa = await svc.obter(req.auth!.escritorioId, req.params.id);
+  const cnpj = (empresa.identificadores.find((i) => i.tipo === 'CNPJ')?.valor ?? '').replace(/\D/g, '');
+  if (cnpj.length !== 14) throw Errors.validacao('Empresa sem CNPJ cadastrado.');
+  const d = await consultarCnpj(cnpj);
+  const ou = (v: string) => (v ? v : undefined); // vazio = nao mexe
+  await svc.editar(req.auth!.escritorioId, empresa.id, {
+    razaoSocial: ou(d.razaoSocial), nomeFantasia: ou(d.nomeFantasia),
+    cep: ou(d.cep), logradouro: ou(d.logradouro), numeroEndereco: ou(d.numeroEndereco), complemento: ou(d.complemento),
+    bairro: ou(d.bairro), cidade: ou(d.cidade), uf: ou(d.uf), telefone: ou(d.telefone), atividade: ou(d.atividade),
+  });
+  return ok(res, { atualizado: true, razaoSocial: d.razaoSocial || empresa.razaoSocial });
 });
 
 // ---------- Acoes em massa ----------
