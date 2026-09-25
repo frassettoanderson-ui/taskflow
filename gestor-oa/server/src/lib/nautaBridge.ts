@@ -28,7 +28,9 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
     });
     if (!e || !e.nautaClienteId) return;
 
-    const cnpj = e.identificadores.find((i) => i.tipo === 'CNPJ')?.valor ?? null;
+    // O ERP guarda o CNPJ formatado (xx.xxx.xxx/xxxx-xx); o Obrigô guarda só dígitos
+    const cnpjDig = (e.identificadores.find((i) => i.tipo === 'CNPJ')?.valor ?? '').replace(/\D/g, '');
+    const cnpj = cnpjDig.length === 14 ? cnpjDig.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : null;
     const t = e.socios[0]; // titular = sócio 1
     const situacao = !e.ativo ? 'inativo' : e.emAbertura ? 'em_processo' : 'ativo';
     const filiais = Array.isArray(e.filiais) ? (e.filiais as unknown[]) : [];
