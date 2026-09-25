@@ -86,6 +86,8 @@ router.post('/sso', async (req, res) => {
   if (!token) throw Errors.validacao('Token de SSO ausente.');
   const refreshToken = await loginViaSso(token, meta(req));
   setRefreshCookie(res, refreshToken);
+  // Chamada via fetch (modulo Obrigo embutido na Nauta): so grava o cookie e responde JSON.
+  if (req.is('application/json')) return ok(res, { autenticado: true });
   // `next` = rota interna do app para abrir direto (ex.: /empresas/nova). Só caminhos relativos simples.
   const next = String(req.body?.next ?? '');
   const destino = /^\/[A-Za-z0-9\-_/]*(\?[A-Za-z0-9\-_=&%]*)?$/.test(next) ? next : '/';
