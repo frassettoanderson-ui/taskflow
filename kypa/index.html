@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kypá Cosméticos — Essência que vem da natureza</title>
+<meta name="description" content="Linha completa para todos os tipos de cabelo. Shampoos, condicionadores, máscaras e leave-ins com ativos da natureza. Frete grátis acima de R$ 199,90.">
+<meta name="theme-color" content="#6E9B22">
+<link rel="icon" href="assets/img/logo-verde.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,100;1,9..144,300..700,100&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<!-- Faixa de frete -->
+<div class="topbar" aria-label="Avisos">
+  <div class="topbar__track">
+    <span>Frete grátis nas compras acima de R$ 199,90</span><i></i>
+    <span>Kits com 5% off</span><i></i>
+    <span>Linha completa para todos os tipos de cabelo</span><i></i>
+    <span>Frete grátis nas compras acima de R$ 199,90</span><i></i>
+    <span>Kits com 5% off</span><i></i>
+    <span>Linha completa para todos os tipos de cabelo</span><i></i>
+  </div>
+</div>
+
+<header class="header" id="topo">
+  <div class="header__inner">
+    <nav class="nav nav--left" aria-label="Principal">
+      <a href="#linhas">Linhas</a>
+      <a href="#diagnostico">Diagnóstico</a>
+      <a href="#kits">Kits</a>
+    </nav>
+    <a href="#topo" class="logo" aria-label="Kypá Cosméticos — início"><span class="logo__mark"></span></a>
+    <div class="nav nav--right">
+      <a href="#essencia" class="hide-sm">Nossa essência</a>
+      <button class="icon-btn" id="btnBusca" aria-label="Buscar produto">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+      </button>
+      <button class="icon-btn cart-btn" id="btnCarrinho" aria-label="Abrir sacola">
+        <svg viewBox="0 0 24 24"><path d="M5 8h14l-1.2 11.2a2 2 0 0 1-2 1.8H8.2a2 2 0 0 1-2-1.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
+        <span class="cart-count" id="cartCount">0</span>
+      </button>
+      <button class="icon-btn menu-btn" id="btnMenu" aria-label="Menu">
+        <svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO: motion por linha -->
+<section class="hero" id="hero" aria-label="Destaque das linhas">
+  <div class="hero__copy">
+    <h1 class="hero__title">
+      <span class="line"><span>Cada fio</span></span>
+      <span class="line"><span>pede a sua</span></span>
+      <span class="line"><span><em class="hero__cor">cor.</em></span></span>
+    </h1>
+    <p class="hero__lead">Onze linhas com ativos da natureza, cada uma criada para uma necessidade real do seu cabelo. Descubra a sua.</p>
+    <div class="hero__ctas">
+      <a href="#diagnostico" class="btn btn--solid">Descobrir meu fio</a>
+      <a href="#linhas" class="btn btn--line" id="heroVerLinha">Ver linha <b id="heroLinhaNome">Tutano</b></a>
+    </div>
+    <div class="hero__meta">
+      <button class="hero__arrow" id="heroPrev" aria-label="Linha anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <div class="hero__info">
+        <span class="hero__num"><b id="heroNum">01</b> / 11</span>
+        <span class="hero__para" id="heroPara">Cabelos ressecados e danificados</span>
+        <span class="hero__bar"><i id="heroBar"></i></span>
+      </div>
+      <button class="hero__arrow" id="heroNext" aria-label="Próxima linha"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </div>
+
+  <div class="hero__stage" id="heroStage">
+    <div class="hero__ghost" id="heroGhost" aria-hidden="true">Tutano</div>
+    <div class="hero__band hero__band--a" id="bandA"></div>
+    <div class="hero__band hero__band--b" id="bandB"></div>
+    <div class="hero__seal" aria-hidden="true"></div>
+    <div class="hero__products" id="heroProducts"></div>
+    <div class="hero__shadow"></div>
+  </div>
+</section>
+
+<!-- Tira de necessidades -->
+<section class="needs" aria-label="Qual sua necessidade">
+  <div class="needs__track" id="needsTrack"></div>
+</section>
+
+<!-- DIAGNÓSTICO -->
+<section class="quiz" id="diagnostico">
+  <div class="quiz__card reveal">
+    <div class="quiz__head">
+      <span class="kicker">Diagnóstico capilar · 30 segundos</span>
+      <h2 class="h2">Qual é o <em>seu</em> fio?</h2>
+      <p class="quiz__sub">Duas perguntas e a gente indica a linha certa — do jeito que a nossa equipe faz no atendimento.</p>
+    </div>
+    <div class="quiz__steps" id="quizSteps">
+      <div class="quiz__step is-active" data-step="1">
+        <p class="quiz__q"><span>1</span> Como é o seu cabelo?</p>
+        <div class="quiz__opts" data-q="fio">
+          <button data-v="liso">Liso</button>
+          <button data-v="ondulado">Ondulado</button>
+          <button data-v="cacheado">Cacheado</button>
+          <button data-v="crespo">Crespo</button>
+        </div>
+      </div>
+      <div class="quiz__step" data-step="2">
+        <p class="quiz__q"><span>2</span> O que mais te incomoda hoje?</p>
+        <div class="quiz__opts quiz__opts--wide" data-q="queixa">
+          <button data-v="queda">Queda e fios fracos</button>
+          <button data-v="oleoso">Oleosidade ou caspa</button>
+          <button data-v="ressecado">Ressecamento</button>
+          <button data-v="brilho">Falta de brilho</button>
+          <button data-v="frizz">Frizz e volume</button>
+          <button data-v="quimica">Danos de química</button>
+          <button data-v="tingido">Cor que desbota</button>
+          <button data-v="amarelado">Loiro amarelado</button>
+        </div>
+      </div>
+      <div class="quiz__step quiz__result" data-step="3" id="quizResult"></div>
+    </div>
+    <div class="quiz__dots"><i class="is-on"></i><i></i><i></i></div>
+  </div>
+</section>
+
+<!-- LOJA POR LINHA -->
+<section class="shop" id="linhas">
+  <div class="shop__head">
+    <span class="kicker">A linha completa</span>
+    <h2 class="h2">Escolha pela <em>cor</em> da sua necessidade</h2>
+  </div>
+  <div class="rail" id="rail" role="tablist" aria-label="Linhas"></div>
+
+  <div class="line-hero" id="lineHero">
+    <div class="line-hero__band"></div>
+    <div class="line-hero__text">
+      <span class="line-hero__label">Linha</span>
+      <h3 class="line-hero__name" id="lineName">Tutano</h3>
+      <p class="line-hero__para" id="linePara"></p>
+      <p class="line-hero__desc" id="lineDesc"></p>
+    </div>
+    <img class="line-hero__img" id="lineImg" alt="">
+  </div>
+
+  <div class="filters" id="filters" role="tablist" aria-label="Tipo de produto"></div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<!-- KITS -->
+<section class="kits" id="kits">
+  <div class="kits__head">
+    <div>
+      <span class="kicker">Rituais completos</span>
+      <h2 class="h2">Kits com <em>5% off</em>, montados para tratar de verdade</h2>
+    </div>
+    <div class="kits__nav">
+      <button class="hero__arrow" id="kitsPrev" aria-label="Anterior"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="hero__arrow" id="kitsNext" aria-label="Próximo"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+    </div>
+  </div>
+  <div class="kits__track" id="kitsTrack"></div>
+</section>
+
+<!-- ESSÊNCIA (pinned motion) -->
+<section class="essence" id="essencia">
+  <div class="essence__pin">
+    <div class="essence__seal"><div class="essence__ring"></div><div class="essence__k"></div></div>
+    <div class="essence__slides">
+      <article class="essence__slide is-on">
+        <span class="kicker kicker--light">Nossa essência</span>
+        <h2 class="essence__title">Essência que vem <em>da natureza.</em></h2>
+        <p>Ativos vegetais brasileiros, alta tecnologia e fórmulas pensadas para cada tipo de fio. É assim que a Kypá entrega resultados extraordinários.</p>
+      </article>
+      <article class="essence__slide" data-c="#8FB800">
+        <span class="essence__tag">Jaborandi</span>
+        <h3 class="essence__title">Raiz equilibrada, <em>fio que fica.</em></h3>
+        <p>Extratos vegetais e óleo de melaleuca para controlar a oleosidade e reduzir a queda desde o couro cabeludo.</p>
+      </article>
+      <article class="essence__slide" data-c="#DC5E36">
+        <span class="essence__tag">Mandioca</span>
+        <h3 class="essence__title">Brilho de <em>dentro pra fora.</em></h3>
+        <p>Nutrição profunda que devolve maciez, movimento e aquele brilho que a gente sente ao passar a mão.</p>
+      </article>
+      <article class="essence__slide" data-c="#F58233">
+        <span class="essence__tag">Tutano</span>
+        <h3 class="essence__title">Força e <em>maciez</em> em cada fio.</h3>
+        <p>Semente de uva, óleo de mamona, vitamina E e colágeno para cabelos ressecados e frágeis.</p>
+      </article>
+    </div>
+    <div class="essence__progress"><i></i><i></i><i></i><i></i></div>
+  </div>
+</section>
+
+<!-- DEPOIMENTOS -->
+<section class="reviews" aria-label="Depoimentos">
+  <div class="reviews__head">
+    <span class="kicker">Quem usa, indica</span>
+    <h2 class="h2">Palavra de <em>cliente</em></h2>
+  </div>
+  <div class="reviews__grid">
+    <figure class="review reveal" style="--c:#F5AE1A">
+      <span class="review__line">Linha Força Total</span>
+      <blockquote>“A linha Força Total fez maravilhas, especialmente durante o inverno, quando meus fios ficam quebradiços. Confio de olhos fechados na Kypá!”</blockquote>
+      <figcaption><b>Fernanda Souza</b>Curitiba/PR</figcaption>
+    </figure>
+    <figure class="review reveal" style="--c:#6E9B22">
+      <span class="review__line">Experiência de compra</span>
+      <blockquote>“Senti a diferença logo nas primeiras aplicações. Atendimento atencioso, entrega rápida e produtos que superaram todas as expectativas.”</blockquote>
+      <figcaption><b>Laura Simão</b>Joinville/SC</figcaption>
+    </figure>
+    <figure class="review reveal" style="--c:#DC5E36">
+      <span class="review__line">Linha Mandioca</span>
+      <blockquote>“A linha de Mandioca deixou meu cabelo macio, com um brilho incrível. Recomendo para todas que buscam qualidade e resultado!”</blockquote>
+      <figcaption><b>Patrícia Goulart</b>Porto Alegre/RS</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- INSTAGRAM -->
+<section class="insta" aria-label="Instagram">
+  <div class="insta__head">
+    <h2 class="h2">No <em>@kypacosmeticos</em></h2>
+    <a class="btn btn--line" href="https://www.instagram.com/kypacosmeticos/" target="_blank" rel="noopener">Seguir no Instagram</a>
+  </div>
+  <div class="insta__grid">
+    <img src="assets/img/banners/Arte_Capa_Tutano.webp" alt="Linha Tutano" loading="lazy">
+    <img src="assets/img/banners/Arte_Capa_Cachos.webp" alt="Linha Mais Cachos" loading="lazy">
+    <img src="assets/img/banners/Arte_Capa_Forca_Total.webp" alt="Linha Força Total" loading="lazy">
+    <img src="assets/img/banners/Arte_Capa_Matte_Plus.webp" alt="Linha Matte Plus" loading="lazy">
+    <img src="assets/img/banners/Arte_Capa_Queratina.webp" alt="Linha Queratina" loading="lazy">
+    <img src="assets/img/banners/Arte_Capa_Revitalize.webp" alt="Linha Revitalize" loading="lazy">
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer__top">
+    <div class="footer__brand">
+      <span class="logo__mark logo__mark--light"></span>
+      <p>Linha completa para todos os tipos de cabelo. Alta tecnologia e resultados extraordinários.</p>
+    </div>
+    <div class="footer__cols">
+      <div><h4>Linhas</h4><a href="#linhas">Força Total</a><a href="#linhas">Tutano</a><a href="#linhas">Mais Cachos</a><a href="#linhas">Queratina</a><a href="#linhas">Ver todas</a></div>
+      <div><h4>Ajuda</h4><a href="#diagnostico">Diagnóstico capilar</a><a href="#">Trocas e devoluções</a><a href="#">Prazos de entrega</a><a href="#">Fale conosco</a></div>
+      <div><h4>Siga</h4><a href="https://www.instagram.com/kypacosmeticos/" target="_blank" rel="noopener">Instagram</a><a href="#">WhatsApp</a></div>
+    </div>
+  </div>
+  <div class="footer__big" aria-hidden="true">Essência que vem da natureza</div>
+  <div class="footer__bottom">
+    <span>© 2026 Kypá Cosméticos</span>
+    <span>Pix · Cartão de crédito · Boleto</span>
+    <span>Site de demonstração</span>
+  </div>
+</footer>
+
+<!-- Sacola -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-label="Sacola" aria-hidden="true">
+  <div class="drawer__head">
+    <h3>Sua sacola</h3>
+    <button class="icon-btn" id="drawerClose" aria-label="Fechar"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <div class="ship" id="ship">
+    <p id="shipText"></p>
+    <span class="ship__bar"><i id="shipBar"></i></span>
+  </div>
+  <div class="drawer__items" id="drawerItems"></div>
+  <div class="drawer__foot">
+    <div class="drawer__total"><span>Subtotal</span><b id="subtotal">R$ 0,00</b></div>
+    <button class="btn btn--solid btn--full" id="checkout">Finalizar compra</button>
+    <p class="drawer__note">Pix com aprovação na hora · Parcele no cartão</p>
+  </div>
+</aside>
+
+<!-- Quick view -->
+<div class="modal" id="modal" aria-hidden="true" role="dialog">
+  <div class="modal__box" id="modalBox"></div>
+</div>
+
+<!-- Busca -->
+<div class="search" id="search" aria-hidden="true">
+  <div class="search__box">
+    <input id="searchInput" type="search" placeholder="Buscar shampoo, máscara, linha…" autocomplete="off">
+    <div class="search__res" id="searchRes"></div>
+  </div>
+</div>
+
+<!-- Menu mobile -->
+<nav class="mnav" id="mnav" aria-hidden="true">
+  <a href="#linhas">Linhas</a><a href="#diagnostico">Diagnóstico</a><a href="#kits">Kits</a><a href="#essencia">Nossa essência</a>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="assets/js/produtos.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
