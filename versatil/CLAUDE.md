@@ -1,6 +1,7 @@
 # Projeto Versátil — loja de logística reversa (e-commerce + WhatsApp + PDV)
 
 > Status: **FASES 1 e 2 PRONTAS EM DEV** (28/09/2026) — loja + checkout + reserva anti-venda-dupla + painel + **disparo automático nos grupos de WhatsApp**, testado em modo demonstração. **Não está no ar.**
+> 🎨 Layout (28/09, pedido do usuário): **inspirado no Mercado Livre**, tema CLARO (loja e painel), dourado + branco. Faixa dourada no topo (logo preta) com degradê dourado→cinza atrás do banner + cards de atalho sobrepostos; cards "poly-card" (texto à ESQUERDA como no ML — exceção à regra de centralizar); preço estilo ML (centavos sobrescritos, peso normal); % OFF e "Retire na loja" em verde #00A650; botão principal preto c/ texto dourado, secundário dourado-claro; fonte Figtree. Página de produto em 3 colunas (galeria c/ miniaturas verticais | info + "O que você precisa saber" | caixa de compra), depois relacionados, Características (tabela zebrada) e Descrição. Listagem /busca com filtros laterais (categoria, condição, preço).
 > ⚠️ Decisão do usuário (28/09): **NADA de tema leilão** (sem "lote", "arrematado", martelo animado). É uma **loja online normal**, preto+dourado, com fotos reais e página de produto completa (marca, SKU, aplicação/compatibilidade, especificações). O martelo fica só na logo. Marca: **VERSÁTIL — "Melhor preço da região"**, preto + dourado.
 
 ## Código (`app/`)

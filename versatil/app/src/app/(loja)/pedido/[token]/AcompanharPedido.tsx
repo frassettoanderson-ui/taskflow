@@ -60,7 +60,7 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
 
   return (
     <div className="mx-auto max-w-md px-4 pb-12 pt-8 text-center">
-      <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ouro">Pedido #{p.numero}</p>
+      <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ouro-escuro">Pedido #{p.numero}</p>
 
       {p.status === "AGUARDANDO_PAGAMENTO" && (
         <section className="entrada">
@@ -70,16 +70,16 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
           <div className="mx-auto mt-4 inline-flex items-center gap-2 rounded-full border border-ouro-escuro/60 bg-ouro/5 px-4 py-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-ouro" />
             <span className="text-sm">
-              Itens reservados por <b className="font-mono text-ouro-claro">{mmss}</b>
+              Itens reservados por <b className="font-mono text-ouro-escuro">{mmss}</b>
             </span>
           </div>
 
           {p.metodo === "PIX" && p.pixQr && (
-            <div className="mt-6 rounded-2xl border filete bg-carvao/70 p-5">
+            <div className="mt-6 rounded-2xl border filete bg-white p-5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.pixQr} alt="QR Code Pix" className="mx-auto w-56 rounded-xl bg-white p-2" />
               <p className="texto-ouro mt-4 text-3xl font-extrabold">{brl(p.totalCents)}</p>
-              <button onClick={copiar} className="botao-ouro mt-4 w-full rounded-xl py-4">
+              <button onClick={copiar} className="botao-principal mt-4 w-full rounded-xl py-4">
                 {copiado ? "Código copiado ✓" : "Copiar código Pix"}
               </button>
               <p className="mt-3 text-xs text-cinza">Abra o app do seu banco, escolha Pix copia e cola e cole o código. A confirmação aparece aqui sozinha.</p>
@@ -87,10 +87,10 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
           )}
 
           {p.metodo === "CARTAO" && (
-            <div className="mt-6 rounded-2xl border filete bg-carvao/70 p-5">
+            <div className="mt-6 rounded-2xl border filete bg-white p-5">
               <p className="texto-ouro text-3xl font-extrabold">{brl(p.totalCents)}</p>
               {p.invoiceUrl ? (
-                <a href={p.invoiceUrl} className="botao-ouro mt-4 block rounded-xl py-4">
+                <a href={p.invoiceUrl} className="botao-principal mt-4 block rounded-xl py-4">
                   Ir para o pagamento seguro
                 </a>
               ) : (
@@ -101,7 +101,7 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
           )}
 
           {p.demo && (
-            <button onClick={simular} disabled={simulando} className="mt-4 w-full rounded-xl border border-dashed border-ouro-escuro py-3 text-sm text-ouro-claro">
+            <button onClick={simular} disabled={simulando} className="mt-4 w-full rounded-xl border border-dashed border-ouro-escuro py-3 text-sm text-ouro-escuro">
               {simulando ? "Simulando…" : "Simular pagamento aprovado (demonstração)"}
             </button>
           )}
@@ -121,8 +121,8 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
             {p.status === "PRONTO" ? "Seu pedido já está separado esperando por você." : p.status === "RETIRADO" ? "Esperamos você na próxima oportunidade." : "Pagamento aprovado. Seus produtos já estão reservados no seu nome."}
           </p>
           {p.status !== "RETIRADO" && p.codigoRetirada && (
-            <div className="mt-6 rounded-2xl border border-ouro-escuro/70 bg-carvao/80 p-5">
-              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ouro">Código de retirada</p>
+            <div className="mt-6 rounded-2xl border border-ouro-escuro/70 bg-white p-5">
+              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ouro-escuro">Código de retirada</p>
               <p className="mt-2 font-mono text-5xl font-semibold tracking-[0.2em] text-marfim">{p.codigoRetirada}</p>
               {p.retiradaQr && (
                 /* eslint-disable-next-line @next/next/no-img-element */
@@ -145,7 +145,7 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
         <section className="entrada py-8">
           <h1 className="mt-2 text-2xl font-extrabold">{p.status === "EXPIRADO" ? "A reserva expirou" : "Pedido cancelado"}</h1>
           <p className="mt-2 text-sm text-cinza">Os itens voltaram a ficar disponíveis na loja. Se ainda estiverem disponíveis, é só comprar de novo.</p>
-          <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Voltar à loja</Link>
+          <Link href="/" className="botao-principal mt-6 inline-block rounded-xl px-6 py-3">Voltar à loja</Link>
         </section>
       )}
 
@@ -157,7 +157,7 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
               ? "Infelizmente outra pessoa concluiu a compra deste item segundos antes. Seu pagamento foi devolvido automaticamente."
               : `Estornamos ${brl(p.estornoCents)} para você.`}
           </p>
-          <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Ver outros produtos</Link>
+          <Link href="/" className="botao-principal mt-6 inline-block rounded-xl px-6 py-3">Ver outros produtos</Link>
         </section>
       )}
 
@@ -165,7 +165,7 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
         {p.itens.map((i) => (
           <li key={i.slug} className="flex justify-between gap-3 border-b filete pb-2 text-sm">
             <span className="text-marfim/85">
-              {i.quantidade > 1 && <b className="font-mono text-ouro">{i.quantidade}× </b>}
+              {i.quantidade > 1 && <b className="font-mono text-ouro-escuro">{i.quantidade}× </b>}
               {i.titulo}
             </span>
             <span className="shrink-0">{brl(i.precoUnitCents * i.quantidade)}</span>
@@ -174,7 +174,7 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
       </ul>
 
       {zap && (
-        <a href={`https://wa.me/55${zap}?text=${encodeURIComponent(`Olá! Sobre o pedido #${p.numero}`)}`} className="mt-6 inline-block text-sm text-ouro-claro underline underline-offset-4">
+        <a href={`https://wa.me/55${zap}?text=${encodeURIComponent(`Olá! Sobre o pedido #${p.numero}`)}`} className="mt-6 inline-block text-sm text-ouro-escuro underline underline-offset-4">
           Dúvidas? Fale com a loja no WhatsApp
         </a>
       )}
@@ -196,7 +196,7 @@ function Etapas({ status }: { status: string }) {
         <div key={s} className="flex items-center gap-1">
           <div className="flex flex-col items-center">
             <span className={`h-2.5 w-2.5 rounded-full ${i <= idx ? "bg-ouro" : "bg-fio"}`} />
-            <span className={`mt-1 text-[10px] uppercase tracking-wider ${i <= idx ? "text-ouro-claro" : "text-cinza"}`}>{rot}</span>
+            <span className={`mt-1 text-[10px] uppercase tracking-wider ${i <= idx ? "text-ouro-escuro" : "text-cinza"}`}>{rot}</span>
           </div>
           {i < passos.length - 1 && <span className={`mb-4 h-px w-8 ${i < idx ? "bg-ouro" : "bg-fio"}`} />}
         </div>

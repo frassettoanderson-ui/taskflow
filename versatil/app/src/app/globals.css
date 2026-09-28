@@ -1,82 +1,111 @@
 @import "tailwindcss";
 
+/* Tema claro inspirado no Mercado Livre, com a identidade Versátil (dourado + branco).
+   Os nomes antigos dos tokens foram mantidos e remapeados para o tema claro:
+   noite = preto (texto sobre dourado / botão principal) · carvao = card branco · grafite = cinza de apoio
+   fio = borda · marfim = texto principal · cinza = texto secundário */
 @theme {
-  --color-noite: #0b0b0c;
-  --color-carvao: #121215;
-  --color-grafite: #1a1a1f;
-  --color-fio: #2a2a31;
-  --color-ouro-claro: #f3d98b;
-  --color-ouro: #d4af55;
-  --color-ouro-escuro: #a67c2e;
-  --color-marfim: #f5f1e8;
-  --color-cinza: #9a968c;
-  --color-rubi: #e0605a;
-  --color-jade: #5fbf8f;
+  --color-noite: #111111;
+  --color-carvao: #ffffff;
+  --color-grafite: #f5f5f5;
+  --color-fio: #e6e6e6;
+  --color-fundo: #ededed;
+  --color-ouro-claro: #f6e1a1;
+  --color-ouro: #e8c25a;
+  --color-ouro-escuro: #8a6516;
+  --color-faixa: #f0cd67; /* faixa do cabeçalho (o "amarelo" do ML) */
+  --color-marfim: #1f1f1f;
+  --color-cinza: #737373;
+  --color-rubi: #d93636;
+  --color-jade: #00a650; /* verde de economia/retirada — convenção do ML */
   --font-sans: var(--font-sans), ui-sans-serif, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
-:root { color-scheme: dark; }
+:root { color-scheme: light; }
 
 body {
-  background: var(--color-noite);
+  background: var(--color-fundo);
   color: var(--color-marfim);
   font-family: var(--font-sans);
+  font-size: 14px;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* grão sutil + brilho dourado no topo */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(900px 420px at 50% -120px, rgb(212 175 85 / 0.10), transparent 70%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
-}
-body > * { position: relative; z-index: 1; }
-
 .texto-ouro {
-  background: linear-gradient(180deg, var(--color-ouro-claro), var(--color-ouro) 45%, var(--color-ouro-escuro));
+  background: linear-gradient(180deg, #c99a2e, #8a6516);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-.botao-ouro {
-  background: linear-gradient(180deg, var(--color-ouro-claro), var(--color-ouro) 55%, var(--color-ouro-escuro));
-  color: #16120a;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), 0 8px 24px -10px rgb(212 175 85 / 0.55);
-  transition: transform 0.15s, filter 0.15s;
+/* botão principal: preto com texto dourado */
+.botao-principal {
+  background: var(--color-noite);
+  color: var(--color-ouro-claro);
+  font-weight: 600;
+  border-radius: 6px;
+  transition: filter 0.15s, transform 0.15s;
 }
-.botao-ouro:hover { filter: brightness(1.06); }
-.botao-ouro:active { transform: translateY(1px) scale(0.99); }
-.botao-ouro:disabled { filter: grayscale(0.8) brightness(0.6); cursor: not-allowed; }
+.botao-principal:hover { filter: brightness(1.35); }
+.botao-principal:active { transform: translateY(1px); }
+.botao-principal:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* botão secundário: dourado claro (como o "Adicionar ao carrinho" azul-claro do ML) */
+.botao-secundario {
+  background: #faf0d2;
+  color: var(--color-ouro-escuro);
+  font-weight: 600;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.botao-secundario:hover { background: #f5e4b3; }
+
+/* botão dourado (usado no painel e em destaques) */
+.botao-ouro {
+  background: linear-gradient(180deg, #f3d98b, #e3bb4f);
+  color: #1a1407;
+  font-weight: 700;
+  border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 1px 2px rgb(0 0 0 / 0.12);
+  transition: filter 0.15s, transform 0.15s;
+}
+.botao-ouro:hover { filter: brightness(1.04); }
+.botao-ouro:active { transform: translateY(1px); }
+.botao-ouro:disabled { filter: grayscale(0.7); opacity: 0.6; cursor: not-allowed; }
 
 .filete { border-color: var(--color-fio); }
-.filete-ouro { border-image: linear-gradient(90deg, transparent, var(--color-ouro-escuro), transparent) 1; }
+
+/* card padrão (andes-card do ML) */
+.cartao {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
 
 .campo {
   width: 100%;
-  background: var(--color-carvao);
-  border: 1px solid var(--color-fio);
-  border-radius: 0.75rem;
-  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #d4d4d4;
+  border-radius: 6px;
+  padding: 0.75rem 0.9rem;
   font-size: 16px; /* evita zoom no iPhone */
   color: var(--color-marfim);
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.campo:focus { border-color: var(--color-ouro); box-shadow: 0 0 0 3px rgb(212 175 85 / 0.18); }
-.campo::placeholder { color: #6d6a63; }
+.campo:focus { border-color: var(--color-ouro-escuro); box-shadow: 0 0 0 3px rgb(232 194 90 / 0.3); }
+.campo::placeholder { color: #9a9a9a; }
 
+/* degradê da faixa dourada para o cinza da página (como o amarelo→cinza do ML) */
+.degrade-topo {
+  background: linear-gradient(180deg, var(--color-faixa) 0%, var(--color-faixa) 35%, #f3dfa4 60%, var(--color-fundo) 100%);
+}
 
-@keyframes subir { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: none; } }
-.entrada { animation: subir 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@keyframes subir { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: none; } }
+.entrada { animation: subir 0.35s ease-out both; }
 
+.sem-barra { scrollbar-width: none; }
+.sem-barra::-webkit-scrollbar { display: none; }
 
-.safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.safe-bottom { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }

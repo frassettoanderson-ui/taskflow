@@ -64,8 +64,8 @@ export default async function Disparos() {
       <h1 className="text-center text-2xl font-extrabold md:text-left">Disparos no WhatsApp</h1>
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
-        <section className="rounded-2xl border filete bg-carvao/60 p-5 text-center">
-          <p className={`inline-flex items-center gap-2 text-sm font-bold ${conexao === "open" ? "text-jade" : conexao === "demo" ? "text-ouro-claro" : "text-rubi"}`}>
+        <section className="rounded-2xl border filete bg-white p-5 text-center">
+          <p className={`inline-flex items-center gap-2 text-sm font-bold ${conexao === "open" ? "text-jade" : conexao === "demo" ? "text-ouro-escuro" : "text-rubi"}`}>
             <span className={`h-2 w-2 rounded-full ${conexao === "open" ? "bg-jade" : conexao === "demo" ? "bg-ouro" : "bg-rubi"}`} />
             {titConexao}
           </p>
@@ -92,10 +92,10 @@ export default async function Disparos() {
           <ControlesFila ativo={ativo} pendentes={pendentes} />
         </section>
 
-        <section className="rounded-2xl border filete bg-carvao/60 p-5">
+        <section className="rounded-2xl border filete bg-white p-5">
           <p className="text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-cinza">Prévia da mensagem</p>
           {previa ? (
-            <div className="mx-auto mt-3 max-w-sm rounded-2xl rounded-tl-sm bg-[#1f2c33] p-3 text-[13px] leading-relaxed text-[#e9edef] shadow">
+            <div className="mx-auto mt-3 max-w-sm rounded-2xl rounded-tl-sm bg-[#d9fdd3] p-3 text-[13px] leading-relaxed text-[#111b21] shadow">
               <p className="whitespace-pre-line">{previa.replace(/\*(.+?)\*/g, "$1").replace(/~(.+?)~/g, "$1")}</p>
             </div>
           ) : (
@@ -112,10 +112,10 @@ export default async function Disparos() {
           <h2 className="mb-2 font-bold">Na fila agora</h2>
           <ul className="grid gap-2 md:grid-cols-2">
             {filaPorProduto.map((f) => (
-              <li key={f.produtoId} className="flex items-center justify-between gap-3 rounded-xl border filete bg-carvao/60 px-3 py-2 text-sm">
+              <li key={f.produtoId} className="flex items-center justify-between gap-3 rounded-xl border filete bg-white px-3 py-2 text-sm">
                 <span className="line-clamp-1">{produtosFila.find((p) => p.id === f.produtoId)?.titulo}</span>
                 <span className="flex shrink-0 items-center gap-3">
-                  <span className="font-mono text-xs text-ouro">{f._count} grupo(s)</span>
+                  <span className="font-mono text-xs text-ouro-escuro">{f._count} grupo(s)</span>
                   <CancelarProduto produtoId={f.produtoId} />
                 </span>
               </li>
@@ -138,7 +138,7 @@ export default async function Disparos() {
               const cli = cliques.find((c) => c.grupoId === g.id)?._count ?? 0;
               const ven = vendas.find((v) => v.origemGrupo === String(g.numero));
               return (
-                <li key={g.id} className="flex items-center gap-3 rounded-xl border filete bg-carvao/60 px-3 py-3">
+                <li key={g.id} className="flex items-center gap-3 rounded-xl border filete bg-white px-3 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-semibold">{g.nome}</p>
                     <p className="text-[11px] text-cinza">
@@ -160,7 +160,7 @@ export default async function Disparos() {
         ) : (
           <ul className="space-y-2">
             {recentes.map((d) => (
-              <li key={d.id} className="rounded-xl border filete bg-carvao/60 px-3 py-2 text-sm">
+              <li key={d.id} className="rounded-xl border filete bg-white px-3 py-2 text-sm">
                 <details>
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                     <span className="min-w-0">

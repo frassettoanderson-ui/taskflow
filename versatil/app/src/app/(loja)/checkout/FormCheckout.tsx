@@ -23,7 +23,7 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
     return (
       <div className="px-4 py-24 text-center">
         <p className="text-cinza">Carrinho vazio.</p>
-        <Link href="/" className="mt-4 inline-block text-ouro-claro underline">Voltar à loja</Link>
+        <Link href="/" className="mt-4 inline-block text-ouro-escuro underline">Voltar à loja</Link>
       </div>
     );
   }
@@ -62,7 +62,7 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
       onClick={() => setMetodo(m)}
       className={`flex-1 rounded-xl border p-4 text-center transition ${metodo === m ? "border-ouro bg-ouro/10" : "filete"}`}
     >
-      <p className={`font-bold ${metodo === m ? "text-ouro-claro" : ""}`}>{titulo}</p>
+      <p className={`font-bold ${metodo === m ? "text-ouro-escuro" : ""}`}>{titulo}</p>
       <p className="mt-0.5 text-[11px] text-cinza">{sub}</p>
     </button>
   );
@@ -71,16 +71,16 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
     <form onSubmit={finalizar} className="mx-auto max-w-xl px-4 pb-10 pt-8">
       <h1 className="text-center text-2xl font-extrabold">Finalizar compra</h1>
       {demo && (
-        <p className="mx-auto mt-3 max-w-sm rounded-lg border border-ouro-escuro/50 bg-ouro/5 px-3 py-2 text-center text-xs text-ouro-claro">
+        <p className="mx-auto mt-3 max-w-sm rounded-lg border border-ouro-escuro/50 bg-ouro/5 px-3 py-2 text-center text-xs text-ouro-escuro">
           Modo demonstração: nenhum pagamento real será cobrado.
         </p>
       )}
 
-      <section className="mt-6 rounded-2xl border filete bg-carvao/70 p-4">
+      <section className="mt-6 rounded-2xl border filete bg-white p-4">
         {itens.map((i) => (
           <div key={i.produtoId} className="flex justify-between gap-3 py-1.5 text-sm">
             <span className="line-clamp-1 text-marfim/90">
-              {i.quantidade > 1 && <b className="font-mono text-ouro">{i.quantidade}× </b>}
+              {i.quantidade > 1 && <b className="font-mono text-ouro-escuro">{i.quantidade}× </b>}
               {i.titulo}
             </span>
             <span className="shrink-0 font-semibold">{brl(i.precoCents * i.quantidade)}</span>
@@ -93,7 +93,7 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
       </section>
 
       <section className="mt-6 space-y-3">
-        <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ouro">Seus dados</p>
+        <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ouro-escuro">Seus dados</p>
         <input className="campo" placeholder="Nome completo" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
         <input className="campo" placeholder="WhatsApp com DDD" inputMode="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(mascaraTelefone(e.target.value))} />
         <input className="campo" placeholder="CPF" inputMode="numeric" value={cpf} onChange={(e) => setCpf(mascaraCpf(e.target.value))} />
@@ -101,7 +101,7 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
       </section>
 
       <section className="mt-6">
-        <p className="mb-3 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ouro">Pagamento</p>
+        <p className="mb-3 text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ouro-escuro">Pagamento</p>
         <div className="flex gap-3">
           {opcao("PIX", "Pix", "Aprovação na hora")}
           {opcao("CARTAO", "Cartão de crédito", "Página segura do Asaas")}
@@ -114,14 +114,14 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
       </section>
 
       <section className="mt-6 rounded-2xl border border-dashed border-ouro-escuro/50 p-4 text-center text-sm">
-        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ouro">Retirada na loja</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-ouro-escuro">Retirada na loja</p>
         <p className="mt-1.5 text-marfim">{endereco}</p>
         <p className="text-xs text-cinza">{horario} · sem prazo para retirar</p>
       </section>
 
       {erro && <p className="mt-4 rounded-lg bg-rubi/10 px-3 py-2 text-center text-sm text-rubi">{erro}</p>}
 
-      <button disabled={enviando} className="botao-ouro mt-6 w-full rounded-xl py-4 text-base">
+      <button disabled={enviando} className="botao-principal mt-6 w-full rounded-xl py-4 text-base">
         {enviando ? "Reservando seus itens…" : metodo === "PIX" ? `Gerar Pix de ${brl(totalCents)}` : `Pagar ${brl(totalCents)} no cartão`}
       </button>
     </form>

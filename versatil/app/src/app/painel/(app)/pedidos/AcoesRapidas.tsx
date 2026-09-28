@@ -6,7 +6,7 @@ export function AcoesRapidas({ pedidoId, status, grande = false, retirada = fals
   const [pendente, iniciar] = useTransition();
   const mudar = (para: "SEPARANDO" | "PRONTO" | "RETIRADO") => iniciar(async () => { await mudarStatusPedido(pedidoId, para); });
   const cls = `botao-ouro flex-1 rounded-xl ${grande ? "py-4 text-base" : "py-2.5 text-sm"}`;
-  const sec = `flex-1 rounded-xl border border-ouro-escuro text-ouro-claro font-semibold ${grande ? "py-4" : "py-2.5 text-sm"}`;
+  const sec = `flex-1 rounded-xl border border-ouro-escuro text-ouro-escuro font-semibold ${grande ? "py-4" : "py-2.5 text-sm"}`;
 
   let botoes: React.ReactNode = null;
   if (retirada && ["PAGO", "SEPARANDO", "PRONTO"].includes(status))

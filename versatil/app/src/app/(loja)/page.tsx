@@ -1,135 +1,126 @@
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getConfig } from "@/lib/config";
 import { expirarPedidos } from "@/lib/pedidos";
+import { selecaoCard, type ProdutoCard } from "@/lib/catalogo";
+import { soDigitos } from "@/lib/format";
 import { CardProduto } from "@/components/CardProduto";
-import { IconeEscudo, IconeLoja, IconePix, IconeSacola } from "@/components/Icones";
+import { Carrossel } from "@/components/Carrossel";
+import { BannerCarrossel } from "@/components/BannerCarrossel";
+import { IconeEscudo, IconeLoja, IconePix, IconeSacola, IconeWhats } from "@/components/Icones";
+import { FotoProduto } from "@/components/FotoProduto";
 
 export const dynamic = "force-dynamic";
 
-const selecao = {
-  slug: true,
-  codigo: true,
-  titulo: true,
-  condicao: true,
-  marca: true,
-  precoCents: true,
-  precoMercadoCents: true,
-  estoqueDisponivel: true,
-  estoqueReservado: true,
-  status: true,
-  fotos: { select: { arquivo: true }, orderBy: { ordem: "asc" }, take: 1 },
-} satisfies Prisma.ProdutoSelect;
+function Secao({ titulo, href, produtos }: { titulo: string; href: string; produtos: ProdutoCard[] }) {
+  if (!produtos.length) return null;
+  return (
+    <section className="cartao mt-6 p-4 md:p-6">
+      <div className="mb-4 flex items-baseline gap-4">
+        <h2 className="text-[20px] font-semibold md:text-[24px]">{titulo}</h2>
+        <Link href={href} className="text-[14px] text-ouro-escuro hover:underline">Ver todos</Link>
+      </div>
+      <Carrossel>
+        {produtos.map((p) => (
+          <div key={p.id} className="w-[44%] shrink-0 snap-start sm:w-[30%] md:w-[calc((100%-64px)/5)]">
+            <CardProduto p={p} compacto />
+          </div>
+        ))}
+      </Carrossel>
+    </section>
+  );
+}
 
-const ORDENS = {
-  recentes: { rotulo: "Mais recentes", orderBy: [{ publicadoEm: "desc" }] },
-  menor: { rotulo: "Menor preço", orderBy: [{ precoCents: "asc" }] },
-  maior: { rotulo: "Maior preço", orderBy: [{ precoCents: "desc" }] },
-} as const;
-
-export default async function Vitrine({ searchParams }: PageProps<"/">) {
+export default async function Home() {
   await expirarPedidos();
-  const sp = await searchParams;
-  const q = typeof sp.q === "string" ? sp.q.trim() : "";
-  const cat = typeof sp.cat === "string" ? sp.cat : "";
-  const ordem = (typeof sp.ordem === "string" && sp.ordem in ORDENS ? sp.ordem : "recentes") as keyof typeof ORDENS;
-  const filtrando = Boolean(q || cat);
-
-  const where: Prisma.ProdutoWhereInput = {
-    status: "ATIVO",
-    ...(q
-      ? { OR: [{ titulo: { contains: q, mode: "insensitive" } }, { marca: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }, { aplicacao: { contains: q, mode: "insensitive" } }] }
-      : {}),
-    ...(cat ? { categoria: { slug: cat } } : {}),
-  };
-  const [produtos, categorias, vendidos] = await Promise.all([
-    db.produto.findMany({ where, select: selecao, orderBy: [...ORDENS[ordem].orderBy], take: 120 }),
-    db.categoria.findMany({ where: { produtos: { some: { status: "ATIVO" } } }, orderBy: { ordem: "asc" } }),
-    filtrando ? Promise.resolve([]) : db.produto.findMany({ where: { status: "ESGOTADO" }, select: selecao, orderBy: { ultimaVendaEm: "desc" }, take: 4 }),
+  const ativo = { status: "ATIVO" as const };
+  const [cfg, novidades, baratos, todos, categorias] = await Promise.all([
+    getConfig(),
+    db.produto.findMany({ where: ativo, select: selecaoCard, orderBy: { publicadoEm: "desc" }, take: 15 }),
+    db.produto.findMany({ where: { ...ativo, precoCents: { lte: 100_00 } }, select: selecaoCard, orderBy: { precoCents: "asc" }, take: 15 }),
+    db.produto.findMany({ where: { ...ativo, precoMercadoCents: { not: null } }, select: selecaoCard, take: 200 }),
+    db.categoria.findMany({
+      where: { produtos: { some: ativo } },
+      orderBy: { ordem: "asc" },
+      include: { produtos: { where: ativo, take: 1, orderBy: { publicadoEm: "desc" }, select: { fotos: { select: { arquivo: true }, take: 1, orderBy: { ordem: "asc" } } } } },
+    }),
   ]);
-  const catAtual = categorias.find((c) => c.slug === cat);
-  const url = (o: Record<string, string>) => "/?" + new URLSearchParams({ ...(q ? { q } : {}), ...(cat ? { cat } : {}), ordem, ...o }).toString();
-  const chip = (ativo: boolean) =>
-    `shrink-0 rounded-full border px-4 py-2 text-xs font-semibold transition ${ativo ? "border-ouro bg-ouro text-noite" : "filete bg-carvao text-marfim/80 hover:border-ouro-escuro"}`;
+  const pct = (p: ProdutoCard) => (p.precoMercadoCents ? 1 - p.precoCents / p.precoMercadoCents : 0);
+  const ofertas = [...todos].sort((a, b) => pct(b) - pct(a)).slice(0, 15);
+  const maxDesc = ofertas[0] ? Math.round(pct(ofertas[0]) * 100) : 0;
+  const zap = soDigitos(cfg.loja_whatsapp);
+  const fotos = (lista: ProdutoCard[]) => lista.map((p) => p.fotos[0]?.arquivo).filter(Boolean) as string[];
+
+  const slides = [
+    { titulo: `Até ${maxDesc || 70}% OFF`, sub: "Produtos novos, de caixa aberta e com pequenas avarias — todos conferidos.", cta: "Ver ofertas", href: "/busca?ordem=desconto", fotos: fotos(ofertas.slice(0, 3)), tema: "escuro" as const },
+    { titulo: "Compre no site, retire na loja", sub: "Pague no Pix ou cartão. Pagou, o produto fica separado no seu nome.", cta: "Ver novidades", href: "/busca", fotos: fotos(novidades.slice(0, 3)), tema: "claro" as const },
+    { titulo: "Ofertas até R$ 100", sub: "Achados do dia a dia com preço de verdade.", cta: "Aproveitar", href: "/busca?max=100", fotos: fotos(baratos.slice(0, 3)), tema: "escuro" as const },
+  ].filter((s) => s.fotos.length);
+
+  const atalhos = [
+    { icone: IconePix, titulo: "Pix ou cartão", texto: "Pague como preferir, com segurança.", cta: "Como funciona", href: "#como-funciona" },
+    { icone: IconeLoja, titulo: "Retire na loja", texto: cfg.loja_endereco, cta: "Ver endereço", href: "#como-funciona" },
+    { icone: IconeEscudo, titulo: "Produtos conferidos", texto: "Testados pela equipe antes de ir para a loja.", cta: "Ver produtos", href: "/busca" },
+    { icone: IconeSacola, titulo: "Até R$ 50", texto: "Ofertas baratinhas para aproveitar hoje.", cta: "Mostrar produtos", href: "/busca?max=50" },
+    ...(zap ? [{ icone: IconeWhats, titulo: "Grupo de ofertas", texto: "Receba as novidades primeiro no WhatsApp.", cta: "Falar com a loja", href: `https://wa.me/55${zap}` }] : []),
+  ];
 
   return (
-    <div className="mx-auto max-w-6xl px-4">
-      {/* busca no celular */}
-      <form action="/" className="pt-4 md:hidden">
-        <input name="q" defaultValue={q} placeholder="Buscar produtos, marcas, códigos…" className="campo !rounded-full" />
-      </form>
-
-      {!filtrando && (
-        <section className="entrada relative mt-4 overflow-hidden rounded-3xl border border-ouro-escuro/40 bg-[linear-gradient(135deg,#17150f,#0b0b0c_55%)] px-5 py-6 text-center sm:px-10 sm:py-12">
-          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-ouro/15 blur-3xl" />
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-ouro">Ofertas de hoje</p>
-          <h1 className="mx-auto mt-2 max-w-2xl text-[1.7rem] font-extrabold leading-tight sm:text-5xl">
-            Os mesmos produtos, <span className="texto-ouro">pagando muito menos</span>
-          </h1>
-          <p className="mx-auto mt-3 max-w-lg text-sm text-cinza sm:text-base">
-            Itens de logística reversa — novos, de caixa aberta ou com pequenas avarias — conferidos pela nossa equipe. Compre pelo site e retire na loja.
-          </p>
-        </section>
-      )}
-
-      {!filtrando && (
-        <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[11px] sm:text-xs">
-          {[
-            [IconePix, "Pix ou cartão"],
-            [IconeLoja, "Retire na loja"],
-            [IconeEscudo, "Produtos conferidos"],
-          ].map(([Icone, txt]) => {
-            const I = Icone as typeof IconePix;
-            return (
-              <div key={txt as string} className="flex flex-col items-center gap-1 rounded-xl border filete bg-carvao/60 px-2 py-3 font-semibold text-marfim/85">
-                <I className="h-5 w-5 text-ouro" />
-                {txt as string}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      <nav className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-        <Link href="/" className={chip(!cat)}>Todos</Link>
-        {categorias.map((c) => (
-          <Link key={c.id} href={`/?cat=${c.slug}`} className={chip(cat === c.slug)}>{c.nome}</Link>
-        ))}
-      </nav>
-
-      <div className="mt-6 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-extrabold sm:text-2xl">{q ? `Resultados para "${q}"` : catAtual ? catAtual.nome : "Novidades na loja"}</h2>
-          <p className="text-xs text-cinza">{produtos.length} produto(s) disponível(is)</p>
-        </div>
-        <div className="flex gap-1 rounded-full border filete bg-carvao p-1 text-[11px] font-semibold">
-          {Object.entries(ORDENS).map(([k, v]) => (
-            <Link key={k} href={url({ ordem: k })} className={`rounded-full px-3 py-1.5 ${ordem === k ? "bg-ouro text-noite" : "text-cinza"}`}>{v.rotulo}</Link>
-          ))}
-        </div>
+    <div>
+      {/* degradê dourado → cinza atrás do banner, como o amarelo → cinza do ML */}
+      <div className="degrade-topo pb-28 md:px-4 md:pb-36 md:pt-2">
+        {slides.length > 0 && <BannerCarrossel slides={slides} />}
       </div>
 
-      {produtos.length === 0 ? (
-        <div className="py-20 text-center text-cinza">
-          <IconeSacola className="mx-auto mb-4 h-12 w-12 text-ouro-escuro/60" />
-          <p>{q ? `Nada encontrado para "${q}".` : "Novos produtos chegando em breve."}</p>
-          {filtrando && <Link href="/" className="mt-3 inline-block text-sm text-ouro-claro underline">Ver todos os produtos</Link>}
+      <div className="mx-auto max-w-[1200px] px-3 md:px-4">
+        {/* cards de atalho sobrepostos ao degradê */}
+        <div className="sem-barra -mt-24 flex gap-3 overflow-x-auto pb-1 md:-mt-32 md:grid md:gap-4" style={{ gridTemplateColumns: `repeat(${atalhos.length}, minmax(0, 1fr))` }}>
+          {atalhos.map((a) => (
+            <Link key={a.titulo} href={a.href} className="cartao flex w-[160px] shrink-0 flex-col items-center p-4 text-center md:w-auto md:p-5">
+              <p className="text-[15px] font-semibold md:text-[16px]">{a.titulo}</p>
+              <span className="my-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#faf0d2] md:h-16 md:w-16">
+                <a.icone className="h-7 w-7 text-ouro-escuro" />
+              </span>
+              <p className="line-clamp-2 text-[12px] text-cinza md:text-[13px]">{a.texto}</p>
+              <span className="botao-secundario mt-3 w-full px-2 py-1.5 text-[12px]">{a.cta}</span>
+            </Link>
+          ))}
         </div>
-      ) : (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
-          {produtos.map((p, i) => <CardProduto key={p.slug} p={p} i={i} />)}
-        </div>
-      )}
 
-      {vendidos.length > 0 && (
-        <section className="mt-14">
-          <h2 className="text-center text-lg font-extrabold">Acabaram de sair</h2>
-          <p className="mb-4 text-center text-xs text-cinza">Os produtos saem rápido. Entre no nosso grupo de ofertas para ser avisado primeiro.</p>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {vendidos.map((p, i) => <CardProduto key={p.slug} p={p} i={i} />)}
-          </div>
+        <Secao titulo="Ofertas do dia" href="/busca?ordem=desconto" produtos={ofertas} />
+        <Secao titulo="Acabaram de chegar" href="/busca" produtos={novidades} />
+        <Secao titulo="Até R$ 100" href="/busca?max=100" produtos={baratos} />
+
+        {categorias.length > 0 && (
+          <section className="mt-6">
+            <h2 className="mb-4 text-[20px] font-semibold md:text-[24px]">Categorias</h2>
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6 md:gap-3">
+              {categorias.map((c) => (
+                <Link key={c.id} href={`/busca?cat=${c.slug}`} className="cartao flex flex-col items-center gap-2 p-3 text-center transition hover:shadow-[0_8px_16px_rgba(0,0,0,0.12)] md:p-4">
+                  <span className="h-16 w-16 overflow-hidden rounded-full border border-fio bg-white md:h-20 md:w-20">
+                    <FotoProduto arquivo={c.produtos[0]?.fotos[0]?.arquivo} alt={c.nome} miniatura className="h-full w-full !object-contain p-2" />
+                  </span>
+                  <span className="text-[12px] leading-tight text-marfim/85 md:text-[13px]">{c.nome}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <section id="como-funciona" className="cartao mt-6 grid gap-6 p-6 text-center md:grid-cols-3">
+          {[
+            ["1", "Escolha e pague", "Pix com aprovação na hora ou cartão de crédito. O produto fica reservado enquanto você paga."],
+            ["2", "Receba seu código", "Pagamento aprovado gera um código de retirada na tela — tire um print."],
+            ["3", "Retire na loja", `${cfg.loja_endereco} · ${cfg.loja_horario}. Sem prazo para buscar.`],
+          ].map(([n, t, d]) => (
+            <div key={n}>
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-faixa text-[16px] font-bold">{n}</span>
+              <p className="mt-2 text-[16px] font-semibold">{t}</p>
+              <p className="mt-1 text-[13px] text-cinza">{d}</p>
+            </div>
+          ))}
         </section>
-      )}
+      </div>
     </div>
   );
 }

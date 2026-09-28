@@ -38,7 +38,7 @@ export default async function Inicio() {
   const valorVitrine = ativos.reduce((s, p) => s + p.precoCents * p.estoqueDisponivel, 0);
 
   const kpi = (rotulo: string, valor: string, sub?: string, destaque = false) => (
-    <div className={`rounded-2xl border p-4 text-center ${destaque ? "border-ouro-escuro/70 bg-ouro/5" : "filete bg-carvao/60"}`}>
+    <div className={`rounded-2xl border p-4 text-center ${destaque ? "border-ouro-escuro/70 bg-ouro/5" : "filete bg-white"}`}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-cinza">{rotulo}</p>
       <p className={`mt-1 text-2xl font-extrabold ${destaque ? "texto-ouro" : ""}`}>{valor}</p>
       {sub && <p className="text-xs text-cinza">{sub}</p>}
@@ -48,7 +48,7 @@ export default async function Inicio() {
   return (
     <div className="mx-auto max-w-5xl">
       {modoDemo() && (
-        <p className="mb-4 rounded-xl border border-dashed border-ouro-escuro/60 px-4 py-2.5 text-center text-xs text-ouro-claro">
+        <p className="mb-4 rounded-xl border border-dashed border-ouro-escuro/60 px-4 py-2.5 text-center text-xs text-ouro-escuro">
           Modo demonstração — pagamentos simulados. Configure a chave do Asaas no servidor para vender de verdade.
         </p>
       )}
@@ -64,7 +64,7 @@ export default async function Inicio() {
         <section>
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="font-bold">Fila de separação</h2>
-            <Link href="/painel/pedidos" className="text-xs text-ouro-claro">ver todos</Link>
+            <Link href="/painel/pedidos" className="text-xs text-ouro-escuro">ver todos</Link>
           </div>
           {fila.length === 0 ? (
             <p className="rounded-2xl border filete p-6 text-center text-sm text-cinza">Nenhum pedido pendente.</p>
@@ -72,12 +72,12 @@ export default async function Inicio() {
             <ul className="space-y-2">
               {fila.map((p) => (
                 <li key={p.id}>
-                  <Link href={`/painel/pedidos/${p.id}`} className="block rounded-xl border filete bg-carvao/60 p-3 text-center transition hover:border-ouro-escuro">
+                  <Link href={`/painel/pedidos/${p.id}`} className="block rounded-xl border filete bg-white p-3 text-center transition hover:border-ouro-escuro">
                     <p className="text-sm font-semibold">
-                      <span className="font-mono text-ouro">#{p.numero}</span> · {p.cliente.nome.split(" ")[0]} · {brl(p.totalCents)}
+                      <span className="font-mono text-ouro-escuro">#{p.numero}</span> · {p.cliente.nome.split(" ")[0]} · {brl(p.totalCents)}
                     </p>
                     <p className="line-clamp-1 text-xs text-cinza">{p.itens.map((i) => `${i.quantidade > 1 ? i.quantidade + "× " : ""}${i.titulo}`).join(", ")}</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-ouro-claro">{STATUS_PEDIDO[p.status]}</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-wider text-ouro-escuro">{STATUS_PEDIDO[p.status]}</p>
                   </Link>
                 </li>
               ))}
@@ -90,7 +90,7 @@ export default async function Inicio() {
             <h2 className="font-bold">
               Parados há {vermelho}+ dias <span className="font-mono text-rubi">({parados.length})</span>
             </h2>
-            <Link href="/painel/produtos?ordem=parados" className="text-xs text-ouro-claro">ver todos</Link>
+            <Link href="/painel/produtos?ordem=parados" className="text-xs text-ouro-escuro">ver todos</Link>
           </div>
           {parados.length === 0 ? (
             <p className="rounded-2xl border filete p-6 text-center text-sm text-cinza">Estoque girando bem. Nenhum produto parado.</p>
@@ -98,7 +98,7 @@ export default async function Inicio() {
             <ul className="space-y-2">
               {parados.slice(0, 6).map((p) => (
                 <li key={p.id}>
-                  <Link href={`/painel/produtos/${p.id}`} className="flex items-center justify-between gap-3 rounded-xl border filete bg-carvao/60 p-3 transition hover:border-ouro-escuro">
+                  <Link href={`/painel/produtos/${p.id}`} className="flex items-center justify-between gap-3 rounded-xl border filete bg-white p-3 transition hover:border-ouro-escuro">
                     <span className="line-clamp-1 text-sm">{p.titulo}</span>
                     <span className="shrink-0 text-right">
                       <span className="block font-mono text-sm text-rubi">{p.dias}d</span>
@@ -113,8 +113,8 @@ export default async function Inicio() {
       </div>
 
       <div className="mt-8 grid grid-cols-2 gap-3 md:hidden">
-        <Link href="/painel/disparos" className="rounded-xl border filete bg-carvao/60 py-3 text-center text-sm font-semibold">Disparos WhatsApp</Link>
-        <Link href="/painel/config" className="rounded-xl border filete bg-carvao/60 py-3 text-center text-sm font-semibold">Configurações</Link>
+        <Link href="/painel/disparos" className="rounded-xl border filete bg-white py-3 text-center text-sm font-semibold">Disparos WhatsApp</Link>
+        <Link href="/painel/config" className="rounded-xl border filete bg-white py-3 text-center text-sm font-semibold">Configurações</Link>
       </div>
     </div>
   );

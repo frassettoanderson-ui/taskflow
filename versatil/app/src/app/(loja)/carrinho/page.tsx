@@ -15,7 +15,7 @@ export default function Carrinho() {
         <IconeSacola className="mx-auto mb-5 h-14 w-14 text-ouro-escuro/60" />
         <h1 className="text-xl font-bold">Seu carrinho está vazio</h1>
         <p className="mt-2 text-sm text-cinza">As melhores ofertas saem rápido. Dá uma olhada na loja.</p>
-        <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Ver produtos</Link>
+        <Link href="/" className="botao-principal mt-6 inline-block rounded-xl px-6 py-3">Ver produtos</Link>
       </div>
     );
 
@@ -24,7 +24,7 @@ export default function Carrinho() {
       <h1 className="mb-6 text-center text-2xl font-extrabold">Seu carrinho</h1>
       <ul className="space-y-3">
         {itens.map((i) => (
-          <li key={i.produtoId} className="flex gap-3 rounded-2xl border filete bg-carvao/70 p-3">
+          <li key={i.produtoId} className="flex gap-3 rounded-2xl border filete bg-white p-3">
             <Link href={`/p/${i.slug}`} className="h-20 w-20 shrink-0 overflow-hidden rounded-xl">
               <FotoProduto arquivo={i.foto} alt={i.titulo} miniatura className="h-full w-full" />
             </Link>
@@ -36,9 +36,9 @@ export default function Carrinho() {
               <button onClick={() => remover(i.produtoId)} className="text-xs text-cinza underline underline-offset-2">remover</button>
               {i.max > 1 ? (
                 <div className="flex items-center rounded-full border filete">
-                  <button onClick={() => alterar(i.produtoId, i.quantidade - 1)} className="h-8 w-8 text-ouro">−</button>
+                  <button onClick={() => alterar(i.produtoId, i.quantidade - 1)} className="h-8 w-8 text-ouro-escuro">−</button>
                   <span className="w-6 text-center font-mono text-sm">{i.quantidade}</span>
-                  <button onClick={() => alterar(i.produtoId, i.quantidade + 1)} className="h-8 w-8 text-ouro">+</button>
+                  <button onClick={() => alterar(i.produtoId, i.quantidade + 1)} className="h-8 w-8 text-ouro-escuro">+</button>
                 </div>
               ) : (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-rubi">última unid.</span>
@@ -51,8 +51,8 @@ export default function Carrinho() {
         <p className="text-sm text-cinza">Total</p>
         <p className="texto-ouro text-3xl font-extrabold">{brl(totalCents)}</p>
         <p className="mt-1 text-xs text-cinza">Um pagamento só para o carrinho inteiro · retirada na loja</p>
-        <Link href="/checkout" className="botao-ouro mt-4 block rounded-xl py-4 text-base">Finalizar compra</Link>
-        <Link href="/" className="mt-3 inline-block text-sm text-ouro-claro">Continuar olhando</Link>
+        <Link href="/checkout" className="botao-principal mt-4 block rounded-xl py-4 text-base">Finalizar compra</Link>
+        <Link href="/" className="mt-3 inline-block text-sm text-ouro-escuro">Continuar olhando</Link>
       </div>
     </div>
   );

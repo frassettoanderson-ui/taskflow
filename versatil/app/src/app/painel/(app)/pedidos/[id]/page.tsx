@@ -31,8 +31,8 @@ export default async function DetalhePedido({ params, searchParams }: PageProps<
         </div>
       )}
 
-      <div className="mt-3 rounded-2xl border filete bg-carvao/60 p-5 text-center">
-        <p className="font-mono text-xs text-ouro">Pedido #{p.numero} · {p.metodo === "PIX" ? "Pix" : "Cartão"}{p.origemGrupo && ` · grupo ${p.origemGrupo}`}</p>
+      <div className="mt-3 rounded-2xl border filete bg-white p-5 text-center">
+        <p className="font-mono text-xs text-ouro-escuro">Pedido #{p.numero} · {p.metodo === "PIX" ? "Pix" : "Cartão"}{p.origemGrupo && ` · grupo ${p.origemGrupo}`}</p>
         <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cinza">{STATUS_PEDIDO[p.status]}</p>
         <p className="texto-ouro mt-2 text-4xl font-extrabold">{brl(p.totalCents)}</p>
         {p.estornoCents > 0 && <p className="text-sm text-rubi">Estornado: {brl(p.estornoCents)}</p>}
@@ -44,7 +44,7 @@ export default async function DetalhePedido({ params, searchParams }: PageProps<
       <section className="mt-4 rounded-2xl border filete p-4 text-center">
         <p className="font-semibold">{p.cliente.nome}</p>
         <p className="text-sm text-cinza">{mascaraTelefone(zap)}{p.cliente.cpf && ` · CPF ${mascaraCpf(p.cliente.cpf)}`}</p>
-        <a href={`https://wa.me/55${zap}?text=${encodeURIComponent(`Olá ${p.cliente.nome.split(" ")[0]}! Aqui é da Versátil, sobre o seu pedido #${p.numero}.`)}`} target="_blank" className="mt-2 inline-block text-sm text-ouro-claro underline underline-offset-4">
+        <a href={`https://wa.me/55${zap}?text=${encodeURIComponent(`Olá ${p.cliente.nome.split(" ")[0]}! Aqui é da Versátil, sobre o seu pedido #${p.numero}.`)}`} target="_blank" className="mt-2 inline-block text-sm text-ouro-escuro underline underline-offset-4">
           Chamar no WhatsApp
         </a>
       </section>
@@ -54,7 +54,7 @@ export default async function DetalhePedido({ params, searchParams }: PageProps<
         {p.itens.map((i) => (
           <div key={i.id} className="flex items-center justify-between gap-3 border-b filete py-2 text-sm last:border-0">
             <span>
-              <b className="font-mono text-ouro">{i.quantidade}×</b> {i.titulo}{" "}
+              <b className="font-mono text-ouro-escuro">{i.quantidade}×</b> {i.titulo}{" "}
               <Link href={`/painel/produtos/${i.produto.id}`} className="font-mono text-[10px] text-cinza">#{String(i.produto.codigo).padStart(4, "0")}</Link>
             </span>
             <span className="shrink-0">{brl(i.precoUnitCents * i.quantidade)}</span>

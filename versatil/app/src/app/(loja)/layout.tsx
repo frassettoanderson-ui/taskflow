@@ -4,57 +4,102 @@ import { BotaoCarrinho } from "@/components/BotaoCarrinho";
 import { RastreioGrupo } from "@/components/RastreioGrupo";
 import { IconeEscudo, IconeLoja, IconePix, IconeWhats } from "@/components/Icones";
 import { getConfig } from "@/lib/config";
+import { db } from "@/lib/db";
 import { soDigitos } from "@/lib/format";
 
 export default async function LojaLayout({ children }: LayoutProps<"/">) {
-  const cfg = await getConfig();
+  const [cfg, categorias] = await Promise.all([
+    getConfig(),
+    db.categoria.findMany({ where: { produtos: { some: { status: "ATIVO" } } }, orderBy: { ordem: "asc" } }),
+  ]);
   const zap = soDigitos(cfg.loja_whatsapp);
+
   return (
     <CarrinhoProvider>
       <RastreioGrupo />
-      <div className="bg-ouro py-1.5 text-center text-[11px] font-bold text-noite sm:text-xs">
-        Produtos com até 70% abaixo do preço de mercado · Retire na loja
-      </div>
-      <header className="sticky top-0 z-30 border-b filete bg-noite/90 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
-          <Link href="/" aria-label="Versátil — início" className="shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.svg" alt="Versátil — Melhor preço da região" className="h-9 w-auto" />
-          </Link>
-          <form action="/" className="hidden flex-1 md:block">
-            <input name="q" placeholder="Buscar produtos, marcas, códigos…" className="campo !rounded-full !py-2.5" />
-          </form>
-          <div className="ml-auto">
-            <BotaoCarrinho />
+      {/* cabeçalho no padrão ML: faixa de cor, logo, busca larga, carrinho; 2ª linha com local + categorias */}
+      <header className="bg-faixa">
+        <div className="mx-auto max-w-[1200px] px-3 pt-2.5 md:px-4">
+          <div className="flex items-center gap-3 md:gap-8">
+            <Link href="/" aria-label="Versátil — início" className="shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-preto.svg" alt="Versátil — Melhor preço da região" className="h-9 w-auto md:h-11" />
+            </Link>
+            <form action="/busca" className="relative hidden flex-1 md:block md:max-w-[600px]">
+              <input name="q" placeholder="Buscar produtos, marcas e muito mais…" className="h-10 w-full rounded-[2px] bg-white pl-4 pr-12 text-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] outline-none placeholder:text-[#999]" />
+              <button aria-label="Buscar" className="absolute right-0 top-0 flex h-10 w-11 items-center justify-center border-l border-[#e6e6e6] text-cinza">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+              </button>
+            </form>
+            <div className="ml-auto flex items-center gap-4">
+              {zap && (
+                <a href={`https://wa.me/55${zap}`} className="hidden text-[13px] text-marfim/80 hover:text-marfim lg:block">
+                  Atendimento
+                </a>
+              )}
+              <BotaoCarrinho />
+            </div>
           </div>
+
+          {/* busca no celular */}
+          <form action="/busca" className="relative mt-2.5 md:hidden">
+            <input name="q" placeholder="Buscar na Versátil" className="h-10 w-full rounded-full bg-white pl-4 pr-11 text-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] outline-none placeholder:text-[#999]" />
+            <button aria-label="Buscar" className="absolute right-1 top-0 flex h-10 w-10 items-center justify-center text-cinza">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
+            </button>
+          </form>
+
+          <nav className="sem-barra -mx-3 mt-2 flex items-center gap-5 overflow-x-auto px-3 pb-2.5 text-[13px] text-marfim/75 md:mx-0 md:px-0">
+            <span className="flex shrink-0 items-center gap-1.5 text-marfim/80">
+              <IconeLoja className="h-4 w-4" />
+              <span className="leading-tight">
+                <span className="block text-[11px] text-marfim/60">Retire na loja</span>
+                <span className="block max-w-[170px] truncate">{cfg.loja_endereco}</span>
+              </span>
+            </span>
+            <Link href="/busca" className="shrink-0 hover:text-marfim">Todos os produtos</Link>
+            <Link href="/busca?ordem=desconto" className="shrink-0 hover:text-marfim">Ofertas</Link>
+            <Link href="/busca?max=50" className="shrink-0 hover:text-marfim">Até R$ 50</Link>
+            {categorias.map((c) => (
+              <Link key={c.id} href={`/busca?cat=${c.slug}`} className="shrink-0 hover:text-marfim">
+                {c.nome}
+              </Link>
+            ))}
+          </nav>
         </div>
       </header>
+
       <main className="flex-1">{children}</main>
-      <footer className="mt-16 border-t filete bg-carvao/60">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 text-center text-sm text-cinza sm:grid-cols-3">
-          <div>
-            <IconeLoja className="mx-auto mb-2 h-6 w-6 text-ouro" />
-            <p className="font-semibold text-marfim">Retirada na loja</p>
-            <p className="mt-1">{cfg.loja_endereco}</p>
-            <p>{cfg.loja_horario}</p>
-          </div>
-          <div>
-            <IconePix className="mx-auto mb-2 h-6 w-6 text-ouro" />
-            <p className="font-semibold text-marfim">Pix ou cartão</p>
-            <p className="mt-1">Pagamento seguro pelo Asaas. Pagou, o produto fica reservado para você.</p>
-          </div>
-          <div>
-            <IconeEscudo className="mx-auto mb-2 h-6 w-6 text-ouro" />
-            <p className="font-semibold text-marfim">Compra garantida</p>
-            <p className="mt-1">Produtos conferidos pela equipe. Compras online têm 7 dias para arrependimento (CDC art. 49).</p>
+
+      <footer className="mt-12 bg-white">
+        <div className="mx-auto grid max-w-[1200px] gap-8 px-4 py-10 text-center sm:grid-cols-3">
+          {[
+            [IconeLoja, "Retire na loja", `${cfg.loja_endereco} · ${cfg.loja_horario}. Pagou, o produto fica separado no seu nome.`],
+            [IconePix, "Pague no Pix ou cartão", "Pagamento seguro processado pelo Asaas. Aprovação do Pix na hora."],
+            [IconeEscudo, "Compra garantida", "Produtos conferidos pela equipe. Compras online têm 7 dias para arrependimento (CDC art. 49)."],
+          ].map(([I, t, d]) => {
+            const Icone = I as typeof IconeLoja;
+            return (
+              <div key={t as string} className="flex flex-col items-center">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-fio">
+                  <Icone className="h-6 w-6 text-ouro-escuro" />
+                </span>
+                <p className="mt-3 text-[16px] font-semibold">{t as string}</p>
+                <p className="mt-1 max-w-xs text-[13px] text-cinza">{d as string}</p>
+              </div>
+            );
+          })}
+        </div>
+        <div className="border-t border-fio">
+          <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-2 px-4 py-4 text-[12px] text-cinza sm:flex-row">
+            <p>© {new Date().getFullYear()} Versátil — Melhor preço da região</p>
             {zap && (
-              <a className="mt-3 inline-flex items-center gap-2 text-marfim underline decoration-ouro/50 underline-offset-4" href={`https://wa.me/55${zap}`}>
-                <IconeWhats className="h-4 w-4 text-jade" /> Falar no WhatsApp
+              <a href={`https://wa.me/55${zap}`} className="inline-flex items-center gap-1.5 hover:text-marfim">
+                <IconeWhats className="h-4 w-4 text-jade" /> Fale com a gente no WhatsApp
               </a>
             )}
           </div>
         </div>
-        <p className="pb-6 text-center text-[11px] text-cinza/70">© {new Date().getFullYear()} Versátil — Melhor preço da região</p>
       </footer>
     </CarrinhoProvider>
   );

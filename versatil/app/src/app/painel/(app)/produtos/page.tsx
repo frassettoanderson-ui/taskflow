@@ -50,7 +50,7 @@ export default async function Produtos({ searchParams }: PageProps<"/painel/prod
 
       <nav className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
         {ABAS.map((a) => (
-          <Link key={a.status} href={url({ status: a.status })} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold ${status === a.status ? "border-ouro bg-ouro/10 text-ouro-claro" : "filete text-cinza"}`}>
+          <Link key={a.status} href={url({ status: a.status })} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold ${status === a.status ? "border-ouro bg-ouro/10 text-ouro-escuro" : "filete text-cinza"}`}>
             {a.rotulo} <span className="font-mono opacity-70">{n(a.status)}</span>
           </Link>
         ))}
@@ -81,17 +81,17 @@ export default async function Produtos({ searchParams }: PageProps<"/painel/prod
         <ul className="mt-4 grid gap-2 md:grid-cols-2">
           {lista.map((p) => (
             <li key={p.id}>
-              <Link href={`/painel/produtos/${p.id}`} className="flex gap-3 rounded-2xl border filete bg-carvao/60 p-2.5 transition hover:border-ouro-escuro">
+              <Link href={`/painel/produtos/${p.id}`} className="flex gap-3 rounded-2xl border filete bg-white p-2.5 transition hover:border-ouro-escuro">
                 <FotoProduto arquivo={p.fotos[0]?.arquivo} alt={p.titulo} miniatura className="h-[72px] w-[72px] shrink-0 rounded-xl" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-mono text-[10px] tracking-wider text-ouro">{codigoInterno(p.codigo)} · {CONDICOES[p.condicao].rotulo}</p>
+                  <p className="font-mono text-[10px] tracking-wider text-ouro-escuro">{codigoInterno(p.codigo)} · {CONDICOES[p.condicao].rotulo}</p>
                   <p className="line-clamp-1 text-sm font-semibold">{p.titulo}</p>
                   <p className="mt-0.5 text-sm">
-                    <b className="text-ouro-claro">{brl(p.precoCents)}</b>
+                    <b className="text-ouro-escuro">{brl(p.precoCents)}</b>
                     {p.custoCents ? <span className="ml-2 text-[11px] text-cinza">margem {brl(p.precoCents - p.custoCents)}</span> : null}
                   </p>
                   <p className="text-[11px] text-cinza">
-                    {p.estoqueDisponivel} disp.{p.estoqueReservado > 0 && <b className="text-ouro"> · {p.estoqueReservado} reservado</b>}
+                    {p.estoqueDisponivel} disp.{p.estoqueReservado > 0 && <b className="text-ouro-escuro"> · {p.estoqueReservado} reservado</b>}
                     {p.vendidos > 0 && ` · ${p.vendidos} vendido(s)`} · {p.visualizacoes} visitas
                   </p>
                 </div>

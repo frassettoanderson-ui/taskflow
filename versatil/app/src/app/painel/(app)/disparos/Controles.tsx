@@ -18,7 +18,7 @@ export function ControlesFila({ ativo, pendentes }: { ativo: boolean; pendentes:
         <button
           disabled={pend || !pendentes || !ativo}
           onClick={() => iniciar(async () => setMsg(await enviarProximo()))}
-          className="flex-1 rounded-xl border border-ouro-escuro py-3 text-sm font-semibold text-ouro-claro disabled:opacity-40"
+          className="flex-1 rounded-xl border border-ouro-escuro py-3 text-sm font-semibold text-ouro-escuro disabled:opacity-40"
         >
           Enviar próximo agora
         </button>
@@ -32,7 +32,7 @@ export function BotaoSincronizar() {
   const [estado, acao, pend] = useActionState(sincronizarGruposAcao, undefined);
   return (
     <form action={acao} className="text-center">
-      <button disabled={pend} className="rounded-xl border border-ouro-escuro px-4 py-2 text-xs font-semibold text-ouro-claro">
+      <button disabled={pend} className="rounded-xl border border-ouro-escuro px-4 py-2 text-xs font-semibold text-ouro-escuro">
         {pend ? "Buscando grupos…" : "Buscar grupos do WhatsApp"}
       </button>
       {estado?.ok && <p className="mt-2 text-xs text-jade">{estado.ok}</p>}

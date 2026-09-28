@@ -18,7 +18,7 @@ export function NavPainel({ aSeparar, vertical = false }: { aSeparar: number; ve
     return (
       <nav className="mt-8 flex flex-col gap-1">
         {[...ITENS, { href: "/painel/disparos", rotulo: "Disparos WhatsApp", icone: "" }, { href: "/painel/config", rotulo: "Configurações", icone: "" }].map((i) => (
-          <Link key={i.href} href={i.href} className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition ${ativo(i.href) ? "bg-ouro/10 text-ouro-claro" : "text-cinza hover:text-marfim"}`}>
+          <Link key={i.href} href={i.href} className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition ${ativo(i.href) ? "bg-ouro/10 text-ouro-escuro" : "text-cinza hover:text-marfim"}`}>
             {i.rotulo}
             {i.href === "/painel/pedidos" && aSeparar > 0 && <span className="rounded-full bg-ouro px-2 font-mono text-[11px] text-noite">{aSeparar}</span>}
           </Link>
@@ -35,9 +35,9 @@ export function NavPainel({ aSeparar, vertical = false }: { aSeparar: number; ve
               <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d={i.icone} /></svg>
             </span>
           ) : (
-            <svg viewBox="0 0 24 24" className={`h-5 w-5 ${ativo(i.href) ? "text-ouro" : "text-cinza"}`} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={i.icone} /></svg>
+            <svg viewBox="0 0 24 24" className={`h-5 w-5 ${ativo(i.href) ? "text-ouro-escuro" : "text-cinza"}`} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={i.icone} /></svg>
           )}
-          <span className={`text-[10px] font-semibold ${ativo(i.href) ? "text-ouro-claro" : "text-cinza"}`}>{i.rotulo}</span>
+          <span className={`text-[10px] font-semibold ${ativo(i.href) ? "text-ouro-escuro" : "text-cinza"}`}>{i.rotulo}</span>
           {i.href === "/painel/pedidos" && aSeparar > 0 && (
             <span className="absolute right-[22%] top-0 rounded-full bg-ouro px-1.5 font-mono text-[10px] text-noite">{aSeparar}</span>
           )}

@@ -14,7 +14,7 @@ const CAMPOS: [string, string][] = [
 export function FormDisparoConfig({ cfg }: { cfg: Record<string, string> }) {
   const [estado, acao, salvando] = useActionState(salvarConfig, undefined);
   return (
-    <form action={acao} className="mx-auto max-w-2xl rounded-2xl border filete bg-carvao/60 p-5">
+    <form action={acao} className="mx-auto max-w-2xl rounded-2xl border filete bg-white p-5">
       <div className="grid grid-cols-2 gap-3">
         {CAMPOS.map(([k, r]) => (
           <label key={k} className="block">

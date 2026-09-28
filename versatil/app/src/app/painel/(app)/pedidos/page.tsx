@@ -35,7 +35,7 @@ export default async function Pedidos({ searchParams }: PageProps<"/painel/pedid
       <h1 className="text-center text-2xl font-extrabold md:text-left">Pedidos</h1>
       <nav className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
         {ABAS.map((a) => (
-          <Link key={a.chave} href={`/painel/pedidos?aba=${a.chave}`} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold ${aba.chave === a.chave ? "border-ouro bg-ouro/10 text-ouro-claro" : "filete text-cinza"}`}>
+          <Link key={a.chave} href={`/painel/pedidos?aba=${a.chave}`} className={`shrink-0 rounded-full border px-4 py-2 text-xs font-semibold ${aba.chave === a.chave ? "border-ouro bg-ouro/10 text-ouro-escuro" : "filete text-cinza"}`}>
             {a.rotulo} <span className="font-mono opacity-70">{n(a)}</span>
           </Link>
         ))}
@@ -46,9 +46,9 @@ export default async function Pedidos({ searchParams }: PageProps<"/painel/pedid
       ) : (
         <ul className="mt-4 grid gap-3 md:grid-cols-2">
           {pedidos.map((p) => (
-            <li key={p.id} className="rounded-2xl border filete bg-carvao/60 p-4 text-center">
+            <li key={p.id} className="rounded-2xl border filete bg-white p-4 text-center">
               <Link href={`/painel/pedidos/${p.id}`} className="block">
-                <p className="font-mono text-xs text-ouro">
+                <p className="font-mono text-xs text-ouro-escuro">
                   #{p.numero} · {fmtHora(p.pagoEm ?? p.criadoEm)} · {p.metodo === "PIX" ? "Pix" : "Cartão"}
                   {p.canal === "PDV" && " · balcão"}
                 </p>
