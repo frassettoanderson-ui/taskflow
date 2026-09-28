@@ -1,6 +1,6 @@
 # Projeto Versátil — loja de logística reversa (e-commerce + WhatsApp + PDV)
 
-> Status: **ESBOÇO** (28/09/2026). Nada construído ainda. Falta: logo, paleta, nome/domínio e respostas das "Perguntas em aberto".
+> Status: **ESBOÇO + identidade** (28/09/2026). Código ainda não iniciado. Marca: **VERSÁTIL — "Melhor preço da região"**, preto + dourado.
 
 ## O negócio
 - Loja que vende produtos de **logística reversa** (devolução, caixa aberta, avaria leve) com preço bem abaixo do mercado.
@@ -109,9 +109,19 @@ Taxas públicas (set/2026, sem negociação): Pix **R$ 1,99 fixo** (100 primeiro
 5. **Tem CNPJ e conta Asaas.**
 6. **Números de WhatsApp: ainda não tem** → precisa de pelo menos 1 chip dedicado (ideal 2: bot + disparo) antes da fase 2. Fase 1 não depende disso.
 
+### Rodada 2 (28/09/2026)
+- **Taxa do split = percentual** (valor a definir) — configurável no painel (`SPLIT_PERCENT`), aplicado sobre o valor líquido no Asaas.
+- **Ticket de R$ 15 a R$ 5.000.** Pix Asaas é R$ 1,99 fixo → pesa 13% num item de R$ 15 e 0,04% num de R$ 5.000 (empate com Pix % ~0,99% ≈ R$ 200). Ações: negociar Pix percentual/tarifa menor com o gerente Asaas pelo volume (~900 vendas/mês); incentivar **carrinho com vários itens** (1 Pix para o pedido todo, não por item). Cartão: parcelamento só acima de um valor mínimo.
+- **Retirada sem prazo**, mas o painel precisa de **Estornar** (total/parcial) → API de estorno do Asaas (Pix e cartão); unidade volta ao estoque; conferir como o split é revertido no estorno antes de ir pra produção.
+- **Nota fiscal: ligar no nosso motor** ([[emissor-fiscal]] — NFC-e no PDV/online, NF-e se preciso).
+- **Identidade: preto + dourado.**
+
+## Identidade visual (`brand/`)
+- Logo refeita em vetor a partir da original (que veio dourado-sobre-branco): `logo-dourado-fundo-preto.svg/png` (principal), `logo-dourado.svg` + `logo-dourado-transparente.png`, `logo-preto.svg` (fundo claro), `icone-app.svg` + `icone-app-512.png` (PWA/favicon/foto de perfil). Texto convertido em curvas (Montserrat 800/700) — não depende de fonte. Regerar: `python brand/gen_logo.py` (precisa de Montserrat.ttf).
+- Paleta: preto `#0B0B0C` · superfície `#16161A` · dourado claro `#F3D98B` · dourado `#D4AF55` · dourado escuro `#A67C2E` · off-white `#F5F1E8`. Dourado em degradê vertical (claro→escuro) nos destaques; preço e botões de compra em dourado sólido.
+- Símbolo = martelo de leilão → linguagem de "arremate / oportunidade" (ex.: "Arrematado!" quando vende, contador de reserva).
+
 ## Perguntas em aberto
-- Nome/marca e domínio; logo e paleta (usuário vai enviar).
-- Taxa do split: % sobre a venda ou valor fixo por pedido? Cobra também sobre vendas presenciais em dinheiro/maquininha?
-- Ticket médio (confirma Asaas × Mercado Pago).
-- Prazo de retirada e o que fazer se o cliente não retirar (estorno? crédito?).
-- Emitem nota fiscal? (se sim, dá pra plugar o [[emissor-fiscal]] depois)
+- Valor do % do split; cobra também sobre venda presencial em dinheiro/maquininha?
+- Domínio.
+- Números de WhatsApp (bot + disparo) — antes da fase 2.
