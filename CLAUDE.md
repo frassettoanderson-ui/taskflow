@@ -1,6 +1,6 @@
 # Índice de Projetos — taskflow_backup_completo
 
-> Pasta guarda-chuva (backup) com **12 projetos independentes**, cada um na sua subpasta.
+> Pasta guarda-chuva (backup) com **13 projetos independentes**, cada um na sua subpasta.
 > Para continuar um projeto: **abra um chat novo apontando o diretório de trabalho para a subpasta dele** — o `CLAUDE.md` de cada pasta carrega o contexto automaticamente.
 
 ## Mapa rápido
@@ -19,6 +19,7 @@
 | `transcritor-video/` | **Transcritor YouTube** — áudio→txt em PT | Python (yt-dlp + faster-whisper) | abrir chat em `transcritor-video/` |
 | `kypa/` | **Kypá Cosméticos** — remodelação do site da loja (demo, cores por linha + motion) | HTML/CSS/JS + GSAP | abrir chat em `kypa/` |
 | `xadrez-mestre/` | **Xadrez Mestre** — extensão coach para chess.com (Stockfish local + IA explica) | Extensão MV3 (JS puro) + Gemini | abrir chat em `xadrez-mestre/` |
+| `versatil/` | **Versátil** — loja de logística reversa: e-commerce + disparo em grupos WhatsApp + PDV (esboço) | Next.js + Node/Prisma/Postgres + Asaas + Evolution | abrir chat em `versatil/` |
 
 ## Observações
 - `financas/` é um **repositório git próprio** embutido; os demais fazem parte deste repo raiz.
