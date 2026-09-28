@@ -354,7 +354,9 @@
 
     // ESSÊNCIA: selo gira com o scroll, faixa troca de cor por ingrediente
     const slides = $$('.essence__slide'), dots = $$('.essence__progress i');
-    const ess = $('.essence');
+    const ess = $('.essence'), photos = $$('.essence__photos img');
+    gsap.fromTo('.scene__media img', { yPercent: -8 }, { yPercent: 4, ease: 'none', scrollTrigger: { trigger: '.scene', start: 'top bottom', end: 'bottom top', scrub: true } });
+    gsap.from('.scene__copy > *', { y: 40, opacity: 0, duration: 1, stagger: .1, ease: 'power3.out', scrollTrigger: { trigger: '.scene', start: 'top 70%' } });
     gsap.to('.essence__ring', { rotate: 540, ease: 'none', scrollTrigger: { trigger: ess, start: 'top top', end: 'bottom bottom', scrub: .6 } });
     gsap.fromTo('.essence__seal', { scale: .7 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: ess, start: 'top bottom', end: 'top top', scrub: true } });
     ScrollTrigger.create({
@@ -364,6 +366,8 @@
         slides.forEach((s, j) => s.classList.toggle('is-on', j === k));
         dots.forEach((d, j) => d.classList.toggle('is-on', j <= k));
         ess.style.setProperty('--ec', slides[k].dataset.c || '#6E9B22');
+        photos.forEach((p, j) => p.classList.toggle('is-on', j === k - 1));
+        ess.classList.toggle('has-photo', k > 0);
       }
     });
     gsap.from('.footer__big', { xPercent: 20, ease: 'none', scrollTrigger: { trigger: '.footer', start: 'top bottom', end: 'bottom bottom', scrub: true } });

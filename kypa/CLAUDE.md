@@ -16,6 +16,7 @@ HTML/CSS/JS puro + GSAP/ScrollTrigger (cdnjs). Preview: `.claude/launch.json` �
 - `assets/img/recortes/*.webp` — frascos recortados (rembg isnet) — kits usam `produtos/kit-*.jpg` (potes semitransparentes no recorte).
 - `logo-mask.png`, `selo-ring-mask.png`, `selo-k-mask.png` — máscaras CSS (colorir via background).
 
+- `assets/img/ambiente/` — 4 imagens geradas no Dreamina (Nano Banana Pro, 840 créditos, 28/09) no canvas "Kypá — site" (project 67ad601f-0e8b-4249-a710-3f8e0fa40e10): bancada (seção .scene) + jaborandi/mandioca/tutano (dentro do selo da seção essência). Letras miúdas dos rótulos saem embaralhadas — não usar em close grande.
+
 ## Pendências
-- Imagens de lifestyle/ingredientes via Dreamina (aguardando aprovação de créditos).
 - Definir se vira tema Shopify (Liquid) ou outra plataforma na versão real.
