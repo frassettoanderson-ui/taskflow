@@ -60,6 +60,7 @@ export const criarEmpresaSchema = z.object({
   proprietarioNome: z.string().optional().nullable(),
   proprietarioCpf: z.string().optional().nullable(),
   usaGlp: z.boolean().optional().nullable(),
+  certSenha: z.string().optional().nullable(), // senha do certificado digital da EMPRESA (e-CNPJ)
   filiais: z.array(filialSchema).optional().nullable(),
   socios: z.array(socioSchema).optional(),
   nautaClienteId: z.string().optional().nullable(),
