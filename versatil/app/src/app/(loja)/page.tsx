@@ -7,7 +7,7 @@ import { soDigitos } from "@/lib/format";
 import { CardProduto } from "@/components/CardProduto";
 import { Carrossel } from "@/components/Carrossel";
 import { BannerCarrossel } from "@/components/BannerCarrossel";
-import { IconeEscudo, IconeLoja, IconePix, IconeSacola, IconeWhats } from "@/components/Icones";
+import { CardsDestaque, type CardFixo, type CardPromo } from "@/components/CardsDestaque";
 import { FotoProduto } from "@/components/FotoProduto";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +38,7 @@ export default async function Home() {
     getConfig(),
     db.produto.findMany({ where: ativo, select: selecaoCard, orderBy: { publicadoEm: "desc" }, take: 15 }),
     db.produto.findMany({ where: { ...ativo, precoCents: { lte: 100_00 } }, select: selecaoCard, orderBy: { precoCents: "asc" }, take: 15 }),
-    db.produto.findMany({ where: { ...ativo, precoMercadoCents: { not: null } }, select: selecaoCard, take: 200 }),
+    db.produto.findMany({ where: ativo, select: { ...selecaoCard, visualizacoes: true }, take: 300 }),
     db.categoria.findMany({
       where: { produtos: { some: ativo } },
       orderBy: { ordem: "asc" },
@@ -57,13 +57,27 @@ export default async function Home() {
     { titulo: "Ofertas até R$ 100", sub: "Achados do dia a dia com preço de verdade.", cta: "Aproveitar", href: "/busca?max=100", fotos: fotos(baratos.slice(0, 3)), tema: "escuro" as const },
   ].filter((s) => s.fotos.length);
 
-  const atalhos = [
-    { icone: IconePix, titulo: "Pix ou cartão", texto: "Pague como preferir, com segurança.", cta: "Como funciona", href: "#como-funciona" },
-    { icone: IconeLoja, titulo: "Retire na loja", texto: cfg.loja_endereco, cta: "Ver endereço", href: "#como-funciona" },
-    { icone: IconeEscudo, titulo: "Produtos conferidos", texto: "Testados pela equipe antes de ir para a loja.", cta: "Ver produtos", href: "/busca" },
-    { icone: IconeSacola, titulo: "Até R$ 50", texto: "Ofertas baratinhas para aproveitar hoje.", cta: "Mostrar produtos", href: "/busca?max=50" },
-    ...(zap ? [{ icone: IconeWhats, titulo: "Grupo de ofertas", texto: "Receba as novidades primeiro no WhatsApp.", cta: "Falar com a loja", href: `https://wa.me/55${zap}` }] : []),
+  // cards de destaque (no ML: visto recentemente, também te interessa, conclua sua compra…)
+  // os pessoais vêm do navegador; estes são montados no servidor, sem repetir produto
+  const usados = new Set<string>();
+  const escolher = (lista: ProdutoCard[]) => {
+    const p = lista.find((x) => !usados.has(x.id));
+    if (p) usados.add(p.id);
+    return p;
+  };
+  const porVisita = [...todos].sort((a, b) => b.visualizacoes - a.visualizacoes);
+  const candidatos: [string, ProdutoCard | undefined, string?][] = [
+    ["Postado por último", escolher(novidades), "Acabou de chegar"],
+    ["Oferta do dia", escolher(ofertas)],
+    ["Última unidade", escolher([...novidades, ...todos].filter((p) => p.estoqueDisponivel === 1)), "Corra, é a última!"],
+    ["Mais procurados", escolher(porVisita)],
+    ["Mais vendidos", escolher([...todos].filter((p) => p.vendidos > 0).sort((a, b) => b.vendidos - a.vendidos))],
+    ["Preço baixo", escolher(baratos), "Menor preço da loja"],
   ];
+  const fixos: CardFixo[] = candidatos.filter((c): c is [string, ProdutoCard, string?] => Boolean(c[1])).map(([titulo, produto, verde]) => ({ titulo, produto, verde }));
+  const promo: CardPromo = zap
+    ? { titulo: "Grupo de ofertas no WhatsApp", texto: "Receba as novidades antes de todo mundo.", cta: "Quero entrar", href: `https://wa.me/55${zap}?text=${encodeURIComponent("Olá! Quero entrar no grupo de ofertas da Versátil.")}` }
+    : { titulo: "Compre no site, retire na loja", texto: "Pague no Pix ou cartão e busque quando quiser.", cta: "Como funciona", href: "#como-funciona" };
 
   return (
     <div>
@@ -73,18 +87,9 @@ export default async function Home() {
       </div>
 
       <div className="mx-auto max-w-[1200px] px-3 md:px-4">
-        {/* cards de atalho sobrepostos ao degradê */}
-        <div className="sem-barra -mt-24 flex gap-3 overflow-x-auto pb-1 md:-mt-32 md:grid md:gap-4" style={{ gridTemplateColumns: `repeat(${atalhos.length}, minmax(0, 1fr))` }}>
-          {atalhos.map((a) => (
-            <Link key={a.titulo} href={a.href} className="cartao flex w-[160px] shrink-0 flex-col items-center p-4 text-center md:w-auto md:p-5">
-              <p className="text-[15px] font-semibold md:text-[16px]">{a.titulo}</p>
-              <span className="my-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#faf0d2] md:h-16 md:w-16">
-                <a.icone className="h-7 w-7 text-ouro-escuro" />
-              </span>
-              <p className="line-clamp-2 text-[12px] text-cinza md:text-[13px]">{a.texto}</p>
-              <span className="botao-secundario mt-3 w-full px-2 py-1.5 text-[12px]">{a.cta}</span>
-            </Link>
-          ))}
+        {/* cards de destaque sobrepostos ao degradê */}
+        <div className="-mt-24 md:-mt-32">
+          <CardsDestaque fixos={fixos} promo={promo} />
         </div>
 
         <Secao titulo="Ofertas do dia" href="/busca?ordem=desconto" produtos={ofertas} />

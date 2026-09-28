@@ -13,6 +13,7 @@ import { Carrossel } from "@/components/Carrossel";
 import { Preco } from "@/components/Preco";
 import { IconeEscudo, IconeLoja, IconePix, IconeWhats } from "@/components/Icones";
 import { BotoesCompra } from "./BotoesCompra";
+import { RegistrarVisto } from "@/components/RegistrarVisto";
 import { Galeria } from "./Galeria";
 
 export const dynamic = "force-dynamic";
@@ -93,6 +94,7 @@ export default async function PaginaProduto({ params, searchParams }: PageProps<
 
   return (
     <div className="mx-auto max-w-[1200px] pb-24 md:px-4 md:pb-8">
+      <RegistrarVisto id={p.id} />
       <nav className="px-3 py-3 text-[13px] text-cinza md:px-0">
         <Link href="/busca" className="text-ouro-escuro hover:underline">Voltar à lista</Link>
         <span className="mx-2">|</span>
