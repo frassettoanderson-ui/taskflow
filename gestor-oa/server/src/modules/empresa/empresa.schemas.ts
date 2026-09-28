@@ -175,4 +175,5 @@ export const listarEmpresasQuery = z.object({
   regimeId: z.string().optional(),
   departamentoId: z.string().optional(),
   status: z.enum(['ativos', 'inativos', 'todos']).optional(),
+  incluirOnboarding: z.string().optional(),
 });

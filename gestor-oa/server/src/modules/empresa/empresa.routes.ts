@@ -46,6 +46,7 @@ router.get('/', validate({ query: listarEmpresasQuery }), async (req, res) => {
       motivoId: req.query.motivoId as string | undefined,
       grupoId: req.query.grupoId as string | undefined,
       status: req.query.status as 'ativos' | 'inativos' | 'todos' | undefined,
+      incluirOnboarding: req.query.incluirOnboarding === '1',
     },
     pag,
   );

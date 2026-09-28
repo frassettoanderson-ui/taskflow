@@ -371,6 +371,9 @@ model Empresa {
   negociacaoObs        String?           // condições especiais negociadas (vai no contrato)
   interesse            String?           // tipo de contrato: Abrir minha empresa / Trocar de contador / Deixar de ser MEI / BPO ...
   emAbertura           Boolean   @default(false) // empresa em processo de abertura (ainda sem CNPJ/dados)
+  // Onboarding: empresa só aparece na lista de Empresas quando o onboarding é concluído (botão "Concluir onboarding").
+  // Default true = empresas manuais/legado aparecem normalmente; leads em onboarding entram como false.
+  onboardingConcluido  Boolean   @default(true)
   atividade            String?
   capitalSocial        Decimal?  @db.Decimal(14, 2)
   inscricaoImobiliaria String?

@@ -29,6 +29,7 @@ import gestaoPortalRoutes from './modules/portal/gestao.routes.js';
 import comunicacaoRoutes from './modules/comunicacao/comunicacao.routes.js';
 import solicitacaoInternaRoutes from './modules/solicitacaoInterna/solicitacaoInterna.routes.js';
 import notificacaoRoutes from './modules/jobs/notificacao.routes.js';
+import internoRoutes from './modules/interno/interno.routes.js';
 
 const api = Router();
 
@@ -66,5 +67,6 @@ api.use('/gestao-portal', gestaoPortalRoutes);
 api.use('/comunicacao', comunicacaoRoutes);
 api.use('/solicitacoes-internas', solicitacaoInternaRoutes);
 api.use('/notificacoes', notificacaoRoutes);
+api.use('/interno', internoRoutes);
 
 export default api;
