@@ -19,7 +19,7 @@
     },
     {
       "name": "raniandark-pdv",
-      "cwd": "C:/Users/ander/OneDrive/\u00c1rea de Trabalho/raniandark-pdv/web",
+      "cwd": "C:/Users/ander/OneDrive/Área de Trabalho/raniandark-pdv/web",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -53,6 +53,28 @@
         "web"
       ],
       "port": 8420
+    },
+    {
+      "name": "kypa",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "8130",
+        "--directory",
+        "C:/Users/ander/Downloads/taskflow_backup_completo/kypa"
+      ],
+      "port": 8130
+    },
+    {
+      "name": "versatil",
+      "cwd": "C:/Users/ander/Downloads/taskflow_backup_completo/versatil/app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "port": 3100
     }
   ]
 }

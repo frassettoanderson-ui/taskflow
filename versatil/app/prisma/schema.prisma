@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Condicao {
+  NOVO_LACRADO
+  CAIXA_ABERTA
+  AVARIA_ESTETICA
+  SEM_CAIXA
+  USADO_REVISADO
+}
+
+enum StatusProduto {
+  RASCUNHO
+  ATIVO
+  ESGOTADO
+  ARQUIVADO
+}
+
+enum StatusPedido {
+  AGUARDANDO_PAGAMENTO
+  PAGO
+  SEPARANDO
+  PRONTO
+  RETIRADO
+  EXPIRADO
+  CANCELADO
+  ESTORNADO
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO
+}
+
+enum Canal {
+  ONLINE
+  PDV
+}
+
+model Categoria {
+  id       String    @id @default(cuid())
+  nome     String
+  slug     String    @unique
+  ordem    Int       @default(0)
+  produtos Produto[]
+}
+
+model Produto {
+  id                String        @id @default(cuid())
+  codigo            Int           @unique @default(autoincrement()) // código curto p/ etiqueta/PDV
+  slug              String        @unique
+  titulo            String
+  descricao         String        @default("")
+  condicao          Condicao      @default(CAIXA_ABERTA)
+  categoriaId       String?
+  categoria         Categoria?    @relation(fields: [categoriaId], references: [id])
+  precoCents        Int
+  precoMercadoCents Int? // média de mercado (mostrada riscada)
+  custoCents        Int? // custo do lote/unidade (margem)
+  estoqueDisponivel Int           @default(1)
+  estoqueReservado  Int           @default(0)
+  vendidos          Int           @default(0)
+  status            StatusProduto @default(ATIVO)
+  visualizacoes     Int           @default(0)
+  publicadoEm       DateTime?
+  ultimaVendaEm     DateTime?
+  criadoEm          DateTime      @default(now())
+  atualizadoEm      DateTime      @updatedAt
+  fotos             Foto[]
+  itens             ItemPedido[]
+
+  @@index([status, publicadoEm])
+}
+
+model Foto {
+  id        String  @id @default(cuid())
+  produtoId String
+  produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  arquivo   String // nome base; servido em /api/img/<arquivo>.webp e /api/img/<arquivo>-t.webp
+  ordem     Int     @default(0)
+
+  @@index([produtoId, ordem])
+}
+
+model Cliente {
+  id              String   @id @default(cuid())
+  nome            String
+  telefone        String   @unique // só dígitos, com DDD
+  cpf             String?
+  email           String?
+  asaasCustomerId String?
+  criadoEm        DateTime @default(now())
+  pedidos         Pedido[]
+}
+
+model Pedido {
+  id             String          @id @default(cuid())
+  numero         Int             @unique @default(autoincrement())
+  acessoToken    String          @unique // link público do pedido
+  clienteId      String
+  cliente        Cliente         @relation(fields: [clienteId], references: [id])
+  canal          Canal           @default(ONLINE)
+  status         StatusPedido    @default(AGUARDANDO_PAGAMENTO)
+  metodo         MetodoPagamento
+  totalCents     Int
+  splitPercent   Float?
+  asaasPaymentId String?         @unique
+  pixPayload     String?
+  invoiceUrl     String?
+  expiraEm       DateTime? // validade da reserva
+  pagoEm         DateTime?
+  codigoRetirada String?
+  retiradoEm     DateTime?
+  estornoCents   Int             @default(0)
+  estornadoEm    DateTime?
+  origemGrupo    String? // ?g= do link (rastreio por grupo de WhatsApp)
+  alerta         String? // ex.: venda dupla evitada
+  criadoEm       DateTime        @default(now())
+  atualizadoEm   DateTime        @updatedAt
+  itens          ItemPedido[]
+  eventos        EventoPedido[]
+
+  @@index([status, expiraEm])
+  @@index([criadoEm])
+}
+
+model ItemPedido {
+  id             String  @id @default(cuid())
+  pedidoId       String
+  pedido         Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produtoId      String
+  produto        Produto @relation(fields: [produtoId], references: [id])
+  quantidade     Int
+  precoUnitCents Int
+  titulo         String // snapshot
+}
+
+model EventoPedido {
+  id        String   @id @default(cuid())
+  pedidoId  String
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  tipo      String
+  descricao String
+  autor     String? // usuário do painel ou "sistema"/"asaas"
+  criadoEm  DateTime @default(now())
+
+  @@index([pedidoId, criadoEm])
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now())
+}
+
+model Config {
+  chave String @id
+  valor String
+}
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  evento    String
+  paymentId String?
+  payload   Json
+  criadoEm  DateTime @default(now())
+}

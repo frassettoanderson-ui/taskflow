@@ -1,6 +1,19 @@
 # Projeto Versátil — loja de logística reversa (e-commerce + WhatsApp + PDV)
 
-> Status: **ESBOÇO + identidade** (28/09/2026). Código ainda não iniciado. Marca: **VERSÁTIL — "Melhor preço da região"**, preto + dourado.
+> Status: **FASE 1 PRONTA EM DEV** (28/09/2026) — loja + checkout + reserva anti-venda-dupla + painel de pedidos/estorno/retirada, testado em modo demonstração. **Não está no ar.** Marca: **VERSÁTIL — "Melhor preço da região"**, preto + dourado.
+
+## Código (`app/`)
+- Next.js 16 (App Router, Turbopack) + Prisma 6 + PostgreSQL + Tailwind 4. Ver `app/README.md` para rodar/deploy.
+- Dev: `npm run dev` em `app/` (Postgres embutido na 5433, Next na 3100; launch config `versatil`). Painel `/painel` com usuário do seed (.env).
+- Núcleo: `src/lib/pedidos.ts` (reserva atômica `UPDATE ... WHERE disponivel >= q`, status por compare-and-set, expiração, pagamento atrasado → re-reserva ou estorno automático, estorno total/parcial). `src/lib/asaas.ts` (sem chave = modo demo). Webhook `src/app/api/webhooks/asaas`. Job de expiração em `src/instrumentation.ts` (30s) + varredura preguiçosa nas páginas.
+- Split = `ASAAS_SPLIT_PERCENT` + `ASAAS_SPLIT_WALLET_ID` no .env do servidor (a loja NÃO edita).
+- Testes feitos 28/09: 10 compras simultâneas da última unidade → 1 aprovada/9 recusadas; pagamento após expiração com item já vendido → estorno automático + alerta; estorno total devolve ao estoque; retirada por código; upload de foto (compressão no navegador → WebP).
+- Cartão: página hospedada do Asaas (invoiceUrl) — sem parcelamento ainda. Fotos servidas por `/api/img/*` a partir de `UPLOAD_DIR`.
+
+### Pendências fase 1 → produção
+- Chave **sandbox** do Asaas da loja + walletId do Anderson para testar integração real (NÃO reaproveitar chaves da Nauta).
+- Conferir no sandbox como o split é revertido no estorno.
+- Domínio + VPS (container próprio) + HTTPS; definir % do split.
 
 ## O negócio
 - Loja que vende produtos de **logística reversa** (devolução, caixa aberta, avaria leve) com preço bem abaixo do mercado.

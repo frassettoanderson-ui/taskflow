@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme {
+  --color-noite: #0b0b0c;
+  --color-carvao: #121215;
+  --color-grafite: #1a1a1f;
+  --color-fio: #2a2a31;
+  --color-ouro-claro: #f3d98b;
+  --color-ouro: #d4af55;
+  --color-ouro-escuro: #a67c2e;
+  --color-marfim: #f5f1e8;
+  --color-cinza: #9a968c;
+  --color-rubi: #e0605a;
+  --color-jade: #5fbf8f;
+  --font-sans: var(--font-sans), ui-sans-serif, sans-serif;
+  --font-serif: var(--font-serif), ui-serif, serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+}
+
+:root { color-scheme: dark; }
+
+body {
+  background: var(--color-noite);
+  color: var(--color-marfim);
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* grão sutil + brilho dourado no topo: atmosfera de salão de leilão */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(900px 420px at 50% -120px, rgb(212 175 85 / 0.10), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+}
+body > * { position: relative; z-index: 1; }
+
+.texto-ouro {
+  background: linear-gradient(180deg, var(--color-ouro-claro), var(--color-ouro) 45%, var(--color-ouro-escuro));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.botao-ouro {
+  background: linear-gradient(180deg, var(--color-ouro-claro), var(--color-ouro) 55%, var(--color-ouro-escuro));
+  color: #16120a;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45), 0 8px 24px -10px rgb(212 175 85 / 0.55);
+  transition: transform 0.15s, filter 0.15s;
+}
+.botao-ouro:hover { filter: brightness(1.06); }
+.botao-ouro:active { transform: translateY(1px) scale(0.99); }
+.botao-ouro:disabled { filter: grayscale(0.8) brightness(0.6); cursor: not-allowed; }
+
+.filete { border-color: var(--color-fio); }
+.filete-ouro { border-image: linear-gradient(90deg, transparent, var(--color-ouro-escuro), transparent) 1; }
+
+.campo {
+  width: 100%;
+  background: var(--color-carvao);
+  border: 1px solid var(--color-fio);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  font-size: 16px; /* evita zoom no iPhone */
+  color: var(--color-marfim);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.campo:focus { border-color: var(--color-ouro); box-shadow: 0 0 0 3px rgb(212 175 85 / 0.18); }
+.campo::placeholder { color: #6d6a63; }
+
+/* selo carimbado "ARREMATADO" */
+.carimbo {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--color-ouro);
+  border: 2px solid var(--color-ouro);
+  padding: 0.3rem 0.7rem;
+  transform: rotate(-12deg);
+  text-transform: uppercase;
+  background: rgb(11 11 12 / 0.72);
+  box-shadow: 0 0 0 3px rgb(11 11 12 / 0.72);
+}
+
+@keyframes subir { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: none; } }
+.entrada { animation: subir 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@keyframes martelada { 0%, 100% { transform: rotate(0); } 40% { transform: rotate(-28deg); } 60% { transform: rotate(6deg); } }
+.martelo-anim { transform-origin: 70% 70%; animation: martelada 1.4s ease-in-out infinite; }
+
+.safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
