@@ -101,11 +101,17 @@ Taxas públicas (set/2026, sem negociação): Pix **R$ 1,99 fixo** (100 primeiro
 4. **PDV** + etiquetas QR.
 5. **Giro e análise**: produtos parados, "queimar", dashboard, checkouts abandonados.
 
+## Decisões (respostas do usuário, 28/09/2026)
+1. **Split = taxa de serviço do Anderson** (software house). Cobrança criada na conta Asaas da LOJA, com split para a walletId do Anderson (% ou fixo por pedido — definir). Pix do PDV também gerado via Asaas → entra no split. Venda presencial em dinheiro/maquininha **não passa pelo Asaas** → precisa de regra (ex.: fatura mensal sobre essas vendas, ou taxa só sobre o online).
+2. **10 grupos, ~30 produtos/dia** → ~300 mensagens/dia em grupos. Fila espalha ao longo do dia (1 produto a cada ~20–25 min por grupo) OU modo "vitrine" (3–5 posts/dia com vários produtos + link "novidades de hoje"). Configurável; começar com o modo espalhado + limite por hora.
+3. **Só retirada na loja** (fase 1). Sem frete. Pedido pago gera **código de retirada** (QR + 4 dígitos) conferido no balcão; prazo de retirada configurável (definir o que acontece se não retirar). Direito de arrependimento (7 dias, CDC) continua valendo na compra online.
+4. **Estoque variado** → suporta unidade única E lotes com quantidade. Reserva atômica por quantidade (`UPDATE ... SET disponivel = disponivel - :q WHERE id=? AND disponivel >= :q`).
+5. **Tem CNPJ e conta Asaas.**
+6. **Números de WhatsApp: ainda não tem** → precisa de pelo menos 1 chip dedicado (ideal 2: bot + disparo) antes da fase 2. Fase 1 não depende disso.
+
 ## Perguntas em aberto
 - Nome/marca e domínio; logo e paleta (usuário vai enviar).
-- **Split para quem?** (sócios, fornecedor, taxa da software house…)
-- Volume: produtos/dia, nº de grupos, ticket médio (define Asaas × Mercado Pago).
-- Entrega: só retirada? entrega local? Correios?
-- Maioria unidade única ou tem lotes com várias unidades?
-- Já tem CNPJ/conta Asaas? Emite nota fiscal?
-- Número de WhatsApp dedicado para disparo e outro para o bot?
+- Taxa do split: % sobre a venda ou valor fixo por pedido? Cobra também sobre vendas presenciais em dinheiro/maquininha?
+- Ticket médio (confirma Asaas × Mercado Pago).
+- Prazo de retirada e o que fazer se o cliente não retirar (estorno? crédito?).
+- Emitem nota fiscal? (se sim, dá pra plugar o [[emissor-fiscal]] depois)
