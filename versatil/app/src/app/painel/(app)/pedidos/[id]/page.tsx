@@ -55,7 +55,7 @@ export default async function DetalhePedido({ params, searchParams }: PageProps<
           <div key={i.id} className="flex items-center justify-between gap-3 border-b filete py-2 text-sm last:border-0">
             <span>
               <b className="font-mono text-ouro">{i.quantidade}×</b> {i.titulo}{" "}
-              <Link href={`/painel/produtos/${i.produto.id}`} className="font-mono text-[10px] text-cinza">LOTE {String(i.produto.codigo).padStart(4, "0")}</Link>
+              <Link href={`/painel/produtos/${i.produto.id}`} className="font-mono text-[10px] text-cinza">#{String(i.produto.codigo).padStart(4, "0")}</Link>
             </span>
             <span className="shrink-0">{brl(i.precoUnitCents * i.quantidade)}</span>
           </div>

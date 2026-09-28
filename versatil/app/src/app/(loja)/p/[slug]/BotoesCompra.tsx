@@ -13,7 +13,7 @@ export function BotoesCompra({ produto, disponivel }: { produto: Omit<ItemCarrin
   if (!disponivel)
     return (
       <p className="mt-5 w-full rounded-xl border filete px-4 py-3 text-center text-sm text-cinza">
-        Este lote não está disponível no momento.
+        Este produto não está disponível no momento.
       </p>
     );
 

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { lote } from "@/components/CardProduto";
+import { codigoInterno } from "@/components/CardProduto";
 import { FormProduto } from "../FormProduto";
 
 export default async function EditarProduto({ params }: PageProps<"/painel/produtos/[id]">) {
@@ -12,9 +12,9 @@ export default async function EditarProduto({ params }: PageProps<"/painel/produ
   if (!produto) notFound();
   return (
     <>
-      <p className="text-center font-mono text-xs tracking-wider text-ouro">{lote(produto.codigo)}</p>
+      <p className="text-center font-mono text-xs tracking-wider text-ouro">Código interno {codigoInterno(produto.codigo)}</p>
       <h1 className="mb-5 text-center text-2xl font-extrabold">Editar produto</h1>
-      <FormProduto key={produto.atualizadoEm.toISOString()} produto={produto} categorias={categorias} />
+      <FormProduto key={produto.atualizadoEm.toISOString()} produto={produto} categorias={categorias} gruposAtivos={await db.grupo.count({ where: { ativo: true } })} autoDisparo={false} />
     </>
   );
 }

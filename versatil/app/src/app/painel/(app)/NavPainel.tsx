@@ -17,7 +17,7 @@ export function NavPainel({ aSeparar, vertical = false }: { aSeparar: number; ve
   if (vertical)
     return (
       <nav className="mt-8 flex flex-col gap-1">
-        {[...ITENS, { href: "/painel/config", rotulo: "Configurações", icone: "" }].map((i) => (
+        {[...ITENS, { href: "/painel/disparos", rotulo: "Disparos WhatsApp", icone: "" }, { href: "/painel/config", rotulo: "Configurações", icone: "" }].map((i) => (
           <Link key={i.href} href={i.href} className={`flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition ${ativo(i.href) ? "bg-ouro/10 text-ouro-claro" : "text-cinza hover:text-marfim"}`}>
             {i.rotulo}
             {i.href === "/painel/pedidos" && aSeparar > 0 && <span className="rounded-full bg-ouro px-2 font-mono text-[11px] text-noite">{aSeparar}</span>}

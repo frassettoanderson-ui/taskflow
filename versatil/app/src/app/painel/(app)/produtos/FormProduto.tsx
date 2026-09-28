@@ -12,6 +12,9 @@ type Produto = {
   descricao: string;
   condicao: string;
   categoriaId: string | null;
+  marca: string | null;
+  sku: string | null;
+  aplicacao: string;
   precoCents: number;
   precoMercadoCents: number | null;
   custoCents: number | null;
@@ -40,7 +43,17 @@ async function comprimir(f: File): Promise<File> {
   }
 }
 
-export function FormProduto({ produto, categorias }: { produto?: Produto; categorias: { id: string; nome: string }[] }) {
+export function FormProduto({
+  produto,
+  categorias,
+  gruposAtivos,
+  autoDisparo,
+}: {
+  produto?: Produto;
+  categorias: { id: string; nome: string }[];
+  gruposAtivos: number;
+  autoDisparo: boolean;
+}) {
   const [estado, acao, salvando] = useActionState(salvarProduto, undefined);
   const [novas, setNovas] = useState<{ file: File; url: string }[]>([]);
   const [remover, setRemover] = useState<string[]>([]);
@@ -137,6 +150,17 @@ export function FormProduto({ produto, categorias }: { produto?: Produto; catego
           <option value="">Categoria (opcional)</option>
           {categorias.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}
         </select>
+        <div className="grid grid-cols-2 gap-3">
+          <input name="marca" defaultValue={produto?.marca ?? ""} placeholder="Marca" className="campo" />
+          <input name="sku" defaultValue={produto?.sku ?? ""} placeholder="Código / SKU" className="campo" />
+        </div>
+        <textarea
+          name="aplicacao"
+          defaultValue={produto?.aplicacao}
+          rows={3}
+          placeholder={"Aplicação / compatibilidade (uma por linha)\nEx.: Renault Clio até 1999\nRenault 19"}
+          className="campo"
+        />
       </section>
 
       <section className="rounded-2xl border filete bg-carvao/60 p-4">
@@ -188,6 +212,16 @@ export function FormProduto({ produto, categorias }: { produto?: Produto; catego
           ))}
         </div>
       </section>
+
+      <label className={`flex items-center justify-center gap-3 rounded-2xl border p-4 text-sm ${gruposAtivos ? "border-ouro-escuro/60 bg-ouro/5" : "filete opacity-60"}`}>
+        <input type="checkbox" name="disparar" defaultChecked={!produto && autoDisparo && gruposAtivos > 0} disabled={!gruposAtivos} className="h-5 w-5 accent-[#d4af55]" />
+        <span className="text-center">
+          {produto ? "Avisar nos grupos de WhatsApp ao salvar" : "Disparar nos grupos de WhatsApp ao publicar"}
+          <span className="block text-xs text-cinza">
+            {gruposAtivos ? `${gruposAtivos} grupo(s) ativo(s) · envio espaçado automaticamente${produto ? " · se baixar o preço, vai como promoção" : ""}` : "Nenhum grupo ativo — configure em Disparos"}
+          </span>
+        </span>
+      </label>
 
       {estado?.erro && <p className="rounded-lg bg-rubi/10 px-3 py-2 text-center text-sm text-rubi">{estado.erro}</p>}
 

@@ -23,7 +23,7 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
     return (
       <div className="px-4 py-24 text-center">
         <p className="text-cinza">Carrinho vazio.</p>
-        <Link href="/" className="mt-4 inline-block text-ouro-claro underline">Voltar à vitrine</Link>
+        <Link href="/" className="mt-4 inline-block text-ouro-claro underline">Voltar à loja</Link>
       </div>
     );
   }

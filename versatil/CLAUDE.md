@@ -1,6 +1,7 @@
 # Projeto Versátil — loja de logística reversa (e-commerce + WhatsApp + PDV)
 
-> Status: **FASE 1 PRONTA EM DEV** (28/09/2026) — loja + checkout + reserva anti-venda-dupla + painel de pedidos/estorno/retirada, testado em modo demonstração. **Não está no ar.** Marca: **VERSÁTIL — "Melhor preço da região"**, preto + dourado.
+> Status: **FASES 1 e 2 PRONTAS EM DEV** (28/09/2026) — loja + checkout + reserva anti-venda-dupla + painel + **disparo automático nos grupos de WhatsApp**, testado em modo demonstração. **Não está no ar.**
+> ⚠️ Decisão do usuário (28/09): **NADA de tema leilão** (sem "lote", "arrematado", martelo animado). É uma **loja online normal**, preto+dourado, com fotos reais e página de produto completa (marca, SKU, aplicação/compatibilidade, especificações). O martelo fica só na logo. Marca: **VERSÁTIL — "Melhor preço da região"**, preto + dourado.
 
 ## Código (`app/`)
 - Next.js 16 (App Router, Turbopack) + Prisma 6 + PostgreSQL + Tailwind 4. Ver `app/README.md` para rodar/deploy.
@@ -10,10 +11,20 @@
 - Testes feitos 28/09: 10 compras simultâneas da última unidade → 1 aprovada/9 recusadas; pagamento após expiração com item já vendido → estorno automático + alerta; estorno total devolve ao estoque; retirada por código; upload de foto (compressão no navegador → WebP).
 - Cartão: página hospedada do Asaas (invoiceUrl) — sem parcelamento ainda. Fotos servidas por `/api/img/*` a partir de `UPLOAD_DIR`.
 
-### Pendências fase 1 → produção
+### Fase 2 — disparo nos grupos (feito 28/09)
+- `src/lib/disparos.ts` (fila + worker 10s em `instrumentation.ts`), `src/lib/evolution.ts` (Evolution API; sem `EVOLUTION_URL` = modo demo com 3 grupos de teste), `src/lib/mensagem.ts` (mesmo formato do post atual deles: 🔥 título, 💰 de/por, ✔️ aplicação/marca/SKU, link com `?g=<grupo>`; abertura/chamada/fecho variam por grupo — anti-restrição).
+- Ritmo padrão (painel → Disparos): 45–120s entre mensagens, 6 min no mesmo grupo, 40/h, 8h–21h. Pausar/retomar, "enviar próximo agora", tirar produto da fila.
+- Enfileira ao publicar (checkbox, padrão configurável) ou ao editar ("avisar nos grupos": preço menor = PROMOÇÃO, senão REENVIO). Na hora do envio re-checa estoque — vendido = cancela.
+- Imagem vai como JPEG base64 (webp o WhatsApp trata como figurinha). Grupos: botão "Buscar grupos do WhatsApp" importa desativados → ativar um a um.
+- Rastreio: `Clique` por grupo (visita com ?g=) + `Pedido.origemGrupo` → painel mostra envios/cliques/vendas/receita por grupo (7 dias).
+- Testado: 6 disparos (2 produtos × 3 grupos) com textos diferentes por grupo; venda atribuída ao grupo; clique registrado.
+- Produtos de exemplo (seed, só dev): fotos do Unsplash (licença livre) em `app/prisma/demo/` + o comutador Facobras do print do usuário.
+
+### Pendências → produção
 - Chave **sandbox** do Asaas da loja + walletId do Anderson para testar integração real (NÃO reaproveitar chaves da Nauta).
 - Conferir no sandbox como o split é revertido no estorno.
 - Domínio + VPS (container próprio) + HTTPS; definir % do split.
+- WhatsApp: chip dedicado ao disparo + instância Evolution (definir qual Evolution usar — perguntar antes de mexer em Evolution existente) → preencher EVOLUTION_URL/API_KEY/INSTANCE, buscar grupos e ativar.
 
 ## O negócio
 - Loja que vende produtos de **logística reversa** (devolução, caixa aberta, avaria leve) com preço bem abaixo do mercado.

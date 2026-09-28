@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { ResumoPedido } from "@/lib/resumo";
 import { brl, soDigitos } from "@/lib/format";
-import { Martelo } from "@/components/Martelo";
+import { IconeCheck } from "@/components/Icones";
 
 type Props = { token: string; inicial: ResumoPedido; endereco: string; horario: string; whatsapp: string };
 
@@ -113,12 +113,12 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
 
       {pago && (
         <section className="entrada">
-          <Martelo className="mx-auto mt-4 h-12 w-12 text-ouro" animado={p.status === "PAGO"} />
+          <IconeCheck className="entrada mx-auto mt-4 h-14 w-14 text-jade" />
           <h1 className="mt-2 text-3xl font-extrabold">
-            {p.status === "RETIRADO" ? "Retirado. Obrigado!" : <>Arrematado, <span className="texto-ouro font-serif font-normal italic">{p.primeiroNome}</span>!</>}
+            {p.status === "RETIRADO" ? "Retirado. Obrigado!" : <>Compra confirmada, <span className="texto-ouro">{p.primeiroNome}</span>!</>}
           </h1>
           <p className="mt-2 text-sm text-cinza">
-            {p.status === "PRONTO" ? "Seu pedido já está separado esperando por você." : p.status === "RETIRADO" ? "Esperamos você na próxima oportunidade." : "Pagamento confirmado. Os itens são seus."}
+            {p.status === "PRONTO" ? "Seu pedido já está separado esperando por você." : p.status === "RETIRADO" ? "Esperamos você na próxima oportunidade." : "Pagamento aprovado. Seus produtos já estão reservados no seu nome."}
           </p>
           {p.status !== "RETIRADO" && p.codigoRetirada && (
             <div className="mt-6 rounded-2xl border border-ouro-escuro/70 bg-carvao/80 p-5">
@@ -144,8 +144,8 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
       {(p.status === "EXPIRADO" || p.status === "CANCELADO") && (
         <section className="entrada py-8">
           <h1 className="mt-2 text-2xl font-extrabold">{p.status === "EXPIRADO" ? "A reserva expirou" : "Pedido cancelado"}</h1>
-          <p className="mt-2 text-sm text-cinza">Os itens voltaram para a vitrine. Se ainda estiverem disponíveis, é só comprar de novo.</p>
-          <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Voltar à vitrine</Link>
+          <p className="mt-2 text-sm text-cinza">Os itens voltaram a ficar disponíveis na loja. Se ainda estiverem disponíveis, é só comprar de novo.</p>
+          <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Voltar à loja</Link>
         </section>
       )}
 
@@ -157,7 +157,7 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
               ? "Infelizmente outra pessoa concluiu a compra deste item segundos antes. Seu pagamento foi devolvido automaticamente."
               : `Estornamos ${brl(p.estornoCents)} para você.`}
           </p>
-          <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Ver outras oportunidades</Link>
+          <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Ver outros produtos</Link>
         </section>
       )}
 

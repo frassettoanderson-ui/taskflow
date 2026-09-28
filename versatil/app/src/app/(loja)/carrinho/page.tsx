@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCarrinho } from "@/components/carrinho";
 import { FotoProduto } from "@/components/FotoProduto";
-import { Martelo } from "@/components/Martelo";
+import { IconeSacola } from "@/components/Icones";
 import { brl } from "@/lib/format";
 
 export default function Carrinho() {
@@ -12,10 +12,10 @@ export default function Carrinho() {
   if (!itens.length)
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
-        <Martelo className="mx-auto mb-5 h-14 w-14 text-ouro-escuro/60" />
+        <IconeSacola className="mx-auto mb-5 h-14 w-14 text-ouro-escuro/60" />
         <h1 className="text-xl font-bold">Seu carrinho está vazio</h1>
-        <p className="mt-2 text-sm text-cinza">Os melhores lotes saem rápido. Dá uma olhada na vitrine.</p>
-        <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Ver oportunidades</Link>
+        <p className="mt-2 text-sm text-cinza">As melhores ofertas saem rápido. Dá uma olhada na loja.</p>
+        <Link href="/" className="botao-ouro mt-6 inline-block rounded-xl px-6 py-3">Ver produtos</Link>
       </div>
     );
 
@@ -41,7 +41,7 @@ export default function Carrinho() {
                   <button onClick={() => alterar(i.produtoId, i.quantidade + 1)} className="h-8 w-8 text-ouro">+</button>
                 </div>
               ) : (
-                <span className="font-mono text-[10px] uppercase tracking-wider text-rubi">única</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rubi">última unid.</span>
               )}
             </div>
           </li>

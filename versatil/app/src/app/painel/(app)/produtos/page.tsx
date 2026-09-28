@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 import { brl, diasDesde, CONDICOES } from "@/lib/format";
 import { FotoProduto } from "@/components/FotoProduto";
-import { lote } from "@/components/CardProduto";
+import { codigoInterno } from "@/components/CardProduto";
 
 const ABAS: { status: StatusProduto; rotulo: string }[] = [
   { status: "ATIVO", rotulo: "Na vitrine" },
@@ -24,7 +24,7 @@ export default async function Produtos({ searchParams }: PageProps<"/painel/prod
 
   const where: Prisma.ProdutoWhereInput = {
     status,
-    ...(q ? { OR: [{ titulo: { contains: q, mode: "insensitive" } }, ...(Number(q) ? [{ codigo: Number(q) }] : [])] } : {}),
+    ...(q ? { OR: [{ titulo: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }, ...(Number(q) ? [{ codigo: Number(q) }] : [])] } : {}),
   };
   const [produtos, contagem] = await Promise.all([
     db.produto.findMany({ where, include: { fotos: { take: 1, orderBy: { ordem: "asc" } } }, orderBy: { criadoEm: "desc" }, take: 300 }),
@@ -42,7 +42,11 @@ export default async function Produtos({ searchParams }: PageProps<"/painel/prod
         <h1 className="text-2xl font-extrabold">Produtos</h1>
         <Link href="/painel/produtos/novo" className="botao-ouro hidden rounded-xl px-5 py-2.5 text-sm md:inline-block">+ Cadastrar</Link>
       </div>
-      {sp.salvo && <p className="mt-3 rounded-lg bg-jade/10 px-3 py-2 text-center text-sm text-jade">Produto salvo.</p>}
+      {sp.salvo && (
+        <p className="mt-3 rounded-lg bg-jade/10 px-3 py-2 text-center text-sm text-jade">
+          Produto salvo.{sp.grupos ? ` Na fila para ${sp.grupos} grupo(s) de WhatsApp.` : ""}
+        </p>
+      )}
 
       <nav className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
         {ABAS.map((a) => (
@@ -56,7 +60,7 @@ export default async function Produtos({ searchParams }: PageProps<"/painel/prod
         <form action="/painel/produtos" className="flex-1">
           <input type="hidden" name="status" value={status} />
           <input type="hidden" name="ordem" value={ordem} />
-          <input name="q" defaultValue={q} placeholder="Buscar por nome ou nº do lote" className="campo !py-2.5" />
+          <input name="q" defaultValue={q} placeholder="Buscar por nome, código ou SKU" className="campo !py-2.5" />
         </form>
         <Link href={url({ ordem: ordem === "parados" ? "recentes" : "parados" })} className="shrink-0 rounded-xl border filete px-3 py-2.5 text-xs font-semibold text-cinza">
           {ordem === "parados" ? "⏱ Mais parados" : "🆕 Recentes"}
@@ -80,7 +84,7 @@ export default async function Produtos({ searchParams }: PageProps<"/painel/prod
               <Link href={`/painel/produtos/${p.id}`} className="flex gap-3 rounded-2xl border filete bg-carvao/60 p-2.5 transition hover:border-ouro-escuro">
                 <FotoProduto arquivo={p.fotos[0]?.arquivo} alt={p.titulo} miniatura className="h-[72px] w-[72px] shrink-0 rounded-xl" />
                 <div className="min-w-0 flex-1">
-                  <p className="font-mono text-[10px] tracking-wider text-ouro">{lote(p.codigo)} · {CONDICOES[p.condicao].rotulo}</p>
+                  <p className="font-mono text-[10px] tracking-wider text-ouro">{codigoInterno(p.codigo)} · {CONDICOES[p.condicao].rotulo}</p>
                   <p className="line-clamp-1 text-sm font-semibold">{p.titulo}</p>
                   <p className="mt-0.5 text-sm">
                     <b className="text-ouro-claro">{brl(p.precoCents)}</b>

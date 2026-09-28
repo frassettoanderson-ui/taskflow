@@ -9,6 +9,15 @@ export const CONFIG_PADRAO = {
   loja_whatsapp: "",
   parado_amarelo_dias: "8",
   parado_vermelho_dias: "21",
+  // disparo nos grupos (fase 2)
+  disparo_ativo: "1", // 0 = fila pausada
+  disparo_auto_publicar: "1", // enfileira ao publicar produto novo
+  disparo_intervalo_min: "45", // segundos entre duas mensagens (qualquer grupo)
+  disparo_intervalo_max: "120",
+  disparo_intervalo_grupo_min: "6", // minutos mínimos entre duas mensagens no MESMO grupo
+  disparo_limite_hora: "40", // teto de mensagens por hora (todos os grupos)
+  disparo_hora_inicio: "8",
+  disparo_hora_fim: "21",
 };
 export type ChaveConfig = keyof typeof CONFIG_PADRAO;
 

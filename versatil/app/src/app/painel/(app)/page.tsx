@@ -112,8 +112,9 @@ export default async function Inicio() {
         </section>
       </div>
 
-      <div className="mt-8 text-center md:hidden">
-        <Link href="/painel/config" className="text-sm text-cinza underline underline-offset-4">Configurações da loja</Link>
+      <div className="mt-8 grid grid-cols-2 gap-3 md:hidden">
+        <Link href="/painel/disparos" className="rounded-xl border filete bg-carvao/60 py-3 text-center text-sm font-semibold">Disparos WhatsApp</Link>
+        <Link href="/painel/config" className="rounded-xl border filete bg-carvao/60 py-3 text-center text-sm font-semibold">Configurações</Link>
       </div>
     </div>
   );

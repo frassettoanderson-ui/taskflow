@@ -9,6 +9,7 @@ import { setConfig, CONFIG_PADRAO, type ChaveConfig } from "@/lib/config";
 import { parseReais, slugify, soDigitos } from "@/lib/format";
 import { salvarFoto, apagarFoto } from "@/lib/uploads";
 import { avancarStatus, cancelarPedido, estornarPedido, ErroValidacao } from "@/lib/pedidos";
+import { cancelarPendentes, enfileirar, processarFila, sincronizarGrupos } from "@/lib/disparos";
 
 export type Estado = { erro?: string; ok?: string } | undefined;
 
@@ -53,6 +54,16 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
   const condicao = String(fd.get("condicao")) as Condicao;
   const statusPedido = String(fd.get("status") || "ATIVO") as StatusProduto;
   const categoriaId = String(fd.get("categoriaId") || "") || null;
+  const extras = {
+    marca: String(fd.get("marca") || "").trim() || null,
+    sku: String(fd.get("sku") || "").trim() || null,
+    aplicacao: String(fd.get("aplicacao") || "")
+      .split("\n")
+      .map((l) => l.replace(/^[\s✔✅️•-]+/u, "").trim()) // tira ✔️/✅ colados do WhatsApp
+      .filter(Boolean)
+      .join("\n"),
+  };
+  const disparar = fd.get("disparar") === "on";
 
   if (titulo.length < 3) return { erro: "Dê um título ao produto." };
   if (!preco) return { erro: "Informe o preço de venda." };
@@ -64,12 +75,14 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
   const slug = await slugLivre(slugify(titulo), id);
 
   let produtoId = id;
+  let tipoDisparo: "NOVO" | "PROMOCAO" | "REENVIO" = "NOVO";
   if (!id) {
     const status: StatusProduto = statusPedido === "RASCUNHO" ? "RASCUNHO" : estoque > 0 ? "ATIVO" : "ESGOTADO";
     const p = await db.produto.create({
       data: {
         titulo, slug, condicao, categoriaId,
         descricao: String(fd.get("descricao") || ""),
+        ...extras,
         precoCents: preco, precoMercadoCents: mercado, custoCents: custo,
         estoqueDisponivel: estoque, status,
         publicadoEm: status === "ATIVO" ? new Date() : null,
@@ -90,6 +103,7 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
       data: {
         titulo, slug, condicao, categoriaId,
         descricao: String(fd.get("descricao") || ""),
+        ...extras,
         precoCents: preco, precoMercadoCents: mercado, custoCents: custo,
         ...(mexeuEstoque ? { estoqueDisponivel: estoque } : {}),
         status,
@@ -97,6 +111,8 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
       },
     });
     if (!r.count) return { erro: "O estoque mudou enquanto você editava (alguém comprou ou reservou). Recarregue a página." };
+    tipoDisparo = preco < atual.precoCents ? "PROMOCAO" : atual.publicadoEm ? "REENVIO" : "NOVO";
+    if (status !== "ATIVO") await cancelarPendentes(id, "produto saiu da loja");
   }
 
   if (remover.length) {
@@ -118,9 +134,15 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
     await db.foto.updateMany({ where: { id: capa, produtoId }, data: { ordem: 0 } });
   }
 
+  let enfileirados = 0;
+  if (disparar) {
+    const final = await db.produto.findUnique({ where: { id: produtoId }, select: { status: true, estoqueDisponivel: true } });
+    if (final?.status === "ATIVO" && final.estoqueDisponivel > 0) enfileirados = await enfileirar(produtoId!, tipoDisparo);
+  }
+
   revalidatePath("/painel/produtos");
   revalidatePath("/");
-  redirect(`/painel/produtos?salvo=${produtoId}`);
+  redirect(`/painel/produtos?salvo=${produtoId}${enfileirados ? `&grupos=${enfileirados}` : ""}`);
 }
 
 // ---------- pedidos ----------
@@ -181,10 +203,58 @@ export async function salvarConfig(_: Estado, fd: FormData): Promise<Estado> {
   await exigirUsuario();
   const valores: Partial<Record<ChaveConfig, string>> = {};
   for (const k of Object.keys(CONFIG_PADRAO) as ChaveConfig[]) {
-    const v = fd.get(k);
-    if (v !== null) valores[k] = String(v).trim();
+    const todos = fd.getAll(k); // checkbox + hidden: vale o último
+    if (todos.length) valores[k] = String(todos[todos.length - 1]).trim();
   }
   await setConfig(valores);
   revalidatePath("/", "layout");
   return { ok: "Configurações salvas." };
+}
+
+// ---------- disparos nos grupos ----------
+
+export async function alternarFila(ativo: boolean) {
+  await exigirUsuario();
+  await setConfig({ disparo_ativo: ativo ? "1" : "0" });
+  revalidatePath("/painel/disparos");
+}
+
+export async function alternarGrupo(grupoId: string, ativo: boolean) {
+  await exigirUsuario();
+  await db.grupo.update({ where: { id: grupoId }, data: { ativo } });
+  if (!ativo) await db.disparo.updateMany({ where: { grupoId, status: "PENDENTE" }, data: { status: "CANCELADO", erro: "grupo desativado" } });
+  revalidatePath("/painel/disparos");
+}
+
+export async function sincronizarGruposAcao(): Promise<Estado> {
+  await exigirUsuario();
+  try {
+    const r = await sincronizarGrupos();
+    revalidatePath("/painel/disparos");
+    return { ok: `${r.total} grupo(s) encontrados${r.novos ? `, ${r.novos} novo(s) — ative os que devem receber ofertas` : ""}.` };
+  } catch (e) {
+    return { erro: `Não consegui buscar os grupos: ${(e as Error).message}` };
+  }
+}
+
+export async function dispararProduto(produtoId: string) {
+  await exigirUsuario();
+  const n = await enfileirar(produtoId, "REENVIO");
+  revalidatePath("/painel/disparos");
+  return n;
+}
+
+export async function cancelarFilaProduto(produtoId: string) {
+  await exigirUsuario();
+  await cancelarPendentes(produtoId, "cancelado pelo painel");
+  revalidatePath("/painel/disparos");
+}
+
+/** Força uma tentativa de envio agora (ignora só o intervalo global; respeita horário/limites). */
+export async function enviarProximo() {
+  await exigirUsuario();
+  await db.config.deleteMany({ where: { chave: "disparo_proximo" } });
+  const r = await processarFila();
+  revalidatePath("/painel/disparos");
+  return r;
 }

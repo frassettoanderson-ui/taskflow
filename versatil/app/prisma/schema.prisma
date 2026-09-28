@@ -57,6 +57,9 @@ model Produto {
   slug              String        @unique
   titulo            String
   descricao         String        @default("")
+  marca             String?
+  sku               String? // código do fabricante / embalagem
+  aplicacao         String        @default("") // aplicação/compatibilidade, uma por linha
   condicao          Condicao      @default(CAIXA_ABERTA)
   categoriaId       String?
   categoria         Categoria?    @relation(fields: [categoriaId], references: [id])
@@ -74,6 +77,8 @@ model Produto {
   atualizadoEm      DateTime      @updatedAt
   fotos             Foto[]
   itens             ItemPedido[]
+  disparos          Disparo[]
+  cliques           Clique[]
 
   @@index([status, publicadoEm])
 }
@@ -173,4 +178,62 @@ model WebhookLog {
   paymentId String?
   payload   Json
   criadoEm  DateTime @default(now())
+}
+
+// ---------- Fase 2: disparo nos grupos de WhatsApp ----------
+
+enum StatusDisparo {
+  PENDENTE
+  ENVIANDO
+  ENVIADO
+  FALHOU
+  CANCELADO
+}
+
+enum TipoDisparo {
+  NOVO
+  PROMOCAO
+  REENVIO
+}
+
+model Grupo {
+  id            String    @id @default(cuid())
+  numero        Int       @unique @default(autoincrement()) // vai no link: ?g=<numero>
+  jid           String    @unique // id do grupo no WhatsApp (xxx@g.us)
+  nome          String
+  participantes Int?
+  ativo         Boolean   @default(false)
+  criadoEm      DateTime  @default(now())
+  disparos      Disparo[]
+  cliques       Clique[]
+}
+
+model Disparo {
+  id           String        @id @default(cuid())
+  produtoId    String
+  produto      Produto       @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  grupoId      String
+  grupo        Grupo         @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  tipo         TipoDisparo   @default(NOVO)
+  status       StatusDisparo @default(PENDENTE)
+  agendadoPara DateTime      @default(now())
+  enviadoEm    DateTime?
+  texto        String? // texto efetivamente enviado
+  erro         String?
+  tentativas   Int           @default(0)
+  criadoEm     DateTime      @default(now())
+
+  @@index([status, agendadoPara])
+  @@index([grupoId, enviadoEm])
+}
+
+model Clique {
+  id        String   @id @default(cuid())
+  produtoId String
+  produto   Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  grupoId   String?
+  grupo     Grupo?   @relation(fields: [grupoId], references: [id], onDelete: SetNull)
+  criadoEm  DateTime @default(now())
+
+  @@index([grupoId, criadoEm])
 }
