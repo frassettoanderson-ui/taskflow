@@ -51,6 +51,7 @@ export interface ListarParams {
   grupoId?: string;
   status?: 'ativos' | 'inativos' | 'todos';
   incluirOnboarding?: boolean; // true = mostra também empresas ainda em onboarding (default: esconde)
+  somenteOnboarding?: boolean; // true = mostra SÓ as empresas ainda em onboarding (visão Onboarding em lista)
 }
 
 export async function listar(
@@ -69,8 +70,9 @@ export async function listar(
   if (params.status === 'ativos' || !params.status) and.push({ ativo: true });
   else if (params.status === 'inativos') and.push({ ativo: false });
 
-  // Empresas ainda em onboarding só aparecem quando o onboarding é concluído (regra do fluxo).
-  if (!params.incluirOnboarding) and.push({ onboardingConcluido: true });
+  // Onboarding: visão Empresas esconde quem está em onboarding; visão Onboarding-em-lista mostra só eles.
+  if (params.somenteOnboarding) and.push({ onboardingConcluido: false });
+  else if (!params.incluirOnboarding) and.push({ onboardingConcluido: true });
 
   if (params.tagId) and.push({ tags: { some: { tagId: params.tagId } } });
   if (params.regimeId) and.push({ regimeTributarioId: params.regimeId });

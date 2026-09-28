@@ -177,4 +177,5 @@ export const listarEmpresasQuery = z.object({
   departamentoId: z.string().optional(),
   status: z.enum(['ativos', 'inativos', 'todos']).optional(),
   incluirOnboarding: z.string().optional(),
+  somenteOnboarding: z.string().optional(),
 });

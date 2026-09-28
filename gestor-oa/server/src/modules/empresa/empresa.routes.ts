@@ -47,6 +47,7 @@ router.get('/', validate({ query: listarEmpresasQuery }), async (req, res) => {
       grupoId: req.query.grupoId as string | undefined,
       status: req.query.status as 'ativos' | 'inativos' | 'todos' | undefined,
       incluirOnboarding: req.query.incluirOnboarding === '1',
+      somenteOnboarding: req.query.somenteOnboarding === '1',
     },
     pag,
   );
