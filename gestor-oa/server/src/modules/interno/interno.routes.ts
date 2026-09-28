@@ -18,8 +18,8 @@ router.use((req, _res, next) => {
 router.post('/sync-from-nauta', async (req, res) => {
   const nautaClienteId = String(req.body?.nautaClienteId ?? '').trim();
   if (!nautaClienteId) throw Errors.validacao('nautaClienteId ausente.');
-  await sincronizarDoNauta(nautaClienteId);
-  return ok(res, { sincronizado: true });
+  const empresaId = await sincronizarDoNauta(nautaClienteId);
+  return ok(res, { sincronizado: !!empresaId, empresaId });
 });
 
 export default router;

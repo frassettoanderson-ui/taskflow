@@ -103,11 +103,11 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
 const num2 = (v: unknown): number | null => (v == null || v === '' ? null : Number(v));
 const soDig = (v: unknown): string => String(v ?? '').replace(/\D/g, '');
 
-export async function sincronizarDoNauta(nautaClienteId: string): Promise<void> {
+export async function sincronizarDoNauta(nautaClienteId: string): Promise<string | null> {
   const db = clienteNauta();
-  if (!db) return;
+  if (!db) return null;
   const escritorioId = env.sso.escritorioId;
-  if (!escritorioId) { console.error('[nautaBridge] SSO_ESCRITORIO_ID ausente; sync reversa ignorada'); return; }
+  if (!escritorioId) { console.error('[nautaBridge] SSO_ESCRITORIO_ID ausente; sync reversa ignorada'); return null; }
   try {
     const rows = await db.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT c.*, l.valor_honorario AS l_honorario, l.valor_abertura AS l_abertura, l.negociacao_obs AS l_obs,
@@ -118,7 +118,7 @@ export async function sincronizarDoNauta(nautaClienteId: string): Promise<void> 
       nautaClienteId,
     );
     const c = rows[0];
-    if (!c) return;
+    if (!c) return null;
 
     const socs = await db.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT * FROM cliente_socios WHERE cliente_id = $1::uuid ORDER BY ordem`, nautaClienteId,
@@ -206,8 +206,10 @@ export async function sincronizarDoNauta(nautaClienteId: string): Promise<void> 
       if (!jaC) await prisma.empresaContato.create({ data: { escritorioId, empresaId: empId, nome: nomeContato,
         email: nz(c.cli_email) || nz(c.l_email), whatsapp: nz(c.emp_telefone) || nz(c.l_whatsapp), cargo: 'Titular' } });
     }
+    return empId;
   } catch (err) {
     console.error('[nautaBridge] falha ao sincronizar DO Nauta', nautaClienteId, err);
+    return null;
   }
 }
 
