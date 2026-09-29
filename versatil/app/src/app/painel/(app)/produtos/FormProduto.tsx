@@ -14,6 +14,8 @@ type Produto = {
   categoriaId: string | null;
   marca: string | null;
   sku: string | null;
+  ean: string | null;
+  estoqueMinimo: number;
   aplicacao: string;
   videoUrl: string | null;
   precoCents: number;
@@ -176,6 +178,7 @@ export function FormProduto({
           <input name="marca" defaultValue={produto?.marca ?? ""} placeholder="Marca" className="campo" />
           <input name="sku" defaultValue={produto?.sku ?? ""} placeholder="Código / SKU" className="campo" />
         </div>
+        <input name="ean" defaultValue={produto?.ean ?? ""} inputMode="numeric" placeholder="Código de barras da embalagem (EAN) — leitor do PDV" className="campo" />
         <textarea
           name="aplicacao"
           defaultValue={produto?.aplicacao}
@@ -215,6 +218,11 @@ export function FormProduto({
           <button type="button" onClick={() => setEstoque(estoque + 1)} className="h-12 w-12 text-xl text-ouro-escuro">+</button>
         </div>
         {produto && produto.estoqueReservado > 0 && <p className="mt-2 text-xs text-ouro-escuro">+ {produto.estoqueReservado} reservado(s) em pagamento agora</p>}
+        <label className="mt-3 flex items-center gap-2 text-xs text-cinza">
+          Avisar quando ficar com
+          <input name="estoqueMinimo" defaultValue={produto?.estoqueMinimo ?? 0} inputMode="numeric" className="w-14 rounded-lg border filete px-2 py-1 text-center text-marfim" />
+          ou menos (0 = sem aviso)
+        </label>
       </section>
 
       <textarea name="descricao" defaultValue={produto?.descricao} rows={4} placeholder="Descrição: o que acompanha, detalhes da avaria, voltagem…" className="campo" />

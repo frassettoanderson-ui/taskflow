@@ -43,7 +43,7 @@ async function slugLivre(base: string, id?: string) {
 }
 
 export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
-  await exigirAdmin();
+  const u = await exigirAdmin();
   const id = String(fd.get("id") || "") || undefined;
   const titulo = String(fd.get("titulo") || "").trim();
   const preco = parseReais(String(fd.get("preco") || ""));
@@ -57,6 +57,8 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
   const extras = {
     marca: String(fd.get("marca") || "").trim() || null,
     sku: String(fd.get("sku") || "").trim() || null,
+    ean: String(fd.get("ean") || "").replace(/\D/g, "") || null,
+    estoqueMinimo: Math.max(0, Math.trunc(Number(fd.get("estoqueMinimo") || 0)) || 0),
     aplicacao: String(fd.get("aplicacao") || "")
       .split("\n")
       .map((l) => l.replace(/^[\s✔✅️•-]+/u, "").trim()) // tira ✔️/✅ colados do WhatsApp
@@ -94,6 +96,7 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
       },
     });
     produtoId = p.id;
+    if (estoque > 0) await db.movimentoEstoque.create({ data: { produtoId: p.id, tipo: "CADASTRO", quantidade: estoque, custoUnitCents: custo ?? undefined, usuario: u.nome } });
   } else {
     const atual = await db.produto.findUnique({ where: { id } });
     if (!atual) return { erro: "Produto não encontrado." };
@@ -116,6 +119,8 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
       },
     });
     if (!r.count) return { erro: "O estoque mudou enquanto você editava (alguém comprou ou reservou). Recarregue a página." };
+    if (mexeuEstoque)
+      await db.movimentoEstoque.create({ data: { produtoId: id, tipo: "AJUSTE", quantidade: estoque - estoqueAnterior, motivo: "Alterado no cadastro do produto", usuario: u.nome } });
     tipoDisparo = preco < atual.precoCents ? "PROMOCAO" : atual.publicadoEm ? "REENVIO" : "NOVO";
     if (status !== "ATIVO") await cancelarPendentes(id, "produto saiu da loja");
   }
