@@ -5,7 +5,7 @@ import { expirarPedidos } from "@/lib/pedidos";
 import { brl, STATUS_PEDIDO } from "@/lib/format";
 import { cookies } from "next/headers";
 import { AcoesRapidas } from "./AcoesRapidas";
-import { AlternarModo } from "./AlternarModo";
+import { AlternarModo } from "../AlternarModo";
 
 const METODO = { PIX: "Pix", CARTAO: "Cartão", DINHEIRO: "Dinheiro", DEBITO: "Débito", MISTO: "Misto" } as const;
 
@@ -40,7 +40,7 @@ export default async function Pedidos({ searchParams }: PageProps<"/painel/pedid
     <div className="mx-auto max-w-5xl">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-extrabold">Pedidos</h1>
-        <AlternarModo modo={modo} aba={aba.chave} />
+        <AlternarModo modo={modo} cookie="vs_pedidos_modo" href={{ cards: `/painel/pedidos?aba=${aba.chave}&modo=cards`, lista: `/painel/pedidos?aba=${aba.chave}&modo=lista` }} />
       </div>
       <nav className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
         {ABAS.map((a) => (

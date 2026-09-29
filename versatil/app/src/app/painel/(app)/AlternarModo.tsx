@@ -7,14 +7,14 @@ const ICONES = {
 };
 
 /** Alterna cards × lista; a escolha fica salva num cookie (vale neste navegador). */
-export function AlternarModo({ modo, aba }: { modo: "cards" | "lista"; aba: string }) {
+export function AlternarModo({ modo, href, cookie }: { modo: "cards" | "lista"; href: Record<"cards" | "lista", string>; cookie: string }) {
   return (
     <div className="flex shrink-0 gap-1 rounded-full border filete bg-white p-1">
       {(["cards", "lista"] as const).map((m) => (
         <Link
           key={m}
-          href={`/painel/pedidos?aba=${aba}&modo=${m}`}
-          onClick={() => { document.cookie = `vs_pedidos_modo=${m}; path=/painel; max-age=31536000`; }}
+          href={href[m]}
+          onClick={() => { document.cookie = `${cookie}=${m}; path=/painel; max-age=31536000`; }}
           aria-label={m === "cards" ? "Ver em cards" : "Ver em lista"}
           className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${modo === m ? "bg-noite text-ouro-claro" : "text-cinza"}`}
         >
