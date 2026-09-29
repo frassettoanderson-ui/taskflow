@@ -94,7 +94,7 @@ async function main() {
     console.log("[seed] admin criado:", email);
   }
 
-  const cats = ["Autopeças", "Eletroportáteis", "Eletrônicos", "Casa e Cozinha", "Ferramentas", "Informática", "Beleza", "Infantil", "Esporte"];
+  const cats = ["Autopeças", "Eletroportáteis", "Eletrônicos", "Casa e Cozinha", "Ferramentas", "Brinquedos", "Informática", "Beleza", "Infantil", "Esporte"];
   for (const [i, nome] of cats.entries())
     await db.categoria.upsert({ where: { slug: slug(nome) }, create: { nome, slug: slug(nome), ordem: i }, update: { ordem: i } });
 
