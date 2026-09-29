@@ -2,11 +2,12 @@
 import { useTransition } from "react";
 import { cancelarPedidoPainel, mudarStatusPedido } from "../../acoes";
 
-export function AcoesRapidas({ pedidoId, status, grande = false, retirada = false }: { pedidoId: string; status: string; grande?: boolean; retirada?: boolean }) {
+export function AcoesRapidas({ pedidoId, status, grande = false, retirada = false, compacto = false }: { pedidoId: string; status: string; grande?: boolean; retirada?: boolean; compacto?: boolean }) {
   const [pendente, iniciar] = useTransition();
   const mudar = (para: "SEPARANDO" | "PRONTO" | "RETIRADO") => iniciar(async () => { await mudarStatusPedido(pedidoId, para); });
-  const cls = `botao-ouro flex-1 rounded-xl ${grande ? "py-4 text-base" : "py-2.5 text-sm"}`;
-  const sec = `flex-1 rounded-xl border border-ouro-escuro text-ouro-escuro font-semibold ${grande ? "py-4" : "py-2.5 text-sm"}`;
+  const tam = grande ? "py-4 text-base" : compacto ? "px-2 py-1.5 text-xs" : "py-2.5 text-sm";
+  const cls = `botao-ouro flex-1 rounded-xl ${tam}`;
+  const sec = `flex-1 rounded-xl border border-ouro-escuro text-ouro-escuro font-semibold ${tam}`;
 
   let botoes: React.ReactNode = null;
   if (retirada && ["PAGO", "SEPARANDO", "PRONTO"].includes(status))
@@ -34,11 +35,11 @@ export function AcoesRapidas({ pedidoId, status, grande = false, retirada = fals
       <button
         disabled={pendente}
         onClick={() => confirm("Cancelar o pedido e liberar os itens para venda?") && iniciar(async () => { await cancelarPedidoPainel(pedidoId); })}
-        className="flex-1 rounded-xl border filete py-2.5 text-sm text-cinza"
+        className={`flex-1 rounded-xl border filete text-cinza ${tam}`}
       >
         Cancelar e liberar itens
       </button>
     );
   if (!botoes) return null;
-  return <div className={`mt-3 flex gap-2 ${pendente ? "opacity-60" : ""}`}>{botoes}</div>;
+  return <div className={`${compacto ? "" : "mt-3"} flex gap-2 ${pendente ? "opacity-60" : ""}`}>{botoes}</div>;
 }
