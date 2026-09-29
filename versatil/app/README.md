@@ -27,6 +27,6 @@ npm run dev            # sobe Postgres embutido (5433), aplica schema, seed e Ne
 
 ## Loja física
 - Configurações → Loja física/PDV: chave Pix (QR no PDV), razão social, CNPJ, endereço e rodapé do cupom.
-- Usuários → crie os operadores de caixa (perfil OPERADOR só acessa PDV, Caixa, Pedidos e Retirada).
+- Usuários → crie os operadores de caixa (perfil OPERADOR só acessa PDV, Caixa e Pedidos).
 - Fluxo: Caixa → abrir com o troco → PDV → vender → Caixa → fechar com a contagem. Etiquetas com código de barras em Estoque → Etiquetas.
 - Cupom impresso NÃO é documento fiscal (NFC-e ainda não integrada).

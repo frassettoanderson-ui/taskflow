@@ -16,7 +16,7 @@ Decisão: construído DENTRO do app Versátil (mesmo banco/estoque), inspirado n
 - **Estoque** `/painel/estoque`: valor de custo/venda, margem, mínimo + filtro "Repor", ajuste de contagem e perda/avaria (com custo), histórico por produto. **Etiquetas** `/painel/etiquetas` (CODE128, 50×30 ou A4).
 - **Compras** `/painel/compras`: fornecedores, entrada de mercadoria (NF, custo → **custo médio**, conta a pagar paga/pendente).
 - **Financeiro** `/painel/financeiro`: contas a pagar/receber por mês, recorrência (repetir N meses), baixa/reabrir/cancelar, vencidas; vendas/estornos/compras entram sozinhos (`src/lib/registros.ts`). **DRE**: receita (site+balcão) − devoluções − CMV (custo gravado no item na hora da venda; itens devolvidos ao estoque saem do CMV) − despesas pagas − perdas. Compras NÃO são despesa na DRE (viram estoque).
-- **Relatórios** `/painel/relatorios` (7/30/90/365 dias: por dia, canal, forma, operador, top produtos, lucro), **Clientes**, **Usuários** (ADMIN × OPERADOR — operador só vê PDV, Caixa, Pedidos, Retirada; demais páginas redirecionam p/ PDV).
+- **Relatórios** `/painel/relatorios` (7/30/90/365 dias: por dia, canal, forma, operador, top produtos, lucro), **Clientes**, **Usuários** (ADMIN × OPERADOR — operador só vê PDV, Caixa e Pedidos; demais páginas redirecionam p/ PDV).
 - Núcleo: `src/lib/lojafisica.ts`, `src/lib/pix.ts`, `src/lib/periodo.ts`, ações em `src/app/painel/loja-acoes.ts`.
 - Testado 29/09 no navegador + banco: compra (estoque +10, custo médio, despesa pendente), perda, conta fixa 3 meses + baixa, venda dinheiro c/ troco, venda mista Pix+débito, estorno total (Pix) e parcial (dinheiro → sai da gaveta), fechamento com sobra R$ 0,10, operador (redirecionamentos, abre caixa, vende), cupom, etiquetas, DRE. Build de produção ok.
 - ⏳ Falta: **NFC-e** (liga no emissor-fiscal; precisa do certificado A1 da loja — só com confirmação do usuário), maquininha integrada (hoje é registro manual), chave Pix/razão social/CNPJ/endereço em Configurações.
@@ -40,6 +40,8 @@ Decisão: construído DENTRO do app Versátil (mesmo banco/estoque), inspirado n
 
 - **Conexão do número (29/09):** na própria tela Disparos (quadro de envios): status, botão "Conectar número (QR Code)" — cria a instância na Evolution se não existir (`EVOLUTION_INSTANCE`, padrão `versatil`), mostra o QR, confere a cada 3s e renova o QR a cada 40s; ao conectar já puxa os grupos. "Desconectar / trocar número" = logout. Grupos em LISTA (tabela), só os grupos em que o número está (`Grupo.presente`; os que ele saiu somem e param de receber). Fila segura sozinha enquanto o número estiver desconectado. Testado com Evolution simulada local.
 - Decisão do usuário (29/09): usar a **Evolution da primeira VPS**; 1 número que fica em todos os grupos só publicando.
+
+- **Sem código de retirada (decisão do usuário 29/09):** tela "Retirada no balcão" removida; entrega = Pedidos → "Confirmar retirada". Cliente vê "Seu pedido #N — informe seu nome ou o número". Coluna `codigoRetirada` ficou no banco, sem uso.
 
 ### Pendências → produção
 - Chave **sandbox** do Asaas da loja + walletId do Anderson para testar integração real (NÃO reaproveitar chaves da Nauta).

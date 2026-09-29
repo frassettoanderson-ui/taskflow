@@ -120,7 +120,7 @@ export default async function Home() {
         <section id="como-funciona" className="cartao mt-6 grid gap-6 p-6 text-center md:grid-cols-3">
           {[
             ["1", "Escolha e pague", "Pix com aprovação na hora ou cartão de crédito. O produto fica reservado enquanto você paga."],
-            ["2", "Receba seu código", "Pagamento aprovado gera um código de retirada na tela — tire um print."],
+            ["2", "Pagamento confirmado", "Aprovou, o produto já fica separado no seu nome. Você acompanha o pedido pelo link."],
             ["3", "Retire na loja", `${cfg.loja_endereco} · ${cfg.loja_horario}. Sem prazo para buscar.`],
           ].map(([n, t, d]) => (
             <div key={n}>

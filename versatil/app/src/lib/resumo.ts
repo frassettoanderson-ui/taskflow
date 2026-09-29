@@ -10,7 +10,6 @@ export async function resumoPedido(token: string) {
   });
   if (!p) return null;
   const aguardando = p.status === "AGUARDANDO_PAGAMENTO";
-  const pago = ["PAGO", "SEPARANDO", "PRONTO", "RETIRADO"].includes(p.status);
   return {
     numero: p.numero,
     status: p.status,
@@ -22,8 +21,6 @@ export async function resumoPedido(token: string) {
     pixPayload: aguardando ? p.pixPayload : null,
     pixQr: aguardando && p.pixPayload ? await QRCode.toDataURL(p.pixPayload, { margin: 1, width: 320 }) : null,
     invoiceUrl: aguardando ? p.invoiceUrl : null,
-    codigoRetirada: pago ? p.codigoRetirada : null,
-    retiradaQr: pago && p.codigoRetirada ? await QRCode.toDataURL(`VERSATIL-${p.numero}-${p.codigoRetirada}`, { margin: 1, width: 280, color: { dark: "#0B0B0C", light: "#F5F1E8" } }) : null,
     alerta: p.alerta,
     demo: modoDemo(),
     itens: p.itens.map((i) => ({ titulo: i.titulo, quantidade: i.quantidade, precoUnitCents: i.precoUnitCents, slug: i.produto.slug, foto: i.produto.fotos[0]?.arquivo ?? null })),

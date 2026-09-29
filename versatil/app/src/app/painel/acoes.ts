@@ -6,7 +6,7 @@ import type { Condicao, FormaPagamento, StatusProduto } from "@prisma/client";
 import { db } from "@/lib/db";
 import { criarSessao, encerrarSessao, exigirAdmin, exigirUsuario } from "@/lib/auth";
 import { setConfig, CONFIG_PADRAO, type ChaveConfig } from "@/lib/config";
-import { parseReais, slugify, soDigitos } from "@/lib/format";
+import { parseReais, slugify } from "@/lib/format";
 import { salvarFoto, apagarFoto, salvarVideo, apagarVideo } from "@/lib/uploads";
 import { avancarStatus, cancelarPedido, estornarPedido, ErroValidacao } from "@/lib/pedidos";
 import { cancelarPendentes, enfileirar, processarFila, sincronizarGrupos } from "@/lib/disparos";
@@ -204,20 +204,6 @@ export async function estornar(_: Estado, fd: FormData): Promise<Estado> {
   revalidatePath(`/painel/pedidos/${pedidoId}`);
   revalidatePath("/painel/pedidos");
   return { ok: "Estorno registrado." };
-}
-
-// ---------- retirada no balcão ----------
-
-export async function buscarRetirada(_: Estado, fd: FormData): Promise<Estado & { pedidoId?: string }> {
-  await exigirUsuario();
-  const t = soDigitos(String(fd.get("codigo") || ""));
-  if (!t) return { erro: "Digite o código de retirada ou o número do pedido." };
-  const abertos = { in: ["PAGO", "SEPARANDO", "PRONTO"] as ("PAGO" | "SEPARANDO" | "PRONTO")[] };
-  const p =
-    (t.length === 6 && (await db.pedido.findFirst({ where: { codigoRetirada: t, status: abertos }, select: { id: true } }))) ||
-    (await db.pedido.findFirst({ where: { numero: Number(t) }, select: { id: true } }));
-  if (!p) return { erro: "Nenhum pedido encontrado com esse código." };
-  redirect(`/painel/pedidos/${p.id}?retirada=1`);
 }
 
 // ---------- configurações ----------

@@ -32,7 +32,6 @@ export const GRUPOS: { titulo: string; itens: Item[] }[] = [
       { href: "/painel/produtos", rotulo: "Produtos", icone: I.produtos, admin: true },
       { href: "/painel/produtos/novo", rotulo: "Cadastrar produto", icone: I.cadastrar, admin: true },
       { href: "/painel/disparos", rotulo: "Disparos WhatsApp", icone: I.disparos, admin: true },
-      { href: "/painel/retirada", rotulo: "Retirada no balcão", icone: I.retirada },
     ],
   },
   {

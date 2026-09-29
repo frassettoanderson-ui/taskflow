@@ -2,7 +2,7 @@
 import { useTransition } from "react";
 import { cancelarPedidoPainel, mudarStatusPedido } from "../../acoes";
 
-export function AcoesRapidas({ pedidoId, status, grande = false, retirada = false, compacto = false }: { pedidoId: string; status: string; grande?: boolean; retirada?: boolean; compacto?: boolean }) {
+export function AcoesRapidas({ pedidoId, status, grande = false, compacto = false }: { pedidoId: string; status: string; grande?: boolean; compacto?: boolean }) {
   const [pendente, iniciar] = useTransition();
   const mudar = (para: "SEPARANDO" | "PRONTO" | "RETIRADO") => iniciar(async () => { await mudarStatusPedido(pedidoId, para); });
   const tam = grande ? "py-4 text-base" : compacto ? "px-2 py-1.5 text-xs" : "py-2.5 text-sm";
@@ -10,13 +10,7 @@ export function AcoesRapidas({ pedidoId, status, grande = false, retirada = fals
   const sec = `flex-1 rounded-xl border border-ouro-escuro text-ouro-escuro font-semibold ${tam}`;
 
   let botoes: React.ReactNode = null;
-  if (retirada && ["PAGO", "SEPARANDO", "PRONTO"].includes(status))
-    botoes = (
-      <button disabled={pendente} onClick={() => mudar("RETIRADO")} className={cls}>
-        Entregar ao cliente (confirmar retirada)
-      </button>
-    );
-  else if (status === "PAGO")
+  if (status === "PAGO")
     botoes = (
       <>
         <button disabled={pendente} onClick={() => mudar("SEPARANDO")} className={sec}>Separando</button>

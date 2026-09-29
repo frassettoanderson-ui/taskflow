@@ -120,15 +120,11 @@ export function AcompanharPedido({ token, inicial, endereco, horario, whatsapp }
           <p className="mt-2 text-sm text-cinza">
             {p.status === "PRONTO" ? "Seu pedido já está separado esperando por você." : p.status === "RETIRADO" ? "Esperamos você na próxima oportunidade." : "Pagamento aprovado. Seus produtos já estão reservados no seu nome."}
           </p>
-          {p.status !== "RETIRADO" && p.codigoRetirada && (
+          {p.status !== "RETIRADO" && (
             <div className="mt-6 rounded-2xl border border-ouro-escuro/70 bg-white p-5">
-              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ouro-escuro">Código de retirada</p>
-              <p className="mt-2 font-mono text-5xl font-semibold tracking-[0.2em] text-marfim">{p.codigoRetirada}</p>
-              {p.retiradaQr && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img src={p.retiradaQr} alt="QR de retirada" className="mx-auto mt-4 w-40 rounded-lg" />
-              )}
-              <p className="mt-3 text-xs text-cinza">Tire um print desta tela e mostre no balcão.</p>
+              <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-ouro-escuro">Seu pedido</p>
+              <p className="mt-1 text-5xl font-extrabold">#{p.numero}</p>
+              <p className="mt-3 text-xs text-cinza">Na loja, é só informar seu nome ou o número do pedido.</p>
             </div>
           )}
           {p.status !== "RETIRADO" && (

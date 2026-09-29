@@ -48,10 +48,9 @@ export function NavPainel({ aSeparar, vertical = false, admin }: { aSeparar: num
         { href: "/painel/pedidos", rotulo: "Pedidos", icone: I.pedidos },
         { href: "/painel/pdv", rotulo: "PDV", icone: I.pdv, destaque: true },
         { href: "/painel/caixa", rotulo: "Caixa", icone: I.caixa },
-        { href: "/painel/retirada", rotulo: "Retirada", icone: I.retirada },
       ];
   return (
-    <nav className={`grid ${admin ? "grid-cols-5" : "grid-cols-4"}`}>
+    <nav className={`grid ${admin ? "grid-cols-5" : "grid-cols-3"}`}>
       {barra.map((i) => {
         const on = i.href === "/painel/menu" ? path === "/painel/menu" : ativo(i.href);
         return (

@@ -2,7 +2,7 @@
 // Regra de ouro: toda mudança de estoque é um UPDATE condicional (WHERE disponivel >= q) e toda
 // mudança de status é compare-and-set (WHERE status = esperado). Assim duas compras simultâneas
 // da última unidade nunca passam juntas, e webhook x job de expiração não se atropelam.
-import { randomBytes, randomInt } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { Prisma, type FormaPagamento, type StatusPedido } from "@prisma/client";
 import { db } from "./db";
 import { getConfig } from "./config";
@@ -70,14 +70,6 @@ async function vendidoParaDisponivel(tx: Tx, itens: Item[]) {
       data: { vendidos: { decrement: it.quantidade }, estoqueDisponivel: { increment: it.quantidade } },
     });
     await tx.produto.updateMany({ where: { id: it.produtoId, status: "ESGOTADO" }, data: { status: "ATIVO" } });
-  }
-}
-
-async function codigoRetiradaLivre(tx: Tx) {
-  for (;;) {
-    const c = String(randomInt(100000, 1000000));
-    const uso = await tx.pedido.count({ where: { codigoRetirada: c, status: { in: ["PAGO", "SEPARANDO", "PRONTO"] } } });
-    if (!uso) return c;
   }
 }
 
@@ -202,7 +194,7 @@ export async function processarPagamento(asaasPaymentId: string, fonte = "asaas"
     const ok = await db.$transaction(async (tx) => {
       const cas = await tx.pedido.updateMany({
         where: { id: pedido.id, status: "AGUARDANDO_PAGAMENTO" },
-        data: { status: "PAGO", pagoEm: new Date(), codigoRetirada: await codigoRetiradaLivre(tx) },
+        data: { status: "PAGO", pagoEm: new Date() },
       });
       if (!cas.count) return false;
       await reservadoParaVendido(tx, itens);
@@ -219,7 +211,7 @@ export async function processarPagamento(asaasPaymentId: string, fonte = "asaas"
     await db.$transaction(async (tx) => {
       const cas = await tx.pedido.updateMany({
         where: { id: pedido.id, status: pedido.status },
-        data: { status: "PAGO", pagoEm: new Date(), codigoRetirada: await codigoRetiradaLivre(tx) },
+        data: { status: "PAGO", pagoEm: new Date() },
       });
       if (!cas.count) throw new Error("status mudou");
       await reservar(tx, itens);

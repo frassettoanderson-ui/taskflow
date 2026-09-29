@@ -56,9 +56,6 @@ export default async function Conta() {
                 </div>
                 <div className="text-right">
                   <p className="text-[16px]">{brl(p.totalCents)}</p>
-                  {p.codigoRetirada && ["PAGO", "SEPARANDO", "PRONTO"].includes(p.status) && (
-                    <p className="font-mono text-[12px] text-ouro-escuro">Código {p.codigoRetirada}</p>
-                  )}
                 </div>
               </Link>
             </li>
