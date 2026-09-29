@@ -23,7 +23,12 @@ export function BannerCarrossel({ slides }: { slides: Slide[] }) {
       <div className="flex transition-transform duration-700" style={{ transform: `translateX(-${i * 100}%)` }}>
         {slides.map((s, k) =>
           s.tipo === "imagem" ? (
-            <Link key={k} href={s.href} className="relative block h-[230px] w-full shrink-0 sm:h-[300px] md:h-[400px] 3xl:h-[500px]">
+            <Link
+              key={k}
+              href={s.href}
+              // sem arte de celular: mostra a arte inteira na proporção original (não corta o texto)
+              className={`relative block w-full shrink-0 md:h-[400px] 3xl:h-[500px] ${s.srcMobile ? "h-[230px] sm:h-[300px]" : "aspect-[1920/500] md:aspect-auto"}`}
+            >
               <picture>
                 {s.srcMobile && <source media="(max-width: 767px)" srcSet={s.srcMobile} />}
                 <img src={s.src} alt={s.alt} className="h-full w-full object-cover object-top" />
@@ -60,7 +65,7 @@ export function BannerCarrossel({ slides }: { slides: Slide[] }) {
       </div>
 
       {/* degradê do banner para o cinza da página (os cards de destaque ficam por cima dele) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-fundo md:h-32" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-32 bg-gradient-to-b from-transparent to-fundo md:block" />
 
       {slides.length > 1 && (
         <>

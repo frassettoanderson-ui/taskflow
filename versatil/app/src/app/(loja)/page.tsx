@@ -54,7 +54,7 @@ export default async function Home() {
 
   const artes = await listarBanners();
   const slides: Slide[] = artes.length
-    ? artes.map((a, n) => ({ tipo: "imagem", src: a.src, srcMobile: a.srcMobile, href: "/busca?ordem=desconto", alt: `Banner ${n + 1}` }))
+    ? artes.map((a, n) => ({ tipo: "imagem", src: a.src, srcMobile: a.srcMobile, href: a.href, alt: `Banner ${n + 1}` }))
     : ([
         { tipo: "codigo", titulo: `Até ${maxDesc || 70}% OFF`, sub: "Produtos novos, de caixa aberta e com pequenas avarias — todos conferidos.", cta: "Ver ofertas", href: "/busca?ordem=desconto", fotos: fotos(ofertas.slice(0, 3)) },
         { tipo: "codigo", titulo: "Compre no site, retire na loja", sub: "Pague no Pix ou cartão. Pagou, o produto fica separado no seu nome.", cta: "Ver novidades", href: "/busca", fotos: fotos(novidades.slice(0, 3)) },
@@ -90,7 +90,7 @@ export default async function Home() {
 
       <div className="mx-auto max-w-[1200px] px-3 md:px-4">
         {/* cards de destaque sobrepostos ao degradê */}
-        <div className={`relative z-10 ${slides.length ? "-mt-16 sm:-mt-20 md:-mt-[150px] 3xl:-mt-[140px]" : "mt-4"}`}>
+        <div className={`relative z-10 ${!slides.length ? "mt-4" : artes.length && artes.some((a) => !a.srcMobile) ? "mt-3 md:-mt-[110px] 3xl:-mt-[140px]" : "-mt-16 sm:-mt-20 md:-mt-[110px] 3xl:-mt-[140px]"}`}>
           <CardsDestaque fixos={fixos} promo={promo} />
         </div>
 
