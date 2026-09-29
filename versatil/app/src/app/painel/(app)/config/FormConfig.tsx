@@ -28,6 +28,12 @@ export function FormConfig({ cfg }: { cfg: Record<string, string> }) {
         {campo("parado_amarelo_dias", "Alerta amarelo (dias)", { inputMode: "numeric" })}
         {campo("parado_vermelho_dias", "Alerta vermelho (dias)", { inputMode: "numeric" })}
       </div>
+      <p className="pt-4 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-ouro-escuro">Loja física (PDV)</p>
+      {campo("loja_pix_chave", "Chave Pix para receber no balcão", { placeholder: "CNPJ, e-mail, telefone ou chave aleatória" })}
+      {campo("loja_pix_nome", "Nome do recebedor do Pix (como está no banco)")}
+      {campo("loja_razao_social", "Razão social (cabeçalho do cupom)")}
+      {campo("loja_cnpj", "CNPJ (cabeçalho do cupom)")}
+      {campo("cupom_rodape", "Mensagem no fim do cupom")}
       {estado?.erro && <p className="text-center text-sm text-rubi">{estado.erro}</p>}
       {estado?.ok && <p className="text-center text-sm text-jade">{estado.ok}</p>}
       <button disabled={salvando} className="botao-ouro w-full rounded-xl py-3.5">{salvando ? "Salvando…" : "Salvar"}</button>
