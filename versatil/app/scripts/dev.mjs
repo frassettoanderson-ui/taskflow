@@ -8,6 +8,7 @@ const portaEmUso = (porta) =>
   new Promise((r) => {
     const s = net.connect(porta, "127.0.0.1").on("connect", () => { s.end(); r(true); }).on("error", () => r(false));
   });
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const PORT_DB = 5433;
 const PORT_WEB = 3100;
@@ -17,17 +18,46 @@ if (await portaEmUso(PORT_WEB)) {
   process.exit(0);
 }
 
-let pg;
-if (!(await portaEmUso(PORT_DB))) {
-  pg = new EmbeddedPostgres({ databaseDir: "./.pgdata", user: "postgres", password: "postgres", port: PORT_DB, persistent: true, initdbFlags: ["--encoding=UTF8", "--locale=C"] });
+/** Quando o servidor é derrubado à força, um processo do Postgres pode ficar "segurando" a porta sem responder. */
+function matarPostgresOrfao() {
+  if (process.platform !== "win32") return;
+  const dir = process.cwd().replace(/\\/g, "/");
+  try {
+    execSync(
+      `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\"Name='postgres.exe'\\" | Where-Object { $_.CommandLine -like '*${dir}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }"`,
+      { stdio: "ignore" },
+    );
+  } catch {}
+}
+
+const pg = new EmbeddedPostgres({ databaseDir: "./.pgdata", user: "postgres", password: "postgres", port: PORT_DB, persistent: true, initdbFlags: ["--encoding=UTF8", "--locale=C"] });
+let pgNosso = false;
+async function subirPostgres() {
   const novo = !existsSync("./.pgdata/PG_VERSION");
   if (novo) await pg.initialise();
   await pg.start();
   if (novo) await pg.createDatabase("versatil");
+  pgNosso = true;
   console.log("[dev] Postgres embutido rodando na porta", PORT_DB);
 }
 
-execSync("npx prisma db push --skip-generate", { stdio: "inherit" });
+const dbPush = () => execSync("npx prisma db push --skip-generate", { stdio: "inherit" });
+
+if (!(await portaEmUso(PORT_DB))) {
+  await subirPostgres();
+  dbPush();
+} else {
+  try {
+    dbPush();
+  } catch {
+    console.log("[dev] Postgres na porta 5433 não respondeu — encerrando processo órfão e subindo de novo");
+    matarPostgresOrfao();
+    await esperar(1500);
+    await subirPostgres();
+    dbPush();
+  }
+}
+
 try {
   execSync("npx prisma generate", { stdio: "inherit" });
 } catch (e) {
@@ -38,7 +68,7 @@ try {
 execSync("npx tsx prisma/seed.ts", { stdio: "inherit" });
 
 const next = spawn("npx", ["next", "dev", "-p", String(PORT_WEB)], { stdio: "inherit", shell: true });
-const sair = async () => { next.kill(); if (pg) await pg.stop(); process.exit(0); };
+const sair = async () => { next.kill(); if (pgNosso) await pg.stop().catch(() => {}); process.exit(0); };
 process.on("SIGINT", sair);
 process.on("SIGTERM", sair);
 next.on("exit", sair);

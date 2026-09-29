@@ -8,6 +8,7 @@ import { db } from "./db";
 import { getConfig } from "./config";
 import { cpfValido, soDigitos } from "./format";
 import { criarCobranca, estornarCobranca, garantirCliente, removerCobranca } from "./asaas";
+import { lancarEstorno, lancarReceitaVenda, movimentarEstoqueLog } from "./registros";
 
 type Tx = Prisma.TransactionClient;
 type Item = { produtoId: string; quantidade: number };
@@ -87,7 +88,7 @@ export async function criarPedido(input: {
   telefone: string;
   cpf: string;
   email?: string;
-  metodo: MetodoPagamento;
+  metodo: "PIX" | "CARTAO";
   itens: Item[];
   origemGrupo?: string | null;
 }) {
@@ -111,6 +112,7 @@ export async function criarPedido(input: {
     produtoId: p.id,
     quantidade: qtd.get(p.id)!,
     precoUnitCents: p.precoCents, // preço sempre do banco, nunca do navegador
+    custoUnitCents: p.custoCents,
     titulo: p.titulo,
   }));
   const total = itens.reduce((s, i) => s + i.quantidade * i.precoUnitCents, 0);
@@ -170,6 +172,25 @@ export async function criarPedido(input: {
 
 // ---------- pagamento confirmado (webhook Asaas ou simulação no modo demo) ----------
 
+type PedidoPago = { id: string; numero: number; canal: "ONLINE" | "PDV"; metodo: string; totalCents: number; caixaId: string | null; operador: string | null };
+
+/** Tudo que acontece quando um pagamento é confirmado: log de estoque, receita no financeiro e, no balcão, finaliza a venda. */
+async function posPagamento(tx: Tx, pedido: PedidoPago, itens: Item[]) {
+  const pdv = pedido.canal === "PDV";
+  await movimentarEstoqueLog(tx, itens, pdv ? "VENDA_PDV" : "VENDA_ONLINE", -1, { pedidoId: pedido.id, usuario: pedido.operador ?? "sistema" });
+  const forma = pedido.metodo === "CARTAO" ? "CREDITO" : "PIX_ASAAS";
+  await lancarReceitaVenda(tx, { pedidoId: pedido.id, numero: pedido.numero, valorCents: pedido.totalCents, forma, online: !pdv, usuario: pedido.operador ?? "sistema" });
+  if (pdv) {
+    // venda de balcão paga no Pix automático: cliente já está com o produto
+    await tx.pedido.update({ where: { id: pedido.id }, data: { status: "RETIRADO", retiradoEm: new Date() } });
+    await tx.pagamentoPedido.create({ data: { pedidoId: pedido.id, forma: "PIX_ASAAS", valorCents: pedido.totalCents } });
+    if (pedido.caixaId)
+      await tx.movimentoCaixa.create({
+        data: { caixaId: pedido.caixaId, tipo: "VENDA", forma: "PIX_ASAAS", valorCents: pedido.totalCents, descricao: `Venda #${pedido.numero} (Pix)`, pedidoId: pedido.id, usuario: pedido.operador ?? "sistema" },
+      });
+  }
+}
+
 export async function processarPagamento(asaasPaymentId: string, fonte = "asaas") {
   const pedido = await db.pedido.findUnique({ where: { asaasPaymentId }, include: { itens: true } });
   if (!pedido) return { ok: false, motivo: "pedido não encontrado" };
@@ -185,6 +206,7 @@ export async function processarPagamento(asaasPaymentId: string, fonte = "asaas"
       });
       if (!cas.count) return false;
       await reservadoParaVendido(tx, itens);
+      await posPagamento(tx, pedido, itens);
       await evento(tx, pedido.id, "pago", "Pagamento confirmado", fonte);
       return true;
     });
@@ -202,6 +224,7 @@ export async function processarPagamento(asaasPaymentId: string, fonte = "asaas"
       if (!cas.count) throw new Error("status mudou");
       await reservar(tx, itens);
       await reservadoParaVendido(tx, itens);
+      await posPagamento(tx, pedido, itens);
       await evento(tx, pedido.id, "pago", "Pagamento chegou após a reserva vencer — estoque ainda disponível, venda confirmada", fonte);
     });
     return { ok: true };
@@ -280,7 +303,7 @@ export async function avancarStatus(pedidoId: string, para: "SEPARANDO" | "PRONT
 }
 
 export async function estornarPedido(pedidoId: string, opts: { valorCents?: number; devolverEstoque: boolean; motivo?: string; autor: string }) {
-  const pedido = await db.pedido.findUnique({ where: { id: pedidoId }, include: { itens: true } });
+  const pedido = await db.pedido.findUnique({ where: { id: pedidoId }, include: { itens: true, pagamentos: true } });
   if (!pedido) throw new ErroValidacao("Pedido não encontrado.");
   if (!STATUS_PAGOS.includes(pedido.status)) throw new ErroValidacao("Só é possível estornar pedidos pagos.");
   const restante = pedido.totalCents - pedido.estornoCents;
@@ -299,7 +322,21 @@ export async function estornarPedido(pedidoId: string, opts: { valorCents?: numb
         ...(total ? { status: "ESTORNADO" } : {}),
       },
     });
-    if (total && opts.devolverEstoque) await vendidoParaDisponivel(tx, pedido.itens);
+    if (total && opts.devolverEstoque) {
+      await vendidoParaDisponivel(tx, pedido.itens);
+      await movimentarEstoqueLog(tx, pedido.itens, "ESTORNO", 1, { pedidoId, usuario: opts.autor, motivo: opts.motivo });
+    }
+    // financeiro: devolução ao cliente (no balcão, pela forma principal usada na venda)
+    const pdv = pedido.canal === "PDV";
+    const formaPrincipal = pdv ? ([...pedido.pagamentos].sort((a, b) => b.valorCents - a.valorCents)[0]?.forma ?? "DINHEIRO") : pedido.metodo === "CARTAO" ? "CREDITO" : "PIX_ASAAS";
+    await lancarEstorno(tx, { pedidoId, numero: pedido.numero, valorCents: valor, forma: formaPrincipal, online: !pdv, usuario: opts.autor, motivo: opts.motivo });
+    if (pdv && formaPrincipal === "DINHEIRO") {
+      const aberto = await tx.caixaSessao.findFirst({ where: { status: "ABERTO" }, orderBy: { abertoEm: "desc" } });
+      if (aberto)
+        await tx.movimentoCaixa.create({
+          data: { caixaId: aberto.id, tipo: "ESTORNO", forma: "DINHEIRO", valorCents: -valor, descricao: `Devolução da venda #${pedido.numero}`, pedidoId, usuario: opts.autor },
+        });
+    }
     const reais = (valor / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     await evento(
       tx,

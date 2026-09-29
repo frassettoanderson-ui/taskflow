@@ -98,6 +98,10 @@ async function main() {
   for (const [i, nome] of cats.entries())
     await db.categoria.upsert({ where: { slug: slug(nome) }, create: { nome, slug: slug(nome), ordem: i }, update: { ordem: i } });
 
+  // operador de caixa de demonstração (só em desenvolvimento)
+  if (process.env.NODE_ENV !== "production" && !(await db.usuario.findUnique({ where: { email: "caixa@versatil.local" } })))
+    await db.usuario.create({ data: { nome: "Operador Caixa", email: "caixa@versatil.local", papel: "OPERADOR", senhaHash: await bcrypt.hash("caixa123", 10) } });
+
   if (process.env.NODE_ENV === "production" || (await db.produto.count()) > 0) return;
   const c = Object.fromEntries((await db.categoria.findMany()).map((x) => [x.nome, x.id]));
   for (const d of DEMO) {

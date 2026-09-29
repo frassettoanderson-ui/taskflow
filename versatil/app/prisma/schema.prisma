@@ -36,6 +36,9 @@ enum StatusPedido {
 enum MetodoPagamento {
   PIX
   CARTAO
+  DINHEIRO // PDV
+  DEBITO // PDV
+  MISTO // PDV: mais de uma forma
 }
 
 enum Canal {
@@ -61,6 +64,8 @@ model Produto {
   sku               String? // código do fabricante / embalagem
   aplicacao         String        @default("") // aplicação/compatibilidade, uma por linha
   videoUrl          String? // link do YouTube ou arquivo enviado (/api/video/...)
+  ean               String? // código de barras do fabricante (leitor no PDV)
+  estoqueMinimo     Int           @default(0) // alerta de reposição (0 = sem alerta)
   condicao          Condicao      @default(CAIXA_ABERTA)
   categoriaId       String?
   categoria         Categoria?    @relation(fields: [categoriaId], references: [id])
@@ -78,6 +83,8 @@ model Produto {
   atualizadoEm      DateTime      @updatedAt
   fotos             Foto[]
   itens             ItemPedido[]
+  movimentos        MovimentoEstoque[]
+  itensCompra       CompraItem[]
   disparos          Disparo[]
   cliques           Clique[]
 
@@ -130,6 +137,11 @@ model Pedido {
   estornadoEm    DateTime?
   origemGrupo    String? // ?g= do link (rastreio por grupo de WhatsApp)
   alerta         String? // ex.: venda dupla evitada
+  descontoCents  Int             @default(0) // PDV
+  operador       String? // PDV: quem vendeu
+  caixaId        String? // PDV: sessão de caixa
+  caixa          CaixaSessao?    @relation(fields: [caixaId], references: [id])
+  pagamentos     PagamentoPedido[]
   criadoEm       DateTime        @default(now())
   atualizadoEm   DateTime        @updatedAt
   itens          ItemPedido[]
@@ -147,6 +159,7 @@ model ItemPedido {
   produto        Produto @relation(fields: [produtoId], references: [id])
   quantidade     Int
   precoUnitCents Int
+  custoUnitCents Int? // custo do produto no momento da venda (lucro/CMV)
   titulo         String // snapshot
 }
 
@@ -162,11 +175,17 @@ model EventoPedido {
   @@index([pedidoId, criadoEm])
 }
 
+enum Papel {
+  ADMIN
+  OPERADOR // só frente de caixa, caixa e retirada
+}
+
 model Usuario {
   id        String   @id @default(cuid())
   nome      String
   email     String   @unique
   senhaHash String
+  papel     Papel    @default(ADMIN)
   ativo     Boolean  @default(true)
   criadoEm  DateTime @default(now())
 }
@@ -240,4 +259,168 @@ model Clique {
   criadoEm  DateTime @default(now())
 
   @@index([grupoId, criadoEm])
+}
+
+// ---------- Loja física: caixa, PDV, estoque, compras, financeiro ----------
+
+enum FormaPagamento {
+  DINHEIRO
+  PIX // Pix na chave da loja, conferido pelo operador
+  PIX_ASAAS // Pix com QR automático (confirmação pelo webhook)
+  DEBITO
+  CREDITO
+  OUTRO
+}
+
+enum StatusCaixa {
+  ABERTO
+  FECHADO
+}
+
+model CaixaSessao {
+  id                String           @id @default(cuid())
+  numero            Int              @unique @default(autoincrement())
+  status            StatusCaixa      @default(ABERTO)
+  abertoPor         String
+  abertoEm          DateTime         @default(now())
+  valorInicialCents Int              @default(0) // troco
+  fechadoPor        String?
+  fechadoEm         DateTime?
+  contagem          Json? // { DINHEIRO: 12345, DEBITO: ..., ... } informado no fechamento
+  esperadoCents     Int? // dinheiro esperado na gaveta
+  contadoCents      Int? // dinheiro contado
+  diferencaCents    Int?
+  observacao        String?
+  movimentos        MovimentoCaixa[]
+  pedidos           Pedido[]
+
+  @@index([status])
+}
+
+enum TipoMovCaixa {
+  VENDA
+  SANGRIA
+  SUPRIMENTO
+  ESTORNO
+}
+
+model MovimentoCaixa {
+  id         String         @id @default(cuid())
+  caixaId    String
+  caixa      CaixaSessao    @relation(fields: [caixaId], references: [id], onDelete: Cascade)
+  tipo       TipoMovCaixa
+  forma      FormaPagamento @default(DINHEIRO)
+  valorCents Int // positivo entra, negativo sai
+  descricao  String
+  pedidoId   String?
+  usuario    String
+  criadoEm   DateTime       @default(now())
+
+  @@index([caixaId, criadoEm])
+}
+
+model PagamentoPedido {
+  id         String         @id @default(cuid())
+  pedidoId   String
+  pedido     Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  forma      FormaPagamento
+  valorCents Int // valor que abate do total (já sem o troco)
+  recebidoCents Int? // dinheiro entregue pelo cliente
+  trocoCents Int            @default(0)
+}
+
+enum TipoMovEstoque {
+  CADASTRO
+  ENTRADA_COMPRA
+  AJUSTE
+  PERDA
+  VENDA_ONLINE
+  VENDA_PDV
+  ESTORNO
+}
+
+model MovimentoEstoque {
+  id             String         @id @default(cuid())
+  produtoId      String
+  produto        Produto        @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  tipo           TipoMovEstoque
+  quantidade     Int // positivo entrou, negativo saiu
+  custoUnitCents Int?
+  motivo         String?
+  usuario        String         @default("sistema")
+  pedidoId       String?
+  compraId       String?
+  criadoEm       DateTime       @default(now())
+
+  @@index([produtoId, criadoEm])
+  @@index([criadoEm])
+}
+
+model Fornecedor {
+  id         String   @id @default(cuid())
+  nome       String
+  documento  String? // CNPJ/CPF
+  telefone   String?
+  email      String?
+  observacao String?
+  criadoEm   DateTime @default(now())
+  compras    Compra[]
+}
+
+model Compra {
+  id           String       @id @default(cuid())
+  numero       Int          @unique @default(autoincrement())
+  fornecedorId String?
+  fornecedor   Fornecedor?  @relation(fields: [fornecedorId], references: [id])
+  data         DateTime     @default(now())
+  totalCents   Int
+  notaFiscal   String?
+  observacao   String?
+  usuario      String
+  criadoEm     DateTime     @default(now())
+  itens        CompraItem[]
+}
+
+model CompraItem {
+  id             String  @id @default(cuid())
+  compraId       String
+  compra         Compra  @relation(fields: [compraId], references: [id], onDelete: Cascade)
+  produtoId      String
+  produto        Produto @relation(fields: [produtoId], references: [id])
+  quantidade     Int
+  custoUnitCents Int
+}
+
+enum TipoLancamento {
+  RECEITA
+  DESPESA
+}
+
+enum StatusLancamento {
+  PENDENTE
+  PAGO
+  CANCELADO
+}
+
+model Lancamento {
+  id          String           @id @default(cuid())
+  tipo        TipoLancamento
+  descricao   String
+  categoria   String
+  valorCents  Int // sempre positivo; o tipo diz se entra ou sai
+  vencimento  DateTime
+  pagoEm      DateTime?
+  status      StatusLancamento @default(PENDENTE)
+  forma       FormaPagamento?
+  conta       String           @default("Banco") // "Caixa da loja", "Banco", "Asaas"
+  origem      String           @default("MANUAL") // MANUAL, VENDA_ONLINE, VENDA_PDV, ESTORNO, COMPRA
+  pedidoId    String?
+  compraId    String?
+  observacao  String?
+  usuario     String           @default("sistema")
+  criadoEm    DateTime         @default(now())
+
+  @@index([status, vencimento])
+  @@index([tipo, pagoEm])
+  @@index([pedidoId])
 }
