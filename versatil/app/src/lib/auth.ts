@@ -42,3 +42,10 @@ export async function exigirUsuario() {
   if (!u) redirect("/painel/login");
   return u;
 }
+
+/** Telas de gestão: operador de caixa é mandado para o PDV. */
+export async function exigirAdmin() {
+  const u = await exigirUsuario();
+  if (u.papel !== "ADMIN") redirect("/painel/pdv");
+  return u;
+}

@@ -4,6 +4,7 @@ import { getConfig } from "@/lib/config";
 import { expirarPedidos } from "@/lib/pedidos";
 import { modoDemo } from "@/lib/asaas";
 import { brl, diasDesde, STATUS_PEDIDO } from "@/lib/format";
+import { exigirAdmin } from "@/lib/auth";
 
 function inicioDoDiaBRT() {
   const agora = new Date(Date.now() - 3 * 3600_000);
@@ -11,6 +12,7 @@ function inicioDoDiaBRT() {
 }
 
 export default async function Inicio() {
+  await exigirAdmin();
   await expirarPedidos();
   const cfg = await getConfig();
   const hoje = inicioDoDiaBRT();

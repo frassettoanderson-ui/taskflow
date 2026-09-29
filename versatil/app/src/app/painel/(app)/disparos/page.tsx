@@ -7,6 +7,7 @@ import { montarMensagem } from "@/lib/mensagem";
 import { brl } from "@/lib/format";
 import { BotaoSincronizar, CancelarProduto, ControlesFila, ToggleGrupo } from "./Controles";
 import { FormDisparoConfig } from "./FormDisparoConfig";
+import { exigirAdmin } from "@/lib/auth";
 
 const fmt = (d: Date) => d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
@@ -25,6 +26,7 @@ function janelas() {
 }
 
 export default async function Disparos() {
+  await exigirAdmin();
   const { seteDias, hoje } = janelas();
 
   const [cfg, conexao, grupos, pendentes, filaPorProduto, recentes, enviadosHoje, falhas, cliques, vendas, ultimo] = await Promise.all([

@@ -5,6 +5,7 @@ import { getConfig } from "@/lib/config";
 import { brl, diasDesde, CONDICOES } from "@/lib/format";
 import { FotoProduto } from "@/components/FotoProduto";
 import { codigoInterno } from "@/components/CardProduto";
+import { exigirAdmin } from "@/lib/auth";
 
 const ABAS: { status: StatusProduto; rotulo: string }[] = [
   { status: "ATIVO", rotulo: "Na vitrine" },
@@ -14,6 +15,7 @@ const ABAS: { status: StatusProduto; rotulo: string }[] = [
 ];
 
 export default async function Produtos({ searchParams }: PageProps<"/painel/produtos">) {
+  await exigirAdmin();
   const sp = await searchParams;
   const status = (ABAS.find((a) => a.status === sp.status)?.status ?? "ATIVO") as StatusProduto;
   const ordem = sp.ordem === "parados" ? "parados" : "recentes";

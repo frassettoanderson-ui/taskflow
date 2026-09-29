@@ -1,8 +1,10 @@
 import { getConfig } from "@/lib/config";
 import { modoDemo } from "@/lib/asaas";
 import { FormConfig } from "./FormConfig";
+import { exigirAdmin } from "@/lib/auth";
 
 export default async function Config() {
+  await exigirAdmin();
   const cfg = await getConfig();
   return (
     <div className="mx-auto max-w-xl">

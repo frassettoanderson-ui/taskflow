@@ -9,6 +9,12 @@ export const CONFIG_PADRAO = {
   loja_whatsapp: "",
   loja_cidade: "Imbituba - SC",
   loja_grupo_whatsapp: "", // link de convite do grupo de ofertas (chat.whatsapp.com/...)
+  // loja física
+  loja_pix_chave: "", // chave Pix que recebe no balcão
+  loja_pix_nome: "Versatil", // nome do recebedor (aparece no app do banco)
+  loja_razao_social: "",
+  loja_cnpj: "",
+  cupom_rodape: "Obrigado pela preferência! Trocas em até 7 dias com este comprovante.",
   parado_amarelo_dias: "8",
   parado_vermelho_dias: "21",
   // disparo nos grupos (fase 2)

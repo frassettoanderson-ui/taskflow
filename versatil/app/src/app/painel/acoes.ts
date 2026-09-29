@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { Condicao, StatusProduto } from "@prisma/client";
 import { db } from "@/lib/db";
-import { criarSessao, encerrarSessao, exigirUsuario } from "@/lib/auth";
+import { criarSessao, encerrarSessao, exigirAdmin, exigirUsuario } from "@/lib/auth";
 import { setConfig, CONFIG_PADRAO, type ChaveConfig } from "@/lib/config";
 import { parseReais, slugify, soDigitos } from "@/lib/format";
 import { salvarFoto, apagarFoto, salvarVideo, apagarVideo } from "@/lib/uploads";
@@ -43,7 +43,7 @@ async function slugLivre(base: string, id?: string) {
 }
 
 export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
-  await exigirUsuario();
+  await exigirAdmin();
   const id = String(fd.get("id") || "") || undefined;
   const titulo = String(fd.get("titulo") || "").trim();
   const preco = parseReais(String(fd.get("preco") || ""));
@@ -179,7 +179,7 @@ export async function cancelarPedidoPainel(pedidoId: string) {
 }
 
 export async function estornar(_: Estado, fd: FormData): Promise<Estado> {
-  const u = await exigirUsuario();
+  const u = await exigirAdmin();
   const pedidoId = String(fd.get("pedidoId"));
   const tipo = String(fd.get("tipo"));
   const valor = tipo === "parcial" ? parseReais(String(fd.get("valor") || "")) : undefined;
@@ -216,7 +216,7 @@ export async function buscarRetirada(_: Estado, fd: FormData): Promise<Estado & 
 // ---------- configurações ----------
 
 export async function salvarConfig(_: Estado, fd: FormData): Promise<Estado> {
-  await exigirUsuario();
+  await exigirAdmin();
   const valores: Partial<Record<ChaveConfig, string>> = {};
   for (const k of Object.keys(CONFIG_PADRAO) as ChaveConfig[]) {
     const todos = fd.getAll(k); // checkbox + hidden: vale o último
@@ -230,20 +230,20 @@ export async function salvarConfig(_: Estado, fd: FormData): Promise<Estado> {
 // ---------- disparos nos grupos ----------
 
 export async function alternarFila(ativo: boolean) {
-  await exigirUsuario();
+  await exigirAdmin();
   await setConfig({ disparo_ativo: ativo ? "1" : "0" });
   revalidatePath("/painel/disparos");
 }
 
 export async function alternarGrupo(grupoId: string, ativo: boolean) {
-  await exigirUsuario();
+  await exigirAdmin();
   await db.grupo.update({ where: { id: grupoId }, data: { ativo } });
   if (!ativo) await db.disparo.updateMany({ where: { grupoId, status: "PENDENTE" }, data: { status: "CANCELADO", erro: "grupo desativado" } });
   revalidatePath("/painel/disparos");
 }
 
 export async function sincronizarGruposAcao(): Promise<Estado> {
-  await exigirUsuario();
+  await exigirAdmin();
   try {
     const r = await sincronizarGrupos();
     revalidatePath("/painel/disparos");
@@ -254,21 +254,21 @@ export async function sincronizarGruposAcao(): Promise<Estado> {
 }
 
 export async function dispararProduto(produtoId: string) {
-  await exigirUsuario();
+  await exigirAdmin();
   const n = await enfileirar(produtoId, "REENVIO");
   revalidatePath("/painel/disparos");
   return n;
 }
 
 export async function cancelarFilaProduto(produtoId: string) {
-  await exigirUsuario();
+  await exigirAdmin();
   await cancelarPendentes(produtoId, "cancelado pelo painel");
   revalidatePath("/painel/disparos");
 }
 
 /** Força uma tentativa de envio agora (ignora só o intervalo global; respeita horário/limites). */
 export async function enviarProximo() {
-  await exigirUsuario();
+  await exigirAdmin();
   await db.config.deleteMany({ where: { chave: "disparo_proximo" } });
   const r = await processarFila();
   revalidatePath("/painel/disparos");

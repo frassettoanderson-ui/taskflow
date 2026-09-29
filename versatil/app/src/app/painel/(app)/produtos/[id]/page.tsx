@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { codigoInterno } from "@/components/CardProduto";
 import { FormProduto } from "../FormProduto";
+import { exigirAdmin } from "@/lib/auth";
 
 export default async function EditarProduto({ params }: PageProps<"/painel/produtos/[id]">) {
+  await exigirAdmin();
   const { id } = await params;
   const [produto, categorias] = await Promise.all([
     db.produto.findUnique({ where: { id }, include: { fotos: { orderBy: { ordem: "asc" }, select: { id: true, arquivo: true } } } }),

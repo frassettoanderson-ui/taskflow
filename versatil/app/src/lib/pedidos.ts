@@ -3,7 +3,7 @@
 // mudança de status é compare-and-set (WHERE status = esperado). Assim duas compras simultâneas
 // da última unidade nunca passam juntas, e webhook x job de expiração não se atropelam.
 import { randomBytes, randomInt } from "node:crypto";
-import { Prisma, type MetodoPagamento, type StatusPedido } from "@prisma/client";
+import { Prisma, type StatusPedido } from "@prisma/client";
 import { db } from "./db";
 import { getConfig } from "./config";
 import { cpfValido, soDigitos } from "./format";
