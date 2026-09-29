@@ -3,7 +3,7 @@
 import type { FormaPagamento, Prisma, TipoMovEstoque } from "@prisma/client";
 
 type Tx = Prisma.TransactionClient;
-type Item = { produtoId: string; quantidade: number };
+type Item = { produtoId: string; quantidade: number; custoUnitCents?: number | null };
 
 export async function movimentarEstoqueLog(
   tx: Tx,
@@ -22,7 +22,7 @@ export async function movimentarEstoqueLog(
       compraId: extra.compraId,
       motivo: extra.motivo,
       usuario: extra.usuario ?? "sistema",
-      custoUnitCents: extra.custoUnitCents ?? undefined,
+      custoUnitCents: i.custoUnitCents ?? extra.custoUnitCents ?? undefined,
     })),
   });
 }

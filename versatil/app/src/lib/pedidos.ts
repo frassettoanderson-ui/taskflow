@@ -3,7 +3,7 @@
 // mudança de status é compare-and-set (WHERE status = esperado). Assim duas compras simultâneas
 // da última unidade nunca passam juntas, e webhook x job de expiração não se atropelam.
 import { randomBytes, randomInt } from "node:crypto";
-import { Prisma, type StatusPedido } from "@prisma/client";
+import { Prisma, type FormaPagamento, type StatusPedido } from "@prisma/client";
 import { db } from "./db";
 import { getConfig } from "./config";
 import { cpfValido, soDigitos } from "./format";
@@ -302,7 +302,7 @@ export async function avancarStatus(pedidoId: string, para: "SEPARANDO" | "PRONT
   });
 }
 
-export async function estornarPedido(pedidoId: string, opts: { valorCents?: number; devolverEstoque: boolean; motivo?: string; autor: string }) {
+export async function estornarPedido(pedidoId: string, opts: { valorCents?: number; devolverEstoque: boolean; motivo?: string; autor: string; forma?: FormaPagamento }) {
   const pedido = await db.pedido.findUnique({ where: { id: pedidoId }, include: { itens: true, pagamentos: true } });
   if (!pedido) throw new ErroValidacao("Pedido não encontrado.");
   if (!STATUS_PAGOS.includes(pedido.status)) throw new ErroValidacao("Só é possível estornar pedidos pagos.");
@@ -328,7 +328,7 @@ export async function estornarPedido(pedidoId: string, opts: { valorCents?: numb
     }
     // financeiro: devolução ao cliente (no balcão, pela forma principal usada na venda)
     const pdv = pedido.canal === "PDV";
-    const formaPrincipal = pdv ? ([...pedido.pagamentos].sort((a, b) => b.valorCents - a.valorCents)[0]?.forma ?? "DINHEIRO") : pedido.metodo === "CARTAO" ? "CREDITO" : "PIX_ASAAS";
+    const formaPrincipal = pdv ? (opts.forma ?? [...pedido.pagamentos].sort((a, b) => b.valorCents - a.valorCents)[0]?.forma ?? "DINHEIRO") : pedido.metodo === "CARTAO" ? "CREDITO" : "PIX_ASAAS";
     await lancarEstorno(tx, { pedidoId, numero: pedido.numero, valorCents: valor, forma: formaPrincipal, online: !pdv, usuario: opts.autor, motivo: opts.motivo });
     if (pdv && formaPrincipal === "DINHEIRO") {
       const aberto = await tx.caixaSessao.findFirst({ where: { status: "ABERTO" }, orderBy: { abertoEm: "desc" } });

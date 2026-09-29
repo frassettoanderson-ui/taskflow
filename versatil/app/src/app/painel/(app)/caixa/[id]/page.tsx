@@ -33,6 +33,9 @@ export default async function RelatorioCaixa({ params }: PageProps<"/painel/caix
             {(["DINHEIRO", "PIX", "DEBITO", "CREDITO", "OUTRO"] as const).filter((f) => r.porForma[f]).map((f) => (
               <tr key={f}><td className="py-2">Vendas — {FORMAS[f]}</td><td className="py-2 text-right">{brl(r.porForma[f])}</td></tr>
             ))}
+            {Object.entries(r.devolucoesPorForma).filter(([, v]) => v).map(([f, v]) => (
+              <tr key={f}><td className="py-2">Devoluções — {FORMAS[f as keyof typeof FORMAS]}</td><td className="py-2 text-right text-rubi">− {brl(v)}</td></tr>
+            ))}
             <tr><td className="py-2">Suprimentos</td><td className="py-2 text-right">{brl(r.suprimentos)}</td></tr>
             <tr><td className="py-2">Sangrias</td><td className="py-2 text-right text-rubi">− {brl(r.sangrias)}</td></tr>
             <tr className="font-bold"><td className="py-2">Total vendido ({r.qtdVendas} vendas)</td><td className="py-2 text-right">{brl(r.vendas)}</td></tr>
@@ -40,7 +43,7 @@ export default async function RelatorioCaixa({ params }: PageProps<"/painel/caix
             <tr><td className="py-2">Dinheiro contado</td><td className="py-2 text-right">{cx.contadoCents != null ? brl(cx.contadoCents) : "—"}</td></tr>
             <tr className={`font-bold ${!cx.diferencaCents ? "text-jade" : "text-rubi"}`}>
               <td className="py-2">Diferença</td>
-              <td className="py-2 text-right">{cx.diferencaCents == null ? "—" : cx.diferencaCents === 0 ? "confere ✓" : brl(cx.diferencaCents)}</td>
+              <td className="py-2 text-right">{cx.diferencaCents == null ? "—" : cx.diferencaCents === 0 ? "confere ✓" : cx.diferencaCents > 0 ? `sobra ${brl(cx.diferencaCents)}` : `falta ${brl(-cx.diferencaCents)}`}</td>
             </tr>
             {Object.entries(contagem).filter(([f]) => f !== "DINHEIRO").map(([f, v]) => (
               <tr key={f}><td className="py-2 text-cinza">{FORMAS[f as keyof typeof FORMAS]} conferido</td><td className="py-2 text-right text-cinza">{brl(v)}</td></tr>

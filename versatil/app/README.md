@@ -23,3 +23,10 @@ npm run dev            # sobe Postgres embutido (5433), aplica schema, seed e Ne
 ## Dados de teste (só no banco local de desenvolvimento)
 - Cliente com conta: `teste.cliente@versatil.local` / `teste123` (criado pelo teste de cadastro; recrie em /cadastro se o banco for zerado).
 - Vídeo de demonstração da Air Fryer: `uploads/videos/demoairfryer1.mp4` (gerado com ffmpeg a partir da foto).
+- Operador de caixa (perfil OPERADOR): `caixa@versatil.local` / `caixa123` (criado pelo seed só fora de produção).
+
+## Loja física
+- Configurações → Loja física/PDV: chave Pix (QR no PDV), razão social, CNPJ, endereço e rodapé do cupom.
+- Usuários → crie os operadores de caixa (perfil OPERADOR só acessa PDV, Caixa, Pedidos e Retirada).
+- Fluxo: Caixa → abrir com o troco → PDV → vender → Caixa → fechar com a contagem. Etiquetas com código de barras em Estoque → Etiquetas.
+- Cupom impresso NÃO é documento fiscal (NFC-e ainda não integrada).

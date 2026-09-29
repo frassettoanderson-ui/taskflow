@@ -70,7 +70,7 @@ export function FecharCaixa({ esperadoDinheiro, porForma }: { esperadoDinheiro: 
           {outras.map((f) => (
             <label key={f} className="text-center text-[11px] font-semibold uppercase text-cinza">
               {f === "PIX" ? "Pix" : f === "DEBITO" ? "Débito" : "Crédito"} (conferido)
-              <input name={`contagem_${f}`} defaultValue={mascaraMoeda(String(porForma[f]))} inputMode="numeric" className="campo mt-1 text-center" />
+              <CampoMoeda name={`contagem_${f}`} inicial={mascaraMoeda(String(porForma[f]))} />
             </label>
           ))}
         </div>
@@ -80,4 +80,9 @@ export function FecharCaixa({ esperadoDinheiro, porForma }: { esperadoDinheiro: 
       <button disabled={pend || !contado} className="botao-ouro mt-4 w-full py-3.5 disabled:opacity-40">{pend ? "Fechando…" : "Fechar caixa"}</button>
     </form>
   );
+}
+
+function CampoMoeda({ name, inicial }: { name: string; inicial: string }) {
+  const [v, setV] = useState(inicial);
+  return <input name={name} value={v} onChange={(e) => setV(mascaraMoeda(e.target.value))} inputMode="numeric" className="campo mt-1 text-center" />;
 }

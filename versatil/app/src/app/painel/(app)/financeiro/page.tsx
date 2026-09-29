@@ -155,10 +155,10 @@ function Linha({ rotulo, valor, forte = false, neg = false, sub = false, extra }
 
 /** DRE simplificada do mês: vendas − devoluções − custo das mercadorias − despesas. */
 async function Resultado({ inicio, fim }: { inicio: Date; fim: Date }) {
-  const [pedidos, estornos, despesas] = await Promise.all([
+  const [pedidos, estornos, despesas, movs] = await Promise.all([
     db.pedido.findMany({
       where: { pagoEm: { gte: inicio, lt: fim }, status: { in: [...STATUS_PAGOS] } },
-      select: { canal: true, totalCents: true, descontoCents: true, itens: { select: { quantidade: true, custoUnitCents: true, precoUnitCents: true } } },
+      select: { id: true, canal: true, totalCents: true, descontoCents: true, itens: { select: { quantidade: true, custoUnitCents: true, precoUnitCents: true } } },
     }),
     db.pedido.aggregate({ where: { estornadoEm: { gte: inicio, lt: fim } }, _sum: { estornoCents: true } }),
     db.lancamento.groupBy({
@@ -167,7 +167,17 @@ async function Resultado({ inicio, fim }: { inicio: Date; fim: Date }) {
       _sum: { valorCents: true },
       orderBy: { _sum: { valorCents: "desc" } },
     }),
+    // perdas/avarias do mês (viram despesa pelo custo)
+    db.movimentoEstoque.findMany({
+      where: { criadoEm: { gte: inicio, lt: fim }, tipo: "PERDA" },
+      select: { tipo: true, quantidade: true, custoUnitCents: true },
+    }),
   ]);
+  // itens das vendas do mês que voltaram ao estoque na devolução saem do custo
+  const devolvidos = await db.movimentoEstoque.findMany({
+    where: { tipo: "ESTORNO", pedidoId: { in: pedidos.map((p) => p.id) } },
+    select: { tipo: true, quantidade: true, custoUnitCents: true },
+  });
   const online = pedidos.filter((p) => p.canal === "ONLINE").reduce((s, p) => s + p.totalCents, 0);
   const loja = pedidos.filter((p) => p.canal === "PDV").reduce((s, p) => s + p.totalCents, 0);
   const bruta = online + loja;
@@ -180,8 +190,11 @@ async function Resultado({ inicio, fim }: { inicio: Date; fim: Date }) {
       if (i.custoUnitCents != null) cmv += i.custoUnitCents * i.quantidade;
       else semCusto += i.precoUnitCents * i.quantidade;
     }
+  const custoMov = (l: { quantidade: number; custoUnitCents: number | null }[]) => l.reduce((s, m) => s + Math.abs(m.quantidade) * (m.custoUnitCents ?? 0), 0);
+  cmv = Math.max(0, cmv - custoMov(devolvidos));
+  const perdas = custoMov(movs);
   const lucroBruto = liquida - cmv;
-  const totalDesp = despesas.reduce((s, d) => s + (d._sum.valorCents ?? 0), 0);
+  const totalDesp = despesas.reduce((s, d) => s + (d._sum.valorCents ?? 0), 0) + perdas;
   const resultado = lucroBruto - totalDesp;
   const pct = (v: number) => (liquida ? `${Math.round((v / liquida) * 100)}%` : "—");
 
@@ -200,6 +213,7 @@ async function Resultado({ inicio, fim }: { inicio: Date; fim: Date }) {
             {despesas.map((d) => (
               <Linha key={d.categoria} rotulo={d.categoria} valor={d._sum.valorCents ?? 0} neg sub />
             ))}
+            {perdas > 0 && <Linha rotulo="Perdas e avarias (custo)" valor={perdas} neg sub />}
             <Linha rotulo="Despesas do mês" valor={totalDesp} neg extra={pct(totalDesp)} />
             <tr className={`font-extrabold ${resultado >= 0 ? "bg-jade/10 text-jade" : "bg-rubi/10 text-rubi"}`}>
               <td className="px-4 py-3 text-base">Resultado do mês</td>

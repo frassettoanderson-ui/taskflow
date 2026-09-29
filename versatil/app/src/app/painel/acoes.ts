@@ -2,7 +2,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import type { Condicao, StatusProduto } from "@prisma/client";
+import type { Condicao, FormaPagamento, StatusProduto } from "@prisma/client";
 import { db } from "@/lib/db";
 import { criarSessao, encerrarSessao, exigirAdmin, exigirUsuario } from "@/lib/auth";
 import { setConfig, CONFIG_PADRAO, type ChaveConfig } from "@/lib/config";
@@ -195,6 +195,7 @@ export async function estornar(_: Estado, fd: FormData): Promise<Estado> {
       devolverEstoque: fd.get("devolver") === "on",
       motivo: String(fd.get("motivo") || "").trim() || undefined,
       autor: u.nome,
+      forma: (String(fd.get("forma") || "") || undefined) as FormaPagamento | undefined,
     });
   } catch (e) {
     return { erro: e instanceof ErroValidacao ? e.message : `Falha no estorno: ${(e as Error).message}` };

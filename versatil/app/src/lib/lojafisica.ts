@@ -53,6 +53,7 @@ export async function resumoCaixa(caixaId: string) {
   const cx = await db.caixaSessao.findUnique({ where: { id: caixaId }, include: { movimentos: { orderBy: { criadoEm: "asc" } } } });
   if (!cx) throw new ErroValidacao("Caixa não encontrado.");
   const porForma: Record<string, number> = {};
+  const devolucoesPorForma: Record<string, number> = {};
   let vendas = 0;
   let sangrias = 0;
   let suprimentos = 0;
@@ -65,12 +66,12 @@ export async function resumoCaixa(caixaId: string) {
     else if (m.tipo === "SUPRIMENTO") suprimentos += m.valorCents;
     else if (m.tipo === "ESTORNO") {
       estornos += -m.valorCents;
-      porForma[m.forma] = (porForma[m.forma] || 0) + m.valorCents;
+      devolucoesPorForma[m.forma] = (devolucoesPorForma[m.forma] || 0) - m.valorCents;
     }
   }
   const qtdVendas = await db.pedido.count({ where: { caixaId, canal: "PDV", status: { notIn: ["CANCELADO", "EXPIRADO"] } } });
-  const dinheiroEsperado = cx.valorInicialCents + (porForma.DINHEIRO || 0) + suprimentos - sangrias;
-  return { caixa: cx, porForma, vendas, sangrias, suprimentos, estornos, qtdVendas, dinheiroEsperado };
+  const dinheiroEsperado = cx.valorInicialCents + (porForma.DINHEIRO || 0) - (devolucoesPorForma.DINHEIRO || 0) + suprimentos - sangrias;
+  return { caixa: cx, porForma, devolucoesPorForma, vendas, sangrias, suprimentos, estornos, qtdVendas, dinheiroEsperado };
 }
 
 export async function fecharCaixa(contagem: Partial<Record<FormaPagamento, number>>, observacao: string, usuario: string) {
@@ -210,7 +211,8 @@ export async function ajustarEstoque(produtoId: string, p: { tipo: "AJUSTE" | "P
       await tx.produto.update({ where: { id: produtoId }, data: { estoqueDisponivel: { increment: q } } });
       await tx.produto.updateMany({ where: { id: produtoId, status: "ESGOTADO" }, data: { status: "ATIVO" } });
     }
-    await tx.movimentoEstoque.create({ data: { produtoId, tipo: p.tipo, quantidade: q, motivo: p.motivo || null, usuario: p.usuario } });
+    const prod = await tx.produto.findUnique({ where: { id: produtoId }, select: { custoCents: true } });
+    await tx.movimentoEstoque.create({ data: { produtoId, tipo: p.tipo, quantidade: q, custoUnitCents: prod?.custoCents ?? null, motivo: p.motivo || null, usuario: p.usuario } });
   });
 }
 
