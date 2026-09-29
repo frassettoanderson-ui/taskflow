@@ -18,6 +18,7 @@
   --color-cinza: #737373;
   --color-rubi: #d93636;
   --color-jade: #00a650; /* verde de economia/retirada — convenção do ML */
+  --breakpoint-3xl: 106.25rem; /* 1700px — em rem para ordenar certo com os outros breakpoints */ /* telas largas: banner com 500px de altura, como o ML */
   --font-sans: var(--font-sans), ui-sans-serif, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
 }

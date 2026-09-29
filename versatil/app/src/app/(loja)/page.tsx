@@ -6,7 +6,8 @@ import { selecaoCard, type ProdutoCard } from "@/lib/catalogo";
 import { soDigitos } from "@/lib/format";
 import { CardProduto } from "@/components/CardProduto";
 import { Carrossel } from "@/components/Carrossel";
-import { BannerCarrossel } from "@/components/BannerCarrossel";
+import { BannerCarrossel, type Slide } from "@/components/BannerCarrossel";
+import { listarBanners } from "@/lib/banners";
 import { CardsDestaque, type CardFixo, type CardPromo } from "@/components/CardsDestaque";
 import { FotoProduto } from "@/components/FotoProduto";
 
@@ -51,11 +52,14 @@ export default async function Home() {
   const zap = soDigitos(cfg.loja_whatsapp);
   const fotos = (lista: ProdutoCard[]) => lista.map((p) => p.fotos[0]?.arquivo).filter(Boolean) as string[];
 
-  const slides = [
-    { titulo: `Até ${maxDesc || 70}% OFF`, sub: "Produtos novos, de caixa aberta e com pequenas avarias — todos conferidos.", cta: "Ver ofertas", href: "/busca?ordem=desconto", fotos: fotos(ofertas.slice(0, 3)), tema: "escuro" as const },
-    { titulo: "Compre no site, retire na loja", sub: "Pague no Pix ou cartão. Pagou, o produto fica separado no seu nome.", cta: "Ver novidades", href: "/busca", fotos: fotos(novidades.slice(0, 3)), tema: "claro" as const },
-    { titulo: "Ofertas até R$ 100", sub: "Achados do dia a dia com preço de verdade.", cta: "Aproveitar", href: "/busca?max=100", fotos: fotos(baratos.slice(0, 3)), tema: "escuro" as const },
-  ].filter((s) => s.fotos.length);
+  const artes = await listarBanners();
+  const slides: Slide[] = artes.length
+    ? artes.map((a, n) => ({ tipo: "imagem", src: a.src, srcMobile: a.srcMobile, href: "/busca?ordem=desconto", alt: `Banner ${n + 1}` }))
+    : ([
+        { tipo: "codigo", titulo: `Até ${maxDesc || 70}% OFF`, sub: "Produtos novos, de caixa aberta e com pequenas avarias — todos conferidos.", cta: "Ver ofertas", href: "/busca?ordem=desconto", fotos: fotos(ofertas.slice(0, 3)) },
+        { tipo: "codigo", titulo: "Compre no site, retire na loja", sub: "Pague no Pix ou cartão. Pagou, o produto fica separado no seu nome.", cta: "Ver novidades", href: "/busca", fotos: fotos(novidades.slice(0, 3)) },
+        { tipo: "codigo", titulo: "Ofertas até R$ 100", sub: "Achados do dia a dia com preço de verdade.", cta: "Aproveitar", href: "/busca?max=100", fotos: fotos(baratos.slice(0, 3)) },
+      ] satisfies Slide[]).filter((s) => s.fotos.length);
 
   // cards de destaque (no ML: visto recentemente, também te interessa, conclua sua compra…)
   // os pessoais vêm do navegador; estes são montados no servidor, sem repetir produto
@@ -81,14 +85,12 @@ export default async function Home() {
 
   return (
     <div>
-      {/* degradê dourado → cinza atrás do banner, como o amarelo → cinza do ML */}
-      <div className="degrade-topo pb-28 md:px-4 md:pb-36 md:pt-2">
-        {slides.length > 0 && <BannerCarrossel slides={slides} />}
-      </div>
+      {/* banner de ponta a ponta com degradê para o cinza (como no ML) */}
+      {slides.length > 0 && <BannerCarrossel slides={slides} />}
 
       <div className="mx-auto max-w-[1200px] px-3 md:px-4">
         {/* cards de destaque sobrepostos ao degradê */}
-        <div className="-mt-24 md:-mt-32">
+        <div className={`relative z-10 ${slides.length ? "-mt-16 sm:-mt-20 md:-mt-[150px] 3xl:-mt-[140px]" : "mt-4"}`}>
           <CardsDestaque fixos={fixos} promo={promo} />
         </div>
 

@@ -18,12 +18,12 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
     <CarrinhoProvider>
       <RastreioGrupo />
       {/* cabeçalho no padrão ML: faixa de cor, logo, busca larga, carrinho; 2ª linha com local + categorias */}
-      <header className="bg-faixa">
+      <header className="bg-noite text-white">
         <div className="mx-auto max-w-[1200px] px-3 pt-2.5 md:px-4">
           <div className="flex items-center gap-3 md:gap-8">
             <Link href="/" aria-label="Versátil — início" className="shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo-preto.svg" alt="Versátil — Melhor preço da região" className="h-9 w-auto md:h-11" />
+              <img src="/logo.svg" alt="Versátil — Melhor preço da região" className="h-9 w-auto md:h-11" />
             </Link>
             <form action="/busca" className="relative hidden flex-1 md:block md:max-w-[600px]">
               <input name="q" placeholder="Buscar produtos, marcas e muito mais…" className="h-10 w-full rounded-[2px] bg-white pl-4 pr-12 text-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] outline-none placeholder:text-[#999]" />
@@ -33,7 +33,7 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
             </form>
             <div className="ml-auto flex items-center gap-4">
               {zap && (
-                <a href={`https://wa.me/55${zap}`} className="hidden text-[13px] text-marfim/80 hover:text-marfim lg:block">
+                <a href={`https://wa.me/55${zap}`} className="hidden text-[13px] text-white/80 hover:text-white lg:block">
                   Atendimento
                 </a>
               )}
@@ -49,19 +49,19 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
             </button>
           </form>
 
-          <nav className="sem-barra -mx-3 mt-2 flex items-center gap-5 overflow-x-auto px-3 pb-2.5 text-[13px] text-marfim/75 md:mx-0 md:px-0">
-            <span className="flex shrink-0 items-center gap-1.5 text-marfim/80">
-              <IconeLoja className="h-4 w-4" />
+          <nav className="sem-barra -mx-3 mt-2 flex items-center gap-5 overflow-x-auto px-3 pb-2.5 text-[13px] text-white/85 md:mx-0 md:px-0">
+            <span className="flex shrink-0 items-center gap-1.5 text-white/85">
+              <IconeLoja className="h-4 w-4 text-ouro" />
               <span className="leading-tight">
-                <span className="block text-[11px] text-marfim/60">Retire na loja</span>
+                <span className="block text-[11px] text-white/55">Retire na loja</span>
                 <span className="block max-w-[170px] truncate">{cfg.loja_endereco}</span>
               </span>
             </span>
-            <Link href="/busca" className="shrink-0 hover:text-marfim">Todos os produtos</Link>
-            <Link href="/busca?ordem=desconto" className="shrink-0 hover:text-marfim">Ofertas</Link>
-            <Link href="/busca?max=50" className="shrink-0 hover:text-marfim">Até R$ 50</Link>
+            <Link href="/busca" className="shrink-0 hover:text-ouro">Todos os produtos</Link>
+            <Link href="/busca?ordem=desconto" className="shrink-0 hover:text-ouro">Ofertas</Link>
+            <Link href="/busca?max=50" className="shrink-0 hover:text-ouro">Até R$ 50</Link>
             {categorias.map((c) => (
-              <Link key={c.id} href={`/busca?cat=${c.slug}`} className="shrink-0 hover:text-marfim">
+              <Link key={c.id} href={`/busca?cat=${c.slug}`} className="shrink-0 hover:text-ouro">
                 {c.nome}
               </Link>
             ))}
