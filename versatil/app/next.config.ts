@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   turbopack: { root: path.join(__dirname) },
   serverExternalPackages: ["sharp", "embedded-postgres"],
   experimental: {
-    serverActions: { bodySizeLimit: "20mb" }, // fotos do cadastro (já comprimidas no navegador)
+    serverActions: { bodySizeLimit: "80mb" }, // fotos (comprimidas no navegador) + vídeo curto do produto
   },
 };
 

@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { criarSessao, encerrarSessao, exigirUsuario } from "@/lib/auth";
 import { setConfig, CONFIG_PADRAO, type ChaveConfig } from "@/lib/config";
 import { parseReais, slugify, soDigitos } from "@/lib/format";
-import { salvarFoto, apagarFoto } from "@/lib/uploads";
+import { salvarFoto, apagarFoto, salvarVideo, apagarVideo } from "@/lib/uploads";
 import { avancarStatus, cancelarPedido, estornarPedido, ErroValidacao } from "@/lib/pedidos";
 import { cancelarPendentes, enfileirar, processarFila, sincronizarGrupos } from "@/lib/disparos";
 
@@ -64,6 +64,11 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
       .join("\n"),
   };
   const disparar = fd.get("disparar") === "on";
+  const videoArquivo = fd.get("videoArquivo");
+  const videoLink = String(fd.get("videoLink") || "").trim();
+  const removerVideo = fd.get("removerVideo") === "on";
+  if (videoLink && !/^https:\/\/(www\.)?(youtube\.com|youtu\.be)\//.test(videoLink)) return { erro: "O link do vídeo precisa ser do YouTube." };
+  if (videoArquivo instanceof File && videoArquivo.size > 75 * 1024 * 1024) return { erro: "Vídeo muito grande (máximo 75 MB). Grave mais curto ou em qualidade menor." };
 
   if (titulo.length < 3) return { erro: "Dê um título ao produto." };
   if (!preco) return { erro: "Informe o preço de venda." };
@@ -128,6 +133,17 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
       await db.foto.create({ data: { produtoId: produtoId!, arquivo, ordem: ordem++ } });
     }
   }
+  // vídeo: arquivo enviado tem prioridade; depois link do YouTube; "remover" limpa
+  const atualVideo = (await db.produto.findUnique({ where: { id: produtoId }, select: { videoUrl: true } }))?.videoUrl;
+  let novoVideo: string | null | undefined;
+  if (videoArquivo instanceof File && videoArquivo.size > 0) novoVideo = await salvarVideo(Buffer.from(await videoArquivo.arrayBuffer()), videoArquivo.name);
+  else if (videoLink && videoLink !== atualVideo) novoVideo = videoLink;
+  else if (removerVideo || (!videoLink && atualVideo && !atualVideo.startsWith("/api/video/"))) novoVideo = null;
+  if (novoVideo !== undefined && novoVideo !== atualVideo) {
+    await apagarVideo(atualVideo);
+    await db.produto.update({ where: { id: produtoId }, data: { videoUrl: novoVideo } });
+  }
+
   const capa = String(fd.get("capa") || "");
   if (capa) {
     await db.foto.updateMany({ where: { produtoId }, data: { ordem: { increment: 1 } } });

@@ -35,7 +35,7 @@ export async function cancelarPendentes(produtoId: string, motivo: string) {
 async function imagemParaEnvio(arquivo?: string) {
   if (!arquivo) return null;
   try {
-    const buf = await readFile(path.join(pastaUploads(), `${arquivo}.webp`));
+    const buf = await readFile(path.join(/*turbopackIgnore: true*/ pastaUploads(), `${arquivo}.webp`));
     const jpg = await sharp(buf).jpeg({ quality: 85 }).toBuffer(); // WhatsApp trata webp como figurinha
     return { base64: jpg.toString("base64"), mimetype: "image/jpeg" };
   } catch {

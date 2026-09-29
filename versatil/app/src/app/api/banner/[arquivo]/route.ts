@@ -9,7 +9,7 @@ export async function GET(_: Request, ctx: RouteContext<"/api/banner/[arquivo]">
   const ext = arquivo.split(".").pop()?.toLowerCase() ?? "";
   if (!/^[\w-]+\.(jpe?g|png|webp)$/i.test(arquivo)) return new Response("não encontrado", { status: 404 });
   try {
-    const buf = await readFile(path.join(pastaBanners(), arquivo));
+    const buf = await readFile(path.join(/*turbopackIgnore: true*/ pastaBanners(), arquivo));
     return new Response(new Uint8Array(buf), { headers: { "Content-Type": TIPOS[ext], "Cache-Control": "public, max-age=3600" } });
   } catch {
     return new Response("não encontrado", { status: 404 });

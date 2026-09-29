@@ -39,14 +39,17 @@ export function BotoesCompra({ produto, disponivel }: { produto: Omit<ItemCarrin
       </label>
       <div className="mt-5 space-y-2">
         <button onClick={comprar} className="botao-principal h-12 w-full text-[16px]">Comprar agora</button>
-        <button onClick={aoCarrinho} className="botao-secundario h-12 w-full text-[16px]">{adicionado ? "Adicionado ao carrinho ✓" : "Adicionar ao carrinho"}</button>
+        <button onClick={aoCarrinho} className="botao-carrinho flex h-12 w-full items-center justify-center gap-2 text-[16px]">
+          <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" /><circle cx="9.5" cy="19.5" r="1.3" /><circle cx="17" cy="19.5" r="1.3" /></svg>
+          {adicionado ? "Adicionado ao carrinho ✓" : "Adicionar ao carrinho"}
+        </button>
       </div>
 
       {/* barra fixa no celular: quem chega pelo link do grupo compra sem rolar */}
       <div className="safe-bottom fixed inset-x-0 bottom-0 z-30 border-t border-fio bg-white px-3 pt-2.5 shadow-[0_-2px_8px_rgba(0,0,0,0.08)] md:hidden">
         <div className="flex gap-2">
-          <button onClick={aoCarrinho} className="botao-secundario h-12 shrink-0 px-4 text-[14px]" aria-label="Adicionar ao carrinho">
-            {adicionado ? "✓" : "Carrinho"}
+          <button onClick={aoCarrinho} className="botao-carrinho flex h-12 w-14 shrink-0 items-center justify-center" aria-label="Adicionar ao carrinho">
+            {adicionado ? "✓" : <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 4h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2" /><circle cx="9.5" cy="19.5" r="1.3" /><circle cx="17" cy="19.5" r="1.3" /></svg>}
           </button>
           <button onClick={comprar} className="botao-principal h-12 flex-1 text-[15px]">
             Comprar · {brl(produto.precoCents * q)}

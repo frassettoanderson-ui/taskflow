@@ -15,6 +15,7 @@ type Produto = {
   marca: string | null;
   sku: string | null;
   aplicacao: string;
+  videoUrl: string | null;
   precoCents: number;
   precoMercadoCents: number | null;
   custoCents: number | null;
@@ -133,6 +134,27 @@ export function FormProduto({
           </button>
         </div>
         <p className="mt-2 text-center text-[11px] text-cinza">Fotos reais do item (até 10). Mostre as avarias, se houver.</p>
+      </section>
+
+      <section className="rounded-2xl border filete bg-white p-4">
+        <p className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-cinza">Vídeo do produto (opcional)</p>
+        {produto?.videoUrl && (
+          <div className="mb-3 text-center text-xs">
+            <p className="truncate text-marfim/80">Atual: {produto.videoUrl.startsWith("/api/video/") ? "vídeo enviado" : produto.videoUrl}</p>
+            <label className="mt-1 inline-flex items-center gap-2 text-rubi">
+              <input type="checkbox" name="removerVideo" className="h-4 w-4" /> remover vídeo
+            </label>
+          </div>
+        )}
+        <input
+          name="videoLink"
+          defaultValue={produto?.videoUrl && !produto.videoUrl.startsWith("/api/video/") ? produto.videoUrl : ""}
+          placeholder="Link do YouTube (https://youtube.com/…)"
+          inputMode="url"
+          className="campo"
+        />
+        <p className="my-2 text-center text-[11px] text-cinza">ou grave/envie um vídeo curto do celular (até 75 MB)</p>
+        <input name="videoArquivo" type="file" accept="video/mp4,video/webm,video/quicktime,video/*" className="block w-full text-sm text-cinza file:mr-3 file:rounded-lg file:border-0 file:bg-grafite file:px-3 file:py-2 file:text-marfim" />
       </section>
 
       <section className="space-y-3">

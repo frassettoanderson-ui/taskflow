@@ -2,7 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { pastaUploads } from "./uploads";
 
-export const pastaBanners = () => path.join(pastaUploads(), "banners");
+export const pastaBanners = () => path.join(/*turbopackIgnore: true*/ pastaUploads(), "banners");
 
 /**
  * Artes do banner principal em UPLOAD_DIR/banners, em ordem de nome:
@@ -13,7 +13,7 @@ export async function listarBanners() {
   try {
     const arquivos = (await readdir(pastaBanners())).filter((f) => /^[\w-]+\.(jpe?g|png|webp)$/i.test(f)).sort();
     const desktop = arquivos.filter((f) => !/-mobile\./i.test(f));
-    const links: Record<string, string> = await readFile(path.join(pastaBanners(), "links.json"), "utf8")
+    const links: Record<string, string> = await readFile(path.join(/*turbopackIgnore: true*/ pastaBanners(), "links.json"), "utf8")
       .then((t) => JSON.parse(t))
       .catch(() => ({}));
     return desktop.map((f) => {

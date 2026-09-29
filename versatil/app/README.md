@@ -19,3 +19,7 @@ npm run dev            # sobe Postgres embutido (5433), aplica schema, seed e Ne
 - `EVOLUTION_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE` no .env. Vazio = modo demonstração (envios simulados).
 - Painel → Disparos → "Buscar grupos do WhatsApp" → ativar os grupos que recebem ofertas.
 - `PUBLIC_URL` precisa ser o domínio público (vai no link das mensagens).
+
+## Dados de teste (só no banco local de desenvolvimento)
+- Cliente com conta: `teste.cliente@versatil.local` / `teste123` (criado pelo teste de cadastro; recrie em /cadastro se o banco for zerado).
+- Vídeo de demonstração da Air Fryer: `uploads/videos/demoairfryer1.mp4` (gerado com ffmpeg a partir da foto).
