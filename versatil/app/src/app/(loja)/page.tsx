@@ -3,11 +3,12 @@ import { db } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 import { expirarPedidos } from "@/lib/pedidos";
 import { selecaoCard, type ProdutoCard } from "@/lib/catalogo";
-import { soDigitos } from "@/lib/format";
 import { CardProduto } from "@/components/CardProduto";
 import { Carrossel } from "@/components/Carrossel";
 import { BannerCarrossel, type Slide } from "@/components/BannerCarrossel";
 import { listarBanners } from "@/lib/banners";
+import { linkGrupo, resolverLink } from "@/lib/links";
+import { BannerGrupoWhats } from "@/components/BannerGrupoWhats";
 import { CardsDestaque, type CardFixo, type CardPromo } from "@/components/CardsDestaque";
 import { FotoProduto } from "@/components/FotoProduto";
 
@@ -49,12 +50,11 @@ export default async function Home() {
   const pct = (p: ProdutoCard) => (p.precoMercadoCents ? 1 - p.precoCents / p.precoMercadoCents : 0);
   const ofertas = [...todos].sort((a, b) => pct(b) - pct(a)).slice(0, 15);
   const maxDesc = ofertas[0] ? Math.round(pct(ofertas[0]) * 100) : 0;
-  const zap = soDigitos(cfg.loja_whatsapp);
   const fotos = (lista: ProdutoCard[]) => lista.map((p) => p.fotos[0]?.arquivo).filter(Boolean) as string[];
 
   const artes = await listarBanners();
   const slides: Slide[] = artes.length
-    ? artes.map((a, n) => ({ tipo: "imagem", src: a.src, srcMobile: a.srcMobile, href: a.href, alt: `Banner ${n + 1}` }))
+    ? artes.map((a, n) => ({ tipo: "imagem", src: a.src, srcMobile: a.srcMobile, href: resolverLink(a.destino, cfg), alt: `Banner ${n + 1}` }))
     : ([
         { tipo: "codigo", titulo: `Até ${maxDesc || 70}% OFF`, sub: "Produtos novos, de caixa aberta e com pequenas avarias — todos conferidos.", cta: "Ver ofertas", href: "/busca?ordem=desconto", fotos: fotos(ofertas.slice(0, 3)) },
         { tipo: "codigo", titulo: "Compre no site, retire na loja", sub: "Pague no Pix ou cartão. Pagou, o produto fica separado no seu nome.", cta: "Ver novidades", href: "/busca", fotos: fotos(novidades.slice(0, 3)) },
@@ -79,8 +79,9 @@ export default async function Home() {
     ["Preço baixo", escolher(baratos), "Menor preço da loja"],
   ];
   const fixos: CardFixo[] = candidatos.filter((c): c is [string, ProdutoCard, string?] => Boolean(c[1])).map(([titulo, produto, verde]) => ({ titulo, produto, verde }));
-  const promo: CardPromo = zap
-    ? { titulo: "Grupo de ofertas no WhatsApp", texto: "Receba as novidades antes de todo mundo.", cta: "Quero entrar", href: `https://wa.me/55${zap}?text=${encodeURIComponent("Olá! Quero entrar no grupo de ofertas da Versátil.")}` }
+  const grupo = linkGrupo(cfg);
+  const promo: CardPromo = grupo
+    ? { titulo: "Grupo de ofertas no WhatsApp", texto: "Receba as novidades antes de todo mundo.", cta: "Quero entrar", href: grupo }
     : { titulo: "Compre no site, retire na loja", texto: "Pague no Pix ou cartão e busque quando quiser.", cta: "Como funciona", href: "#como-funciona" };
 
   return (
@@ -93,6 +94,8 @@ export default async function Home() {
         <div className={`relative z-10 ${!slides.length ? "mt-4" : artes.length && artes.some((a) => !a.srcMobile) ? "mt-3 md:-mt-[110px] 3xl:-mt-[140px]" : "-mt-16 sm:-mt-20 md:-mt-[110px] 3xl:-mt-[140px]"}`}>
           <CardsDestaque fixos={fixos} promo={promo} />
         </div>
+
+        <BannerGrupoWhats href={grupo} fotos={fotos(ofertas.slice(0, 2))} />
 
         <Secao titulo="Ofertas do dia" href="/busca?ordem=desconto" produtos={ofertas} />
         <Secao titulo="Acabaram de chegar" href="/busca" produtos={novidades} />

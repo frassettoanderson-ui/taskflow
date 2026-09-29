@@ -6,11 +6,13 @@ import { IconeEscudo, IconeLoja, IconePix, IconeWhats } from "@/components/Icone
 import { getConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { soDigitos } from "@/lib/format";
+import { clienteAtual } from "@/lib/conta";
 
 export default async function LojaLayout({ children }: LayoutProps<"/">) {
-  const [cfg, categorias] = await Promise.all([
+  const [cfg, categorias, cliente] = await Promise.all([
     getConfig(),
     db.categoria.findMany({ where: { produtos: { some: { status: "ATIVO" } } }, orderBy: { ordem: "asc" } }),
+    clienteAtual(),
   ]);
   const zap = soDigitos(cfg.loja_whatsapp);
 
@@ -31,12 +33,33 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
               </button>
             </form>
-            <div className="ml-auto flex items-center gap-4">
+            {/* login ao lado da busca (desktop) */}
+            <div className="hidden shrink-0 leading-tight md:block">
+              {cliente ? (
+                <Link href="/conta" className="group block">
+                  <span className="block text-[13px] font-semibold text-white group-hover:text-ouro">Olá, {cliente.nome.split(" ")[0]}</span>
+                  <span className="block text-[12px] text-white/60">Minha conta e pedidos</span>
+                </Link>
+              ) : (
+                <>
+                  <Link href="/entrar" className="inline-block rounded-[6px] border border-ouro px-4 py-1.5 text-[13px] font-semibold text-ouro hover:bg-ouro hover:text-noite">
+                    Entrar
+                  </Link>
+                  <Link href="/cadastro" className="mt-1 block text-[11px] text-white/65 hover:text-white">
+                    Ainda não tem cadastro? <b className="font-semibold text-ouro">Clique aqui!</b>
+                  </Link>
+                </>
+              )}
+            </div>
+            <div className="ml-auto flex items-center gap-3">
               {zap && (
-                <a href={`https://wa.me/55${zap}`} className="hidden text-[13px] text-white/80 hover:text-white lg:block">
+                <a href={`https://wa.me/55${zap}`} className="hidden text-[13px] text-white/80 hover:text-white xl:block">
                   Atendimento
                 </a>
               )}
+              <Link href={cliente ? "/conta" : "/entrar"} aria-label={cliente ? "Minha conta" : "Entrar"} className="flex h-10 w-10 items-center justify-center text-white md:hidden">
+                <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="12" cy="8" r="4" /><path d="M4 20c1.5-3.5 4.5-5 8-5s6.5 1.5 8 5" /></svg>
+              </Link>
               <BotaoCarrinho />
             </div>
           </div>
@@ -50,12 +73,10 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
           </form>
 
           <nav className="sem-barra -mx-3 mt-2 flex items-center gap-5 overflow-x-auto px-3 pb-2.5 text-[13px] text-white/85 md:mx-0 md:px-0">
-            <span className="flex shrink-0 items-center gap-1.5 text-white/85">
-              <IconeLoja className="h-4 w-4 text-ouro" />
-              <span className="leading-tight">
-                <span className="block text-[11px] text-white/55">Retire na loja</span>
-                <span className="block max-w-[170px] truncate">{cfg.loja_endereco}</span>
-              </span>
+            {/* embaixo da logo: só a cidade (depois entra o endereço da loja) */}
+            <span className="flex shrink-0 items-center gap-1.5 text-white/85 md:w-[150px]">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 text-ouro" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z" /><circle cx="12" cy="10" r="2.5" /></svg>
+              {cfg.loja_cidade}
             </span>
             <Link href="/busca" className="shrink-0 hover:text-ouro">Todos os produtos</Link>
             <Link href="/busca?ordem=desconto" className="shrink-0 hover:text-ouro">Ofertas</Link>

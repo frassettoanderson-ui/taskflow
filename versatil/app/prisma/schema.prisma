@@ -60,6 +60,7 @@ model Produto {
   marca             String?
   sku               String? // código do fabricante / embalagem
   aplicacao         String        @default("") // aplicação/compatibilidade, uma por linha
+  videoUrl          String? // link do YouTube ou arquivo enviado (/api/video/...)
   condicao          Condicao      @default(CAIXA_ABERTA)
   categoriaId       String?
   categoria         Categoria?    @relation(fields: [categoriaId], references: [id])
@@ -100,8 +101,11 @@ model Cliente {
   cpf             String?
   email           String?
   asaasCustomerId String?
+  senhaHash       String? // conta na loja (opcional — dá pra comprar sem cadastro)
   criadoEm        DateTime @default(now())
   pedidos         Pedido[]
+
+  @@index([email])
 }
 
 model Pedido {

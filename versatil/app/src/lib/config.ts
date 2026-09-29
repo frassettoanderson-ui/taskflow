@@ -7,6 +7,8 @@ export const CONFIG_PADRAO = {
   loja_endereco: "Endereço da loja — configure no painel",
   loja_horario: "Seg a Sáb, 9h às 18h",
   loja_whatsapp: "",
+  loja_cidade: "Imbituba - SC",
+  loja_grupo_whatsapp: "", // link de convite do grupo de ofertas (chat.whatsapp.com/...)
   parado_amarelo_dias: "8",
   parado_vermelho_dias: "21",
   // disparo nos grupos (fase 2)

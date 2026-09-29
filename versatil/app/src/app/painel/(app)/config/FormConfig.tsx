@@ -14,7 +14,9 @@ export function FormConfig({ cfg }: { cfg: Record<string, string> }) {
   );
   return (
     <form action={acao} className="mt-6 space-y-4">
+      {campo("loja_cidade", "Cidade (aparece embaixo da logo)")}
       {campo("loja_endereco", "Endereço de retirada")}
+      {campo("loja_grupo_whatsapp", "Link do grupo de ofertas no WhatsApp", { placeholder: "https://chat.whatsapp.com/…", inputMode: "url" })}
       {campo("loja_horario", "Horário de atendimento")}
       <label className="block">
         <span className="mb-1 block text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-cinza">WhatsApp da loja</span>

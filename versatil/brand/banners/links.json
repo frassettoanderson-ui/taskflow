@@ -1,4 +1,9 @@
 {
   "01.jpg": "/busca?cat=ferramentas",
-  "02.jpg": "/busca?cat=brinquedos"
+  "02.jpg": "/busca?cat=brinquedos",
+  "03.jpg": "/busca?max=100",
+  "04.jpg": "/busca?cat=casa-e-cozinha",
+  "05.jpg": "",
+  "06.jpg": "@grupo",
+  "07.jpg": "@whats:Olá! Achei um produto mais barato em outra loja e quero que a Versátil cubra o preço."
 }

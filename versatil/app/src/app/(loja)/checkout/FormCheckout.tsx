@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import { useCarrinho } from "@/components/carrinho";
 import { brl, cpfValido, mascaraCpf, mascaraTelefone, soDigitos } from "@/lib/format";
 
-type Props = { endereco: string; horario: string; reservaPix: number; demo: boolean };
+type Props = { endereco: string; horario: string; reservaPix: number; demo: boolean; cliente: { nome: string; telefone: string; cpf: string; email: string } | null };
 
-export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
+export function FormCheckout({ endereco, horario, reservaPix, demo, cliente }: Props) {
   const { itens, pronto, totalCents, limpar, remover } = useCarrinho();
   const router = useRouter();
-  const [nome, setNome] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [email, setEmail] = useState("");
+  const [nome, setNome] = useState(cliente?.nome ?? "");
+  const [telefone, setTelefone] = useState(mascaraTelefone(cliente?.telefone ?? ""));
+  const [cpf, setCpf] = useState(mascaraCpf(cliente?.cpf ?? ""));
+  const [email, setEmail] = useState(cliente?.email ?? "");
   const [metodo, setMetodo] = useState<"PIX" | "CARTAO">("PIX");
   const [erro, setErro] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -93,6 +93,14 @@ export function FormCheckout({ endereco, horario, reservaPix, demo }: Props) {
       </section>
 
       <section className="mt-6 space-y-3">
+        {!cliente && (
+          <p className="text-center text-[12px] text-cinza">
+            Já tem conta?{" "}
+            <Link href="/entrar?voltar=/checkout" className="font-semibold text-ouro-escuro hover:underline">
+              Entre para preencher automaticamente
+            </Link>
+          </p>
+        )}
         <p className="text-center font-mono text-[11px] uppercase tracking-[0.2em] text-ouro-escuro">Seus dados</p>
         <input className="campo" placeholder="Nome completo" autoComplete="name" value={nome} onChange={(e) => setNome(e.target.value)} />
         <input className="campo" placeholder="WhatsApp com DDD" inputMode="tel" autoComplete="tel" value={telefone} onChange={(e) => setTelefone(mascaraTelefone(e.target.value))} />

@@ -5,8 +5,24 @@ import { urlFoto } from "@/lib/uploads-url";
 
 /** Slide de imagem (arte pronta 1920×500, já com degradê) ou slide montado em código (enquanto não há artes). */
 export type Slide =
-  | { tipo: "imagem"; src: string; srcMobile?: string; href: string; alt: string }
+  | { tipo: "imagem"; src: string; srcMobile?: string; href: string | null; alt: string }
   | { tipo: "codigo"; titulo: string; sub: string; cta: string; href: string; fotos: string[] };
+
+/** Link interno, externo (WhatsApp, abre em nova aba) ou nenhum (banner institucional). */
+function Destino({ href, className, children }: { href: string | null; className: string; children: React.ReactNode }) {
+  if (!href) return <div className={className}>{children}</div>;
+  if (/^https?:/.test(href))
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    );
+  return (
+    <Link href={href} className={className}>
+      {children}
+    </Link>
+  );
+}
 
 /** Banner principal de ponta a ponta, como o do Mercado Livre (altura 400px no desktop, 500px em telas largas). */
 export function BannerCarrossel({ slides }: { slides: Slide[] }) {
@@ -23,7 +39,7 @@ export function BannerCarrossel({ slides }: { slides: Slide[] }) {
       <div className="flex transition-transform duration-700" style={{ transform: `translateX(-${i * 100}%)` }}>
         {slides.map((s, k) =>
           s.tipo === "imagem" ? (
-            <Link
+            <Destino
               key={k}
               href={s.href}
               // sem arte de celular: mostra a arte inteira na proporção original (não corta o texto)
@@ -33,7 +49,7 @@ export function BannerCarrossel({ slides }: { slides: Slide[] }) {
                 {s.srcMobile && <source media="(max-width: 767px)" srcSet={s.srcMobile} />}
                 <img src={s.src} alt={s.alt} className="h-full w-full object-cover object-top" />
               </picture>
-            </Link>
+            </Destino>
           ) : (
             <Link
               key={k}
@@ -75,7 +91,7 @@ export function BannerCarrossel({ slides }: { slides: Slide[] }) {
           <button onClick={() => ir(1)} aria-label="Próximo banner" className="absolute right-0 top-[40%] hidden h-16 w-9 -translate-y-1/2 items-center justify-center rounded-l-full bg-white/90 text-2xl text-marfim opacity-0 shadow transition group-hover:opacity-100 md:flex">
             ›
           </button>
-          <div className="absolute left-1/2 top-[64%] flex -translate-x-1/2 gap-1.5 md:top-[56%] 3xl:top-[45%]">
+          <div className="absolute left-1/2 top-3 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/15 px-2 py-1 md:top-4">
             {slides.map((_, k) => (
               <button key={k} onClick={() => setI(k)} aria-label={`Banner ${k + 1}`} className={`h-2 w-2 rounded-full ${k === i ? "bg-white" : "bg-white/45"}`} />
             ))}

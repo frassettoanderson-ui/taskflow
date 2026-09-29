@@ -7,7 +7,7 @@ export const pastaBanners = () => path.join(pastaUploads(), "banners");
 /**
  * Artes do banner principal em UPLOAD_DIR/banners, em ordem de nome:
  *   01.jpg (computador, 1920×500) + 01-mobile.jpg (celular, 1080×660, opcional), 02.jpg…
- * Destino de cada banner (opcional) em links.json: { "01.jpg": "/busca?cat=ferramentas" }.
+ * Destino de cada banner (opcional) em links.json: { "01.jpg": "/busca?cat=ferramentas", "06.jpg": "@grupo" }.
  */
 export async function listarBanners() {
   try {
@@ -19,8 +19,9 @@ export async function listarBanners() {
     return desktop.map((f) => {
       const base = f.replace(/\.\w+$/, "");
       const mobile = arquivos.find((m) => m.replace(/\.\w+$/, "") === `${base}-mobile`);
-      const href = typeof links[f] === "string" && links[f].startsWith("/") ? links[f] : "/busca?ordem=desconto";
-      return { arquivo: f, src: `/api/banner/${f}`, srcMobile: mobile ? `/api/banner/${mobile}` : undefined, href };
+      // destino bruto; resolvido na página com resolverLink() (aceita "/rota", "@grupo", "@whats:msg" ou "")
+      const destino = typeof links[f] === "string" ? links[f] : undefined;
+      return { arquivo: f, src: `/api/banner/${f}`, srcMobile: mobile ? `/api/banner/${mobile}` : undefined, destino };
     });
   } catch {
     return [];

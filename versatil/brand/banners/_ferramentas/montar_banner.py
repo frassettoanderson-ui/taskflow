@@ -15,9 +15,14 @@ faixa = faixa.resize((fw, H), Image.LANCZOS)
 out = Image.new("RGB", (W, H))
 pad = (W - fw) // 2
 # laterais: estica a coluna da borda e desfoca, para o fundo continuar sem emenda
-esq = faixa.crop((0, 0, 6, H)).resize((pad + 40, H)).filter(ImageFilter.GaussianBlur(18))
-dir_ = faixa.crop((fw - 6, 0, fw, H)).resize((W - pad - fw + 40, H)).filter(ImageFilter.GaussianBlur(18))
-out.paste(esq, (0, 0)); out.paste(dir_, (pad + fw - 40, 0)); out.paste(faixa, (pad, 0))
+# laterais: cada linha recebe a média das 30 colunas da borda (fundo liso, sem emenda)
+fa = np.asarray(faixa).astype(float)
+esq_cor = fa[:, :30].mean(axis=1)
+dir_cor = fa[:, -30:].mean(axis=1)
+base = np.zeros((H, W, 3))
+base[:, :pad + 1] = esq_cor[:, None, :]
+base[:, pad + fw - 1:] = dir_cor[:, None, :]
+out = Image.fromarray(base.astype("uint8")); out.paste(faixa, (pad, 0))
 # costura suave entre lateral e faixa
 a = np.asarray(out).astype(float)
 for x0 in (pad, pad + fw):
