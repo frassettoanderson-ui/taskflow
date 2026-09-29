@@ -10,6 +10,7 @@ import { parseReais, slugify, soDigitos } from "@/lib/format";
 import { salvarFoto, apagarFoto, salvarVideo, apagarVideo } from "@/lib/uploads";
 import { avancarStatus, cancelarPedido, estornarPedido, ErroValidacao } from "@/lib/pedidos";
 import { cancelarPendentes, enfileirar, processarFila, sincronizarGrupos } from "@/lib/disparos";
+import { desconectar, estadoConexao, gerarQrCode, perfilConectado } from "@/lib/evolution";
 
 export type Estado = { erro?: string; ok?: string } | undefined;
 
@@ -257,6 +258,43 @@ export async function sincronizarGruposAcao(): Promise<Estado> {
   } catch (e) {
     return { erro: `Não consegui buscar os grupos: ${(e as Error).message}` };
   }
+}
+
+// ---------- conexão do número de disparo ----------
+
+export async function estadoWhatsAcao() {
+  await exigirAdmin();
+  const estado = await estadoConexao();
+  return { estado, perfil: estado === "open" ? await perfilConectado() : null };
+}
+
+export async function gerarQrAcao(): Promise<{ qr?: string; codigo?: string; conectado?: boolean; erro?: string }> {
+  await exigirAdmin();
+  try {
+    return await gerarQrCode();
+  } catch (e) {
+    return { erro: (e as Error).message };
+  }
+}
+
+/** Chamado quando o número acabou de conectar: já traz os grupos em que ele está. */
+export async function aoConectarAcao() {
+  await exigirAdmin();
+  try {
+    await sincronizarGrupos();
+  } catch {}
+  revalidatePath("/painel/disparos");
+}
+
+export async function desconectarWhatsAcao(): Promise<Estado> {
+  await exigirAdmin();
+  try {
+    await desconectar();
+  } catch (e) {
+    return { erro: (e as Error).message };
+  }
+  revalidatePath("/painel/disparos");
+  return { ok: "Número desconectado." };
 }
 
 export async function dispararProduto(produtoId: string) {

@@ -1,23 +1,16 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { getConfig } from "@/lib/config";
-import { estadoConexao } from "@/lib/evolution";
+import { estadoConexao, perfilConectado } from "@/lib/evolution";
 import { linkProduto } from "@/lib/disparos";
 import { montarMensagem } from "@/lib/mensagem";
 import { brl } from "@/lib/format";
 import { BotaoSincronizar, CancelarProduto, ControlesFila, ToggleGrupo } from "./Controles";
 import { FormDisparoConfig } from "./FormDisparoConfig";
+import { ConexaoWhats } from "./ConexaoWhats";
 import { exigirAdmin } from "@/lib/auth";
 
 const fmt = (d: Date) => d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-
-const CONEXAO: Record<string, [string, string]> = {
-  demo: ["Modo demonstração", "Sem WhatsApp conectado: os envios são simulados e os grupos são de teste."],
-  open: ["WhatsApp conectado", "Pronto para disparar."],
-  connecting: ["Conectando…", "Aguardando o WhatsApp parear."],
-  close: ["WhatsApp desconectado", "Leia o QR Code no painel da Evolution para reconectar."],
-  erro: ["Sem resposta da Evolution", "Confira EVOLUTION_URL / chave / instância no servidor."],
-};
 
 function janelas() {
   const hoje = new Date(Date.now() - 3 * 3600_000); // meia-noite em Brasília
@@ -32,7 +25,7 @@ export default async function Disparos() {
   const [cfg, conexao, grupos, pendentes, filaPorProduto, recentes, enviadosHoje, falhas, cliques, vendas, ultimo] = await Promise.all([
     getConfig(),
     estadoConexao(),
-    db.grupo.findMany({ orderBy: [{ ativo: "desc" }, { nome: "asc" }] }),
+    db.grupo.findMany({ where: { presente: true }, orderBy: [{ ativo: "desc" }, { nome: "asc" }] }),
     db.disparo.count({ where: { status: "PENDENTE" } }),
     db.disparo.groupBy({ by: ["produtoId"], where: { status: "PENDENTE" }, _count: true }),
     db.disparo.findMany({
@@ -57,7 +50,7 @@ export default async function Disparos() {
   const enviadosPorGrupo = await db.disparo.groupBy({ by: ["grupoId"], where: { status: "ENVIADO", enviadoEm: { gte: seteDias } }, _count: true });
 
   const ativo = cfg.disparo_ativo === "1";
-  const [titConexao, subConexao] = CONEXAO[conexao];
+  const perfil = conexao === "open" ? await perfilConectado() : null;
   const ativos = grupos.filter((g) => g.ativo);
   const previa = ultimo ? montarMensagem(ultimo, linkProduto(ultimo.slug, ativos[0]?.numero), "NOVO", "previa") : null;
 
@@ -67,11 +60,7 @@ export default async function Disparos() {
 
       <div className="mt-5 grid gap-4 md:grid-cols-2">
         <section className="rounded-2xl border filete bg-white p-5 text-center">
-          <p className={`inline-flex items-center gap-2 text-sm font-bold ${conexao === "open" ? "text-jade" : conexao === "demo" ? "text-ouro-escuro" : "text-rubi"}`}>
-            <span className={`h-2 w-2 rounded-full ${conexao === "open" ? "bg-jade" : conexao === "demo" ? "bg-ouro" : "bg-rubi"}`} />
-            {titConexao}
-          </p>
-          <p className="mt-1 text-xs text-cinza">{subConexao}</p>
+          <ConexaoWhats estadoInicial={conexao} perfilInicial={perfil} />
           <div className="mt-4 grid grid-cols-3 gap-2">
             {[
               ["Na fila", pendentes],
@@ -87,6 +76,8 @@ export default async function Disparos() {
           <p className="mt-3 text-xs text-cinza">
             {!ativo
               ? "Fila pausada."
+              : conexao !== "open" && conexao !== "demo"
+                ? "Fila parada até o número conectar."
               : pendentes
                 ? `Próximo envio ${proximo && new Date(proximo) > new Date() ? `por volta de ${fmt(new Date(proximo))}` : "em instantes"} · horário ${cfg.disparo_hora_inicio}h–${cfg.disparo_hora_fim}h`
                 : "Fila vazia."}
@@ -132,26 +123,41 @@ export default async function Disparos() {
           <BotaoSincronizar />
         </div>
         {grupos.length === 0 ? (
-          <p className="rounded-2xl border filete p-6 text-center text-sm text-cinza">Nenhum grupo ainda. Clique em “Buscar grupos do WhatsApp”.</p>
+          <p className="rounded-2xl border filete p-6 text-center text-sm text-cinza">{conexao === "demo" || conexao === "open" ? "Nenhum grupo ainda. Clique em “Atualizar grupos”." : "Conecte o número acima: os grupos em que ele está aparecem aqui."}</p>
         ) : (
-          <ul className="grid gap-2 md:grid-cols-2">
-            {grupos.map((g) => {
-              const env = enviadosPorGrupo.find((e) => e.grupoId === g.id)?._count ?? 0;
-              const cli = cliques.find((c) => c.grupoId === g.id)?._count ?? 0;
-              const ven = vendas.find((v) => v.origemGrupo === String(g.numero));
-              return (
-                <li key={g.id} className="flex items-center gap-3 rounded-xl border filete bg-white px-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="line-clamp-1 text-sm font-semibold">{g.nome}</p>
-                    <p className="text-[11px] text-cinza">
-                      {g.participantes ? `${g.participantes} membros · ` : ""}7 dias: {env} envios · {cli} cliques · {ven?._count ?? 0} vendas{ven?._sum.totalCents ? ` (${brl(ven._sum.totalCents)})` : ""}
-                    </p>
-                  </div>
-                  <ToggleGrupo id={g.id} ativo={g.ativo} />
-                </li>
-              );
-            })}
-          </ul>
+          <div className="overflow-x-auto rounded-2xl border filete bg-white">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="bg-grafite text-left text-[11px] uppercase tracking-wider text-cinza">
+                <tr>
+                  <th className="px-3 py-2">Grupo</th>
+                  <th className="px-3 py-2 text-center">Membros</th>
+                  <th className="px-3 py-2 text-center">Envios 7d</th>
+                  <th className="px-3 py-2 text-center">Cliques 7d</th>
+                  <th className="px-3 py-2 text-center">Vendas 7d</th>
+                  <th className="px-3 py-2 text-right">Receita 7d</th>
+                  <th className="px-3 py-2 text-center">Recebe ofertas</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-fio">
+                {grupos.map((g) => {
+                  const env = enviadosPorGrupo.find((e) => e.grupoId === g.id)?._count ?? 0;
+                  const cli = cliques.find((c) => c.grupoId === g.id)?._count ?? 0;
+                  const ven = vendas.find((v) => v.origemGrupo === String(g.numero));
+                  return (
+                    <tr key={g.id} className={g.ativo ? "" : "text-cinza"}>
+                      <td className="px-3 py-2 font-semibold">{g.nome}</td>
+                      <td className="px-3 py-2 text-center">{g.participantes ?? "—"}</td>
+                      <td className="px-3 py-2 text-center">{env}</td>
+                      <td className="px-3 py-2 text-center">{cli}</td>
+                      <td className="px-3 py-2 text-center">{ven?._count ?? 0}</td>
+                      <td className="px-3 py-2 text-right">{ven?._sum.totalCents ? brl(ven._sum.totalCents) : "—"}</td>
+                      <td className="px-3 py-2"><div className="flex justify-center"><ToggleGrupo id={g.id} ativo={g.ativo} /></div></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

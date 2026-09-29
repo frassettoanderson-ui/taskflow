@@ -38,6 +38,9 @@ Decisão: construído DENTRO do app Versátil (mesmo banco/estoque), inspirado n
 - Testado: 6 disparos (2 produtos × 3 grupos) com textos diferentes por grupo; venda atribuída ao grupo; clique registrado.
 - Produtos de exemplo (seed, só dev): fotos do Unsplash (licença livre) em `app/prisma/demo/` + o comutador Facobras do print do usuário.
 
+- **Conexão do número (29/09):** na própria tela Disparos (quadro de envios): status, botão "Conectar número (QR Code)" — cria a instância na Evolution se não existir (`EVOLUTION_INSTANCE`, padrão `versatil`), mostra o QR, confere a cada 3s e renova o QR a cada 40s; ao conectar já puxa os grupos. "Desconectar / trocar número" = logout. Grupos em LISTA (tabela), só os grupos em que o número está (`Grupo.presente`; os que ele saiu somem e param de receber). Fila segura sozinha enquanto o número estiver desconectado. Testado com Evolution simulada local.
+- Decisão do usuário (29/09): usar a **Evolution da primeira VPS**; 1 número que fica em todos os grupos só publicando.
+
 ### Pendências → produção
 - Chave **sandbox** do Asaas da loja + walletId do Anderson para testar integração real (NÃO reaproveitar chaves da Nauta).
 - Conferir no sandbox como o split é revertido no estorno.

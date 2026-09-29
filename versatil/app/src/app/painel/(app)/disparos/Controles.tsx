@@ -33,7 +33,7 @@ export function BotaoSincronizar() {
   return (
     <form action={acao} className="text-center">
       <button disabled={pend} className="rounded-xl border border-ouro-escuro px-4 py-2 text-xs font-semibold text-ouro-escuro">
-        {pend ? "Buscando grupos…" : "Buscar grupos do WhatsApp"}
+        {pend ? "Atualizando…" : "Atualizar grupos"}
       </button>
       {estado?.ok && <p className="mt-2 text-xs text-jade">{estado.ok}</p>}
       {estado?.erro && <p className="mt-2 text-xs text-rubi">{estado.erro}</p>}

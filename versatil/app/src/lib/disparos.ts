@@ -8,7 +8,7 @@ import type { TipoDisparo } from "@prisma/client";
 import { db } from "./db";
 import { getConfig } from "./config";
 import { montarMensagem } from "./mensagem";
-import { enviarImagem, listarGrupos, whatsDemo } from "./evolution";
+import { enviarImagem, estadoConexao, listarGrupos, whatsDemo } from "./evolution";
 import { pastaUploads } from "./uploads";
 
 const urlPublica = () => (process.env.PUBLIC_URL || "http://localhost:3100").replace(/\/$/, "");
@@ -16,7 +16,7 @@ export const linkProduto = (slug: string, grupoNumero?: number) => `${urlPublica
 
 /** Coloca o produto na fila de todos os grupos ativos. Não duplica se já houver pendente para o mesmo grupo. */
 export async function enfileirar(produtoId: string, tipo: TipoDisparo = "NOVO") {
-  const grupos = await db.grupo.findMany({ where: { ativo: true }, select: { id: true } });
+  const grupos = await db.grupo.findMany({ where: { ativo: true, presente: true }, select: { id: true } });
   if (!grupos.length) return 0;
   const jaNaFila = new Set(
     (await db.disparo.findMany({ where: { produtoId, status: { in: ["PENDENTE", "ENVIANDO"] } }, select: { grupoId: true } })).map((d) => d.grupoId),
@@ -68,6 +68,8 @@ export async function processarFila(): Promise<string> {
       include: { grupo: true },
     });
     if (!candidatos.length) return "fila vazia";
+    // número caiu/desconectou: segura a fila (não queima os envios como falha)
+    if (!whatsDemo() && (await estadoConexao()) !== "open") return "whatsapp desconectado";
 
     const gapMs = Number(cfg.disparo_intervalo_grupo_min) * 60_000;
     const ultimos = await db.disparo.groupBy({
@@ -79,7 +81,7 @@ export async function processarFila(): Promise<string> {
 
     let escolhido: (typeof candidatos)[number] | undefined;
     for (const c of candidatos) {
-      if (!c.grupo.ativo) {
+      if (!c.grupo.ativo || !c.grupo.presente) {
         await db.disparo.update({ where: { id: c.id }, data: { status: "CANCELADO", erro: "grupo desativado" } });
         continue;
       }
@@ -144,9 +146,11 @@ export async function sincronizarGrupos() {
   }
   const grupos = await listarGrupos();
   let novos = 0;
+  // grupos em que o número não está mais (e os de teste do modo demonstração) saem da lista
+  await db.grupo.updateMany({ where: { jid: { notIn: grupos.map((g) => g.jid) } }, data: { presente: false, ativo: false } });
   for (const g of grupos) {
     const ex = await db.grupo.findUnique({ where: { jid: g.jid } });
-    if (ex) await db.grupo.update({ where: { id: ex.id }, data: { nome: g.nome, participantes: g.participantes ?? ex.participantes } });
+    if (ex) await db.grupo.update({ where: { id: ex.id }, data: { nome: g.nome, participantes: g.participantes ?? ex.participantes, presente: true } });
     else {
       await db.grupo.create({ data: { jid: g.jid, nome: g.nome, participantes: g.participantes, ativo: false } });
       novos++;

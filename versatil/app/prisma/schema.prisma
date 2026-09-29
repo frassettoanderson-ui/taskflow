@@ -226,6 +226,7 @@ model Grupo {
   nome          String
   participantes Int?
   ativo         Boolean   @default(false)
+  presente      Boolean   @default(true) // false = o número saiu do grupo (some da lista e não recebe envios)
   criadoEm      DateTime  @default(now())
   disparos      Disparo[]
   cliques       Clique[]
