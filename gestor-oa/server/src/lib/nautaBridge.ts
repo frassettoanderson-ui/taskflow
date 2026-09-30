@@ -214,4 +214,18 @@ export async function sincronizarDoNauta(nautaClienteId: string): Promise<string
   }
 }
 
+// Devolve o lead ao Onboarding no ERP (volta pro Kanban/lista de onboarding).
+export async function reabrirOnboardingNoNauta(nautaLeadId: string): Promise<void> {
+  const db = clienteNauta();
+  if (!db || !nautaLeadId) return;
+  try {
+    await db.$executeRawUnsafe(
+      `UPDATE leads SET em_onboarding = true, onboarding_concluido = false WHERE id = $1::uuid`,
+      nautaLeadId,
+    );
+  } catch (err) {
+    console.error('[nautaBridge] falha ao reabrir onboarding', nautaLeadId, err);
+  }
+}
+
 export type { Prisma };

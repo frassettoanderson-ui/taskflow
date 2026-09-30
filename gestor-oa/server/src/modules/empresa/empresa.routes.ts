@@ -14,6 +14,7 @@ import { sendMail } from '../../lib/mailer.js';
 import { env } from '../../env.js';
 import { addMinutes } from 'date-fns';
 import * as svc from './empresa.service.js';
+import { reabrirOnboardingNoNauta } from '../../lib/nautaBridge.js';
 import {
   criarEmpresaSchema,
   editarEmpresaSchema,
@@ -168,6 +169,14 @@ router.post(
 router.get('/:id', async (req, res) => {
   const e = await svc.obter(req.auth!.escritorioId, req.params.id);
   return ok(res, e);
+});
+
+// Devolve a empresa ao Onboarding: some da lista de Empresas e volta pro Kanban/lista de onboarding.
+router.post('/:id/reabrir-onboarding', requirePermission('empresas_editar'), async (req, res) => {
+  const e = await svc.obter(req.auth!.escritorioId, req.params.id);
+  await prisma.empresa.update({ where: { id: e.id }, data: { onboardingConcluido: false } });
+  if (e.nautaLeadId) await reabrirOnboardingNoNauta(e.nautaLeadId);
+  return ok(res, { reaberto: true });
 });
 
 router.put(
