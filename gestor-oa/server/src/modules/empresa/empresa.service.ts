@@ -239,6 +239,7 @@ interface CriarInput {
   proprietarioCpf?: string | null;
   usaGlp?: boolean | null;
   certSenha?: string | null;
+  contabilidade?: 'atuan' | 'nauta';
   filiais?: unknown[] | null;
   socios?: SocioInput[];
   nautaClienteId?: string | null;
@@ -310,6 +311,7 @@ export async function criar(escritorioId: string, input: CriarInput) {
       proprietarioCpf: input.proprietarioCpf || null,
       usaGlp: input.usaGlp ?? null,
       certSenha: input.certSenha ?? null,
+      contabilidade: input.contabilidade ?? 'atuan',
       filiais: input.filiais == null ? undefined : (input.filiais as Prisma.InputJsonValue),
       nautaClienteId: input.nautaClienteId || null,
       nautaLeadId: input.nautaLeadId || null,
@@ -429,6 +431,7 @@ export async function editar(
       proprietarioCpf: input.proprietarioCpf === undefined ? empresa.proprietarioCpf : input.proprietarioCpf || null,
       usaGlp: input.usaGlp === undefined ? empresa.usaGlp : input.usaGlp,
       certSenha: input.certSenha === undefined ? empresa.certSenha : (input.certSenha || null),
+      contabilidade: input.contabilidade === undefined ? empresa.contabilidade : input.contabilidade,
       filiais: input.filiais === undefined ? undefined : (input.filiais == null ? Prisma.JsonNull : (input.filiais as Prisma.InputJsonValue)),
       nautaClienteId: input.nautaClienteId === undefined ? empresa.nautaClienteId : input.nautaClienteId || null,
       nautaLeadId: input.nautaLeadId === undefined ? empresa.nautaLeadId : input.nautaLeadId || null,

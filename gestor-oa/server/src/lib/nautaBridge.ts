@@ -82,11 +82,12 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
            valor_honorario=COALESCE($2::numeric, valor_honorario), valor_abertura=COALESCE($3::numeric, valor_abertura),
            negociacao_obs=$4, honorario_vencimento=COALESCE($5::date, honorario_vencimento),
            interesse=COALESCE($6, interesse), nome=COALESCE($7, nome),
-           email=COALESCE($8, email), whatsapp=COALESCE($9, whatsapp)
+           email=COALESCE($8, email), whatsapp=COALESCE($9, whatsapp), contabilidade=$10
          WHERE id=$1::uuid`,
         e.nautaLeadId, num(e.honorario), num(e.valorAbertura), nz(e.negociacaoObs),
         e.primeiroVencimento ? e.primeiroVencimento.toISOString().slice(0, 10) : null,
         nz(e.interesse), nz(t?.nomeCompleto), nz(e.emailPrincipal), nz(e.telefone),
+        e.contabilidade || 'atuan',
       );
     }
   } catch (err) {

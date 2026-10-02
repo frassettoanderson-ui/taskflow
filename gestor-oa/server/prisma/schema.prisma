@@ -383,6 +383,7 @@ model Empresa {
   proprietarioCpf      String?
   usaGlp               Boolean?
   certSenha            String?           // senha do certificado digital da empresa (e-CNPJ) — fica na seção Arquivos anexos
+  contabilidade        String    @default("atuan") // 'atuan' | 'nauta' — "nauta" fica FORA da cobrança automática (controle manual)
   filiais              Json?             // [{ cnpj, fantasia, municipio, estado, telefone }]
   nautaClienteId       String?   @unique // vínculo com clientes.id do ERP (ponte até a fusão)
   nautaLeadId          String?           // vínculo com leads.id do ERP (honorário/Asaas/onboarding)
