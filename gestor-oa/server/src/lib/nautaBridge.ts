@@ -77,6 +77,16 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
 
     // Lead (honorário, abertura, condições, tipo de contrato, contato principal)
     if (e.nautaLeadId) {
+      // WhatsApp do lead = do RESPONSÁVEL (contato Titular), que é para onde vai a cobrança —
+      // nunca o telefone fixo da empresa. Prefere celular (11 dígitos) e o contato mais antigo.
+      const contatos = await prisma.empresaContato.findMany({
+        where: { empresaId, whatsapp: { not: null } }, orderBy: { createdAt: 'asc' },
+      });
+      const dig = (v: string | null) => (v ?? '').replace(/\D/g, '');
+      const titulares = contatos.filter((c) => (c.cargo ?? '').toLowerCase() === 'titular');
+      const candidatos = titulares.length ? titulares : contatos;
+      const resp = candidatos.find((c) => dig(c.whatsapp).length === 11) ?? candidatos[0];
+      const whatsResp = resp?.whatsapp ? nz(resp.whatsapp) : null;
       await db.$executeRawUnsafe(
         `UPDATE leads SET
            valor_honorario=COALESCE($2::numeric, valor_honorario), valor_abertura=COALESCE($3::numeric, valor_abertura),
@@ -86,7 +96,7 @@ export async function sincronizarComNauta(empresaId: string): Promise<void> {
          WHERE id=$1::uuid`,
         e.nautaLeadId, num(e.honorario), num(e.valorAbertura), nz(e.negociacaoObs),
         e.primeiroVencimento ? e.primeiroVencimento.toISOString().slice(0, 10) : null,
-        nz(e.interesse), nz(t?.nomeCompleto), nz(e.emailPrincipal), nz(e.telefone),
+        nz(e.interesse), nz(t?.nomeCompleto), nz(e.emailPrincipal), whatsResp,
         e.contabilidade || 'atuan',
       );
     }
@@ -206,7 +216,7 @@ export async function sincronizarDoNauta(nautaClienteId: string): Promise<string
     if (nomeContato) {
       const jaC = await prisma.empresaContato.findFirst({ where: { empresaId: empId, nome: nomeContato } });
       if (!jaC) await prisma.empresaContato.create({ data: { escritorioId, empresaId: empId, nome: nomeContato,
-        email: nz(c.cli_email) || nz(c.l_email), whatsapp: nz(c.emp_telefone) || nz(c.l_whatsapp), cargo: 'Titular' } });
+        email: nz(c.cli_email) || nz(c.l_email), whatsapp: nz(c.l_whatsapp) || nz(c.emp_telefone), cargo: 'Titular' } });
     }
     return empId;
   } catch (err) {
