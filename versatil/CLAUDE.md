@@ -52,6 +52,13 @@ Decisão: construído DENTRO do app Versátil (mesmo banco/estoque), inspirado n
 - `Produto.fichaTecnica` (Json [{nome, valor}]) vira a tabela "Características" na loja; no painel é um campo "Item: valor" por linha.
 - Testado 05/10 (simulação, sem chaves): código de acesso → login no celular → 3 fotos → EAN lido → preço simulado → publicar 2 un. → produto com 2 fotos + ficha + fila de etiquetas → etiquetas marcadas como impressas. ⚠️ `.env` de dev aponta para a Evolution real (instância L3 salvados): grupos demo foram DESATIVADOS e disparos de teste cancelados.
 
+### 🚀 No ar para testes (05/10/2026) — http://89.117.79.163:8330
+- VPS do Julius (89.117.79.163), escolhida pelo usuário. App `/var/www/l3salvados`, PM2 `l3salvados` (127.0.0.1:3230, TZ SP), nginx `/etc/nginx/sites-available/l3salvados` :8330 (body 80m), banco Postgres 14 local `l3salvados` (role própria; senha só no `.env` da VPS, chmod 600).
+- `.env` da VPS: COOKIE_SECURE=false (sem HTTPS), PUBLIC_URL http://IP:8330, UPLOAD_DIR /var/www/l3salvados/uploads, **GEMINI = chave do Julius TEMPORÁRIA** (usuário autorizou só p/ testes; trocar pela da loja). Sem EVOLUTION (WhatsApp demo), sem ML (simulação), sem ASAAS (demo). `disparo_ativo=0` (fila pausada — usuário avisa quando rodar).
+- Dados: banco de teste do PC levado com `scripts/dados.ts exportar|importar` (PG18→PG14) + `uploads/`. Senhas fracas de dev TROCADAS: acessos em `/root/l3salvados-acesso.txt` na VPS; códigos de recebimento de teste cancelados.
+- Deploy: `bash scripts/deploy-vps.sh` dentro de `versatil/app` (git archive do HEAD → npm ci → db push → build → pm2 reload). `.env` e `uploads/` da VPS não são tocados.
+- Falta: domínio → certbot + COOKIE_SECURE=true + PUBLIC_URL https + `cadastro.<domínio>`; WhatsApp (Evolution da Contabo só escuta 127.0.0.1 — decidir como a VPS do Julius alcança: túnel/serviço autossh ou expor com IP liberado); chave Gemini própria; app do ML; firewall (UFW) da VPS está OFF.
+
 ### Pendências → produção
 - Chave **sandbox** do Asaas da loja + walletId do Anderson para testar integração real (NÃO reaproveitar chaves da Nauta).
 - Conferir no sandbox como o split é revertido no estorno.
