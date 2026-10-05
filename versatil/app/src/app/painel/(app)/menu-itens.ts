@@ -18,6 +18,8 @@ export const I = {
   config: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-3a7.4 7.4 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7.3 7.3 0 0 0-2-1.2L14.5 3h-4l-.4 2.6a7.3 7.3 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2.4l-2 1.6 2 3.4 2.4-1a7.3 7.3 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7.3 7.3 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2Z",
   usuarios: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 10v-1a6 6 0 0 1 12 0v1",
   mais: "M4 6h16M4 12h16M4 18h16",
+  camera: "M4 8h3l1.5-2h7L17 8h3v11H4zM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z",
+  etiqueta: "M3 12V4h8l10 10-8 8L3 12Zm5-4h.01",
 };
 
 export const GRUPOS: { titulo: string; itens: Item[] }[] = [
@@ -30,7 +32,9 @@ export const GRUPOS: { titulo: string; itens: Item[] }[] = [
     itens: [
       { href: "/painel/pedidos", rotulo: "Pedidos", icone: I.pedidos },
       { href: "/painel/produtos", rotulo: "Produtos", icone: I.produtos, admin: true },
+      { href: "/recebimento", rotulo: "Cadastro rápido (celular)", icone: I.camera, admin: true },
       { href: "/painel/produtos/novo", rotulo: "Cadastrar produto", icone: I.cadastrar, admin: true },
+      { href: "/painel/etiquetas", rotulo: "Etiquetas", icone: I.etiqueta, admin: true },
       { href: "/painel/disparos", rotulo: "Disparos WhatsApp", icone: I.disparos, admin: true },
     ],
   },

@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   turbopack: { root: path.join(__dirname) },
-  serverExternalPackages: ["sharp", "embedded-postgres"],
+  serverExternalPackages: ["sharp", "embedded-postgres", "zxing-wasm"],
   experimental: {
     serverActions: { bodySizeLimit: "80mb" }, // fotos (comprimidas no navegador) + vídeo curto do produto
   },

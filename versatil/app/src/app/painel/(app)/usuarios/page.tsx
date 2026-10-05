@@ -1,12 +1,15 @@
 import { exigirAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { FormUsuario, ToggleUsuario } from "./FormUsuario";
+import { CodigosCadastro } from "./CodigosCadastro";
+import { diaBR } from "@/lib/periodo";
 
 export const metadata = { title: "Usuários" };
 
 export default async function Usuarios() {
   const eu = await exigirAdmin();
   const usuarios = await db.usuario.findMany({ orderBy: [{ ativo: "desc" }, { nome: "asc" }] });
+  const codigos = await db.tokenCadastro.findMany({ orderBy: [{ ativo: "desc" }, { criadoEm: "desc" }] });
   return (
     <div className="mx-auto max-w-4xl">
       <h1 className="text-2xl font-extrabold">Usuários do painel</h1>
@@ -32,6 +35,7 @@ export default async function Usuarios() {
           <FormUsuario />
         </div>
       </div>
+      <CodigosCadastro codigos={codigos.map((c) => ({ id: c.id, nome: c.nome, final: c.final, ativo: c.ativo, ultimoUso: c.ultimoUsoEm ? diaBR(c.ultimoUsoEm) : null }))} />
     </div>
   );
 }

@@ -92,12 +92,15 @@ export default async function PaginaProduto({ params, searchParams }: PageProps<
     ...(p.marca ? [`Marca: ${p.marca}.`] : []),
     ...(p.sku ? [`Código/SKU: ${p.sku}.`] : []),
   ];
+  const ficha = (Array.isArray(p.fichaTecnica) ? (p.fichaTecnica as { nome: string; valor: string }[]) : []).filter((f) => f?.nome && f?.valor);
+  const naFicha = new Set(ficha.map((f) => f.nome.toLowerCase()));
   const caracteristicas: [string, string][] = [
-    ["Marca", p.marca ?? "—"],
+    ...(naFicha.has("marca") ? [] : ([["Marca", p.marca ?? "—"]] as [string, string][])),
     ["Código / SKU", p.sku ?? "—"],
     ["Condição", cond.rotulo],
     ["Categoria", p.categoria?.nome ?? "—"],
     ...(aplicacao.length ? ([["Aplicação", aplicacao.join(", ")]] as [string, string][]) : []),
+    ...ficha.map((f) => [f.nome, f.valor] as [string, string]),
   ];
   const linkPublico = `${(process.env.PUBLIC_URL || "").replace(/\/$/, "")}/p/${p.slug}`;
   const zap = soDigitos(cfg.loja_whatsapp);

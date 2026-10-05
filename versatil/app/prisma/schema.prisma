@@ -77,6 +77,10 @@ model Produto {
   vendidos          Int           @default(0)
   status            StatusProduto @default(ATIVO)
   visualizacoes     Int           @default(0)
+  fichaTecnica      Json? // [{ nome, valor }] — vira a tabela "Características" (vem do catálogo do Mercado Livre)
+  cadastradoPor     String? // quem cadastrou (usuário do painel ou código de acesso do cadastro rápido)
+  etiquetaPendente  Boolean       @default(false) // na fila "A imprimir" da tela de etiquetas
+  etiquetaImpressaEm DateTime?
   publicadoEm       DateTime?
   ultimaVendaEm     DateTime?
   criadoEm          DateTime      @default(now())
@@ -424,4 +428,42 @@ model Lancamento {
   @@index([status, vencimento])
   @@index([tipo, pagoEm])
   @@index([pedidoId])
+}
+
+// ---------- cadastro rápido (celular) ----------
+
+enum StatusRascunho {
+  PROCESSANDO // IA + Mercado Livre trabalhando
+  PRONTO // aguardando a pessoa conferir
+  ERRO
+  PUBLICADO
+  DESCARTADO
+}
+
+/** Produto fotografado no cadastro rápido, antes de virar Produto (modo esteira). */
+model CadastroRascunho {
+  id           String         @id @default(cuid())
+  status       StatusRascunho @default(PROCESSANDO)
+  fotos        String[] // nomes base das fotos já salvas (1ª = capa, 2ª = código de barras)
+  ean          String?
+  dados        Json? // { ident, ficha, destaques, descricao }
+  preco        Json? // ResultadoPreco
+  erro         String?
+  autor        String
+  produtoId    String?
+  criadoEm     DateTime       @default(now())
+  atualizadoEm DateTime       @updatedAt
+
+  @@index([status, criadoEm])
+}
+
+/** Código de acesso do cadastro rápido (um por pessoa). Guardado só o hash. */
+model TokenCadastro {
+  id          String    @id @default(cuid())
+  nome        String
+  hash        String    @unique
+  final       String // últimos 2 dígitos, para identificar na lista
+  ativo       Boolean   @default(true)
+  criadoEm    DateTime  @default(now())
+  ultimoUsoEm DateTime?
 }

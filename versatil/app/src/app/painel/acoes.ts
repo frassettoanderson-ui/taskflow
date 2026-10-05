@@ -66,6 +66,13 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
       .filter(Boolean)
       .join("\n"),
   };
+  const fichaTecnica = String(fd.get("fichaTecnica") || "")
+    .split("\n")
+    .map((l) => {
+      const i = l.indexOf(":");
+      return i > 0 ? { nome: l.slice(0, i).trim(), valor: l.slice(i + 1).trim() } : null;
+    })
+    .filter((f): f is { nome: string; valor: string } => !!f && !!f.nome && !!f.valor);
   const disparar = fd.get("disparar") === "on";
   const videoArquivo = fd.get("videoArquivo");
   const videoLink = String(fd.get("videoLink") || "").trim();
@@ -91,6 +98,9 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
         titulo, slug, condicao, categoriaId,
         descricao: String(fd.get("descricao") || ""),
         ...extras,
+        fichaTecnica,
+        cadastradoPor: u.nome,
+        etiquetaPendente: true,
         precoCents: preco, precoMercadoCents: mercado, custoCents: custo,
         estoqueDisponivel: estoque, status,
         publicadoEm: status === "ATIVO" ? new Date() : null,
@@ -113,6 +123,7 @@ export async function salvarProduto(_: Estado, fd: FormData): Promise<Estado> {
         titulo, slug, condicao, categoriaId,
         descricao: String(fd.get("descricao") || ""),
         ...extras,
+        fichaTecnica,
         precoCents: preco, precoMercadoCents: mercado, custoCents: custo,
         ...(mexeuEstoque ? { estoqueDisponivel: estoque } : {}),
         status,

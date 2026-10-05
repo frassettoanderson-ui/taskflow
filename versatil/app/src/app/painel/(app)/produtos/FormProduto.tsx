@@ -5,6 +5,7 @@ import { salvarProduto } from "../../acoes";
 import { CONDICOES, descontoPct, mascaraMoeda, parseReais } from "@/lib/format";
 import { urlFoto } from "@/lib/uploads-url";
 import { PesquisaPreco } from "./PesquisaPreco";
+import { comprimir } from "@/lib/comprimir";
 import type { Identificacao, ResultadoPreco } from "@/lib/precoMercado";
 
 type Produto = {
@@ -22,6 +23,7 @@ type Produto = {
   videoUrl: string | null;
   precoCents: number;
   precoMercadoCents: number | null;
+  fichaTecnica?: unknown;
   custoCents: number | null;
   estoqueDisponivel: number;
   estoqueReservado: number;
@@ -31,22 +33,6 @@ type Produto = {
 
 const reais = (c?: number | null) => (c ? mascaraMoeda(String(c)) : "");
 
-/** Reduz a foto no próprio celular antes de enviar (upload rápido no 4G). */
-async function comprimir(f: File): Promise<File> {
-  if (!f.type.startsWith("image/") || f.size < 400_000) return f;
-  try {
-    const bmp = await createImageBitmap(f);
-    const esc = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
-    const c = document.createElement("canvas");
-    c.width = Math.round(bmp.width * esc);
-    c.height = Math.round(bmp.height * esc);
-    c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
-    const blob: Blob = await new Promise((r) => c.toBlob((b) => r(b!), "image/jpeg", 0.85));
-    return new File([blob], f.name.replace(/\.\w+$/, ".jpg"), { type: "image/jpeg" });
-  } catch {
-    return f;
-  }
-}
 
 export function FormProduto({
   produto,
@@ -89,6 +75,8 @@ export function FormProduto({
     if (cat) por("categoriaId", cat.id);
   }
   function aplicarPreco(r: ResultadoPreco) {
+    const ficha = formRef.current?.elements.namedItem("fichaTecnica") as HTMLTextAreaElement | null;
+    if (ficha && !ficha.value.trim() && r.catalogo?.ficha.length) ficha.value = r.catalogo.ficha.map((f) => `${f.nome}: ${f.valor}`).join("\n");
     setMercado(mascaraMoeda(String(r.medianaCents)));
     setPreco(mascaraMoeda(String(r.sugeridoCents)));
   }
@@ -255,6 +243,16 @@ export function FormProduto({
         </label>
       </section>
 
+      <label className="block">
+        <span className="mb-1 block text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-cinza">Ficha técnica — uma por linha, “Item: valor” (vira “Características” na loja)</span>
+        <textarea
+          name="fichaTecnica"
+          rows={5}
+          defaultValue={(Array.isArray(produto?.fichaTecnica) ? (produto!.fichaTecnica as { nome: string; valor: string }[]) : []).map((f) => `${f.nome}: ${f.valor}`).join("\n")}
+          placeholder={"Voltagem: 127V\nPotência: 1500W\nCapacidade: 4,1 L"}
+          className="campo text-sm"
+        />
+      </label>
       <textarea name="descricao" defaultValue={produto?.descricao} rows={4} placeholder="Descrição: o que acompanha, detalhes da avaria, voltagem…" className="campo" />
 
       <section>
