@@ -6,6 +6,7 @@ import { brl, mascaraCpf, mascaraTelefone, STATUS_PEDIDO } from "@/lib/format";
 import { AcoesRapidas } from "../AcoesRapidas";
 import { FormEstorno } from "./FormEstorno";
 import { FORMAS } from "@/lib/lojafisica";
+import { MARCA } from "@/lib/marca";
 
 const METODO = { PIX: "Pix", CARTAO: "Cartão", DINHEIRO: "Dinheiro", DEBITO: "Débito", MISTO: "Pagamento misto" } as const;
 
@@ -41,7 +42,7 @@ export default async function DetalhePedido({ params }: PageProps<"/painel/pedid
       <section className="mt-4 rounded-2xl border filete p-4 text-center">
         <p className="font-semibold">{p.cliente.nome}</p>
         {!semContato && <p className="text-sm text-cinza">{mascaraTelefone(zap)}{p.cliente.cpf && ` · CPF ${mascaraCpf(p.cliente.cpf)}`}</p>}
-        {!semContato && <a href={`https://wa.me/55${zap}?text=${encodeURIComponent(`Olá ${p.cliente.nome.split(" ")[0]}! Aqui é da Versátil, sobre o seu pedido #${p.numero}.`)}`} target="_blank" className="mt-2 inline-block text-sm text-ouro-escuro underline underline-offset-4">
+        {!semContato && <a href={`https://wa.me/55${zap}?text=${encodeURIComponent(`Olá ${p.cliente.nome.split(" ")[0]}! Aqui é da ${MARCA.nome}, sobre o seu pedido #${p.numero}.`)}`} target="_blank" className="mt-2 inline-block text-sm text-ouro-escuro underline underline-offset-4">
           Chamar no WhatsApp
         </a>}
       </section>

@@ -1,4 +1,5 @@
 import { soDigitos } from "./format";
+import { MARCA } from "@/lib/marca";
 
 type Cfg = { loja_whatsapp: string; loja_grupo_whatsapp: string };
 
@@ -11,7 +12,7 @@ export function linkWhats(cfg: Cfg, mensagem: string) {
 export function linkGrupo(cfg: Cfg) {
   const g = cfg.loja_grupo_whatsapp.trim();
   if (/^https:\/\/(chat\.whatsapp\.com|wa\.me|api\.whatsapp\.com)\//.test(g)) return g;
-  return linkWhats(cfg, "Olá! Quero entrar no grupo de ofertas da Versátil.");
+  return linkWhats(cfg, `Olá! Quero entrar no grupo de ofertas da ${MARCA.nome}.`);
 }
 
 /**
@@ -25,6 +26,6 @@ export function resolverLink(destino: string | undefined, cfg: Cfg): string | nu
   if (destino === undefined) return "/busca?ordem=desconto";
   if (!destino) return null;
   if (destino === "@grupo") return linkGrupo(cfg);
-  if (destino.startsWith("@whats")) return linkWhats(cfg, destino.split(":").slice(1).join(":") || "Olá! Vim pelo site da Versátil.");
+  if (destino.startsWith("@whats")) return linkWhats(cfg, destino.split(":").slice(1).join(":") || `Olá! Vim pelo site da ${MARCA.nome}.`);
   return destino.startsWith("/") && !destino.startsWith("//") ? destino : null;
 }

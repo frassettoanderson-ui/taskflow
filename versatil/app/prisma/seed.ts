@@ -88,9 +88,9 @@ const DEMO: Demo[] = [
 ];
 
 async function main() {
-  const email = process.env.SEED_ADMIN_EMAIL || "admin@versatil.local";
+  const email = process.env.SEED_ADMIN_EMAIL || "admin@l3salvados.local";
   if (!(await db.usuario.findUnique({ where: { email } }))) {
-    await db.usuario.create({ data: { nome: "Administrador", email, senhaHash: await bcrypt.hash(process.env.SEED_ADMIN_SENHA || "versatil123", 10) } });
+    await db.usuario.create({ data: { nome: "Administrador", email, senhaHash: await bcrypt.hash(process.env.SEED_ADMIN_SENHA || "l3salvados123", 10) } });
     console.log("[seed] admin criado:", email);
   }
 
@@ -99,8 +99,8 @@ async function main() {
     await db.categoria.upsert({ where: { slug: slug(nome) }, create: { nome, slug: slug(nome), ordem: i }, update: { ordem: i } });
 
   // operador de caixa de demonstração (só em desenvolvimento)
-  if (process.env.NODE_ENV !== "production" && !(await db.usuario.findUnique({ where: { email: "caixa@versatil.local" } })))
-    await db.usuario.create({ data: { nome: "Operador Caixa", email: "caixa@versatil.local", papel: "OPERADOR", senhaHash: await bcrypt.hash("caixa123", 10) } });
+  if (process.env.NODE_ENV !== "production" && !(await db.usuario.findUnique({ where: { email: "caixa@l3salvados.local" } })))
+    await db.usuario.create({ data: { nome: "Operador Caixa", email: "caixa@l3salvados.local", papel: "OPERADOR", senhaHash: await bcrypt.hash("caixa123", 10) } });
 
   if (process.env.NODE_ENV === "production" || (await db.produto.count()) > 0) return;
   const c = Object.fromEntries((await db.categoria.findMany()).map((x) => [x.nome, x.id]));

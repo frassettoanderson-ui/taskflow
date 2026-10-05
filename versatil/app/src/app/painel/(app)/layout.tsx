@@ -3,6 +3,7 @@ import { exigirUsuario } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { sair } from "../acoes";
 import { NavPainel } from "./NavPainel";
+import { Marca } from "@/components/Marca";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Painel", robots: { index: false } };
@@ -14,8 +15,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/painel">)
     <div className="min-h-dvh md:flex">
       <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r filete bg-white p-5 md:flex">
         <Link href="/painel">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-preto.svg" alt="Versátil" className="h-9 w-auto" />
+          <Marca tom="claro" className="text-[22px]" />
         </Link>
         <NavPainel aSeparar={aSeparar} vertical admin={u.papel === "ADMIN"} />
         <div className="mt-auto text-xs text-cinza">
@@ -28,8 +28,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/painel">)
       </aside>
 
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b filete bg-white/95 px-4 backdrop-blur md:hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-preto.svg" alt="Versátil" className="h-7 w-auto" />
+        <Marca tom="claro" className="text-[18px]" />
         <form action={sair}><button className="text-xs text-cinza underline">Sair</button></form>
       </header>
 

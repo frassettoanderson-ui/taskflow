@@ -1,6 +1,6 @@
 // Cliente mínimo da Evolution API (WhatsApp não-oficial — a API oficial da Meta não envia para grupos).
 // Sem EVOLUTION_URL/EVOLUTION_API_KEY => modo demonstração: nada é enviado, os disparos são marcados como simulados.
-// A instância (EVOLUTION_INSTANCE, padrão "versatil") é criada pelo próprio painel na hora de conectar o número.
+// A instância (EVOLUTION_INSTANCE, padrão "L3 salvados") é criada pelo próprio painel na hora de conectar o número.
 
 export const whatsDemo = () => !process.env.EVOLUTION_URL || !process.env.EVOLUTION_API_KEY;
 
@@ -24,7 +24,7 @@ async function req<T>(metodo: string, caminho: string, corpo?: unknown): Promise
   return (txt ? JSON.parse(txt) : {}) as T;
 }
 
-const nomeInstancia = () => process.env.EVOLUTION_INSTANCE || "versatil";
+const nomeInstancia = () => process.env.EVOLUTION_INSTANCE || "L3 salvados";
 const inst = () => encodeURIComponent(nomeInstancia());
 
 export type EstadoWhats = "demo" | "open" | "close" | "connecting" | "sem_instancia" | "erro";

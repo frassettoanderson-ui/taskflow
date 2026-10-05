@@ -140,7 +140,7 @@ export async function sincronizarGrupos() {
   if (whatsDemo()) {
     const existentes = await db.grupo.count();
     if (!existentes)
-      for (const [i, nome] of ["Versátil Ofertas 1 (teste)", "Versátil Ofertas 2 (teste)", "Achadinhos da Região (teste)"].entries())
+      for (const [i, nome] of ["L3 Ofertas 1 (teste)", "L3 Ofertas 2 (teste)", "Achadinhos da Região (teste)"].entries())
         await db.grupo.create({ data: { jid: `demo-${i + 1}@g.us`, nome, participantes: 180 + i * 57, ativo: true } });
     return { total: await db.grupo.count(), novos: existentes ? 0 : 3 };
   }

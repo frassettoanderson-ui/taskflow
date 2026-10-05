@@ -9,7 +9,7 @@ export type { ProdutoCard };
 /** Código interno curto (etiqueta/PDV) — só no painel. */
 export const codigoInterno = (n: number) => `#${String(n).padStart(4, "0")}`;
 
-/** Card no estilo "poly-card" do Mercado Livre, com as cores da Versátil. */
+/** Card no estilo "poly-card" do Mercado Livre, com as cores da loja. */
 export function CardProduto({ p, compacto = false }: { p: ProdutoCard; compacto?: boolean }) {
   const desc = descontoPct(p.precoCents, p.precoMercadoCents);
   const esgotado = p.status === "ESGOTADO";

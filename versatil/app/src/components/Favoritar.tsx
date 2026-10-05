@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-const CHAVE = "versatil_favoritos";
+const CHAVE = "loja_favoritos";
 
 /** Coração de favoritos (guardado no navegador), como o do ML. */
 export function Favoritar({ id, comTexto = false }: { id: string; comTexto?: boolean }) {

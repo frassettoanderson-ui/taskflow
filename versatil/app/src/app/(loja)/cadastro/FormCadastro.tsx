@@ -2,6 +2,7 @@
 import { useActionState, useState } from "react";
 import { cadastrar } from "../conta/acoes";
 import { mascaraCpf, mascaraTelefone } from "@/lib/format";
+import { MARCA } from "@/lib/marca";
 
 export function FormCadastro({ voltar }: { voltar: string }) {
   const [estado, acao, enviando] = useActionState(cadastrar, undefined);
@@ -35,7 +36,7 @@ export function FormCadastro({ voltar }: { voltar: string }) {
       </label>
       {estado?.erro && <p className="text-[13px] text-rubi">{estado.erro}</p>}
       <button disabled={enviando} className="botao-principal h-12 w-full text-[15px]">{enviando ? "Criando conta…" : "Criar conta"}</button>
-      <p className="text-center text-[11px] text-cinza">Usamos seus dados só para seus pedidos na Versátil.</p>
+      <p className="text-center text-[11px] text-cinza">Usamos seus dados só para seus pedidos na {MARCA.nome}.</p>
     </form>
   );
 }

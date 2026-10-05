@@ -7,6 +7,8 @@ import { getConfig } from "@/lib/config";
 import { db } from "@/lib/db";
 import { soDigitos } from "@/lib/format";
 import { clienteAtual } from "@/lib/conta";
+import { MARCA } from "@/lib/marca";
+import { Marca } from "@/components/Marca";
 
 export default async function LojaLayout({ children }: LayoutProps<"/">) {
   const [cfg, categorias, cliente] = await Promise.all([
@@ -23,9 +25,8 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
       <header className="bg-noite text-white">
         <div className="mx-auto max-w-[1200px] px-3 pt-2.5 md:px-4">
           <div className="flex items-center gap-3 md:gap-8">
-            <Link href="/" aria-label="Versátil — início" className="shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="Versátil — Melhor preço da região" className="h-9 w-auto md:h-11" />
+            <Link href="/" aria-label={`${MARCA.nome} — início`} className="shrink-0">
+              <Marca className="text-[22px] md:text-[26px]" />
             </Link>
             <form action="/busca" className="relative hidden flex-1 md:block md:max-w-[600px]">
               <input name="q" placeholder="Buscar produtos, marcas e muito mais…" className="h-10 w-full rounded-[2px] bg-white pl-4 pr-12 text-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] outline-none placeholder:text-[#999]" />
@@ -66,7 +67,7 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
 
           {/* busca no celular */}
           <form action="/busca" className="relative mt-2.5 md:hidden">
-            <input name="q" placeholder="Buscar na Versátil" className="h-10 w-full rounded-full bg-white pl-4 pr-11 text-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] outline-none placeholder:text-[#999]" />
+            <input name="q" placeholder={`Buscar na ${MARCA.nome}`} className="h-10 w-full rounded-full bg-white pl-4 pr-11 text-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.2)] outline-none placeholder:text-[#999]" />
             <button aria-label="Buscar" className="absolute right-1 top-0 flex h-10 w-10 items-center justify-center text-cinza">
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="11" cy="11" r="6.5" /><path d="m16 16 4.5 4.5" /></svg>
             </button>
@@ -113,7 +114,7 @@ export default async function LojaLayout({ children }: LayoutProps<"/">) {
         </div>
         <div className="border-t border-fio">
           <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-2 px-4 py-4 text-[12px] text-cinza sm:flex-row">
-            <p>© {new Date().getFullYear()} Versátil — Melhor preço da região</p>
+            <p>© {new Date().getFullYear()} {MARCA.nome}</p>
             {zap && (
               <a href={`https://wa.me/55${zap}`} className="inline-flex items-center gap-1.5 hover:text-marfim">
                 <IconeWhats className="h-4 w-4 text-jade" /> Fale com a gente no WhatsApp

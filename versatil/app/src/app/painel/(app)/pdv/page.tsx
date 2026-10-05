@@ -5,6 +5,7 @@ import { caixaAberto } from "@/lib/lojafisica";
 import { expirarPedidos } from "@/lib/pedidos";
 import { AbrirCaixa } from "../caixa/FormsCaixa";
 import { Pdv } from "./Pdv";
+import { MARCA } from "@/lib/marca";
 
 export const metadata = { title: "Frente de caixa" };
 
@@ -38,7 +39,7 @@ export default async function PaginaPdv() {
       operador={u.nome}
       caixaNumero={caixa.numero}
       produtos={produtos.map((p) => ({ id: p.id, codigo: p.codigo, titulo: p.titulo, marca: p.marca, sku: p.sku, ean: p.ean, precoCents: p.precoCents, estoque: p.estoqueDisponivel, foto: p.fotos[0]?.arquivo ?? null }))}
-      pix={{ chave: cfg.loja_pix_chave, nome: cfg.loja_pix_nome || "Versatil", cidade: (cfg.loja_cidade || "Imbituba").split("-")[0].trim() }}
+      pix={{ chave: cfg.loja_pix_chave, nome: cfg.loja_pix_nome || MARCA.pix, cidade: (cfg.loja_cidade || "Imbituba").split("-")[0].trim() }}
     />
   );
 }

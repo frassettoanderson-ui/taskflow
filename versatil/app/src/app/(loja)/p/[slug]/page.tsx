@@ -16,6 +16,7 @@ import { RegistrarVisto } from "@/components/RegistrarVisto";
 import { IconeEscudo, IconePix, IconeWhats } from "@/components/Icones";
 import { BotoesCompra } from "./BotoesCompra";
 import { Galeria } from "./Galeria";
+import { MARCA } from "@/lib/marca";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: PageProps<"/p/[slug]">): Prom
   if (!p) return {};
   const desc = descontoPct(p.precoCents, p.precoMercadoCents);
   const titulo = `${p.titulo} — ${brl(p.precoCents)}`;
-  const descricao = `${CONDICOES[p.condicao].rotulo}${desc ? ` · ${desc}% OFF` : ""}. Pague no Pix ou cartão e retire na loja Versátil.`;
+  const descricao = `${CONDICOES[p.condicao].rotulo}${desc ? ` · ${desc}% OFF` : ""}. Pague no Pix ou cartão e retire na loja ${MARCA.nome}.`;
   const img = p.fotos[0] ? urlFoto(p.fotos[0].arquivo) : "/icone-512.png";
   return { title: titulo, description: descricao, openGraph: { title: titulo, description: descricao, images: [img], type: "website" } };
 }
@@ -119,7 +120,7 @@ export default async function PaginaProduto({ params, searchParams }: PageProps<
             <span className="truncate text-cinza">{p.titulo}</span>
           </nav>
           <a
-            href={`https://wa.me/?text=${encodeURIComponent(`${p.titulo} por ${brl(p.precoCents)} na Versátil: ${linkPublico}`)}`}
+            href={`https://wa.me/?text=${encodeURIComponent(`${p.titulo} por ${brl(p.precoCents)} na ${MARCA.nome}: ${linkPublico}`)}`}
             target="_blank"
             className="flex shrink-0 items-center gap-1.5 text-ouro-escuro hover:underline"
           >
@@ -200,12 +201,11 @@ export default async function PaginaProduto({ params, searchParams }: PageProps<
             {/* vendedor (no ML: "Loja oficial ...") */}
             <div className="mt-6 flex items-center gap-3 border-t border-fio pt-5">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-noite">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icone.svg" alt="" className="h-full w-full" />
+                <span className="bg-gradient-to-b from-ouro-claro to-ouro bg-clip-text text-[17px] font-black text-transparent">L3</span>
               </span>
               <div className="text-[13px]">
                 <p>
-                  Loja oficial <b className="font-semibold text-ouro-escuro">Versátil</b>{" "}
+                  Loja oficial <b className="font-semibold text-ouro-escuro">{MARCA.nome}</b>{" "}
                   <svg viewBox="0 0 24 24" className="inline h-4 w-4 align-[-3px] text-[#3483fa]" fill="currentColor" aria-label="loja verificada">
                     <path d="m12 2 2.4 2.2 3.2-.4.9 3.1 2.9 1.5-1.2 3 1.2 3-2.9 1.5-.9 3.1-3.2-.4L12 22l-2.4-2.2-3.2.4-.9-3.1-2.9-1.5 1.2-3-1.2-3 2.9-1.5.9-3.1 3.2.4Z" />
                     <path d="m8.5 12 2.3 2.3 4.7-4.6" stroke="#fff" strokeWidth="2" fill="none" />

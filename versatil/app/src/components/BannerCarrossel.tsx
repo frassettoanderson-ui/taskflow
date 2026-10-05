@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { urlFoto } from "@/lib/uploads-url";
+import { MARCA } from "@/lib/marca";
 
 /** Slide de imagem (arte pronta 1920×500, já com degradê) ou slide montado em código (enquanto não há artes). */
 export type Slide =
@@ -58,7 +59,7 @@ export function BannerCarrossel({ slides }: { slides: Slide[] }) {
             >
               <div className="mx-auto flex h-[70%] max-w-[1200px] items-center gap-4 px-5 md:h-[64%] md:px-8">
                 <div className="relative z-10 max-w-[58%] md:max-w-[46%]">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ouro md:text-xs">Versátil</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ouro md:text-xs">{MARCA.nome}</p>
                   <h2 className="mt-1 text-[22px] font-bold leading-tight md:text-[38px]">{s.titulo}</h2>
                   <p className="mt-1.5 text-[12px] text-white/70 md:mt-3 md:text-[16px]">{s.sub}</p>
                   <span className="mt-3 inline-block rounded-[6px] bg-ouro px-4 py-2 text-[13px] font-semibold text-noite md:mt-5 md:px-6 md:py-3 md:text-[15px]">{s.cta}</span>

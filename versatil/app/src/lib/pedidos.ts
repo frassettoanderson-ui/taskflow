@@ -9,6 +9,7 @@ import { getConfig } from "./config";
 import { cpfValido, soDigitos } from "./format";
 import { criarCobranca, estornarCobranca, garantirCliente, removerCobranca } from "./asaas";
 import { lancarEstorno, lancarReceitaVenda, movimentarEstoqueLog } from "./registros";
+import { MARCA } from "@/lib/marca";
 
 type Tx = Prisma.TransactionClient;
 type Item = { produtoId: string; quantidade: number };
@@ -148,7 +149,7 @@ export async function criarPedido(input: {
       customerId,
       metodo: input.metodo,
       valorCents: total,
-      descricao: `Versátil — pedido #${pedido.numero}`,
+      descricao: `${MARCA.nome} — pedido #${pedido.numero}`,
       referencia: pedido.id,
       splitPercent,
     });

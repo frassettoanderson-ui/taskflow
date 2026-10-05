@@ -14,7 +14,7 @@ type Ctx = {
 };
 
 const C = createContext<Ctx | null>(null);
-const CHAVE = "versatil_carrinho";
+const CHAVE = "loja_carrinho";
 
 export function CarrinhoProvider({ children }: { children: React.ReactNode }) {
   const [itens, setItens] = useState<ItemCarrinho[]>([]);

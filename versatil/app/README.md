@@ -1,4 +1,4 @@
-# Versátil — loja (Next.js 16 + Prisma/Postgres + Asaas)
+# L3 Salvados — loja (Next.js 16 + Prisma/Postgres + Asaas)
 
 ## Rodar local
 ```bash
@@ -21,9 +21,9 @@ npm run dev            # sobe Postgres embutido (5433), aplica schema, seed e Ne
 - `PUBLIC_URL` precisa ser o domínio público (vai no link das mensagens).
 
 ## Dados de teste (só no banco local de desenvolvimento)
-- Cliente com conta: `teste.cliente@versatil.local` / `teste123` (criado pelo teste de cadastro; recrie em /cadastro se o banco for zerado).
+- Cliente com conta: `teste.cliente@l3salvados.local` / `teste123` (criado pelo teste de cadastro; recrie em /cadastro se o banco for zerado).
 - Vídeo de demonstração da Air Fryer: `uploads/videos/demoairfryer1.mp4` (gerado com ffmpeg a partir da foto).
-- Operador de caixa (perfil OPERADOR): `caixa@versatil.local` / `caixa123` (criado pelo seed só fora de produção).
+- Operador de caixa (perfil OPERADOR): `caixa@l3salvados.local` / `caixa123` (criado pelo seed só fora de produção).
 
 ## Loja física
 - Configurações → Loja física/PDV: chave Pix (QR no PDV), razão social, CNPJ, endereço e rodapé do cupom.

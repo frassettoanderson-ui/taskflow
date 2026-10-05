@@ -1,5 +1,6 @@
 import { urlFoto } from "@/lib/uploads-url";
 import { IconeWhats } from "./Icones";
+import { MARCA } from "@/lib/marca";
 
 /** Mini banner (padrão dos banners baixos do ML): texto à esquerda, ilustração do grupo à direita. Leva ao grupo.
  *  Sem link configurado no painel, aparece sem clique (para a loja já ver o layout). */
@@ -12,7 +13,7 @@ export function BannerGrupoWhats({ href, fotos }: { href: string | null; fotos: 
     >
       <div className="flex flex-1 items-center bg-noite px-5 md:px-10">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ouro md:text-[11px]">Grupo de ofertas Versátil</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-ouro md:text-[11px]">Grupo de ofertas {MARCA.nome}</p>
           <p className="mt-1 text-[15px] font-semibold leading-tight text-white md:text-[20px]">
             Receba as ofertas na frente de todo mundo!
           </p>

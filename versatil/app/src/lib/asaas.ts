@@ -12,7 +12,7 @@ async function req<T>(metodo: string, caminho: string, corpo?: unknown): Promise
     headers: {
       "Content-Type": "application/json",
       access_token: process.env.ASAAS_API_KEY!,
-      "User-Agent": "versatil-loja",
+      "User-Agent": "l3salvados-loja",
     },
     body: corpo ? JSON.stringify(corpo) : undefined,
     cache: "no-store",
@@ -55,7 +55,7 @@ export async function criarCobranca(p: {
     return {
       id,
       invoiceUrl: p.metodo === "CARTAO" ? undefined : undefined,
-      pixPayload: p.metodo === "PIX" ? `00020126DEMO-VERSATIL-${id}-5204000053039865802BR` : undefined,
+      pixPayload: p.metodo === "PIX" ? `00020126DEMO-L3-${id}-5204000053039865802BR` : undefined,
     };
   }
   const wallet = process.env.ASAAS_SPLIT_WALLET_ID;

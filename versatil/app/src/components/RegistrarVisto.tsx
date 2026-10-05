@@ -1,7 +1,7 @@
 "use client";
 import { useEffect } from "react";
 
-export const CHAVE_VISTOS = "versatil_vistos";
+export const CHAVE_VISTOS = "loja_vistos";
 
 /** Guarda no navegador os últimos produtos vistos (alimenta "Visto recentemente" / "Também te interessa"). */
 export function RegistrarVisto({ id }: { id: string }) {

@@ -3,7 +3,7 @@ import { db } from "./db";
 export const CONFIG_PADRAO = {
   reserva_pix_min: "15",
   reserva_cartao_min: "30",
-  loja_nome: "Versátil",
+  loja_nome: "L3 Salvados",
   loja_endereco: "Endereço da loja — configure no painel",
   loja_horario: "Seg a Sáb, 9h às 18h",
   loja_whatsapp: "",
@@ -11,7 +11,7 @@ export const CONFIG_PADRAO = {
   loja_grupo_whatsapp: "", // link de convite do grupo de ofertas (chat.whatsapp.com/...)
   // loja física
   loja_pix_chave: "", // chave Pix que recebe no balcão
-  loja_pix_nome: "Versatil", // nome do recebedor (aparece no app do banco)
+  loja_pix_nome: "L3 SALVADOS", // nome do recebedor (aparece no app do banco)
   loja_razao_social: "",
   loja_cnpj: "",
   cupom_rodape: "Obrigado pela preferência! Trocas em até 7 dias com este comprovante.",

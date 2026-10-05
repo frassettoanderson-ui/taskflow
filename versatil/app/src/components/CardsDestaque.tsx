@@ -9,6 +9,7 @@ import { Carrossel } from "./Carrossel";
 import { FotoProduto } from "./FotoProduto";
 import { Preco } from "./Preco";
 import { CHAVE_VISTOS } from "./RegistrarVisto";
+import { Marca } from "@/components/Marca";
 
 export type CardFixo = { titulo: string; produto: ProdutoCard; verde?: string; cta?: { rotulo: string; href: string } };
 export type CardPromo = { titulo: string; texto: string; cta: string; href: string };
@@ -78,8 +79,7 @@ function CardEscuro({ titulo, texto, cta, href }: CardPromo) {
   return (
     <Link href={href} className={`relative flex h-[312px] shrink-0 snap-start flex-col overflow-hidden rounded-[6px] bg-noite p-4 text-left text-white ${LARGURA}`}>
       <span className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-ouro/25 blur-2xl" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.svg" alt="" className="relative h-7 w-auto self-start" />
+      <Marca className="relative self-start text-[18px]" />
       <p className="relative mt-auto text-[20px] font-bold leading-tight">{titulo}</p>
       <p className="relative mt-2 text-[13px] text-white/70">{texto}</p>
       <span className="relative mt-4 block rounded-[6px] bg-ouro py-1.5 text-center text-[13px] font-semibold text-noite">{cta}</span>
