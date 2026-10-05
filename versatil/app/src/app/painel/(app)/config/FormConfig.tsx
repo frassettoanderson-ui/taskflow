@@ -28,6 +28,7 @@ export function FormConfig({ cfg }: { cfg: Record<string, string> }) {
         {campo("parado_amarelo_dias", "Alerta amarelo (dias)", { inputMode: "numeric" })}
         {campo("parado_vermelho_dias", "Alerta vermelho (dias)", { inputMode: "numeric" })}
       </div>
+      {campo("preco_desconto_pct", "Desconto sobre o preço do Mercado Livre (%)", { inputMode: "numeric" })}
       <p className="pt-4 text-center text-[11px] font-bold uppercase tracking-[0.14em] text-ouro-escuro">Loja física (PDV)</p>
       {campo("loja_pix_chave", "Chave Pix para receber no balcão", { placeholder: "CNPJ, e-mail, telefone ou chave aleatória" })}
       {campo("loja_pix_nome", "Nome do recebedor do Pix (como está no banco)")}

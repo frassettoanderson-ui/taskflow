@@ -1,6 +1,8 @@
 import { getConfig } from "@/lib/config";
 import { modoDemo } from "@/lib/asaas";
 import { FormConfig } from "./FormConfig";
+import { ConexaoML } from "./ConexaoML";
+import { iaDisponivel, mlConectado, mlConfigurado, mlUrlAutorizacao } from "@/lib/precoMercado";
 import { exigirAdmin } from "@/lib/auth";
 
 export default async function Config() {
@@ -13,6 +15,7 @@ export default async function Config() {
         Pagamentos: {modoDemo() ? "modo demonstração (sem chave Asaas)" : `Asaas ${process.env.ASAAS_ENV === "producao" ? "produção" : "sandbox"}`}
       </p>
       <FormConfig cfg={cfg} />
+      <ConexaoML configurado={mlConfigurado()} conectado={await mlConectado()} urlAutorizacao={mlConfigurado() ? mlUrlAutorizacao() : ""} ia={iaDisponivel()} />
     </div>
   );
 }

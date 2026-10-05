@@ -45,6 +45,8 @@ Decisão: construído DENTRO do app Versátil (mesmo banco/estoque), inspirado n
 
 - **Sem código de retirada (decisão do usuário 29/09):** tela "Retirada no balcão" removida; entrega = Pedidos → "Confirmar retirada". Cliente vê "Seu pedido #N — informe seu nome ou o número". Coluna `codigoRetirada` ficou no banco, sem uso.
 
+- **Preço de mercado automático (05/10):** no cadastro de produto, bloco "Preço de mercado automático": foto → Gemini (`GEMINI_API_KEY`/`GEMINI_MODEL`) reconhece título/marca/modelo/EAN/categoria/descrição (preenche só campos vazios) → busca anúncios NOVOS no Mercado Livre → descarta fora de 45–220% da mediana (e filtra pela marca se sobrar ≥3) → mediana vira "preço de mercado" e preço = mediana − `preco_desconto_pct` (30%, em Configurações) terminando em ,90. Também busca por texto. Código: `src/lib/precoMercado.ts`, `src/app/painel/preco-acoes.ts`, `produtos/PesquisaPreco.tsx`, `config/ConexaoML.tsx`. ML exige aplicação (API pública dá 403 desde 2025): `ML_CLIENT_ID`/`ML_CLIENT_SECRET`/`ML_REDIRECT_URI`; tenta client_credentials, senão OAuth com código colado em Configurações (refresh token salvo em Config `ml_refresh_token`). Se /sites/MLB/search for negado, cai para /products/search + /products/{id}/items. Sem credenciais = SIMULAÇÃO (avisa na tela). Testado em simulação; falta testar com chaves reais.
+
 ### Pendências → produção
 - Chave **sandbox** do Asaas da loja + walletId do Anderson para testar integração real (NÃO reaproveitar chaves da Nauta).
 - Conferir no sandbox como o split é revertido no estorno.

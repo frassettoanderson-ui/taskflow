@@ -4,6 +4,8 @@ import Link from "next/link";
 import { salvarProduto } from "../../acoes";
 import { CONDICOES, descontoPct, mascaraMoeda, parseReais } from "@/lib/format";
 import { urlFoto } from "@/lib/uploads-url";
+import { PesquisaPreco } from "./PesquisaPreco";
+import type { Identificacao, ResultadoPreco } from "@/lib/precoMercado";
 
 type Produto = {
   id: string;
@@ -68,6 +70,28 @@ export function FormProduto({
   const [estoque, setEstoque] = useState(produto?.estoqueDisponivel ?? 1);
   const [comprimindo, setComprimindo] = useState(false);
   const inputFoto = useRef<HTMLInputElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // preenche só os campos ainda vazios com o que a IA reconheceu
+  function preencher(i: Identificacao) {
+    const f = formRef.current;
+    if (!f) return;
+    const por = (nome: string, valor?: string) => {
+      const el = f.elements.namedItem(nome) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+      if (el && valor && !el.value.trim()) el.value = valor;
+    };
+    por("titulo", i.titulo);
+    por("marca", i.marca);
+    por("sku", i.modelo);
+    por("ean", i.ean);
+    por("descricao", i.descricao);
+    const cat = categorias.find((c) => c.nome.toLowerCase() === (i.categoria ?? "").toLowerCase());
+    if (cat) por("categoriaId", cat.id);
+  }
+  function aplicarPreco(r: ResultadoPreco) {
+    setMercado(mascaraMoeda(String(r.medianaCents)));
+    setPreco(mascaraMoeda(String(r.sugeridoCents)));
+  }
 
   const p = parseReais(preco) || 0;
   const m = parseReais(mercado) || 0;
@@ -96,7 +120,7 @@ export function FormProduto({
   const chip = (ativo: boolean) => `rounded-full border px-3 py-2 text-xs font-semibold transition ${ativo ? "border-ouro bg-ouro/10 text-ouro-escuro" : "filete text-cinza"}`;
 
   return (
-    <form onSubmit={enviar} className="mx-auto max-w-2xl space-y-6">
+    <form ref={formRef} onSubmit={enviar} className="mx-auto max-w-2xl space-y-6">
       {produto && <input type="hidden" name="id" value={produto.id} />}
       {produto && <input type="hidden" name="estoqueAnterior" value={produto.estoqueDisponivel} />}
 
@@ -159,6 +183,13 @@ export function FormProduto({
         <input name="videoArquivo" type="file" accept="video/mp4,video/webm,video/quicktime,video/*" className="block w-full text-sm text-cinza file:mr-3 file:rounded-lg file:border-0 file:bg-grafite file:px-3 file:py-2 file:text-marfim" />
       </section>
 
+      <PesquisaPreco
+        arquivos={novas.map((n) => n.file)}
+        fotosSalvas={fotosAtuais.filter((f) => !remover.includes(f.id)).map((f) => f.arquivo)}
+        onIdentificar={preencher}
+        onAplicar={aplicarPreco}
+      />
+
       <section className="space-y-3">
         <input name="titulo" defaultValue={produto?.titulo} required placeholder="Nome do produto" className="campo text-base font-semibold" />
         <div>
@@ -201,7 +232,6 @@ export function FormProduto({
         </div>
         <p className="mt-2 text-center text-xs text-cinza">
           {desc > 0 ? <>Aparece na loja como <b className="text-ouro-escuro">{desc}% abaixo do mercado</b>.</> : "O preço de mercado aparece riscado na loja."}
-          <br />A pesquisa automática da média de mercado chega na próxima fase.
         </p>
         <label className="mt-3 block">
           <span className="mb-1 block text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-cinza">Custo (opcional, só você vê)</span>

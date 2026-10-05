@@ -15,6 +15,7 @@ export const CONFIG_PADRAO = {
   loja_razao_social: "",
   loja_cnpj: "",
   cupom_rodape: "Obrigado pela preferência! Trocas em até 7 dias com este comprovante.",
+  preco_desconto_pct: "30", // preço sugerido = mediana do Mercado Livre − este %
   parado_amarelo_dias: "8",
   parado_vermelho_dias: "21",
   // disparo nos grupos (fase 2)
