@@ -2,6 +2,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { db } from "./db";
+import { cookieSeguro } from "./cookie";
 
 const COOKIE = "vs_cli";
 const chave = () => new TextEncoder().encode((process.env.AUTH_SECRET || "dev-secret-inseguro") + ":cliente");
@@ -15,7 +16,7 @@ export async function entrarCliente(clienteId: string) {
   (await cookies()).set(COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: cookieSeguro(),
     path: "/",
     maxAge: 60 * 60 * 24 * 60,
   });

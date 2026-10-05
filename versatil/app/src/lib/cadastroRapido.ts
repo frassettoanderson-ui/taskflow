@@ -13,6 +13,7 @@ import { lerCodigoBarras } from "./codigoBarras";
 import { escreverDescricao, iaDisponivel, identificarPorFoto, pesquisarPreco, type Catalogo, type Identificacao, type ResultadoPreco } from "./precoMercado";
 import { usuarioAtual } from "./auth";
 import { enfileirar } from "./disparos";
+import { cookieSeguro } from "./cookie";
 
 // ---------------- códigos de acesso ----------------
 
@@ -36,7 +37,7 @@ export async function entrarComCodigo(codigo: string) {
   if (!t?.ativo) return false;
   await db.tokenCadastro.update({ where: { id: t.id }, data: { ultimoUsoEm: new Date() } });
   const jwt = await new SignJWT({ sub: t.id }).setProtectedHeader({ alg: "HS256" }).setIssuedAt().setExpirationTime("30d").sign(chave());
-  (await cookies()).set(COOKIE, jwt, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 30 });
+  (await cookies()).set(COOKIE, jwt, { httpOnly: true, sameSite: "lax", secure: cookieSeguro(), path: "/", maxAge: 60 * 60 * 24 * 30 });
   return true;
 }
 
