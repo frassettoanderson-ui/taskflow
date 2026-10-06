@@ -113,6 +113,9 @@ export async function listar(
         motivoCancelamento: { select: { nome: true } },
         grupoEmpresa: { select: { nome: true } },
         _count: { select: { contatos: true } },
+        // sócio responsável = 1º do quadro societário (ordem 1 = titular); sem sócio, o contato Titular
+        socios: { orderBy: { ordem: 'asc' }, take: 1, select: { nomeCompleto: true } },
+        contatos: { where: { cargo: 'Titular' }, orderBy: { createdAt: 'asc' }, take: 1, select: { nome: true } },
       },
     }),
     prisma.empresa.count({ where }),
@@ -137,6 +140,7 @@ export async function listar(
       grupoNome: e.grupoEmpresa?.nome ?? null,
       tags: e.tags.map((t) => ({ id: t.tag.id, nome: t.tag.nome, cor: t.tag.cor })),
       qtdContatos: e._count.contatos,
+      socioResponsavel: e.socios[0]?.nomeCompleto ?? e.contatos[0]?.nome ?? null,
     })),
     total,
   };
