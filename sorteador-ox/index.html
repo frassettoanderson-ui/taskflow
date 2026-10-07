@@ -195,12 +195,12 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
 <script src="participantes.js"></script>
 <script>
 /* =====================================================================
-   Sorteio OX — tela de 1920x1080 por padrão. Para outro formato:
-   index.html?w=3840&h=1080   (o palco escala para caber no telão)
+   Sorteio OX — tela de 2816x980 por padrão. Para outro formato:
+   index.html?w=1920&h=1080   (o padrão é 2816x980; o palco escala para caber no telão)
    ===================================================================== */
 const $=s=>document.querySelector(s);
 const Q=new URLSearchParams(location.search);
-const W=+Q.get('w')||1920, H=+Q.get('h')||1080, U=H/1080;
+const W=+Q.get('w')||2816, H=+Q.get('h')||980, U=H/1080, UW=Math.max(U,W/1920*.9);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 /* ---------- aleatoriedade (criptográfica, sem viés) ---------- */
@@ -270,7 +270,7 @@ function toast(t){const e=$('#toast');e.textContent=t;e.style.opacity=1;clearTim
 /* ---------- fundo: brasas + confete ---------- */
 const bg=$('#bg'),fx=$('#fx'),bctx=bg.getContext('2d'),fctx=fx.getContext('2d');
 bg.width=fx.width=W;bg.height=fx.height=H;
-const embers=Array.from({length:90},()=>({x:Math.random()*W,y:Math.random()*H,r:(.6+Math.random()*2.4)*U,v:(.3+Math.random()*1.1)*U,dx:(Math.random()-.5)*.5,a:.2+Math.random()*.6,p:Math.random()*6}));
+const embers=Array.from({length:Math.round(90*W*H/(1920*1080))},()=>({x:Math.random()*W,y:Math.random()*H,r:(.6+Math.random()*2.4)*U,v:(.3+Math.random()*1.1)*U,dx:(Math.random()-.5)*.5,a:.2+Math.random()*.6,p:Math.random()*6}));
 let confetti=[],heat=0;
 function burst(x,y,n,dirx){
   const cols=['#e11d2e','#ffffff','#f4c542','#ff5a1f','#c9d0d8'];
@@ -292,7 +292,7 @@ const CAPS={1:[1100,500],2:[620,420],3:[540,420],4:[430,400],5:[340,360],10:[340
 function layout(k){
   const ax=140*U,aw=W-280*U,ay=340*U,ah=H-ay-110*U,gap=28*U;
   const cols=k<=5?k:5,rows=Math.ceil(k/cols),cap=CAPS[k]||[340,300];
-  const w=Math.min(cap[0]*U,(aw-gap*(cols-1))/cols),h=Math.min(cap[1]*U,(ah-gap*(rows-1))/rows);
+  const w=Math.min(cap[0]*UW,(aw-gap*(cols-1))/cols),h=Math.min(cap[1]*U,(ah-gap*(rows-1))/rows);
   const totH=rows*h+gap*(rows-1),y0=ay+(ah-totH)/2,out=[];
   for(let i=0;i<k;i++){
     const r=Math.floor(i/cols),inRow=Math.min(cols,k-r*cols),totW=inRow*w+gap*(inRow-1);
