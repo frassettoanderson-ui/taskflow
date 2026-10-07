@@ -41,6 +41,11 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
 .keys{margin-top:18px;color:var(--mute);font-size:13px;text-align:center;line-height:1.7}
 .keys kbd{background:#12151a;border:1px solid var(--line);padding:1px 7px;color:#c9d0d8;font:700 12px var(--body)}
 
+/* modo simples: só o botão de iniciar (?config mostra a configuração completa) */
+body.simple .box>*:not(h1):not(.go){display:none!important}
+#wins[hidden]{display:none}
+body.simple .box{padding-bottom:36px}
+body.simple .go{margin-top:30px}
 /* ---------- stage ---------- */
 #stage{position:absolute;left:50%;top:50%;transform-origin:center;overflow:hidden;
   background:radial-gradient(ellipse at 50% 35%,#222831 0%,#14171b 55%,#0a0b0d 100%)}
@@ -168,7 +173,7 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
       <span><button class="ghost" id="evo" type="button" hidden>Lista dos clientes</button> <button class="ghost" id="sample" type="button">Exemplo 24</button> <button class="ghost" id="sample300" type="button">Exemplo 300</button></span>
     </div>
 
-    <button class="go" id="go">Iniciar em tela cheia</button>
+    <button class="go" id="go">Iniciar sorteio</button>
     <div class="keys"><kbd>Espaço</kbd> / clique avança · <kbd>M</kbd> som · <kbd>F</kbd> tela cheia · <kbd>Esc</kbd> volta a esta tela</div>
   </div>
 </div>
@@ -187,7 +192,7 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
   <canvas id="fx"></canvas>
   <div id="vig"></div>
   <div id="splash"><div class="s1">OX</div><div class="s2">Sorteio</div><div class="s3" id="splashPrize"></div></div>
-  <div id="endbtns"><div id="endmsg"></div><div class="eb"><button id="again" type="button">Novo sorteio (N)</button><button class="ghost" id="cfg" type="button">Configurar (Esc)</button></div></div>
+  <div id="endbtns"><div id="endmsg"></div><div class="eb"><button id="again" type="button">Novo sorteio (N)</button><button class="ghost" id="cfg" type="button">Início (Esc)</button></div></div>
   <div id="flash"></div>
 </div>
 <div id="toast"></div>
@@ -199,6 +204,7 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
    index.html?w=1920&h=1080   (o padrão é 2816x980; o palco escala para caber no telão)
    ===================================================================== */
 const $=s=>document.querySelector(s);
+if(!new URLSearchParams(location.search).has('config'))document.body.classList.add('simple');
 const Q=new URLSearchParams(location.search);
 const W=+Q.get('w')||2816, H=+Q.get('h')||980, U=H/1080, UW=Math.max(U,W/1920*.9);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
