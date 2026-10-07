@@ -41,22 +41,27 @@ final class NFeBuilder
         $make->taginfNFe($infNFe);
 
         // ------- ide -------
+        // tipo_operacao: 0 = entrada, 1 = saída (padrão). finalidade: 1 normal (padrão),
+        // 2 complementar, 3 ajuste, 4 devolução. Ex.: devolução de venda a consumidor =
+        // entrada (0) + finalidade 4 + "referencias" com a chave da NFC-e/NF-e original.
+        $tpNF = (int) ($p['tipo_operacao'] ?? 1);
+        $finNFe = (int) ($p['finalidade'] ?? 1);
         $cNF = str_pad((string) random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
         $ide = new \stdClass();
         $ide->cUF = $this->codigoUF($uf);
         $ide->cNF = $cNF;
-        $ide->natOp = $p['natureza_operacao'] ?? 'Venda de mercadoria';
+        $ide->natOp = $p['natureza_operacao'] ?? ($finNFe === 4 ? 'Devolucao de venda' : 'Venda de mercadoria');
         $ide->mod = 55;
         $ide->serie = $this->serie;
         $ide->nNF = $numero;
         $ide->dhEmi = $dhEmi;
-        $ide->tpNF = 1;              // 1 = saída
+        $ide->tpNF = $tpNF;
         $ide->idDest = $this->idDest($uf, $p);
         $ide->cMunFG = $cMun;
         $ide->tpImp = 1;            // DANFE normal retrato
         $ide->tpEmis = 1;          // emissão normal
         $ide->tpAmb = $this->ambiente;
-        $ide->finNFe = 1;          // NF-e normal
+        $ide->finNFe = $finNFe;
         $ide->indFinal = ($p['consumidor_final'] ?? true) ? 1 : 0;
         $ide->indPres = 1;         // operação presencial (ajuste se e-commerce = 2)
         $ide->procEmi = 0;
@@ -202,9 +207,15 @@ final class NFeBuilder
         $pag = new \stdClass();
         $make->tagpag($pag);
         $detPag = new \stdClass();
-        $detPag->indPag = 0;
-        $detPag->tPag = $p['pagamento']['forma'] ?? '01'; // 01=dinheiro, 03=cartão crédito...
-        $detPag->vPag = number_format($totalProd, 2, '.', '');
+        if (in_array($finNFe, [3, 4], true)) {
+            // Ajuste e devolução não têm pagamento: tPag 90 com valor zero (exigência do leiaute).
+            $detPag->tPag = '90';
+            $detPag->vPag = '0.00';
+        } else {
+            $detPag->indPag = 0;
+            $detPag->tPag = $p['pagamento']['forma'] ?? '01'; // 01=dinheiro, 03=cartão crédito...
+            $detPag->vPag = number_format($totalProd, 2, '.', '');
+        }
         $make->tagdetPag($detPag);
 
         // ------- info adicional -------
@@ -314,6 +325,12 @@ final class NFeBuilder
         }
         if (empty($p['itens']) || !is_array($p['itens'])) {
             throw new \InvalidArgumentException('itens é obrigatório e deve ser uma lista.');
+        }
+        if ((int) ($p['finalidade'] ?? 1) === 4 && empty($p['referencias'])) {
+            throw new \InvalidArgumentException('Nota de devolução (finalidade 4) exige "referencias" com a chave da nota original.');
+        }
+        if (!in_array((int) ($p['tipo_operacao'] ?? 1), [0, 1], true)) {
+            throw new \InvalidArgumentException('tipo_operacao deve ser 0 (entrada) ou 1 (saída).');
         }
         foreach ($p['itens'] as $i => $it) {
             foreach (['descricao', 'ncm', 'cfop', 'quantidade', 'valor_unitario'] as $campo) {
