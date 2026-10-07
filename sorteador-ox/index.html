@@ -42,7 +42,8 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
 .keys kbd{background:#12151a;border:1px solid var(--line);padding:1px 7px;color:#c9d0d8;font:700 12px var(--body)}
 
 /* modo simples: só o botão de iniciar (?config mostra a configuração completa) */
-body.simple .box>*:not(h1):not(.go){display:none!important}
+body.simple .box>*:not(h1):not(.go):not(.rem){display:none!important}
+.rem{margin-top:14px;text-align:center;font:600 13px var(--body);color:#6b7480}
 #wins[hidden]{display:none}
 body.simple .box{padding-bottom:36px}
 body.simple .go{margin-top:30px}
@@ -174,6 +175,7 @@ body.simple .go{margin-top:30px}
     </div>
 
     <button class="go" id="go">Iniciar sorteio</button>
+    <div class="rem" id="rem" hidden>Controle remoto ativo · clique uma vez nesta tela para liberar o som</div>
     <div class="keys"><kbd>Espaço</kbd> / clique avança · <kbd>M</kbd> som · <kbd>F</kbd> tela cheia · <kbd>Esc</kbd> volta a esta tela</div>
   </div>
 </div>
@@ -218,7 +220,7 @@ let ac,master,noiseBuf,muted=false;
 function initAudio(){
   if(ac){ac.resume();return}
   ac=new(window.AudioContext||window.webkitAudioContext)();
-  const comp=ac.createDynamicsCompressor();master=ac.createGain();master.gain.value=.85;
+  const comp=ac.createDynamicsCompressor();master=ac.createGain();master.gain.value=muted?0:.85;
   master.connect(comp);comp.connect(ac.destination);
   noiseBuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);
   const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
@@ -574,7 +576,7 @@ async function run(){
   const ac2=new AbortController();
   prize=$('#prize').value.trim();
   $('#cards').innerHTML='';$('#beams').classList.remove('on');$('#title').textContent='';$('#eyebrow').textContent='';
-  finished=false;confetti=[];heat=0;
+  finished=false;confetti=[];heat=0;reportStatus('running');
   stage.querySelectorAll('.press,.arm,.blade,.ring,.fly').forEach(e=>e.remove());
   $('#endbtns').classList.remove('on');$('#hint').classList.remove('on');
   const n=all.length,start=Math.min(5,n);
@@ -585,7 +587,7 @@ async function run(){
     await eliminateTo(chain[i],i);
   }
   await crown();
-  finished=true;
+  finished=true;reportStatus('finished');
 }
 
 /* ---------- escala do palco ---------- */
@@ -654,6 +656,34 @@ addEventListener('keydown',e=>{
   }
 });
 addEventListener('click',e=>{if(!stage.hidden&&keyResolve)keyResolve()});
+/* ---------- controle remoto (celular): ver remoto/ ---------- */
+const remoto=/^https?:/.test(location.protocol);
+let remStatus='idle',remLast=null,remBusy=false;
+function reportStatus(s){remStatus=s;if(remoto)remSync()}
+async function remSync(){
+  if(!remoto||remBusy)return;remBusy=true;
+  try{
+    const state={status:remStatus,muted,manual:$('#manual').checked,title:stage.hidden?'':$('#title').textContent,eyebrow:stage.hidden?'':$('#eyebrow').textContent,winners};
+    const d=await(await fetch('api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({since:remLast,state})})).json();
+    if(remLast===null)remLast=d.seq;
+    else for(const c of d.cmds){remLast=Math.max(remLast,c.seq);remCmd(c.cmd)}
+  }catch(e){}
+  remBusy=false;
+}
+function remCmd(c){
+  if(c==='play'){if(stage.hidden)$('#go').click();else if(finished)again()}
+  else if(c==='next'){if(keyResolve)keyResolve()}
+  else if(c==='mute')setMuted(!muted);
+  else if(c==='manual'){const m=$('#manual');m.checked=!m.checked;auto=!m.checked;save();if(auto&&keyResolve)keyResolve()}
+  else if(c==='fullscreen'){try{(document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()).catch(()=>{})}catch(e){}}
+  else if(c==='home')location.reload();
+  else if(c==='reset'){winners=[];saveWins();try{localStorage.removeItem('oxsorteio_lista')}catch(e){}location.reload()}
+}
+if(remoto){
+  $('#rem').hidden=false;
+  addEventListener('pointerdown',()=>{try{initAudio()}catch(e){}},{once:true});   // libera o som p/ comandos remotos
+  (async function loop(){await remSync();setTimeout(loop,1000)})();
+}
 let mt;addEventListener('mousemove',()=>{if(stage.hidden)return;document.body.classList.remove('idle');clearTimeout(mt);mt=setTimeout(()=>document.body.classList.add('idle'),2500)});
 </script>
 </body>
