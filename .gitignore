@@ -9,3 +9,6 @@ academia/conexao.php
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+# Sorteador OX: lista de clientes (dados pessoais) fica so no PC
+sorteador-ox/participantes.js
