@@ -133,6 +133,14 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
 @keyframes poolIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
 .card.frame{outline:3px solid var(--red);outline-offset:1px;background:linear-gradient(180deg,#5a1f26,#2a1014);z-index:3}
 .card.locked{outline:4px solid var(--gold);outline-offset:2px;background:linear-gradient(180deg,#5b4a16,#2a2008);z-index:6;transform:scale(1.35);box-shadow:0 0 30px rgba(244,197,66,.7)}
+#endbtns{position:absolute;left:0;right:0;bottom:26px;z-index:45;display:none;flex-direction:column;align-items:center;gap:14px}
+#endbtns.on{display:flex;animation:swap .8s both}
+#endmsg{font:700 20px var(--body);letter-spacing:.2em;text-transform:uppercase;color:#8d96a1}
+#endbtns .eb{display:flex;gap:18px}
+#endbtns button{font-size:30px;padding:14px 38px}
+#endbtns button.ghost{background:rgba(14,16,19,.7)}
+#wins{margin-top:12px;padding:10px 14px;background:#12151a;border:2px solid var(--line);font:600 14px var(--body);color:#c9d0d8;display:flex;gap:12px;align-items:center;justify-content:space-between}
+#wins b{color:var(--gold)}
 #flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:40}
 .ring{position:absolute;border:8px solid var(--gold);border-radius:50%;z-index:11;pointer-events:none}
 #toast{position:fixed;right:18px;bottom:14px;z-index:99;font:700 14px var(--body);color:#fff;background:rgba(0,0,0,.7);padding:6px 12px;opacity:0;transition:opacity .3s}
@@ -144,13 +152,15 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
 <div id="setup">
   <div class="box">
     <h1>Sorteio <b>OX</b></h1>
-    <p class="sub">10 nomes → 5 → 3 → 1 vencedor, com animação e efeitos sonoros para o telão.</p>
+    <p class="sub">5 nomes → 2 → 1 vencedor, com animação e efeitos sonoros para o telão.</p>
 
     <label for="prize">Título do sorteio / prêmio</label>
     <input type="text" id="prize" placeholder="Ex.: 1 ano de plano OX">
 
     <label for="names">Participantes (um por linha)</label>
     <textarea id="names" placeholder="Maria Silva&#10;João Souza&#10;..."></textarea>
+
+    <div id="wins" hidden><span>Já ganharam e ficam de fora: <b id="winlist"></b></span><button class="ghost" id="clearwins" type="button">Limpar</button></div>
 
     <div class="row">
       <div class="cnt"><b id="count">0</b> participantes</div>
@@ -177,6 +187,7 @@ button.ghost{background:transparent;border:2px solid var(--line);color:#c9d0d8;f
   <canvas id="fx"></canvas>
   <div id="vig"></div>
   <div id="splash"><div class="s1">OX</div><div class="s2">Sorteio</div><div class="s3" id="splashPrize"></div></div>
+  <div id="endbtns"><div id="endmsg"></div><div class="eb"><button id="again" type="button">Novo sorteio (N)</button><button class="ghost" id="cfg" type="button">Configurar (Esc)</button></div></div>
   <div id="flash"></div>
 </div>
 <div id="toast"></div>
@@ -332,7 +343,7 @@ function waitKey(msg){
 }
 
 /* ---------- o sorteio ---------- */
-let all=[],cards=[],alive=[],chain=[],prize='';
+let all=[],cards=[],alive=[],chain=[],prize='',finished=false;
 
 async function intro(){
   $('#splashPrize').textContent=prize||'';
@@ -509,18 +520,18 @@ async function handKill(loser){
 }
 
 async function eliminateTo(k,idx){
-  const label=k===1?'A grande final':k+' classificados';
-  setTitle('Rodada '+idx,k===1?'Quem leva?':k+' seguem');
+  const label=k===1?'A grande final':k===2?'Os finalistas':k+' classificados';
+  setTitle('Rodada '+idx,k===1?'Quem leva?':k===2?'Quem vai à final?':k+' seguem');
   S.whoosh(.8);await sleep(900);
   const losers=shuffle(alive.filter(c=>c.rank>=k));
-  for(const c of losers){
+  for(const [j,c] of losers.entries()){
     if(alive.length===2)await handKill(c);
     else{
       const tense=alive.length<=3,steps=tense?16:11+rnd(4),d0=tense?85:65,d1=tense?420:230;
       if(tense)S.riser(sweepMs(steps,d0,d1)/1000+.3);
       await sweep(alive,c,steps,d0,d1);
       await sleep(tense?500:260);
-      await(k===1?slash:k===3?shatter:press)(c);
+      await[press,shatter,slash][j%3](c);
     }
     alive=alive.filter(x=>x!==c);
     if(k===1&&alive.length>1){const rr=layout(alive.length);S.whoosh(.7);alive.forEach((x,i)=>place(x,rr[i]));unify(alive);await sleep(1000)}
@@ -546,21 +557,27 @@ async function crown(){
   }
   await sleep(4800);
   for(let i=0;i<4;i++)setTimeout(()=>{burst(W*.25,H*.2,50,0);burst(W*.75,H*.2,50,0)},i*900);
-  const h=$('#hint');h.textContent='R ou Esc para voltar à configuração';h.classList.add('on');
+  addWinner(all[w.person]);
+  $('#endmsg').textContent=winners.length+(winners.length===1?' ganhador já sorteado fica':' ganhadores já sorteados ficam')+' de fora do próximo sorteio';
+  $('#endbtns').classList.add('on');
 }
 
 async function run(){
   const ac2=new AbortController();
   prize=$('#prize').value.trim();
   $('#cards').innerHTML='';$('#beams').classList.remove('on');$('#title').textContent='';$('#eyebrow').textContent='';
-  const n=all.length,start=Math.min(10,n);
-  chain=[start,...[5,3,1].filter(x=>x<start)];
+  finished=false;confetti=[];heat=0;
+  stage.querySelectorAll('.press,.arm,.blade,.ring,.fly').forEach(e=>e.remove());
+  $('#endbtns').classList.remove('on');$('#hint').classList.remove('on');
+  const n=all.length,start=Math.min(5,n);
+  chain=start>2?[start,2,1]:[start,1];
   await intro();await draw();
   for(let i=1;i<chain.length;i++){
     await waitKey(i===1?'Espaço para eliminar':'Espaço para próxima rodada');
     await eliminateTo(chain[i],i);
   }
   await crown();
+  finished=true;
 }
 
 /* ---------- escala do palco ---------- */
@@ -575,9 +592,18 @@ addEventListener('resize',rescale);
 /* ---------- configuração e teclas ---------- */
 const SAMPLE=['Maria Silva','João Souza','Ana Paula Lima','Carlos Eduardo','Fernanda Costa','Rafael Mendes','Juliana Rocha','Bruno Alves','Camila Torres','Lucas Pereira','Patrícia Gomes','Diego Martins','Aline Barros','Thiago Nunes','Larissa Duarte','Gustavo Ramos','Beatriz Freitas','Felipe Cardoso','Vanessa Moura','Rodrigo Teixeira','Mariana Dias','André Luiz','Tatiane Pinto','Marcelo Vieira'];
 const ta=$('#names');
-function parse(){const seen=[];return ta.value.split('\n').map(s=>s.trim()).filter(Boolean)}
+function parse(){return ta.value.split('\n').map(s=>s.trim()).filter(Boolean)}
+const norm=s=>s.trim().toLowerCase();
+let winners=[];try{winners=JSON.parse(localStorage.getItem('oxsorteio_win')||'[]')}catch(e){}
+function saveWins(){try{localStorage.setItem('oxsorteio_win',JSON.stringify(winners))}catch(e){}}
+function addWinner(n){if(n&&!winners.some(w=>norm(w)===norm(n))){winners.push(n);saveWins()}}
+function eligible(){const w=new Set(winners.map(norm));return parse().filter(n=>!w.has(norm(n)))}
 function save(){try{localStorage.setItem('oxsorteio',JSON.stringify({n:ta.value,p:$('#prize').value,a:$('#auto').checked}))}catch(e){}}
-function updCount(){$('#count').textContent=parse().length;save()}
+function updCount(){
+  $('#count').textContent=eligible().length;save();
+  $('#wins').hidden=!winners.length;$('#winlist').textContent=winners.join(', ');
+}
+$('#clearwins').onclick=()=>{winners=[];saveWins();updCount()};
 try{const d=JSON.parse(localStorage.getItem('oxsorteio')||'null');if(d){ta.value=d.n||'';$('#prize').value=d.p||'';$('#auto').checked=!!d.a}}catch(e){}
 ta.addEventListener('input',updCount);$('#prize').addEventListener('input',save);$('#auto').addEventListener('change',save);
 $('#sample').onclick=()=>{ta.value=SAMPLE.join('\n');updCount()};
@@ -586,8 +612,8 @@ updCount();
 
 let started=false;
 $('#go').onclick=async()=>{
-  all=parse();
-  if(all.length<2){alert('Coloque pelo menos 2 participantes.');return}
+  all=eligible();
+  if(all.length<2){alert(winners.length?'Restam menos de 2 participantes (os ganhadores anteriores ficam de fora). Adicione nomes ou limpe a lista de ganhadores.':'Coloque pelo menos 2 participantes.');return}
   auto=$('#auto').checked;initAudio();
   try{document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}
   $('#setup').style.display='none';stage.hidden=false;rescale();
@@ -595,12 +621,19 @@ $('#go').onclick=async()=>{
   document.body.classList.add('idle');
   run();
 };
+function again(){
+  all=eligible();
+  if(all.length<2){alert('Restam menos de 2 participantes. Adicione nomes ou limpe a lista de ganhadores na configuração.');location.reload();return}
+  run();
+}
+$('#again').onclick=()=>{if(finished)again()};
+$('#cfg').onclick=()=>location.reload();
 addEventListener('keydown',e=>{
   if(!stage.hidden){
     if(e.code==='Space'||e.code==='Enter'||e.code==='ArrowRight'){e.preventDefault();keyResolve&&keyResolve()}
     else if(e.key==='m'||e.key==='M')setMuted(!muted);
     else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
-    else if(e.key==='r'||e.key==='R'){location.reload()}
+    else if((e.key==='n'||e.key==='N'||e.key==='r'||e.key==='R')&&finished)again();
     else if(e.key==='Escape'){location.reload()}
   }
 });
