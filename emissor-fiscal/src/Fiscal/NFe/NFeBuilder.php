@@ -139,6 +139,7 @@ final class NFeBuilder
         $somaBcSt = 0.0;
         $somaSt = 0.0;
         $somaIpiDevol = 0.0;
+        $somaAcess = ['vFrete' => 0.0, 'vSeg' => 0.0, 'vDesc' => 0.0, 'vOutro' => 0.0];
         foreach (array_values($p['itens']) as $i => $item) {
             $n = $i + 1;
             $qtd = (float) $item['quantidade'];
@@ -167,6 +168,14 @@ final class NFeBuilder
             $prod->qTrib = $prod->qCom;
             $prod->vUnTrib = $prod->vUnCom;
             $prod->indTot = 1;
+            // Frete, seguro, desconto e outras despesas do item (ex.: devolução repete os da compra)
+            foreach (['vFrete' => 'valor_frete', 'vSeg' => 'valor_seguro', 'vDesc' => 'valor_desconto', 'vOutro' => 'valor_outros'] as $tagXml => $campo) {
+                $v = round((float) ($item[$campo] ?? 0), 2);
+                if ($v > 0) {
+                    $prod->{$tagXml} = number_format($v, 2, '.', '');
+                    $somaAcess[$tagXml] += $v;
+                }
+            }
             $make->tagprod($prod);
 
             $imposto = new \stdClass();
@@ -192,17 +201,18 @@ final class NFeBuilder
         $icmsTot->vFCPST = '0.00';
         $icmsTot->vFCPSTRet = '0.00';
         $icmsTot->vProd = number_format($totalProd, 2, '.', '');
-        $icmsTot->vFrete = '0.00';
-        $icmsTot->vSeg = '0.00';
-        $icmsTot->vDesc = '0.00';
+        $icmsTot->vFrete = number_format($somaAcess['vFrete'], 2, '.', '');
+        $icmsTot->vSeg = number_format($somaAcess['vSeg'], 2, '.', '');
+        $icmsTot->vDesc = number_format($somaAcess['vDesc'], 2, '.', '');
         $icmsTot->vII = '0.00';
         $icmsTot->vIPI = '0.00';
         $icmsTot->vIPIDevol = number_format($somaIpiDevol, 2, '.', '');
         $icmsTot->vPIS = '0.00';
         $icmsTot->vCOFINS = '0.00';
-        $icmsTot->vOutro = '0.00';
-        // vNF = produtos + ICMS-ST destacado + IPI devolvido (devolução de compra)
-        $icmsTot->vNF = number_format($totalProd + $somaSt + $somaIpiDevol, 2, '.', '');
+        $icmsTot->vOutro = number_format($somaAcess['vOutro'], 2, '.', '');
+        // vNF = produtos − desconto + frete + seguro + outras + ICMS-ST destacado + IPI devolvido
+        $vNF = $totalProd - $somaAcess['vDesc'] + $somaAcess['vFrete'] + $somaAcess['vSeg'] + $somaAcess['vOutro'] + $somaSt + $somaIpiDevol;
+        $icmsTot->vNF = number_format($vNF, 2, '.', '');
         $make->tagICMSTot($icmsTot);
 
         // ------- transporte -------
@@ -221,7 +231,7 @@ final class NFeBuilder
         } else {
             $detPag->indPag = 0;
             $detPag->tPag = $p['pagamento']['forma'] ?? '01'; // 01=dinheiro, 03=cartão crédito...
-            $detPag->vPag = number_format($totalProd, 2, '.', '');
+            $detPag->vPag = number_format($vNF, 2, '.', '');
         }
         $make->tagdetPag($detPag);
 
