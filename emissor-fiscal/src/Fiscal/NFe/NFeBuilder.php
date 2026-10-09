@@ -136,6 +136,9 @@ final class NFeBuilder
         $totalProd = 0.0;
         $somaBcIcms = 0.0;
         $somaIcms = 0.0;
+        $somaBcSt = 0.0;
+        $somaSt = 0.0;
+        $somaIpiDevol = 0.0;
         foreach (array_values($p['itens']) as $i => $item) {
             $n = $i + 1;
             $qtd = (float) $item['quantidade'];
@@ -173,6 +176,9 @@ final class NFeBuilder
             $totItem = $this->montarImpostos($make, $n, $item, $vprod);
             $somaBcIcms += $totItem['vBC'];
             $somaIcms += $totItem['vICMS'];
+            $somaBcSt += $totItem['vBCST'];
+            $somaSt += $totItem['vST'];
+            $somaIpiDevol += $totItem['vIPIDevol'];
         }
 
         // ------- totais -------
@@ -181,8 +187,8 @@ final class NFeBuilder
         $icmsTot->vICMS = number_format($somaIcms, 2, '.', '');
         $icmsTot->vICMSDeson = '0.00';
         $icmsTot->vFCP = '0.00';
-        $icmsTot->vBCST = '0.00';
-        $icmsTot->vST = '0.00';
+        $icmsTot->vBCST = number_format($somaBcSt, 2, '.', '');
+        $icmsTot->vST = number_format($somaSt, 2, '.', '');
         $icmsTot->vFCPST = '0.00';
         $icmsTot->vFCPSTRet = '0.00';
         $icmsTot->vProd = number_format($totalProd, 2, '.', '');
@@ -191,11 +197,12 @@ final class NFeBuilder
         $icmsTot->vDesc = '0.00';
         $icmsTot->vII = '0.00';
         $icmsTot->vIPI = '0.00';
-        $icmsTot->vIPIDevol = '0.00';
+        $icmsTot->vIPIDevol = number_format($somaIpiDevol, 2, '.', '');
         $icmsTot->vPIS = '0.00';
         $icmsTot->vCOFINS = '0.00';
         $icmsTot->vOutro = '0.00';
-        $icmsTot->vNF = number_format($totalProd, 2, '.', '');
+        // vNF = produtos + ICMS-ST destacado + IPI devolvido (devolução de compra)
+        $icmsTot->vNF = number_format($totalProd + $somaSt + $somaIpiDevol, 2, '.', '');
         $make->tagICMSTot($icmsTot);
 
         // ------- transporte -------
@@ -244,12 +251,20 @@ final class NFeBuilder
         return ['make' => $make, 'chave' => $make->getChave(), 'numero' => $numero];
     }
 
-    /** @return array{vBC: float, vICMS: float} contribuição do item para o total de ICMS */
+    /**
+     * @return array{vBC: float, vICMS: float, vBCST: float, vST: float, vIPIDevol: float} contribuição do item nos totais
+     *
+     * Campos opcionais do item (devolução de compra):
+     *  - bc_icms / valor_icms: base e valor do ICMS próprio (padrão: base = valor do produto)
+     *  - st: {modalidade (modBCST, padrão 4 = MVA), mva, bc, aliquota, valor} — CST 10/30/70/90
+     *  - st_retido: {bc, aliquota, valor} — CST 60 (ICMS-ST retido anteriormente)
+     *  - ipi_devolvido: {percentual, valor} — grupo impostoDevol
+     */
     private function montarImpostos(Make $make, int $item, array $it, float $vprod): array
     {
         $origem = (string) ($it['origem'] ?? 0); // 0 = nacional
         $vprodF = number_format($vprod, 2, '.', '');
-        $totIcms = ['vBC' => 0.0, 'vICMS' => 0.0];
+        $totIcms = ['vBC' => 0.0, 'vICMS' => 0.0, 'vBCST' => 0.0, 'vST' => 0.0, 'vIPIDevol' => 0.0];
 
         if ($this->emitente['CRT'] == 1) {
             // Simples Nacional -> ICMSSN
@@ -262,20 +277,41 @@ final class NFeBuilder
             // Regime Normal -> ICMS 00 (tributado integralmente) por padrão
             $cst = (string) ($it['cst_icms'] ?? '00');
             $aliq = (float) ($it['aliquota_icms'] ?? 0);
-            $tributa = !in_array($cst, ['40', '41', '50', '60'], true) && $aliq > 0;
-            $vIcms = $tributa ? round($vprod * $aliq / 100, 2) : 0.0;
+            $tributa = !in_array($cst, ['30', '40', '41', '50', '60'], true) && $aliq > 0;
+            $bc = isset($it['bc_icms']) ? (float) $it['bc_icms'] : $vprod;
+            $vIcms = $tributa ? (isset($it['valor_icms']) ? (float) $it['valor_icms'] : round($bc * $aliq / 100, 2)) : 0.0;
 
             $icms = new \stdClass();
             $icms->item = $item;
             $icms->orig = $origem;
             $icms->CST = $cst;
             $icms->modBC = 3;
-            $icms->vBC = $vprodF;
+            $icms->vBC = number_format($tributa ? $bc : $vprod, 2, '.', '');
             $icms->pICMS = number_format($aliq, 2, '.', '');
             $icms->vICMS = number_format($vIcms, 2, '.', '');
+            // ICMS-ST destacado (CST 10/30/70/90) — ex.: devolução de compra recebida com ST
+            if (in_array($cst, ['10', '30', '70', '90'], true) && !empty($it['st'])) {
+                $st = $it['st'];
+                $icms->modBCST = (int) ($st['modalidade'] ?? 4);
+                $icms->pMVAST = number_format((float) ($st['mva'] ?? 0), 2, '.', '');
+                $icms->vBCST = number_format((float) ($st['bc'] ?? 0), 2, '.', '');
+                $icms->pICMSST = number_format((float) ($st['aliquota'] ?? 0), 2, '.', '');
+                $icms->vICMSST = number_format((float) ($st['valor'] ?? 0), 2, '.', '');
+                $totIcms['vBCST'] = (float) ($st['bc'] ?? 0);
+                $totIcms['vST'] = (float) ($st['valor'] ?? 0);
+            }
+            // ICMS-ST retido anteriormente (CST 60): informativo, não soma no total da nota
+            if ($cst === '60' && !empty($it['st_retido'])) {
+                $sr = $it['st_retido'];
+                $icms->vBCSTRet = number_format((float) ($sr['bc'] ?? 0), 2, '.', '');
+                $icms->pST = number_format((float) ($sr['aliquota'] ?? 0), 2, '.', '');
+                $icms->vICMSSubstituto = '0.00';
+                $icms->vICMSSTRet = number_format((float) ($sr['valor'] ?? 0), 2, '.', '');
+            }
             $make->tagICMS($icms);
             if ($tributa) {
-                $totIcms = ['vBC' => $vprod, 'vICMS' => $vIcms];
+                $totIcms['vBC'] = $bc;
+                $totIcms['vICMS'] = $vIcms;
             }
 
             // Reforma Tributária (NT 2025.002): Regime Normal destaca IBS/CBS desde 2026
@@ -314,6 +350,16 @@ final class NFeBuilder
         $cofins->pCOFINS = '0.00';
         $cofins->vCOFINS = '0.00';
         $make->tagCOFINS($cofins);
+
+        // IPI devolvido (devolução de compra com IPI)
+        if (!empty($it['ipi_devolvido']) && (float) ($it['ipi_devolvido']['valor'] ?? 0) > 0) {
+            $dev = new \stdClass();
+            $dev->item = $item;
+            $dev->pDevol = number_format((float) ($it['ipi_devolvido']['percentual'] ?? 100), 2, '.', '');
+            $dev->vIPIDevol = number_format((float) $it['ipi_devolvido']['valor'], 2, '.', '');
+            $make->tagimpostoDevol($dev);
+            $totIcms['vIPIDevol'] = (float) $it['ipi_devolvido']['valor'];
+        }
 
         return $totIcms;
     }

@@ -114,6 +114,60 @@ $nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
 
 // ---------------- rotas ----------------
 
+/**
+ * POST /v1/xml/periodo {emitente, mes: "AAAA-MM"} — pacote para o contador: ZIP (base64) com os XML
+ * AUTORIZADOS em produção (NF-e 55 e NFC-e 65) emitidos no mês + eventos (cancelamento/CC-e) deles.
+ * O mês vem da própria chave (posições 3-6 = AAMM). Homologação (tpAmb 2) fica de fora.
+ */
+$router->add('POST', '/v1/xml/periodo', function (Request $req) use ($root) {
+    $cnpj = preg_replace('/\D/', '', (string) ($req->body['emitente'] ?? ''));
+    $mes = (string) ($req->body['mes'] ?? '');
+    if ($cnpj === '' || !preg_match('/^(\d{4})-(\d{2})$/', $mes, $m)) {
+        Response::erro('Informe "emitente" (CNPJ) e "mes" no formato AAAA-MM.', 400);
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para este emitente.', 403);
+    }
+    $aamm = substr($m[1], 2, 2) . $m[2];
+    $base = "{$root}/storage/xml/{$cnpj}";
+    $lista = [];
+    $chaves = [];
+    foreach (glob("{$base}/autorizado/*.xml") ?: [] as $arq) {
+        $chave = basename($arq, '.xml');
+        if (strlen($chave) !== 44 || substr($chave, 2, 4) !== $aamm) continue;
+        $xml = (string) file_get_contents($arq);
+        if (!str_contains($xml, '<tpAmb>1</tpAmb>')) continue; // só produção
+        $modelo = substr($chave, 20, 2);
+        $pasta = $modelo === '65' ? 'NFC-e' : 'NF-e';
+        $lista[] = ['arquivo' => $arq, 'nome' => "{$pasta}/autorizadas/{$chave}.xml", 'tipo' => 'autorizada',
+            'modelo' => $modelo, 'serie' => (int) substr($chave, 22, 3), 'numero' => (int) substr($chave, 25, 9), 'chave' => $chave];
+        $chaves[$chave] = $pasta;
+    }
+    foreach (glob("{$base}/eventos/*.xml") ?: [] as $arq) {
+        $nome = basename($arq, '.xml');
+        $chave = substr($nome, 0, 44);
+        if (!isset($chaves[$chave])) continue;
+        $tipo = str_contains($nome, '-canc') ? 'cancelamento' : (str_contains($nome, '-cce') ? 'carta_correcao' : 'evento');
+        $lista[] = ['arquivo' => $arq, 'nome' => "{$chaves[$chave]}/eventos/{$nome}.xml", 'tipo' => $tipo,
+            'modelo' => substr($chave, 20, 2), 'serie' => (int) substr($chave, 22, 3), 'numero' => (int) substr($chave, 25, 9), 'chave' => $chave];
+    }
+    usort($lista, fn ($a, $b) => [$a['modelo'], $a['serie'], $a['numero'], $a['tipo']] <=> [$b['modelo'], $b['serie'], $b['numero'], $b['tipo']]);
+
+    $tmp = tempnam(sys_get_temp_dir(), 'xmlzip');
+    $zip = new ZipArchive();
+    $zip->open($tmp, ZipArchive::OVERWRITE);
+    foreach ($lista as $l) $zip->addFile($l['arquivo'], $l['nome']);
+    if (!$lista) $zip->addFromString('LEIA-ME.txt', "Nenhum XML autorizado em {$mes}.");
+    $zip->close();
+    $b64 = base64_encode((string) file_get_contents($tmp));
+    @unlink($tmp);
+    Response::ok([
+        'mes' => $mes,
+        'zip_base64' => $b64,
+        'arquivos' => array_map(fn ($l) => array_diff_key($l, ['arquivo' => 1]), $lista),
+    ]);
+});
+
 $router->add('GET', '/health', function () {
     Response::ok(['servico' => 'emissor-fiscal', 'versao' => '1.0']);
 }, protected: false);
