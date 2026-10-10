@@ -204,7 +204,6 @@ body.simple .go{margin-top:30px}
 /* =====================================================================
    Sorteio OX — tela de 2816x980 por padrão. Para outro formato:
    index.html?w=1920&h=1080   (o padrão é 2816x980; o palco escala para caber no telão)
-   index.html?y=0  sobe o palco até o topo  (?y=.5 = centralizado; padrão .15)
    ===================================================================== */
 const $=s=>document.querySelector(s);
 if(!new URLSearchParams(location.search).has('config'))document.body.classList.add('simple');
@@ -596,9 +595,6 @@ const stage=$('#stage');
 function rescale(){
   const s=Math.min(innerWidth/W,innerHeight/H);
   stage.style.width=W+'px';stage.style.height=H+'px';
-  /* sobra vertical: ?y=0 cola no topo, ?y=.5 centraliza (padrão .15 = um pouco acima do centro) */
-  const Y=Q.has('y')?Math.min(1,Math.max(0,+Q.get('y'))):.15;
-  stage.style.top=((innerHeight-H*s)*Y+H*s/2)+'px';
   stage.style.transform=`translate(-50%,-50%) scale(${s})`;
 }
 addEventListener('resize',rescale);
