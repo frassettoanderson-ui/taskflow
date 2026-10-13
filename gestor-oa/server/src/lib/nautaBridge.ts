@@ -150,7 +150,8 @@ export async function sincronizarDoNauta(nautaClienteId: string): Promise<string
       ordem: i + 1, nomeCompleto: nz(sx.nome_completo) || nz(c.cli_nome_completo) || razao,
       cpf: nz(sx.cpf), rg: nz(sx.rg), nascimento: nz(sx.nascimento), nomePai: nz(sx.nome_pai), nomeMae: nz(sx.nome_mae),
       participacao: num2(sx.participacao), estadoCivil: nz(sx.estado_civil), reciboIrpf: nz(sx.recibo_irpf),
-      tituloEleitor: nz(sx.titulo_eleitor), senhaGov: nz(sx.senha_gov), docUrl: nz(sx.doc_url), certUrl: nz(sx.cert_url),
+      // senha gov.br do titular costuma estar só no cadastro (cli_senha_gov) — vale p/ o sócio 1 se a linha não tiver
+      tituloEleitor: nz(sx.titulo_eleitor), senhaGov: nz(sx.senha_gov) || (i === 0 ? nz(c.cli_senha_gov) : null), docUrl: nz(sx.doc_url), certUrl: nz(sx.cert_url),
       certSenha: nz(sx.cert_senha),
       email: i === 0 ? nz(c.cli_email) : null, telefone: i === 0 ? (nz(c.emp_telefone) || nz(c.l_whatsapp)) : null,
       cep: i === 0 ? nz(c.cli_cep) : null, endereco: i === 0 ? nz(c.cli_endereco) : null, bairro: i === 0 ? nz(c.cli_bairro) : null,
