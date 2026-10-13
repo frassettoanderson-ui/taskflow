@@ -119,6 +119,23 @@ $nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
  * o XML de uma NF-e emitida CONTRA o emitente (nota de compra). Se só vier o resumo, registra a
  * Ciência da Operação (210210) e tenta de novo. Não emite nada.
  */
+/**
+ * POST /v1/nfe/distribuicao/nsu {emitente, ultNSU} — lista as NF-e emitidas contra o emitente a partir
+ * do NSU (0 = últimos 90 dias). Só consulta: NÃO registra ciência em nenhuma nota.
+ */
+$router->add('POST', '/v1/nfe/distribuicao/nsu', function (Request $req) use ($root, $emitentes) {
+    $cnpj = preg_replace('/\D/', '', (string) ($req->body['emitente'] ?? ''));
+    if ($cnpj === '') {
+        Response::erro('Campo "emitente" (CNPJ) é obrigatório.', 400);
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para este emitente.', 403);
+    }
+    $emit = $emitentes->buscar($cnpj);
+    $svc = new \App\Fiscal\NFe\DistribuicaoService($root, $emit, $emit->ambienteEfetivo(Config::ambiente()));
+    Response::ok($svc->listarPorNsu(preg_replace('/\D/', '', (string) ($req->body['ultNSU'] ?? '0')) ?: '0'));
+});
+
 $router->add('POST', '/v1/nfe/distribuicao/chave', function (Request $req) use ($root, $emitentes) {
     $cnpj = preg_replace('/\D/', '', (string) ($req->body['emitente'] ?? ''));
     if ($cnpj === '') {

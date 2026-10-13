@@ -54,6 +54,68 @@ final class DistribuicaoService
         return $r + ['manifestacao' => $man];
     }
 
+    /**
+     * Lista os documentos emitidos contra o emitente a partir do NSU informado (0 = últimos 90 dias).
+     * Busca em lotes de até 50 até alcançar o maxNSU (máx. 20 lotes por chamada). Notas completas
+     * (procNFe) já ficam guardadas em recebidas/. cStat 137 = nada novo; 656 = consumo indevido.
+     * @return array{cStat:string,motivo:string,ultNSU:string,maxNSU:string,docs:list<array<string,mixed>>}
+     */
+    public function listarPorNsu(string $ultNSU): array
+    {
+        $docs = [];
+        $cStat = '';
+        $motivo = '';
+        $max = $ultNSU;
+        for ($lote = 0; $lote < 20; $lote++) {
+            $resp = $this->tools->sefazDistDFe((int) $ultNSU);
+            $dom = new \DOMDocument();
+            $dom->loadXML($resp);
+            $cStat = $dom->getElementsByTagName('cStat')->item(0)?->nodeValue ?? '';
+            $motivo = $dom->getElementsByTagName('xMotivo')->item(0)?->nodeValue ?? '';
+            $ultNSU = $dom->getElementsByTagName('ultNSU')->item(0)?->nodeValue ?? $ultNSU;
+            $max = $dom->getElementsByTagName('maxNSU')->item(0)?->nodeValue ?? $max;
+            if ($cStat !== '138') {
+                break;
+            }
+            foreach ($dom->getElementsByTagName('docZip') as $doc) {
+                $schema = $doc->getAttribute('schema');
+                $nsu = $doc->getAttribute('NSU');
+                $xml = gzdecode(base64_decode($doc->nodeValue));
+                if ($xml === false) {
+                    continue;
+                }
+                $d = new \DOMDocument();
+                $d->loadXML($xml);
+                $tag = fn (string $t) => $d->getElementsByTagName($t)->item(0)?->nodeValue ?? '';
+                if (str_starts_with($schema, 'resNFe')) {
+                    $docs[] = ['nsu' => $nsu, 'tipo' => 'resumo', 'chave' => $tag('chNFe'), 'cnpj' => $tag('CNPJ') ?: $tag('CPF'),
+                        'nome' => $tag('xNome'), 'ie' => $tag('IE'), 'dataEmissao' => $tag('dhEmi'), 'valor' => $tag('vNF'),
+                        'tipoNota' => $tag('tpNF'), 'situacao' => $tag('cSitNFe')];
+                } elseif (str_starts_with($schema, 'procNFe')) {
+                    $chave = preg_replace('/\D/', '', $d->getElementsByTagName('infNFe')->item(0)?->getAttribute('Id') ?? '');
+                    $emit = $d->getElementsByTagName('emit')->item(0);
+                    $arq = $this->arquivo($chave);
+                    if (!is_dir(dirname($arq))) {
+                        mkdir(dirname($arq), 0775, true);
+                    }
+                    file_put_contents($arq, $xml);
+                    $docs[] = ['nsu' => $nsu, 'tipo' => 'completa', 'chave' => $chave,
+                        'cnpj' => $emit?->getElementsByTagName('CNPJ')->item(0)?->nodeValue ?? '',
+                        'nome' => $emit?->getElementsByTagName('xNome')->item(0)?->nodeValue ?? '',
+                        'ie' => $emit?->getElementsByTagName('IE')->item(0)?->nodeValue ?? '',
+                        'dataEmissao' => $tag('dhEmi'), 'valor' => $tag('vNF'), 'tipoNota' => $tag('tpNF'), 'situacao' => '1'];
+                } elseif (str_contains($schema, 'Evento')) {
+                    // ex.: cancelamento da nota pelo fornecedor (110111)
+                    $docs[] = ['nsu' => $nsu, 'tipo' => 'evento', 'chave' => $tag('chNFe'), 'evento' => $tag('tpEvento'), 'descricao' => $tag('xEvento') ?: $tag('descEvento')];
+                }
+            }
+            if ($ultNSU === $max) {
+                break;
+            }
+        }
+        return ['cStat' => $cStat, 'motivo' => $motivo, 'ultNSU' => (string) $ultNSU, 'maxNSU' => (string) $max, 'docs' => $docs];
+    }
+
     /** @return array{status:string,motivo:string,xml:?string} */
     private function consultar(string $chave): array
     {
