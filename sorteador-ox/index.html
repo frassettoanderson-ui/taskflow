@@ -353,6 +353,8 @@ function waitKey(msg){
 
 /* ---------- o sorteio ---------- */
 let all=[],cards=[],alive=[],chain=[],prize='',finished=false;
+/* sorteio AO VIVO (só quem está treinando): lista e ganhadores próprios, não mexe no grande sorteio */
+let liveMode=false,liveDone=false,liveIds=[],liveSeq=0,liveTotal=0,aovivoWin=null;
 
 async function intro(){
   $('#splashPrize').textContent=prize||'';
@@ -567,14 +569,21 @@ async function crown(){
   }
   await sleep(4800);
   for(let i=0;i<4;i++)setTimeout(()=>{burst(W*.25,H*.2,50,0);burst(W*.75,H*.2,50,0)},i*900);
-  addWinner(all[w.person]);
-  $('#endmsg').textContent=winners.length+(winners.length===1?' ganhador já sorteado fica':' ganhadores já sorteados ficam')+' de fora do próximo sorteio';
+  if(liveMode){
+    aovivoWin={seq:liveSeq,id:liveIds[w.person]||null,nome:all[w.person]};
+    $('#again').hidden=true;
+    $('#endmsg').textContent='Sorteio ao vivo entre '+all.length+' pessoas treinando agora · quem ganhou hoje não entra de novo hoje';
+  }else{
+    $('#again').hidden=false;
+    addWinner(all[w.person]);
+    $('#endmsg').textContent=winners.length+(winners.length===1?' ganhador já sorteado fica':' ganhadores já sorteados ficam')+' de fora do próximo sorteio';
+  }
   $('#endbtns').classList.add('on');
 }
 
 async function run(){
   const ac2=new AbortController();
-  prize=$('#prize').value.trim();
+  prize=liveMode?'Sorteio ao vivo':$('#prize').value.trim();
   $('#cards').innerHTML='';$('#beams').classList.remove('on');$('#title').textContent='';$('#eyebrow').textContent='';
   finished=false;confetti=[];heat=0;reportStatus('running');
   stage.querySelectorAll('.press,.arm,.blade,.ring,.fly').forEach(e=>e.remove());
@@ -587,7 +596,8 @@ async function run(){
     await eliminateTo(chain[i],i);
   }
   await crown();
-  finished=true;reportStatus('finished');
+  finished=true;
+  if(liveMode){liveDone=true;reportStatus('idle')}else reportStatus('finished');
 }
 
 /* ---------- escala do palco ---------- */
@@ -630,6 +640,7 @@ updCount();
 
 let started=false;
 $('#go').onclick=async()=>{
+  liveMode=false;liveDone=false;
   all=eligible();
   if(all.length<2){alert(winners.length?'Restam menos de 2 participantes (os ganhadores anteriores ficam de fora). Adicione nomes ou limpe a lista de ganhadores.':'Coloque pelo menos 2 participantes.');return}
   auto=!$('#manual').checked;initAudio();
@@ -640,6 +651,7 @@ $('#go').onclick=async()=>{
   run();
 };
 function again(){
+  liveMode=false;liveDone=false;
   all=eligible();
   if(all.length<2){alert('Restam menos de 2 participantes. Adicione nomes ou limpe a lista de ganhadores na configuração.');location.reload();return}
   run();
@@ -663,15 +675,16 @@ function reportStatus(s){remStatus=s;if(remoto)remSync()}
 async function remSync(){
   if(!remoto||remBusy)return;remBusy=true;
   try{
-    const state={status:remStatus,muted,manual:$('#manual').checked,title:stage.hidden?'':$('#title').textContent,eyebrow:stage.hidden?'':$('#eyebrow').textContent,winners};
+    const state={status:remStatus,muted,manual:$('#manual').checked,title:stage.hidden?'':$('#title').textContent,eyebrow:stage.hidden?'':$('#eyebrow').textContent,winners,aovivoWin};
     const d=await(await fetch('api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({since:remLast,state})})).json();
     if(remLast===null)remLast=d.seq;
-    else for(const c of d.cmds){remLast=Math.max(remLast,c.seq);remCmd(c.cmd)}
+    else for(const c of d.cmds){remLast=Math.max(remLast,c.seq);remCmd(c.cmd,c)}
   }catch(e){}
   remBusy=false;
 }
-function remCmd(c){
-  if(c==='play'){if(stage.hidden)$('#go').click();else if(finished)again()}
+function remCmd(c,o){
+  if(c==='aovivo'){aoVivo(o);return}
+  if(c==='play'){if(stage.hidden)$('#go').click();else if(finished||liveDone)again()}
   else if(c==='next'){if(keyResolve)keyResolve()}
   else if(c==='mute')setMuted(!muted);
   else if(c==='manual'){const m=$('#manual');m.checked=!m.checked;auto=!m.checked;save();if(auto&&keyResolve)keyResolve()}
@@ -679,6 +692,35 @@ function remCmd(c){
   else if(c==='home')location.reload();
   else if(c==='reset'){winners=[];saveWins();try{localStorage.removeItem('oxsorteio_lista')}catch(e){}location.reload()}
 }
+/* Sorteio ao vivo: lista vem do controle (catraca da EVO, já sem quem ganhou hoje) */
+function abrirPalco(){
+  initAudio();
+  try{document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}
+  $('#setup').style.display='none';stage.hidden=false;rescale();
+  if(!started){started=true;loop()}
+  document.body.classList.add('idle');
+}
+function avisoPalco(eb,t,msg){
+  $('#cards').innerHTML='';$('#beams').classList.remove('on');$('#hint').classList.remove('on');
+  setTitle(eb,t);$('#again').hidden=true;$('#endmsg').textContent=msg||'';$('#endbtns').classList.add('on');
+}
+function aoVivo(o){
+  if(remStatus==='running')return;           // não interrompe um sorteio em andamento
+  const lista=(o&&o.lista)||[];
+  abrirPalco();
+  liveSeq=o.seq;liveTotal=o.treinando||lista.length;aovivoWin=null;
+  if(lista.length<2){
+    liveMode=true;liveDone=true;finished=true;reportStatus('idle');
+    const t=lista.length===1?'Só '+lista[0].nome+' pode concorrer':'Ninguém para sortear agora';
+    avisoPalco('Sorteio ao vivo',t,liveTotal+' pessoa(s) treinando agora · quem já ganhou hoje não entra de novo');
+    return;
+  }
+  liveMode=true;liveDone=false;
+  all=lista.map(p=>p.nome);liveIds=lista.map(p=>p.id);
+  auto=!$('#manual').checked;
+  run();
+}
+
 if(remoto){
   $('#rem').hidden=false;
   addEventListener('pointerdown',()=>{try{initAudio()}catch(e){}},{once:true});   // libera o som p/ comandos remotos

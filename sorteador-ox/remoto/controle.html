@@ -27,6 +27,9 @@ button:disabled{opacity:.35;cursor:default}
 #play{background:var(--red);border-color:var(--red);font-size:44px;padding:30px 10px}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .sub{display:block;font:600 12px 'Archivo',sans-serif;letter-spacing:.08em;color:#c9d0d8;margin-top:3px;text-transform:none}
+#aovivo{background:#1d3b26;border-color:#34d058;font-size:30px;margin-top:6px}
+.av{border:2px solid #2b5236;padding:10px 14px;font:600 14px/1.5 'Archivo',sans-serif;color:#c9d0d8}
+.av b{color:#34d058}
 #reset{background:transparent;border-color:var(--red);color:#ff6b78;margin-top:10px}
 .win{border:2px solid var(--line);padding:10px 14px;font:600 14px/1.5 'Archivo',sans-serif;color:#c9d0d8}
 .win b{color:var(--gold)}
@@ -52,6 +55,9 @@ button:disabled{opacity:.35;cursor:default}
   </div>
   <button id="home">Voltar ao início</button>
 
+  <button id="aovivo" disabled>Sorteio ao vivo<span class="sub">sorteia 1 entre quem está treinando agora</span></button>
+  <div class="av" id="av" hidden></div>
+
   <div class="win" id="win" hidden></div>
   <button id="reset">Reiniciar tudo do zero</button>
   <div id="msg"></div>
@@ -60,7 +66,7 @@ button:disabled{opacity:.35;cursor:default}
 <script>
 const K=new URLSearchParams(location.search).get('k')||'';
 const $=s=>document.querySelector(s);
-let S={status:'idle',telao:false,muted:false,manual:false,title:'',eyebrow:'',winners:[]};
+let S={aovivo:{ganhadores:[]},status:'idle',telao:false,muted:false,manual:false,title:'',eyebrow:'',winners:[]};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function render(){
@@ -76,6 +82,10 @@ function render(){
   else{p.disabled=false;p.textContent=S.status==='finished'?'Novo sorteio':'Iniciar sorteio'}
   $('#next').disabled=!(on&&S.status==='running');
   ['mute','manual','fullscreen','home','reset'].forEach(id=>$('#'+id).disabled=!on);
+  $('#aovivo').disabled=!on||S.status==='running'||aguardandoAoVivo;
+  const av=$('#av'),A=S.aovivo||{ganhadores:[]};
+  av.hidden=!(A.ganhadores.length||A.ultimo);
+  if(!av.hidden)av.innerHTML=(A.ultimo?'Último ao vivo ('+esc(A.ultimo.hora)+'): '+A.ultimo.treinando+' treinando, '+A.ultimo.elegiveis+' concorrendo<br>':'')+(A.ganhadores.length?'<b>Ganharam ao vivo hoje ('+A.ganhadores.length+'):</b> '+A.ganhadores.map(g=>esc(g.nome)+' '+esc(g.hora)).join(', '):'');
   $('#muteTxt').textContent=S.muted?'desligado':'ligado';
   $('#manualTxt').textContent=S.manual?'manual (você avança)':'automático';
   const w=$('#win');
@@ -98,6 +108,18 @@ async function send(c){
   setTimeout(refresh,500);
 }
 ['play','next','mute','manual','fullscreen','home'].forEach(c=>$('#'+c).onclick=()=>send(c));
+let aguardandoAoVivo=false;
+$('#aovivo').onclick=async()=>{
+  if(!confirm('Fazer um sorteio ao vivo agora?\n\nSorteia 1 brinde entre quem está treinando neste momento (pela catraca). O grande sorteio não é afetado.'))return;
+  aguardandoAoVivo=true;render();$('#msg').textContent='Consultando a catraca…';
+  try{
+    const r=await fetch('../api/cmd?c=aovivo&k='+encodeURIComponent(K),{method:'POST'});const d=await r.json();
+    if(r.status===403)$('#msg').textContent='Chave inválida: use o link completo.';
+    else if(d.ok===0)$('#msg').textContent=d.motivo||'Aguarde um instante…';
+    else $('#msg').textContent=d.treinando+' treinando agora · '+d.elegiveis+' concorrendo';
+  }catch(e){$('#msg').textContent='Sem conexão.'}
+  aguardandoAoVivo=false;setTimeout(refresh,500);
+};
 $('#reset').onclick=()=>{if(confirm('Reiniciar tudo do zero?\n\nLimpa a lista de quem já ganhou, recarrega a lista de clientes e volta ao início.'))send('reset')};
 refresh();setInterval(refresh,1500);
 </script>

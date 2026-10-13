@@ -7,13 +7,29 @@ const fs = require('fs');
 const path = require('path');
 
 const KEY = fs.readFileSync(path.join(__dirname, 'key.txt'), 'utf8').trim();
-const CMDS = new Set(['play', 'next', 'mute', 'manual', 'fullscreen', 'home', 'reset']);
+const CMDS = new Set(['play', 'next', 'mute', 'manual', 'fullscreen', 'home', 'reset', 'aovivo']);
+
+/* Sorteio AO VIVO: só quem está treinando agora (catraca da EVO, via API do OX Cloud no próprio
+   servidor). Ganhadores ao vivo ficam em aovivo.json, SEPARADOS do grande sorteio; quem já ganhou
+   hoje não entra de novo (no dia seguinte participa). */
+const OX_TREINANDO = 'http://127.0.0.1:8401/api/evo/treinando-agora';
+const AOVIVO_FILE = path.join(__dirname, 'aovivo.json');
+const hojeBr = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+function lerAoVivo() {
+  let d = { dia: hojeBr(), ganhadores: [] };
+  try { d = JSON.parse(fs.readFileSync(AOVIVO_FILE, 'utf8')); } catch (e) { /* primeiro uso */ }
+  if (d.dia !== hojeBr()) d = { dia: hojeBr(), ganhadores: [] };
+  return d;
+}
+function gravarAoVivo(d) { fs.writeFileSync(AOVIVO_FILE, JSON.stringify(d)); }
+let ultimoAoVivo = null; // {hora, treinando, elegiveis}
 const STATUS = new Set(['idle', 'running', 'finished']);
 
 const st = {
   seq: 0,
   cmds: [],            // {seq, cmd}, últimos 30
   state: { status: 'idle', muted: false, manual: false, title: '', eyebrow: '', winners: [] },
+  aovivoSeq: 0,        // seq do último sorteio ao vivo enviado ao telão
   lastSync: 0,
   lastCmd: {},         // anti duplo-toque por comando
 };
@@ -48,13 +64,23 @@ http.createServer((req, res) => {
         eyebrow: str(s.eyebrow, 40),
         winners: Array.isArray(s.winners) ? s.winners.slice(0, 40).map((w) => str(w, 60)) : [],
       };
+      // telão informa o ganhador do sorteio ao vivo (uma vez por sorteio)
+      const w = s.aovivoWin;
+      if (w && Number.isInteger(w.seq) && w.seq === st.aovivoSeq && typeof w.nome === 'string') {
+        const av = lerAoVivo();
+        if (!av.ganhadores.some((g) => g.seq === w.seq)) {
+          av.ganhadores.push({ seq: w.seq, id: Number(w.id) || null, nome: str(w.nome, 80), hora: new Date(Date.now() - 3 * 3600e3).toISOString().slice(11, 16) });
+          gravarAoVivo(av);
+        }
+      }
       const since = Number.isInteger(d.since) ? d.since : null;
       json(res, { seq: st.seq, cmds: since === null ? [] : st.cmds.filter((c) => c.seq > since) });
     });
   }
 
   if (p === '/state') {                                    // celular
-    return json(res, { ...st.state, telao: Date.now() - st.lastSync < 5000 });
+    const av = lerAoVivo();
+    return json(res, { ...st.state, telao: Date.now() - st.lastSync < 5000, aovivo: { ganhadores: av.ganhadores, ultimo: ultimoAoVivo } });
   }
 
   if (req.method === 'POST' && p === '/cmd') {             // celular
@@ -64,6 +90,7 @@ http.createServer((req, res) => {
     const now = Date.now();
     if (now - (st.lastCmd[c] || 0) < 800) return json(res, { ok: 0, motivo: 'aguarde' });
     st.lastCmd[c] = now;
+    if (c === 'aovivo') return aoVivo(res);
     st.seq++;
     st.cmds.push({ seq: st.seq, cmd: c });
     if (st.cmds.length > 30) st.cmds.shift();
@@ -72,3 +99,25 @@ http.createServer((req, res) => {
 
   json(res, { error: 'nao encontrado' }, 404);
 }).listen(8410, '127.0.0.1');
+
+/** Busca quem está treinando, tira quem já ganhou hoje e manda a lista ao telão. */
+async function aoVivo(res) {
+  let dados;
+  try {
+    const r = await fetch(OX_TREINANDO, { signal: AbortSignal.timeout(20000) });
+    dados = await r.json();
+    if (!r.ok) throw new Error(dados && dados.erro || ('HTTP ' + r.status));
+  } catch (e) {
+    return json(res, { ok: 0, motivo: 'Não consegui consultar a catraca da EVO: ' + (e.message || 'erro') }, 502);
+  }
+  const av = lerAoVivo();
+  const ja = new Set(av.ganhadores.map((g) => g.id).filter(Boolean));
+  const jaNome = new Set(av.ganhadores.map((g) => g.nome.toLowerCase()));
+  const elegiveis = (dados.treinando || []).filter((p) => !ja.has(p.idMember) && !jaNome.has(p.nome.toLowerCase()));
+  ultimoAoVivo = { hora: dados.hora, treinando: (dados.treinando || []).length, elegiveis: elegiveis.length };
+  st.seq++;
+  st.aovivoSeq = st.seq;
+  st.cmds.push({ seq: st.seq, cmd: 'aovivo', lista: elegiveis.map((p) => ({ id: p.idMember, nome: p.nome })), treinando: ultimoAoVivo.treinando });
+  if (st.cmds.length > 30) st.cmds.shift();
+  return json(res, { ok: 1, seq: st.seq, ...ultimoAoVivo });
+}
