@@ -115,6 +115,25 @@ $nfseDoEmitente = static function (Request $req) use ($root, $emitentes, $store,
 // ---------------- rotas ----------------
 
 /**
+ * POST /v1/nfe/distribuicao/chave {emitente, chave, manifestar?} — baixa da SEFAZ (Ambiente Nacional)
+ * o XML de uma NF-e emitida CONTRA o emitente (nota de compra). Se só vier o resumo, registra a
+ * Ciência da Operação (210210) e tenta de novo. Não emite nada.
+ */
+$router->add('POST', '/v1/nfe/distribuicao/chave', function (Request $req) use ($root, $emitentes) {
+    $cnpj = preg_replace('/\D/', '', (string) ($req->body['emitente'] ?? ''));
+    if ($cnpj === '') {
+        Response::erro('Campo "emitente" (CNPJ) é obrigatório.', 400);
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para este emitente.', 403);
+    }
+    $emit = $emitentes->buscar($cnpj);
+    $svc = new \App\Fiscal\NFe\DistribuicaoService($root, $emit, $emit->ambienteEfetivo(Config::ambiente()));
+    $r = $svc->buscarPorChave((string) ($req->body['chave'] ?? ''), (bool) ($req->body['manifestar'] ?? true));
+    Response::json(['ok' => $r['status'] === 'xml'] + $r, $r['status'] === 'xml' ? 200 : 422);
+});
+
+/**
  * POST /v1/xml/periodo {emitente, mes: "AAAA-MM"} — pacote para o contador: ZIP (base64) com os XML
  * AUTORIZADOS em produção (NF-e 55 e NFC-e 65) emitidos no mês + eventos (cancelamento/CC-e) deles.
  * O mês vem da própria chave (posições 3-6 = AAMM). Homologação (tpAmb 2) fica de fora.
