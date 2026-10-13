@@ -68,12 +68,14 @@ final class EmitenteAdminService
             'nfse_senha' => (string) ($d['nfse_senha'] ?? ''),
             'resp_tec_contato' => (string) ($d['resp_tec_contato'] ?? ''),
             'resp_tec_email' => (string) ($d['resp_tec_email'] ?? ''),
+            // ambiente POR EMITENTE (1 produção, 2 homologação); sem ele vale o FISCAL_AMBIENTE global
+            'ambiente' => in_array((int) ($d['ambiente'] ?? 0), [1, 2], true) ? (int) $d['ambiente'] : null,
         ], fn ($v) => $v !== '' && $v !== null);
 
-        // preserva cert_password/csc antigos se não vieram agora (update parcial)
+        // preserva cert_password/csc/ambiente antigos se não vieram agora (update parcial)
         $this->mutarJson($this->emitentesPath(), function (array $atual) use ($cnpj, $registro): array {
             $anterior = $atual[$cnpj] ?? [];
-            foreach (['cert_password', 'csc', 'nfse_senha'] as $segredo) {
+            foreach (['cert_password', 'csc', 'nfse_senha', 'ambiente'] as $segredo) {
                 if (empty($registro[$segredo]) && !empty($anterior[$segredo])) {
                     $registro[$segredo] = $anterior[$segredo];
                 }
