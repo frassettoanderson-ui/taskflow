@@ -133,6 +133,38 @@ final class NFCeService
     }
 
     /** Gera o PDF da DANFCE (cupom 80mm) a partir do XML autorizado. */
+    /**
+     * Inutilização de numeração (faixa de números que não viraram nota autorizada). cStat 102 = homologada.
+     */
+    public function inutilizar(int $serie, int $nIni, int $nFin, string $justificativa): array
+    {
+        $justificativa = trim($justificativa);
+        if (mb_strlen($justificativa) < 15) {
+            throw new \InvalidArgumentException('Justificativa deve ter ao menos 15 caracteres.');
+        }
+        if ($nIni < 1 || $nFin < $nIni) {
+            throw new \InvalidArgumentException('Faixa de numeração inválida.');
+        }
+        $resp = $this->tools->sefazInutiliza($serie, $nIni, $nFin, $justificativa);
+        $st = new \DOMDocument();
+        $st->loadXML($resp);
+        $infInut = $st->getElementsByTagName('infInut');
+        $no = $infInut->length ? $infInut->item($infInut->length - 1) : $st;
+        $cStat = $no->getElementsByTagName('cStat')->item(0)->nodeValue ?? '';
+        $xMotivo = $no->getElementsByTagName('xMotivo')->item(0)->nodeValue ?? '';
+        $nProt = $no->getElementsByTagName('nProt')->item(0)->nodeValue ?? '';
+        $sucesso = $cStat === '102';
+        if ($sucesso) {
+            $this->store->salvar($this->emitente->cnpj, "inut-{$serie}-{$nIni}-{$nFin}", $resp, 'eventos');
+        }
+        return [
+            'status'    => $sucesso ? 'inutilizado' : 'erro',
+            'protocolo' => $nProt,
+            'motivo'    => trim("{$cStat} - {$xMotivo}"),
+            'xml'       => $resp,
+        ];
+    }
+
     public function danfce(string $chave): array
     {
         $xml = $this->store->recuperar($this->emitente->cnpj, $chave, 'autorizado');
@@ -146,7 +178,11 @@ final class NFCeService
         }
         $arquivo = "{$dir}/{$chave}.pdf";
         file_put_contents($arquivo, $pdf);
-        return ['chave' => $chave, 'arquivo' => $arquivo, 'pdf_base64' => base64_encode($pdf)];
+        $sup = new \DOMDocument();
+        @$sup->loadXML($xml);
+        $qrNode = $sup->getElementsByTagName('qrCode')->item(0);
+        $urlNode = $sup->getElementsByTagName('urlChave')->item(0);
+        return ['chave' => $chave, 'arquivo' => $arquivo, 'pdf_base64' => base64_encode($pdf), 'qrCode' => $qrNode ? $qrNode->nodeValue : null, 'urlChave' => $urlNode ? $urlNode->nodeValue : null];
     }
 
     public function statusServico(): array

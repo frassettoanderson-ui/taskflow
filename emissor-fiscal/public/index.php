@@ -252,6 +252,17 @@ $router->add('POST', '/v1/nfe/consultar', function (Request $req) use ($nfeDoEmi
     Response::ok($nfeDoEmitente($req)->consultar($chave));
 });
 
+$router->add('POST', '/v1/nfe/inutilizar', function (Request $req) use ($nfeDoEmitente) {
+    $b = $req->body;
+    $r = $nfeDoEmitente($req)->inutilizar(
+        (int) ($b['serie'] ?? 1),
+        (int) ($b['numero_inicial'] ?? 0),
+        (int) ($b['numero_final'] ?? ($b['numero_inicial'] ?? 0)),
+        (string) ($b['justificativa'] ?? '')
+    );
+    Response::json(['ok' => $r['status'] === 'inutilizado'] + $r);
+});
+
 $router->add('POST', '/v1/nfe/cancelar', function (Request $req) use ($nfeDoEmitente) {
     $r = $nfeDoEmitente($req)->cancelar(
         (string) ($req->body['chave'] ?? ''),
@@ -296,6 +307,17 @@ $router->add('POST', '/v1/nfce/consultar', function (Request $req) use ($nfceDoE
         Response::erro('chave de acesso inválida (44 dígitos).', 400);
     }
     Response::ok($nfceDoEmitente($req)->consultar($chave));
+});
+
+$router->add('POST', '/v1/nfce/inutilizar', function (Request $req) use ($nfceDoEmitente) {
+    $b = $req->body;
+    $r = $nfceDoEmitente($req)->inutilizar(
+        (int) ($b['serie'] ?? 1),
+        (int) ($b['numero_inicial'] ?? 0),
+        (int) ($b['numero_final'] ?? ($b['numero_inicial'] ?? 0)),
+        (string) ($b['justificativa'] ?? '')
+    );
+    Response::json(['ok' => $r['status'] === 'inutilizado'] + $r);
 });
 
 $router->add('POST', '/v1/nfce/cancelar', function (Request $req) use ($nfceDoEmitente) {
