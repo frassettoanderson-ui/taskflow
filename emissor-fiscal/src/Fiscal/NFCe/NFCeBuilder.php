@@ -103,6 +103,23 @@ final class NFCeBuilder
             }
             $dest->indIEDest = 9; // não contribuinte
             $make->tagdest($dest);
+
+            // endereço do consumidor (opcional): obrigatório acima do limite p/ destinatário não identificado (rejeição 752)
+            if (!empty($c['endereco'])) {
+                $e = $c['endereco'];
+                $enderDest = new \stdClass();
+                $enderDest->xLgr = $e['logradouro'] ?? 'NAO INFORMADO';
+                $enderDest->nro = $e['numero'] ?? 'S/N';
+                $enderDest->xCpl = !empty($e['complemento']) ? $e['complemento'] : null;
+                $enderDest->xBairro = $e['bairro'] ?? 'NAO INFORMADO';
+                $enderDest->cMun = $e['municipio_cod'] ?? $cMun;
+                $enderDest->xMun = $e['municipio_nome'] ?? '';
+                $enderDest->UF = $e['uf'] ?? $uf;
+                $enderDest->CEP = $this->soDigitos($e['cep'] ?? '');
+                $enderDest->cPais = '1058';
+                $enderDest->xPais = 'BRASIL';
+                $make->tagenderDest($enderDest);
+            }
         }
 
         // ------- itens (com rateio de desconto) -------
@@ -116,6 +133,9 @@ final class NFCeBuilder
         $totalProd = array_sum($vprods);
         $descontos = $this->ratearDesconto($itens, $vprods, (float) ($p['desconto'] ?? 0), $totalProd);
         $totalDesc = array_sum($descontos);
+        // acréscimo (ex.: juros de parcelamento repassado ao cliente) → vOutro rateado por item
+        $acrescimos = $this->ratearAcrescimo($vprods, (float) ($p['acrescimo'] ?? 0), $totalProd);
+        $totalOutro = array_sum($acrescimos);
 
         $somaBcIcms = 0.0;
         $somaIcms = 0.0;
@@ -125,6 +145,7 @@ final class NFCeBuilder
             $vun = (float) $item['valor_unitario'];
             $vprod = $vprods[$i];
             $vDesc = $descontos[$i];
+            $vOutro = $acrescimos[$i];
 
             $prod = new \stdClass();
             $prod->item = $n;
@@ -143,6 +164,9 @@ final class NFCeBuilder
             if ($vDesc > 0) {
                 $prod->vDesc = number_format($vDesc, 2, '.', '');
             }
+            if ($vOutro > 0) {
+                $prod->vOutro = number_format($vOutro, 2, '.', '');
+            }
             $prod->cEANTrib = $prod->cEAN;
             $prod->uTrib = $prod->uCom;
             $prod->qTrib = $prod->qCom;
@@ -154,8 +178,8 @@ final class NFCeBuilder
             $imposto->item = $n;
             $make->tagimposto($imposto);
 
-            // base do ICMS = valor líquido do item (vProd - vDesc)
-            $totItem = $this->montarImpostos($make, $n, $item, round($vprod - $vDesc, 2));
+            // base do ICMS = valor líquido do item (vProd - vDesc + vOutro)
+            $totItem = $this->montarImpostos($make, $n, $item, round($vprod - $vDesc + $vOutro, 2));
             $somaBcIcms += $totItem['vBC'];
             $somaIcms += $totItem['vICMS'];
         }
@@ -170,7 +194,8 @@ final class NFCeBuilder
         $icmsTot->vICMS = number_format($somaIcms, 2, '.', '');
         $icmsTot->vProd = number_format($totalProd, 2, '.', '');
         $icmsTot->vDesc = number_format($totalDesc, 2, '.', '');
-        $icmsTot->vNF = number_format($totalProd - $totalDesc, 2, '.', '');
+        $icmsTot->vOutro = number_format($totalOutro, 2, '.', '');
+        $icmsTot->vNF = number_format($totalProd - $totalDesc + $totalOutro, 2, '.', '');
         $make->tagICMSTot($icmsTot);
 
         // ------- transporte -------
@@ -179,7 +204,7 @@ final class NFCeBuilder
         $make->tagtransp($transp);
 
         // ------- pagamento (obrigatório; aceita várias formas + troco) -------
-        $vNF = $totalProd - $totalDesc;
+        $vNF = $totalProd - $totalDesc + $totalOutro;
         $pagamentos = $p['pagamentos'] ?? [['forma' => '01', 'valor' => $vNF]];
         $totalPago = 0.0;
         foreach ($pagamentos as $pg) {
@@ -198,8 +223,8 @@ final class NFCeBuilder
             $detPag->indPag = 0;
             $detPag->tPag = (string) ($pg['forma'] ?? '01'); // 01 dinheiro, 03 crédito, 04 débito, 17 PIX
             $detPag->vPag = number_format((float) ($pg['valor'] ?? 0), 2, '.', '');
-            // Cartão (crédito/débito/etc.) exige o grupo card: sem TEF integrado, tpIntegra=2 (rejeição 391).
-            if (in_array($detPag->tPag, ['03', '04', '10', '11', '12', '13'], true)) {
+            // Cartão (crédito/débito/etc.) e PIX (17) exigem o grupo card: sem TEF integrado, tpIntegra=2 (rejeição 391).
+            if (in_array($detPag->tPag, ['03', '04', '10', '11', '12', '13', '17'], true)) {
                 $detPag->tpIntegra = 2; // pagamento não integrado (sem TEF)
             }
             $make->tagdetPag($detPag);
@@ -234,6 +259,26 @@ final class NFCeBuilder
      * de arredondamento vai no último item, para o total bater exatamente.
      * @return float[] desconto de cada item, na ordem
      */
+    /** Rateia um acréscimo global (vOutro) proporcionalmente ao vProd; resíduo no último item. */
+    private function ratearAcrescimo(array $vprods, float $acrescimo, float $totalProd): array
+    {
+        $n = count($vprods);
+        $out = array_fill(0, $n, 0.0);
+        if ($acrescimo <= 0 || $totalProd <= 0) {
+            return $out;
+        }
+        $acumulado = 0.0;
+        for ($i = 0; $i < $n; $i++) {
+            if ($i === $n - 1) {
+                $out[$i] = round($acrescimo - $acumulado, 2);
+            } else {
+                $out[$i] = round($acrescimo * $vprods[$i] / $totalProd, 2);
+                $acumulado += $out[$i];
+            }
+        }
+        return $out;
+    }
+
     private function ratearDesconto(array $itens, array $vprods, float $descGlobal, float $totalProd): array
     {
         $n = count($vprods);
