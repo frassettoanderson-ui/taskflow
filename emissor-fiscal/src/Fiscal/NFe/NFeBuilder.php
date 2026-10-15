@@ -63,7 +63,8 @@ final class NFeBuilder
         $ide->tpAmb = $this->ambiente;
         $ide->finNFe = $finNFe;
         $ide->indFinal = ($p['consumidor_final'] ?? true) ? 1 : 0;
-        $ide->indPres = 1;         // operação presencial (ajuste se e-commerce = 2)
+        // indPres: 1 presencial (padrão), 2 internet (loja online), 4 entrega a domicílio, 9 outros
+        $ide->indPres = (int) ($p['presenca'] ?? 1);
         $ide->procEmi = 0;
         $ide->verProc = 'emissor-fiscal-1.0';
         $make->tagide($ide);
@@ -122,6 +123,7 @@ final class NFeBuilder
             $enderDest = new \stdClass();
             $enderDest->xLgr = $e['logradouro'] ?? 'NAO INFORMADO';
             $enderDest->nro = $e['numero'] ?? 'S/N';
+            $enderDest->xCpl = !empty($e['complemento']) ? $e['complemento'] : null;
             $enderDest->xBairro = $e['bairro'] ?? 'NAO INFORMADO';
             $enderDest->cMun = $e['municipio_cod'] ?? $cMun;
             $enderDest->xMun = $e['municipio_nome'] ?? '';
@@ -139,6 +141,7 @@ final class NFeBuilder
         $somaBcSt = 0.0;
         $somaSt = 0.0;
         $somaIpiDevol = 0.0;
+        $somaDifal = ['vICMSUFDest' => 0.0, 'vFCPUFDest' => 0.0];
         $somaAcess = ['vFrete' => 0.0, 'vSeg' => 0.0, 'vDesc' => 0.0, 'vOutro' => 0.0];
         foreach (array_values($p['itens']) as $i => $item) {
             $n = $i + 1;
@@ -188,6 +191,32 @@ final class NFeBuilder
             $somaBcSt += $totItem['vBCST'];
             $somaSt += $totItem['vST'];
             $somaIpiDevol += $totItem['vIPIDevol'];
+
+            // DIFAL — venda interestadual a consumidor final não contribuinte (EC 87/2015):
+            // difal = {bc, aliquota_interna (UF destino), aliquota_interestadual (4/7/12), fcp?}. Partilha 100% destino.
+            if (!empty($item['difal'])) {
+                $df = $item['difal'];
+                $bcD = round((float) $df['bc'], 2);
+                $pInt = (float) $df['aliquota_interna'];
+                $pInter = (float) $df['aliquota_interestadual'];
+                $pFcp = (float) ($df['fcp'] ?? 0);
+                $vDifal = round(max(0, $bcD * ($pInt - $pInter) / 100), 2);
+                $vFcp = round($bcD * $pFcp / 100, 2);
+                $uf = new \stdClass();
+                $uf->item = $n;
+                $uf->vBCUFDest = number_format($bcD, 2, '.', '');
+                $uf->vBCFCPUFDest = number_format($bcD, 2, '.', '');
+                $uf->pFCPUFDest = number_format($pFcp, 4, '.', '');
+                $uf->pICMSUFDest = number_format($pInt, 4, '.', '');
+                $uf->pICMSInter = number_format($pInter, 2, '.', '');
+                $uf->pICMSInterPart = '100.0000';
+                $uf->vFCPUFDest = number_format($vFcp, 2, '.', '');
+                $uf->vICMSUFDest = number_format($vDifal, 2, '.', '');
+                $uf->vICMSUFRemet = '0.00';
+                $make->tagICMSUFDest($uf);
+                $somaDifal['vICMSUFDest'] += $vDifal;
+                $somaDifal['vFCPUFDest'] += $vFcp;
+            }
         }
 
         // ------- totais -------
@@ -195,6 +224,9 @@ final class NFeBuilder
         $icmsTot->vBC = number_format($somaBcIcms, 2, '.', '');
         $icmsTot->vICMS = number_format($somaIcms, 2, '.', '');
         $icmsTot->vICMSDeson = '0.00';
+        $icmsTot->vFCPUFDest = number_format($somaDifal['vFCPUFDest'], 2, '.', '');
+        $icmsTot->vICMSUFDest = number_format($somaDifal['vICMSUFDest'], 2, '.', '');
+        $icmsTot->vICMSUFRemet = '0.00';
         $icmsTot->vFCP = '0.00';
         $icmsTot->vBCST = number_format($somaBcSt, 2, '.', '');
         $icmsTot->vST = number_format($somaSt, 2, '.', '');
@@ -217,7 +249,8 @@ final class NFeBuilder
 
         // ------- transporte -------
         $transp = new \stdClass();
-        $transp->modFrete = $p['modalidade_frete'] ?? 9; // 9 = sem transporte
+        // 0 = por conta do remetente (CIF: loja cobra/contrata o frete), 9 = sem transporte
+        $transp->modFrete = $p['modalidade_frete'] ?? ($somaAcess['vFrete'] > 0 ? 0 : 9);
         $make->tagtransp($transp);
 
         // ------- pagamento -------
@@ -230,8 +263,12 @@ final class NFeBuilder
             $detPag->vPag = '0.00';
         } else {
             $detPag->indPag = 0;
-            $detPag->tPag = $p['pagamento']['forma'] ?? '01'; // 01=dinheiro, 03=cartão crédito...
+            $detPag->tPag = (string) ($p['pagamento']['forma'] ?? '01'); // 01 dinheiro, 03 crédito, 04 débito, 17 Pix
             $detPag->vPag = number_format($vNF, 2, '.', '');
+            // cartão / Pix sem TEF integrado: grupo card com tpIntegra=2 (rejeição 391)
+            if (in_array($detPag->tPag, ['03', '04', '10', '11', '12', '13', '17'], true)) {
+                $detPag->tpIntegra = 2;
+            }
         }
         $make->tagdetPag($detPag);
 
