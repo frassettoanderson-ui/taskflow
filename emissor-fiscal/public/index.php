@@ -136,6 +136,34 @@ $router->add('POST', '/v1/nfe/distribuicao/nsu', function (Request $req) use ($r
     Response::ok($svc->listarPorNsu(preg_replace('/\D/', '', (string) ($req->body['ultNSU'] ?? '0')) ?: '0'));
 });
 
+/**
+ * POST /v1/gnre/difal {emitente, uf, valor, fcp?, vencimento?, nfe:{chave,numero,data_emissao},
+ *   destinatario:{cpf|cnpj, nome, municipio_cod}, testes?} — gera a GNRE do DIFAL (receita 100102) pelo
+ *   webservice do Portal GNRE e devolve código de barras, linha digitável e o PDF da guia.
+ *   status: gerada | rejeitada | processando (consultar depois pelo recibo) | uf_sem_gnre (SP/ES: guia da própria SEFAZ).
+ * POST /v1/gnre/consultar {emitente, recibo, testes?} — resultado de um lote ainda em processamento.
+ */
+$gnreDoEmitente = static function (Request $req) use ($root, $emitentes): \App\Fiscal\GNRE\GnreService {
+    $cnpj = preg_replace('/\D/', '', (string) ($req->body['emitente'] ?? ''));
+    if ($cnpj === '') {
+        Response::erro('Campo "emitente" (CNPJ) é obrigatório.', 400);
+    }
+    if (!ApiKeys::podeEmitir($req->caller, $cnpj)) {
+        Response::erro('Sua chave não tem permissão para este emitente.', 403);
+    }
+    $emit = $emitentes->buscar($cnpj);
+    $amb = !empty($req->body['testes']) ? 2 : $emit->ambienteEfetivo(Config::ambiente());
+    return new \App\Fiscal\GNRE\GnreService($root, $emit, $amb);
+};
+$router->add('POST', '/v1/gnre/difal', function (Request $req) use ($gnreDoEmitente) {
+    $r = $gnreDoEmitente($req)->gerar($req->body);
+    Response::json(['ok' => $r['status'] === 'gerada'] + $r, in_array($r['status'], ['gerada', 'processando', 'uf_sem_gnre'], true) ? 200 : 422);
+});
+$router->add('POST', '/v1/gnre/consultar', function (Request $req) use ($gnreDoEmitente) {
+    $r = $gnreDoEmitente($req)->consultar((string) ($req->body['recibo'] ?? ''));
+    Response::json(['ok' => $r['status'] === 'gerada'] + $r);
+});
+
 $router->add('POST', '/v1/nfe/distribuicao/chave', function (Request $req) use ($root, $emitentes) {
     $cnpj = preg_replace('/\D/', '', (string) ($req->body['emitente'] ?? ''));
     if ($cnpj === '') {
