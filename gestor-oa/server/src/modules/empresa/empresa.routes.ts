@@ -49,6 +49,7 @@ router.get('/', validate({ query: listarEmpresasQuery }), async (req, res) => {
       status: req.query.status as 'ativos' | 'inativos' | 'todos' | undefined,
       incluirOnboarding: req.query.incluirOnboarding === '1',
       somenteOnboarding: req.query.somenteOnboarding === '1',
+      contabilidade: req.query.contabilidade as 'atuan' | 'nauta' | undefined,
     },
     pag,
   );

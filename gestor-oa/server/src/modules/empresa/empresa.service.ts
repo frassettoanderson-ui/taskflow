@@ -52,6 +52,7 @@ export interface ListarParams {
   status?: 'ativos' | 'inativos' | 'todos';
   incluirOnboarding?: boolean; // true = mostra também empresas ainda em onboarding (default: esconde)
   somenteOnboarding?: boolean; // true = mostra SÓ as empresas ainda em onboarding (visão Onboarding em lista)
+  contabilidade?: 'atuan' | 'nauta'; // escritório responsável (Atuan Digital x Nauta Contabilidade)
 }
 
 export async function listar(
@@ -78,6 +79,8 @@ export async function listar(
   if (params.regimeId) and.push({ regimeTributarioId: params.regimeId });
   if (params.motivoId) and.push({ motivoCancelamentoId: params.motivoId });
   if (params.grupoId) and.push({ grupoEmpresaId: params.grupoId });
+  if (params.contabilidade === 'nauta') and.push({ contabilidade: 'nauta' });
+  else if (params.contabilidade === 'atuan') and.push({ NOT: { contabilidade: 'nauta' } });
   if (params.departamentoId)
     and.push({
       responsaveis: { some: { departamentoId: params.departamentoId } },

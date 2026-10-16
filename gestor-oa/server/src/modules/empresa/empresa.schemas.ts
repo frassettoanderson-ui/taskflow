@@ -179,4 +179,5 @@ export const listarEmpresasQuery = z.object({
   status: z.enum(['ativos', 'inativos', 'todos']).optional(),
   incluirOnboarding: z.string().optional(),
   somenteOnboarding: z.string().optional(),
+  contabilidade: z.enum(['atuan', 'nauta']).optional(),
 });
