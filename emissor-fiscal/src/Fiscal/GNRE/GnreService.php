@@ -132,6 +132,13 @@ final class GnreService
             . ($e->fone ? '<telefone>' . substr(preg_replace('/\D/', '', $e->fone) ?? '', 0, 11) . '</telefone>' : '')
             . '</contribuinteEmitente>';
         $x .= '<itensGNRE><item><receita>100102</receita>';
+        // detalhamento (ex.: MT "6666 - ICMS DIFAL EC87/15") e produto (ex.: MA "Aquisição ... não presencial") quando a UF exige
+        if ($exige('exigeDetalhamentoReceita')) {
+            $cod = $this->escolher($rec->detalhamentosReceita->detalhamentoReceita ?? [], '/difal|ec ?87|consumidor final|n[ãa]o contribuinte/i');
+            if ($cod !== null) {
+                $x .= '<detalhamentoReceita>' . $cod . '</detalhamentoReceita>';
+            }
+        }
 
         // documento de origem: chave (22/24) quando a UF aceita, senão o número da nota (10)
         $tipos = [];
@@ -139,12 +146,18 @@ final class GnreService
             $tipos[] = (string) $t->codigo;
         }
         if ($exige('exigeDocumentoOrigem') || $tipos) {
-            if (in_array('24', $tipos, true)) {
-                $x .= '<documentoOrigem tipo="24">' . $chave . '</documentoOrigem>';
-            } elseif (in_array('22', $tipos, true)) {
+            if (in_array('22', $tipos, true)) {         // chave da NF-e
                 $x .= '<documentoOrigem tipo="22">' . $chave . '</documentoOrigem>';
+            } elseif (in_array('24', $tipos, true)) {   // chave do DF-e (RJ, PE)
+                $x .= '<documentoOrigem tipo="24">' . $chave . '</documentoOrigem>';
             } elseif (in_array('10', $tipos, true)) {
                 $x .= '<documentoOrigem tipo="10">' . $numero . '</documentoOrigem>';
+            }
+        }
+        if ($exige('exigeProduto')) {
+            $cod = $this->escolher($rec->produtos->produto ?? [], '/n[ãa]o presencial|internet|vestu|confec|com[ée]rcio outros|^outros$/i');
+            if ($cod !== null) {
+                $x .= '<produto>' . $cod . '</produto>';
             }
         }
         if ($exige('exigePeriodoReferencia')) {
@@ -173,9 +186,13 @@ final class GnreService
             }
             $valorExtra = null;
             if (str_contains($titulo, 'chave')) {
-                $valorExtra = $chave;                       // chave de acesso da NF-e (44)
+                // chave da NF-e (44); campo só de CT-e não leva a chave da nota
+                $valorExtra = (str_contains($titulo, 'cte') && !str_contains($titulo, 'nfe')) ? null : $chave;
             } elseif (strtoupper((string) $c->tipo) === 'D' || str_contains($titulo, 'data')) {
                 $valorExtra = $emissao;                     // ex.: RJ "Data de Emissão" (AAAA-MM-DD)
+            } elseif (strtoupper((string) $c->tipo) === 'T') {
+                // texto obrigatório (ex.: TO "OBSERVAÇÃO")
+                $valorExtra = $this->t("NF-e {$numero} - DIFAL EC 87/15 - venda a consumidor final", max(10, (int) $c->tamanho ?: 60));
             }
             if ($valorExtra !== null) {
                 $extras .= '<campoExtra><codigo>' . (string) $c->codigo . '</codigo><valor>' . $valorExtra . '</valor></campoExtra>';
@@ -224,6 +241,20 @@ final class GnreService
             throw new \RuntimeException('Configuração da UF ' . $uf . ' ilegível.');
         }
         return $sx;
+    }
+
+    /** Código da opção cuja descrição casa com o padrão (senão a primeira da lista). */
+    private function escolher(iterable $lista, string $padrao): ?string
+    {
+        $primeiro = null;
+        foreach ($lista as $o) {
+            $cod = (string) $o->codigo;
+            $primeiro ??= $cod;
+            if (preg_match($padrao, html_entity_decode((string) $o->descricao))) {
+                return $cod;
+            }
+        }
+        return $primeiro;
     }
 
     private function receita(\SimpleXMLElement $cfg): \SimpleXMLElement
