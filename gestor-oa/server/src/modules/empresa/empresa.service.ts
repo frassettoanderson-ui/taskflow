@@ -144,6 +144,7 @@ export async function listar(
       tags: e.tags.map((t) => ({ id: t.tag.id, nome: t.tag.nome, cor: t.tag.cor })),
       qtdContatos: e._count.contatos,
       socioResponsavel: e.socios[0]?.nomeCompleto ?? e.contatos[0]?.nome ?? null,
+      nautaLeadId: e.nautaLeadId ?? null, // vínculo com o ERP (botão Cadastrar Cobrança)
     })),
     total,
   };
