@@ -109,6 +109,26 @@ body.simple .go{margin-top:30px}
 .fly{position:absolute;z-index:20;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#14171b,#1f242a);border:2px solid var(--red);
   font:900 64px/1 var(--disp);text-transform:uppercase;color:#fff;white-space:nowrap;box-shadow:0 0 50px rgba(225,29,46,.6)}
 
+/* abertura ARENA OX (1º sorteio da noite): imagem em tela cheia + voz, depois transição para o sorteio */
+#arena{position:fixed;inset:0;z-index:60;background:#000;display:none;overflow:hidden}
+#arena.on{display:block}
+#arena .img{position:absolute;inset:-2%;background:url(arena-ox.webp) center/cover no-repeat;opacity:0;transform:scale(1.12);filter:brightness(.6) saturate(1.1)}
+#arena.on .img{animation:arenaIn 2.4s cubic-bezier(.2,.7,.2,1) forwards, arenaZoom 26s linear 2.4s forwards}
+#arena .luz{position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 50%,rgba(0,0,0,0),rgba(0,0,0,.75));pointer-events:none}
+#arena .brasa{position:absolute;inset:0;pointer-events:none;background:radial-gradient(40% 30% at 50% 60%,rgba(225,29,46,.22),rgba(0,0,0,0) 70%);animation:arenaPulso 2.2s ease-in-out infinite alternate;opacity:0}
+#arena.on .brasa{opacity:1;transition:opacity 3s 1.5s}
+#arena.sai .img{animation:arenaOut 1.1s cubic-bezier(.6,0,.9,.4) forwards}
+#arena.sai{animation:arenaFade 1.4s .5s forwards}
+#arena::after{content:'';position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#arena.sai::after{animation:arenaFlash .9s ease-out}
+@keyframes arenaFlash{0%{opacity:.85}100%{opacity:0}}
+#arena .pular{position:absolute;right:28px;bottom:22px;font:700 14px/1 var(--body);letter-spacing:.25em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+@keyframes arenaIn{from{opacity:0;transform:scale(1.12);filter:brightness(.2) blur(6px)}to{opacity:1;transform:scale(1.03);filter:brightness(1) blur(0)}}
+@keyframes arenaZoom{from{transform:scale(1.03)}to{transform:scale(1.12)}}
+@keyframes arenaOut{to{transform:scale(1.6);filter:brightness(2.2) blur(8px);opacity:0}}
+@keyframes arenaFade{to{opacity:0}}
+@keyframes arenaPulso{from{opacity:.55}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){#arena .img{animation:none!important;opacity:1;transform:none;filter:none}}
 #splash{position:absolute;inset:0;z-index:22;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   background:radial-gradient(ellipse at center,rgba(20,23,27,.55),rgba(8,9,11,.95));transition:opacity .8s}
 #splash.off{opacity:0;pointer-events:none}
@@ -198,6 +218,8 @@ body.simple .go{margin-top:30px}
   <div id="flash"></div>
 </div>
 <div id="toast"></div>
+<div id="arena" aria-hidden="true"><div class="img"></div><div class="brasa"></div><div class="luz"></div><div class="pular">Espaço para pular</div></div>
+<audio id="arenaVoz" src="arena-ox.mp3" preload="auto"></audio>
 
 <script src="participantes.js"></script>
 <script>
@@ -356,6 +378,27 @@ let all=[],cards=[],alive=[],chain=[],prize='',finished=false;
 /* sorteio AO VIVO (só quem está treinando): lista e ganhadores próprios, não mexe no grande sorteio */
 let liveMode=false,liveDone=false,liveIds=[],liveSeq=0,liveTotal=0,aovivoWin=null;
 
+let arenaFeita=false;
+async function arena(){
+  const el=$('#arena'),voz=$('#arenaVoz');
+  el.classList.remove('sai');el.classList.add('on');
+  try{S.whoosh(1.4)}catch(e){}
+  let pular;const pulou=new Promise(r=>pular=r);
+  voz.currentTime=0;voz.volume=muted?0:1;
+  const fim=new Promise(r=>{voz.onended=r;voz.onerror=()=>setTimeout(r,8000)});
+  await sleep(1200);                                   // (o clique que iniciou o sorteio não pode pular a abertura)
+  const antes=keyResolve;keyResolve=()=>pular();      // Espaço, clique ou "Avançar" no controle pulam a abertura
+  voz.play().catch(()=>{});
+  await Promise.race([fim,pulou,sleep(40000)]);
+  keyResolve=antes;
+  if(!voz.paused){for(let v=voz.volume;v>0.02;v-=0.08){voz.volume=Math.max(0,v);await sleep(40)}voz.pause()}
+  // transição: flash vermelho + zoom para dentro da arena
+  try{S.impact()}catch(e){}
+  flash(.9,900);
+  el.classList.add('sai');
+  await sleep(1900);
+  el.classList.remove('on','sai');
+}
 async function intro(){
   $('#splashPrize').textContent=prize||'';
   const sp=$('#splash');sp.classList.remove('off','in');void sp.offsetWidth;sp.classList.add('in');
@@ -588,6 +631,7 @@ async function run(){
   finished=false;confetti=[];heat=0;reportStatus('running');
   stage.querySelectorAll('.press,.arm,.blade,.ring,.fly').forEach(e=>e.remove());
   $('#endbtns').classList.remove('on');$('#hint').classList.remove('on');
+  if(!arenaFeita){arenaFeita=true;await arena()}
   const n=all.length,start=Math.min(5,n);
   chain=start>2?[start,2,1]:[start,1];
   await intro();await draw();
