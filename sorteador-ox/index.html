@@ -220,7 +220,7 @@ body.simple .go{margin-top:30px}
 <div id="toast"></div>
 
 <div id="arena" aria-hidden="true"><div class="img"></div><div class="brasa"></div><div class="luz"></div><div class="pular">Espaço para pular</div></div>
-<audio id="arenaVoz" src="arena-ox.mp3" preload="auto"></audio>
+
 
 <script src="participantes.js"></script>
 <script>
@@ -385,38 +385,46 @@ let arenaFeita=false;
 let vozDados=null,vozBuf=null,vozErroLoad=null;
 function diagVoz(etapa,extra){try{fetch('diag-voz?e='+encodeURIComponent(etapa)+'&x='+encodeURIComponent(String(extra||''))+'&ctx='+(ac?ac.state:'sem')+'&dados='+(vozDados?vozDados.byteLength:0)+'&buf='+(vozBuf?Math.round(vozBuf.duration):0)+'&mudo='+muted+'&ua='+encodeURIComponent(navigator.userAgent.slice(-40)),{cache:'no-store'}).catch(()=>{})}catch(e){}}
 fetch('arena-ox.mp3',{cache:'reload'}).then(r=>r.ok?r.arrayBuffer():Promise.reject('HTTP '+r.status)).then(b=>{vozDados=b}).catch(e=>{vozErroLoad=String(e)});
-async function tocarVoz(){
-  try{
-    initAudio();if(ac.state!=='running')await Promise.race([ac.resume(),sleep(700)]);   // sem clique na tela o Chrome não libera: não trava
-    if(!vozBuf&&vozDados){try{vozBuf=await ac.decodeAudioData(vozDados.slice(0))}catch(e){diagVoz('decode-erro',e&&(e.name+' '+e.message))}}
-    if(!vozDados)diagVoz('sem-dados',vozErroLoad);
-    if(vozBuf&&ac.state==='running'){
-      const src=ac.createBufferSource(),g=ac.createGain();
-      src.buffer=vozBuf;g.gain.value=muted?0:1;src.connect(g);g.connect(ac.destination);
-      const fim=new Promise(r=>{src.onended=r});src.start();diagVoz('webaudio-tocando');
-      return{fim,parar:async()=>{const t=ac.currentTime;g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+.45);await sleep(480);try{src.stop()}catch(e){}}};
-    }
-  }catch(e){diagVoz('webaudio-erro',e&&(e.name+' '+e.message))}
-  diagVoz('caiu-no-audio');
-  const voz=$('#arenaVoz');voz.currentTime=0;voz.volume=muted?0:1;
-  const fim=new Promise(r=>{voz.onended=r;voz.onerror=()=>setTimeout(r,8000)});
-  try{await voz.play();diagVoz('tag-tocando')}catch(e){diagVoz('tag-erro',e&&e.name);return{fim:sleep(9000),parar:async()=>{}}}
-  return{fim,parar:async()=>{for(let v=voz.volume;v>0.02;v-=0.08){voz.volume=Math.max(0,v);await sleep(40)}voz.pause()}};
+/* toca a voz pelo AudioContext dos efeitos; se o navegador ainda não liberou o som, ela já fica
+   agendada e começa no instante em que o som for liberado (primeiro clique/tecla na tela) */
+let vozSrc=null;
+function iniciarVoz(){
+  if(vozSrc||!vozBuf||!ac)return;
+  const src=ac.createBufferSource(),g=ac.createGain();
+  src.buffer=vozBuf;g.gain.value=muted?0:1;src.connect(g);g.connect(ac.destination);
+  vozSrc={src,g,fim:new Promise(r=>{src.onended=r})};
+  src.start();
+}
+async function pararVoz(){
+  if(!vozSrc)return;
+  try{const t=ac.currentTime;vozSrc.g.gain.setValueAtTime(vozSrc.g.gain.value,t);vozSrc.g.gain.linearRampToValueAtTime(0,t+.45);await sleep(480);vozSrc.src.stop()}catch(e){}
 }
 async function arena(){
   const el=$('#arena');
   el.classList.remove('sai');el.classList.add('on');
+  initAudio();
   try{S.whoosh(1.4)}catch(e){}
+  try{if(!vozBuf&&vozDados)vozBuf=await ac.decodeAudioData(vozDados.slice(0))}catch(e){diagVoz('decode-erro',e&&e.name)}
   let pular;const pulou=new Promise(r=>pular=r);
   await sleep(1200);                                   // (o clique que iniciou o sorteio não pode pular a abertura)
-  const antes=keyResolve;keyResolve=()=>pular();      // Espaço, clique ou "Avançar" no controle pulam a abertura
-  const t0=Date.now();
-  const voz=await tocarVoz();
-  let acabou=false;
-  await Promise.race([voz.fim.then(()=>{acabou=true}),pulou,sleep(40000)]);
-  diagVoz(acabou?'voz-terminou':'pulou-ou-tempo',Math.round((Date.now()-t0)/1000)+'s');
+  const antes=keyResolve;
+  // clique/tecla: se a voz ainda não está tocando, LIBERA o som e dá play; se já está tocando, pula a abertura
+  keyResolve=()=>{if(vozSrc&&ac.state==='running')pular();else{try{ac.resume()}catch(e){}iniciarVoz()}};
+  try{await Promise.race([ac.resume(),sleep(700)])}catch(e){}
+  iniciarVoz();
+  const t0=Date.now();let acabou=false,pulado=false;
+  pulou.then(()=>{pulado=true});
+  let ligado=null;
+  for(;;){
+    if(vozSrc&&ligado!==vozSrc){ligado=vozSrc;vozSrc.fim.then(()=>{acabou=true})}
+    if(acabou||pulado)break;
+    if(Date.now()-t0>(ac.state==='running'?40000:60000))break;   // trava de segurança
+    await sleep(300);
+  }
+  diagVoz(acabou?'voz-terminou':'pulou-ou-tempo',Math.round((Date.now()-t0)/1000)+'s '+ac.state);
   keyResolve=antes;
-  if(!acabou)await voz.parar();
+  if(!acabou)await pararVoz();
+  vozSrc=null;
   // transição: flash + zoom para dentro da arena
   try{S.impact()}catch(e){}
   el.classList.add('sai');
@@ -726,14 +734,24 @@ function again(){
   run();
 }
 $('#again').onclick=()=>{if(finished)again()};
-$('#cfg').onclick=()=>location.reload();
+/* volta para a tela inicial SEM recarregar a página: recarregar faz o Chrome travar o som de novo
+   (só destrava com um clique na tela), e no evento ninguém clica no telão */
+function voltarInicio(){
+  if(remStatus==='running'){location.reload();return}   // no meio de um sorteio não dá para interromper de outro jeito
+  liveMode=false;liveDone=false;finished=false;
+  $('#cards').innerHTML='';$('#endbtns').classList.remove('on');$('#beams').classList.remove('on');$('#hint').classList.remove('on');
+  $('#title').textContent='';$('#eyebrow').textContent='';
+  stage.hidden=true;$('#setup').style.display='';document.body.classList.remove('idle');
+  updCount();reportStatus('idle');
+}
+$('#cfg').onclick=()=>voltarInicio();
 addEventListener('keydown',e=>{
   if(!stage.hidden){
     if(e.code==='Space'||e.code==='Enter'||e.code==='ArrowRight'){e.preventDefault();keyResolve&&keyResolve()}
     else if(e.key==='m'||e.key==='M')setMuted(!muted);
     else if(e.key==='f'||e.key==='F'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
     else if((e.key==='n'||e.key==='N'||e.key==='r'||e.key==='R')&&finished)again();
-    else if(e.key==='Escape'){location.reload()}
+    else if(e.key==='Escape'){voltarInicio()}
   }
 });
 addEventListener('click',e=>{if(!stage.hidden&&keyResolve)keyResolve()});
@@ -760,8 +778,8 @@ function remCmd(c,o){
   else if(c==='mute')setMuted(!muted);
   else if(c==='manual'){const m=$('#manual');m.checked=!m.checked;auto=!m.checked;save();if(auto&&keyResolve)keyResolve()}
   else if(c==='fullscreen'){try{(document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()).catch(()=>{})}catch(e){}}
-  else if(c==='home')location.reload();
-  else if(c==='reset'){winners=[];saveWins();try{localStorage.removeItem('oxsorteio_lista')}catch(e){}location.reload()}
+  else if(c==='home')voltarInicio();
+  else if(c==='reset'){winners=[];saveWins();arenaFeita=false;voltarInicio()}
 }
 /* Sorteio ao vivo: lista vem do controle (catraca da EVO, já sem quem ganhou hoje) */
 function abrirPalco(){
