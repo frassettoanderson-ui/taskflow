@@ -34,6 +34,26 @@ button:disabled{opacity:.35;cursor:default}
 .win{border:2px solid var(--line);padding:10px 14px;font:600 14px/1.5 'Archivo',sans-serif;color:#c9d0d8}
 .win b{color:var(--gold)}
 #msg{min-height:18px;font:600 14px 'Archivo',sans-serif;color:var(--mute);text-align:center}
+.dica{margin-top:-4px;font:600 12px/1.4 'Archivo',sans-serif;color:var(--mute);text-align:center}
+#part{background:#1b2230;border-color:#5b7bb5;font-size:28px}
+#pp{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.75);display:flex;justify-content:center;align-items:stretch;padding:12px}
+#pp[hidden]{display:none}
+.pp__in{width:min(520px,100%);display:flex;flex-direction:column;gap:10px;background:#12151a;border:2px solid var(--line);padding:14px}
+.pp__topo{display:flex;align-items:center;justify-content:space-between}
+.pp__topo h2{margin:0;font:900 32px/1 var(--disp);text-transform:uppercase;letter-spacing:.03em}
+#ppx{padding:4px 14px;font-size:30px;line-height:1}
+.pp__res{font:600 13px 'Archivo',sans-serif;color:var(--mute);text-align:center}
+.pp__res b{color:#f2f3f5}
+#ppbusca{height:46px;padding:0 12px;background:#0e1013;border:2px solid var(--line);color:#fff;font:600 16px 'Archivo',sans-serif}
+.pp__lista{flex:1;overflow-y:auto;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.pp__it{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 4px;border-bottom:1px solid #22272e;font:600 15px 'Archivo',sans-serif}
+.pp__it small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.pp__it.ganhou small{color:var(--gold)}
+.pp__it.excl{opacity:.55}
+.pp__it.excl span{text-decoration:line-through}
+.pp__it button{flex:none;padding:8px 12px;font:800 13px 'Archivo',sans-serif;letter-spacing:.06em;background:transparent;border:2px solid var(--red);color:#ff6b78}
+.pp__it.excl button{border-color:#34d058;color:#34d058}
+.pp__sec{padding:10px 4px 4px;font:800 11px 'Archivo',sans-serif;letter-spacing:.2em;text-transform:uppercase;color:var(--mute)}
 </style>
 </head>
 <body>
@@ -43,24 +63,35 @@ button:disabled{opacity:.35;cursor:default}
 
   <div class="info"><div class="e" id="eb">&nbsp;</div><div class="t" id="tt">—</div></div>
 
-  <button id="play" disabled>Iniciar sorteio</button>
-
-  <div class="g2">
-    <button id="next" disabled>Avançar<span class="sub">como apertar Espaço</span></button>
-    <button id="mute">Som<span class="sub" id="muteTxt">ligado</span></button>
-  </div>
-  <div class="g2">
-    <button id="manual">Modo<span class="sub" id="manualTxt">automático</span></button>
-    <button id="fullscreen">Tela cheia<span class="sub">se não abrir: F11 no PC</span></button>
-  </div>
-  <button id="home">Voltar ao início</button>
+  <button id="play" disabled>Sorteio geral</button>
+  <div class="dica">Sorteia 1 entre todos os clientes da lista (quem já ganhou e quem foi excluído ficam de fora). Roda sozinho, no automático.</div>
 
   <button id="aovivo" disabled>Sorteio ao vivo<span class="sub">sorteia 1 entre quem está treinando agora</span></button>
+
+  <button id="part">Participantes<span class="sub" id="partTxt">ver lista e excluir alguém</span></button>
+
+  <div class="g2">
+    <button id="mute">Som<span class="sub" id="muteTxt">ligado</span></button>
+    <button id="fullscreen">Tela cheia<span class="sub">se não abrir: F11 no PC</span></button>
+  </div>
+  <div class="g2">
+    <button id="next" disabled>Avançar<span class="sub">pular a espera</span></button>
+    <button id="home">Voltar ao início</button>
+  </div>
   <div class="av" id="av" hidden></div>
 
   <div class="win" id="win" hidden></div>
   <button id="reset">Reiniciar tudo do zero</button>
   <div id="msg"></div>
+</div>
+
+<div id="pp" hidden>
+  <div class="pp__in">
+    <div class="pp__topo"><h2>Participantes</h2><button id="ppx" aria-label="Fechar">×</button></div>
+    <div class="pp__res" id="ppres">Carregando…</div>
+    <input id="ppbusca" type="search" placeholder="Buscar nome…" autocomplete="off">
+    <div class="pp__lista" id="pplista"></div>
+  </div>
 </div>
 
 <script>
@@ -79,15 +110,14 @@ function render(){
   if(!K){p.disabled=true;p.textContent='Link sem chave'}
   else if(!S.telao){p.disabled=true;p.textContent='Aguardando telão'}
   else if(S.status==='running'){p.disabled=true;p.textContent='Sorteando…'}
-  else{p.disabled=false;p.textContent=S.status==='finished'?'Novo sorteio':'Iniciar sorteio'}
+  else{p.disabled=false;p.textContent=S.status==='finished'?'Novo sorteio geral':'Sorteio geral'}
   $('#next').disabled=!(on&&S.status==='running');
-  ['mute','manual','fullscreen','home','reset'].forEach(id=>$('#'+id).disabled=!on);
+  ['mute','fullscreen','home','reset'].forEach(id=>$('#'+id).disabled=!on);
   $('#aovivo').disabled=!on||S.status==='running'||aguardandoAoVivo;
   const av=$('#av'),A=S.aovivo||{ganhadores:[]};
   av.hidden=!(A.ganhadores.length||A.ultimo);
   if(!av.hidden)av.innerHTML=(A.ultimo?'Último ao vivo ('+esc(A.ultimo.hora)+'): '+A.ultimo.treinando+' treinando, '+A.ultimo.elegiveis+' concorrendo<br>':'')+(A.ganhadores.length?'<b>Ganharam ao vivo hoje ('+A.ganhadores.length+'):</b> '+A.ganhadores.map(g=>esc(g.nome)+' '+esc(g.hora)).join(', '):'');
   $('#muteTxt').textContent=S.muted?'desligado':'ligado';
-  $('#manualTxt').textContent=S.manual?'manual (você avança)':'automático';
   const w=$('#win');
   w.hidden=!(S.telao&&S.winners.length);
   if(!w.hidden)w.innerHTML='<b>Já ganharam ('+S.winners.length+'):</b> '+S.winners.map(esc).join(', ');
@@ -107,7 +137,35 @@ async function send(c){
   }catch(e){$('#msg').textContent='Sem conexão.'}
   setTimeout(refresh,500);
 }
-['play','next','mute','manual','fullscreen','home'].forEach(c=>$('#'+c).onclick=()=>send(c));
+['play','next','mute','fullscreen','home'].forEach(c=>$('#'+c).onclick=()=>send(c));
+/* Participantes: lista do sorteio geral; excluir / voltar alguém */
+let PP={lista:[],excluidos:[]};
+async function carregarPP(){
+  try{const r=await fetch('../api/participantes?k='+encodeURIComponent(K),{cache:'no-store'});if(r.status===403){$('#ppres').textContent='Chave inválida: use o link completo.';return}PP=await r.json()}catch(e){$('#ppres').textContent='Sem conexão.';return}
+  $('#partTxt').textContent=PP.concorrendo+' concorrendo de '+PP.total;
+  desenharPP();
+}
+function desenharPP(){
+  const q=$('#ppbusca').value.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu,'');
+  const ok=n=>!q||n.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').includes(q);
+  const ganh=PP.lista.filter(x=>x.ganhou).length,exc=PP.lista.filter(x=>x.excluido).length;
+  $('#ppres').innerHTML='<b>'+PP.concorrendo+'</b> concorrendo · '+PP.total+' na lista · '+ganh+' já ganharam · '+exc+' excluídos';
+  const item=x=>'<div class="pp__it'+(x.excluido?' excl':'')+(x.ganhou?' ganhou':'')+'"><div><span>'+esc(x.nome)+'</span>'+(x.excluido?'<small>excluído</small>':x.ganhou?'<small>já ganhou</small>':'')+'</div>'+
+    '<button data-n="'+esc(x.nome)+'" data-a="'+(x.excluido?'restaurar':'excluir')+'">'+(x.excluido?'Voltar':'Excluir')+'</button></div>';
+  const fora=PP.lista.filter(x=>x.excluido&&ok(x.nome)),dentro=PP.lista.filter(x=>!x.excluido&&ok(x.nome));
+  $('#pplista').innerHTML=(dentro.length?dentro.map(item).join(''):'<div class="pp__sec">Ninguém com esse nome</div>')+(fora.length?'<div class="pp__sec">Excluídos</div>'+fora.map(item).join(''):'');
+}
+$('#part').onclick=()=>{$('#pp').hidden=false;$('#ppbusca').value='';carregarPP()};
+$('#ppx').onclick=()=>{$('#pp').hidden=true};
+$('#ppbusca').oninput=desenharPP;
+$('#pplista').onclick=async e=>{
+  const b=e.target.closest('button[data-n]');if(!b)return;
+  const n=b.dataset.n,a=b.dataset.a;
+  if(a==='excluir'&&!confirm('Excluir '+n+' do sorteio?\n\nA pessoa deixa de concorrer no sorteio geral e no ao vivo. Dá para voltar depois.'))return;
+  b.disabled=true;
+  try{await fetch('../api/'+a+'?nome='+encodeURIComponent(n)+'&k='+encodeURIComponent(K),{method:'POST'});if(navigator.vibrate)navigator.vibrate(40)}catch(e){}
+  carregarPP();
+};
 let aguardandoAoVivo=false;
 $('#aovivo').onclick=async()=>{
   if(!confirm('Fazer um sorteio ao vivo agora?\n\nSorteia 1 brinde entre quem está treinando neste momento (pela catraca). O grande sorteio não é afetado.'))return;
@@ -121,7 +179,7 @@ $('#aovivo').onclick=async()=>{
   aguardandoAoVivo=false;setTimeout(refresh,500);
 };
 $('#reset').onclick=()=>{if(confirm('Reiniciar tudo do zero?\n\nLimpa a lista de quem já ganhou, recarrega a lista de clientes e volta ao início.'))send('reset')};
-refresh();setInterval(refresh,1500);
+refresh();setInterval(refresh,1500);if(K)carregarPP();
 </script>
 </body>
 </html>

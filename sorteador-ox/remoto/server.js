@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const KEY = fs.readFileSync(path.join(__dirname, 'key.txt'), 'utf8').trim();
-const CMDS = new Set(['play', 'next', 'mute', 'manual', 'fullscreen', 'home', 'reset', 'aovivo']);
+const CMDS = new Set(['play', 'next', 'mute', 'fullscreen', 'home', 'reset', 'aovivo']);
 
 /* Sorteio AO VIVO: só quem está treinando agora (catraca da EVO, via API do OX Cloud no próprio
    servidor). Ganhadores ao vivo ficam em aovivo.json, SEPARADOS do grande sorteio; quem já ganhou
@@ -23,6 +23,21 @@ function lerAoVivo() {
 }
 function gravarAoVivo(d) { fs.writeFileSync(AOVIVO_FILE, JSON.stringify(d)); }
 let ultimoAoVivo = null; // {hora, treinando, elegiveis}
+
+/* Participantes do sorteio geral = lista do telão (participantes.js). O controle consulta a lista e pode
+   EXCLUIR alguém: os excluídos ficam em excluidos.json e o telão (e o ao vivo) deixam de sortear essas pessoas. */
+const PART_FILE = process.env.SORTEIO_PARTICIPANTES || '/var/www/oxcloud-sorteio/participantes.js';
+const EXCL_FILE = path.join(__dirname, 'excluidos.json');
+const normNome = (s) => String(s).trim().toLowerCase();
+function lerParticipantes() {
+  try {
+    const t = fs.readFileSync(PART_FILE, 'utf8');
+    const m = t.match(/`([\s\S]*)`/);
+    return (m ? m[1] : '').split('\n').map((s) => s.trim()).filter(Boolean);
+  } catch (e) { return []; }
+}
+function lerExcluidos() { try { return JSON.parse(fs.readFileSync(EXCL_FILE, 'utf8')); } catch (e) { return []; } }
+function gravarExcluidos(l) { fs.writeFileSync(EXCL_FILE, JSON.stringify(l)); }
 const STATUS = new Set(['idle', 'running', 'finished']);
 
 const st = {
@@ -74,13 +89,32 @@ http.createServer((req, res) => {
         }
       }
       const since = Number.isInteger(d.since) ? d.since : null;
-      json(res, { seq: st.seq, cmds: since === null ? [] : st.cmds.filter((c) => c.seq > since) });
+      json(res, { seq: st.seq, cmds: since === null ? [] : st.cmds.filter((c) => c.seq > since), excluidos: lerExcluidos().map((x) => x.nome) });
     });
   }
 
   if (p === '/state') {                                    // celular
     const av = lerAoVivo();
     return json(res, { ...st.state, telao: Date.now() - st.lastSync < 5000, aovivo: { ganhadores: av.ganhadores, ultimo: ultimoAoVivo } });
+  }
+
+  // participantes do sorteio geral (celular): lista + quem já ganhou + quem foi excluído
+  if (p === '/participantes') {
+    if (u.searchParams.get('k') !== KEY) return json(res, { error: 'chave invalida' }, 403);
+    const excl = lerExcluidos();
+    const ex = new Set(excl.map((x) => normNome(x.nome)));
+    const ganhou = new Set(st.state.winners.map(normNome));
+    const lista = lerParticipantes().map((nome) => ({ nome, ganhou: ganhou.has(normNome(nome)), excluido: ex.has(normNome(nome)) }));
+    return json(res, { total: lista.length, concorrendo: lista.filter((x) => !x.ganhou && !x.excluido).length, lista, excluidos: excl });
+  }
+  if (req.method === 'POST' && (p === '/excluir' || p === '/restaurar')) {
+    if (u.searchParams.get('k') !== KEY) return json(res, { error: 'chave invalida' }, 403);
+    const nome = str(u.searchParams.get('nome') || '', 80).trim();
+    if (!nome) return json(res, { error: 'informe o nome' }, 400);
+    let excl = lerExcluidos().filter((x) => normNome(x.nome) !== normNome(nome));
+    if (p === '/excluir') excl.push({ nome, em: new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 16).replace('T', ' ') });
+    gravarExcluidos(excl);
+    return json(res, { ok: 1, excluidos: excl.length });
   }
 
   if (req.method === 'POST' && p === '/cmd') {             // celular
@@ -113,7 +147,8 @@ async function aoVivo(res) {
   const av = lerAoVivo();
   const ja = new Set(av.ganhadores.map((g) => g.id).filter(Boolean));
   const jaNome = new Set(av.ganhadores.map((g) => g.nome.toLowerCase()));
-  const elegiveis = (dados.treinando || []).filter((p) => !ja.has(p.idMember) && !jaNome.has(p.nome.toLowerCase()));
+  const excl = new Set(lerExcluidos().map((x) => normNome(x.nome)));
+  const elegiveis = (dados.treinando || []).filter((p) => !ja.has(p.idMember) && !jaNome.has(p.nome.toLowerCase()) && !excl.has(normNome(p.nome)));
   ultimoAoVivo = { hora: dados.hora, treinando: (dados.treinando || []).length, elegiveis: elegiveis.length };
   st.seq++;
   st.aovivoSeq = st.seq;

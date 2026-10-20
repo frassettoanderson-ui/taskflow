@@ -170,7 +170,7 @@ body.simple .go{margin-top:30px}
 
     <div class="row">
       <div class="cnt"><b id="count">0</b> participantes</div>
-      <label class="chk"><input type="checkbox" id="manual"> Modo manual (Espaço avança cada etapa)</label>
+      <label class="chk" hidden><input type="checkbox" id="manual"> Modo manual</label>
       <span><button class="ghost" id="evo" type="button" hidden>Lista dos clientes</button> <button class="ghost" id="sample" type="button">Exemplo 24</button> <button class="ghost" id="sample300" type="button">Exemplo 300</button></span>
     </div>
 
@@ -617,7 +617,8 @@ const norm=s=>s.trim().toLowerCase();
 let winners=[];try{winners=JSON.parse(localStorage.getItem('oxsorteio_win')||'[]')}catch(e){}
 function saveWins(){try{localStorage.setItem('oxsorteio_win',JSON.stringify(winners))}catch(e){}}
 function addWinner(n){if(n&&!winners.some(w=>norm(w)===norm(n))){winners.push(n);saveWins()}}
-function eligible(){const w=new Set(winners.map(norm));return parse().filter(n=>!w.has(norm(n)))}
+let excluidos=new Set();
+function eligible(){const w=new Set(winners.map(norm));return parse().filter(n=>!w.has(norm(n))&&!excluidos.has(norm(n)))}
 function save(){try{localStorage.setItem('oxsorteio',JSON.stringify({n:ta.value,p:$('#prize').value,m:$('#manual').checked}))}catch(e){}}
 function updCount(){
   $('#count').textContent=eligible().length;save();
@@ -643,7 +644,7 @@ $('#go').onclick=async()=>{
   liveMode=false;liveDone=false;
   all=eligible();
   if(all.length<2){alert(winners.length?'Restam menos de 2 participantes (os ganhadores anteriores ficam de fora). Adicione nomes ou limpe a lista de ganhadores.':'Coloque pelo menos 2 participantes.');return}
-  auto=!$('#manual').checked;initAudio();
+  auto=true;initAudio();
   try{document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}
   $('#setup').style.display='none';stage.hidden=false;rescale();
   if(!started){started=true;loop()}
@@ -651,7 +652,7 @@ $('#go').onclick=async()=>{
   run();
 };
 function again(){
-  liveMode=false;liveDone=false;
+  liveMode=false;liveDone=false;auto=true;
   all=eligible();
   if(all.length<2){alert('Restam menos de 2 participantes. Adicione nomes ou limpe a lista de ganhadores na configuração.');location.reload();return}
   run();
@@ -675,8 +676,9 @@ function reportStatus(s){remStatus=s;if(remoto)remSync()}
 async function remSync(){
   if(!remoto||remBusy)return;remBusy=true;
   try{
-    const state={status:remStatus,muted,manual:$('#manual').checked,title:stage.hidden?'':$('#title').textContent,eyebrow:stage.hidden?'':$('#eyebrow').textContent,winners,aovivoWin};
+    const state={status:remStatus,muted,manual:false,title:stage.hidden?'':$('#title').textContent,eyebrow:stage.hidden?'':$('#eyebrow').textContent,winners,aovivoWin};
     const d=await(await fetch('api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({since:remLast,state})})).json();
+    if(Array.isArray(d.excluidos)){const ex=new Set(d.excluidos.map(norm));if(ex.size!==excluidos.size||[...ex].some(x=>!excluidos.has(x))){excluidos=ex;if(stage.hidden)updCount()}}
     if(remLast===null)remLast=d.seq;
     else for(const c of d.cmds){remLast=Math.max(remLast,c.seq);remCmd(c.cmd,c)}
   }catch(e){}
@@ -717,7 +719,7 @@ function aoVivo(o){
   }
   liveMode=true;liveDone=false;
   all=lista.map(p=>p.nome);liveIds=lista.map(p=>p.id);
-  auto=!$('#manual').checked;
+  auto=true;
   run();
 }
 
