@@ -129,11 +129,6 @@ body.simple .go{margin-top:30px}
 @keyframes arenaFade{to{opacity:0}}
 @keyframes arenaPulso{from{opacity:.55}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){#arena .img{animation:none!important;opacity:1;transform:none;filter:none}}
-/* aviso de som bloqueado (Chrome só libera o som depois de um clique na página do telão) */
-#somAviso{position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:80;display:none;align-items:center;gap:14px;padding:14px 26px;background:#e11d2e;color:#fff;font:800 20px/1.2 var(--body);letter-spacing:.04em;box-shadow:0 10px 40px rgba(0,0,0,.6);cursor:pointer;animation:somPisca 1.2s ease-in-out infinite alternate}
-#somAviso.on{display:flex}
-#somAviso small{display:block;font:600 13px var(--body);opacity:.85;letter-spacing:.02em}
-@keyframes somPisca{from{opacity:.75}to{opacity:1}}
 #splash{position:absolute;inset:0;z-index:22;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
   background:radial-gradient(ellipse at center,rgba(20,23,27,.55),rgba(8,9,11,.95));transition:opacity .8s}
 #splash.off{opacity:0;pointer-events:none}
@@ -223,7 +218,7 @@ body.simple .go{margin-top:30px}
   <div id="flash"></div>
 </div>
 <div id="toast"></div>
-<div id="somAviso" role="button">🔇<div>SOM DESATIVADO — clique aqui<small>O navegador só libera o som depois de um clique nesta tela</small></div></div>
+
 <div id="arena" aria-hidden="true"><div class="img"></div><div class="brasa"></div><div class="luz"></div><div class="pular">Espaço para pular</div></div>
 <audio id="arenaVoz" src="arena-ox.mp3" preload="auto"></audio>
 
@@ -387,22 +382,25 @@ let liveMode=false,liveDone=false,liveIds=[],liveSeq=0,liveTotal=0,aovivoWin=nul
 let arenaFeita=false;
 /* Voz da abertura: toca pelo mesmo AudioContext dos efeitos (liberado com o clique no telão), o que
    evita o bloqueio de autoplay do <audio>. Se não der, cai no <audio> normal. */
-let vozDados=null,vozBuf=null;
-fetch('arena-ox.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{vozDados=b}).catch(()=>{});
+let vozDados=null,vozBuf=null,vozErroLoad=null;
+function diagVoz(etapa,extra){try{fetch('diag-voz?e='+encodeURIComponent(etapa)+'&x='+encodeURIComponent(String(extra||''))+'&ctx='+(ac?ac.state:'sem')+'&dados='+(vozDados?vozDados.byteLength:0)+'&buf='+(vozBuf?Math.round(vozBuf.duration):0)+'&mudo='+muted+'&ua='+encodeURIComponent(navigator.userAgent.slice(-40)),{cache:'no-store'}).catch(()=>{})}catch(e){}}
+fetch('arena-ox.mp3',{cache:'reload'}).then(r=>r.ok?r.arrayBuffer():Promise.reject('HTTP '+r.status)).then(b=>{vozDados=b}).catch(e=>{vozErroLoad=String(e)});
 async function tocarVoz(){
   try{
     initAudio();if(ac.state!=='running')await Promise.race([ac.resume(),sleep(700)]);   // sem clique na tela o Chrome não libera: não trava
-    if(!vozBuf&&vozDados)vozBuf=await ac.decodeAudioData(vozDados.slice(0));
+    if(!vozBuf&&vozDados){try{vozBuf=await ac.decodeAudioData(vozDados.slice(0))}catch(e){diagVoz('decode-erro',e&&(e.name+' '+e.message))}}
+    if(!vozDados)diagVoz('sem-dados',vozErroLoad);
     if(vozBuf&&ac.state==='running'){
       const src=ac.createBufferSource(),g=ac.createGain();
       src.buffer=vozBuf;g.gain.value=muted?0:1;src.connect(g);g.connect(ac.destination);
-      const fim=new Promise(r=>{src.onended=r});src.start();
+      const fim=new Promise(r=>{src.onended=r});src.start();diagVoz('webaudio-tocando');
       return{fim,parar:async()=>{const t=ac.currentTime;g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+.45);await sleep(480);try{src.stop()}catch(e){}}};
     }
-  }catch(e){}
+  }catch(e){diagVoz('webaudio-erro',e&&(e.name+' '+e.message))}
+  diagVoz('caiu-no-audio');
   const voz=$('#arenaVoz');voz.currentTime=0;voz.volume=muted?0:1;
   const fim=new Promise(r=>{voz.onended=r;voz.onerror=()=>setTimeout(r,8000)});
-  try{await voz.play()}catch(e){$('#arena .pular').textContent='Som bloqueado: clique na tela do telão uma vez · Espaço para pular';return{fim:sleep(9000),parar:async()=>{}}}
+  try{await voz.play();diagVoz('tag-tocando')}catch(e){diagVoz('tag-erro',e&&e.name);return{fim:sleep(9000),parar:async()=>{}}}
   return{fim,parar:async()=>{for(let v=voz.volume;v>0.02;v-=0.08){voz.volume=Math.max(0,v);await sleep(40)}voz.pause()}};
 }
 async function arena(){
@@ -412,9 +410,11 @@ async function arena(){
   let pular;const pulou=new Promise(r=>pular=r);
   await sleep(1200);                                   // (o clique que iniciou o sorteio não pode pular a abertura)
   const antes=keyResolve;keyResolve=()=>pular();      // Espaço, clique ou "Avançar" no controle pulam a abertura
+  const t0=Date.now();
   const voz=await tocarVoz();
   let acabou=false;
   await Promise.race([voz.fim.then(()=>{acabou=true}),pulou,sleep(40000)]);
+  diagVoz(acabou?'voz-terminou':'pulou-ou-tempo',Math.round((Date.now()-t0)/1000)+'s');
   keyResolve=antes;
   if(!acabou)await voz.parar();
   // transição: flash + zoom para dentro da arena
@@ -808,11 +808,7 @@ function geralRemoto(o){
   run();
 }
 
-/* aviso enquanto o som estiver bloqueado; some no primeiro clique/tecla */
-function somLiberado(){return !!(ac&&ac.state==='running')||(navigator.userActivation&&navigator.userActivation.hasBeenActive)}
-function checarSom(){$('#somAviso').classList.toggle('on',!somLiberado())}
-['pointerdown','keydown'].forEach(ev=>addEventListener(ev,()=>{try{initAudio();ac.resume().then(checarSom)}catch(e){}setTimeout(checarSom,300)}));
-setInterval(checarSom,2000);checarSom();
+['pointerdown','keydown'].forEach(ev=>addEventListener(ev,()=>{try{initAudio();ac.resume()}catch(e){}}));
 
 if(remoto){
   $('#rem').hidden=false;
