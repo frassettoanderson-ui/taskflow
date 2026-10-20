@@ -379,22 +379,40 @@ let all=[],cards=[],alive=[],chain=[],prize='',finished=false;
 let liveMode=false,liveDone=false,liveIds=[],liveSeq=0,liveTotal=0,aovivoWin=null;
 
 let arenaFeita=false;
+/* Voz da abertura: toca pelo mesmo AudioContext dos efeitos (liberado com o clique no telão), o que
+   evita o bloqueio de autoplay do <audio>. Se não der, cai no <audio> normal. */
+let vozDados=null,vozBuf=null;
+fetch('arena-ox.mp3').then(r=>r.ok?r.arrayBuffer():null).then(b=>{vozDados=b}).catch(()=>{});
+async function tocarVoz(){
+  try{
+    initAudio();if(ac.state!=='running')await ac.resume();
+    if(!vozBuf&&vozDados)vozBuf=await ac.decodeAudioData(vozDados.slice(0));
+    if(vozBuf&&ac.state==='running'){
+      const src=ac.createBufferSource(),g=ac.createGain();
+      src.buffer=vozBuf;g.gain.value=muted?0:1;src.connect(g);g.connect(ac.destination);
+      const fim=new Promise(r=>{src.onended=r});src.start();
+      return{fim,parar:async()=>{const t=ac.currentTime;g.gain.setValueAtTime(g.gain.value,t);g.gain.linearRampToValueAtTime(0,t+.45);await sleep(480);try{src.stop()}catch(e){}}};
+    }
+  }catch(e){}
+  const voz=$('#arenaVoz');voz.currentTime=0;voz.volume=muted?0:1;
+  const fim=new Promise(r=>{voz.onended=r;voz.onerror=()=>setTimeout(r,8000)});
+  try{await voz.play()}catch(e){$('#arena .pular').textContent='Som bloqueado: clique na tela do telão uma vez · Espaço para pular';return{fim:sleep(9000),parar:async()=>{}}}
+  return{fim,parar:async()=>{for(let v=voz.volume;v>0.02;v-=0.08){voz.volume=Math.max(0,v);await sleep(40)}voz.pause()}};
+}
 async function arena(){
-  const el=$('#arena'),voz=$('#arenaVoz');
+  const el=$('#arena');
   el.classList.remove('sai');el.classList.add('on');
   try{S.whoosh(1.4)}catch(e){}
   let pular;const pulou=new Promise(r=>pular=r);
-  voz.currentTime=0;voz.volume=muted?0:1;
-  const fim=new Promise(r=>{voz.onended=r;voz.onerror=()=>setTimeout(r,8000)});
   await sleep(1200);                                   // (o clique que iniciou o sorteio não pode pular a abertura)
   const antes=keyResolve;keyResolve=()=>pular();      // Espaço, clique ou "Avançar" no controle pulam a abertura
-  voz.play().catch(()=>{});
-  await Promise.race([fim,pulou,sleep(40000)]);
+  const voz=await tocarVoz();
+  let acabou=false;
+  await Promise.race([voz.fim.then(()=>{acabou=true}),pulou,sleep(40000)]);
   keyResolve=antes;
-  if(!voz.paused){for(let v=voz.volume;v>0.02;v-=0.08){voz.volume=Math.max(0,v);await sleep(40)}voz.pause()}
-  // transição: flash vermelho + zoom para dentro da arena
+  if(!acabou)await voz.parar();
+  // transição: flash + zoom para dentro da arena
   try{S.impact()}catch(e){}
-  flash(.9,900);
   el.classList.add('sai');
   await sleep(1900);
   el.classList.remove('on','sai');
