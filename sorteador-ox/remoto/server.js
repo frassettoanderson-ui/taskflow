@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const KEY = fs.readFileSync(path.join(__dirname, 'key.txt'), 'utf8').trim();
-const CMDS = new Set(['play', 'next', 'mute', 'fullscreen', 'home', 'reset', 'aovivo']);
+const CMDS = new Set(['play', 'next', 'mute', 'fullscreen', 'home', 'reset', 'aovivo', 'geral']);
 
 /* Sorteio AO VIVO: só quem está treinando agora (catraca da EVO, via API do OX Cloud no próprio
    servidor). Ganhadores ao vivo ficam em aovivo.json, SEPARADOS do grande sorteio; quem já ganhou
@@ -24,17 +24,20 @@ function lerAoVivo() {
 function gravarAoVivo(d) { fs.writeFileSync(AOVIVO_FILE, JSON.stringify(d)); }
 let ultimoAoVivo = null; // {hora, treinando, elegiveis}
 
-/* Participantes do sorteio geral = lista do telão (participantes.js). O controle consulta a lista e pode
-   EXCLUIR alguém: os excluídos ficam em excluidos.json e o telão (e o ao vivo) deixam de sortear essas pessoas. */
-const PART_FILE = process.env.SORTEIO_PARTICIPANTES || '/var/www/oxcloud-sorteio/participantes.js';
+/* Participantes do SORTEIO GERAL = todos os alunos com contrato ativo na EVO, buscados na hora no OX Cloud
+   (sem quem só tem Weekend Fun/VIP). O controle consulta a lista e pode EXCLUIR alguém: os excluídos ficam
+   em excluidos.json e o telão (geral e ao vivo) deixam de sortear essas pessoas. */
+const OX_ATIVOS = 'http://127.0.0.1:8401/api/evo/alunos-ativos';
 const EXCL_FILE = path.join(__dirname, 'excluidos.json');
-const normNome = (s) => String(s).trim().toLowerCase();
-function lerParticipantes() {
-  try {
-    const t = fs.readFileSync(PART_FILE, 'utf8');
-    const m = t.match(/`([\s\S]*)`/);
-    return (m ? m[1] : '').split('\n').map((s) => s.trim()).filter(Boolean);
-  } catch (e) { return []; }
+const normNome = (s) => String(s).replace(/\s+/g, ' ').trim().toLowerCase();
+let cacheAtivos = null; // {em, dados}
+async function alunosAtivos(fresco) {
+  if (!fresco && cacheAtivos && Date.now() - cacheAtivos.em < 120000) return cacheAtivos.dados;
+  const r = await fetch(OX_ATIVOS, { signal: AbortSignal.timeout(30000) });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d && d.erro || ('HTTP ' + r.status));
+  cacheAtivos = { em: Date.now(), dados: d };
+  return d;
 }
 function lerExcluidos() { try { return JSON.parse(fs.readFileSync(EXCL_FILE, 'utf8')); } catch (e) { return []; } }
 function gravarExcluidos(l) { fs.writeFileSync(EXCL_FILE, JSON.stringify(l)); }
@@ -98,14 +101,16 @@ http.createServer((req, res) => {
     return json(res, { ...st.state, telao: Date.now() - st.lastSync < 5000, aovivo: { ganhadores: av.ganhadores, ultimo: ultimoAoVivo } });
   }
 
-  // participantes do sorteio geral (celular): lista + quem já ganhou + quem foi excluído
+  // participantes do sorteio geral (celular): alunos ativos + quem já ganhou + quem foi excluído
   if (p === '/participantes') {
     if (u.searchParams.get('k') !== KEY) return json(res, { error: 'chave invalida' }, 403);
-    const excl = lerExcluidos();
-    const ex = new Set(excl.map((x) => normNome(x.nome)));
-    const ganhou = new Set(st.state.winners.map(normNome));
-    const lista = lerParticipantes().map((nome) => ({ nome, ganhou: ganhou.has(normNome(nome)), excluido: ex.has(normNome(nome)) }));
-    return json(res, { total: lista.length, concorrendo: lista.filter((x) => !x.ganhou && !x.excluido).length, lista, excluidos: excl });
+    return alunosAtivos(u.searchParams.get('fresco') === '1').then((d) => {
+      const excl = lerExcluidos();
+      const ex = new Set(excl.map((x) => normNome(x.nome)));
+      const ganhou = new Set(st.state.winners.map(normNome));
+      const lista = d.alunos.map((a) => ({ nome: a.nome, plano: a.plano, ganhou: ganhou.has(normNome(a.nome)), excluido: ex.has(normNome(a.nome)) }));
+      json(res, { total: lista.length, foraDaRegra: d.foraDaRegra, concorrendo: lista.filter((x) => !x.ganhou && !x.excluido).length, lista, excluidos: excl });
+    }).catch((e) => json(res, { error: 'Não consegui buscar os alunos na EVO: ' + (e.message || 'erro') }, 502));
   }
   if (req.method === 'POST' && (p === '/excluir' || p === '/restaurar')) {
     if (u.searchParams.get('k') !== KEY) return json(res, { error: 'chave invalida' }, 403);
@@ -125,6 +130,7 @@ http.createServer((req, res) => {
     if (now - (st.lastCmd[c] || 0) < 800) return json(res, { ok: 0, motivo: 'aguarde' });
     st.lastCmd[c] = now;
     if (c === 'aovivo') return aoVivo(res);
+    if (c === 'geral') return geral(res);
     st.seq++;
     st.cmds.push({ seq: st.seq, cmd: c });
     if (st.cmds.length > 30) st.cmds.shift();
@@ -133,6 +139,20 @@ http.createServer((req, res) => {
 
   json(res, { error: 'nao encontrado' }, 404);
 }).listen(8410, '127.0.0.1');
+
+/** Sorteio geral: busca os alunos ativos na EVO (na hora), tira excluídos e quem já ganhou, e manda ao telão. */
+async function geral(res) {
+  let d;
+  try { d = await alunosAtivos(true); }
+  catch (e) { return json(res, { ok: 0, motivo: 'Não consegui buscar os alunos na EVO: ' + (e.message || 'erro') }, 502); }
+  const excl = new Set(lerExcluidos().map((x) => normNome(x.nome)));
+  const ganhou = new Set(st.state.winners.map(normNome));
+  const elegiveis = d.alunos.filter((a) => !excl.has(normNome(a.nome)) && !ganhou.has(normNome(a.nome)));
+  st.seq++;
+  st.cmds.push({ seq: st.seq, cmd: 'geral', lista: elegiveis.map((a) => a.nome), ativos: d.alunos.length });
+  if (st.cmds.length > 30) st.cmds.shift();
+  return json(res, { ok: 1, seq: st.seq, ativos: d.alunos.length, elegiveis: elegiveis.length });
+}
 
 /** Busca quem está treinando, tira quem já ganhou hoje e manda a lista ao telão. */
 async function aoVivo(res) {

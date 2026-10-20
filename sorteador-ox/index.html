@@ -730,6 +730,7 @@ async function remSync(){
 }
 function remCmd(c,o){
   if(c==='aovivo'){aoVivo(o);return}
+  if(c==='geral'){geralRemoto(o);return}
   if(c==='play'){if(stage.hidden)$('#go').click();else if(finished||liveDone)again()}
   else if(c==='next'){if(keyResolve)keyResolve()}
   else if(c==='mute')setMuted(!muted);
@@ -764,6 +765,22 @@ function aoVivo(o){
   liveMode=true;liveDone=false;
   all=lista.map(p=>p.nome);liveIds=lista.map(p=>p.id);
   auto=true;
+  run();
+}
+
+/* Sorteio geral pelo controle: lista = alunos ativos da EVO (já sem excluídos e sem quem ganhou) */
+function geralRemoto(o){
+  if(remStatus==='running')return;
+  const w=new Set(winners.map(norm));
+  const lista=((o&&o.lista)||[]).filter(n=>!w.has(norm(n))&&!excluidos.has(norm(n)));
+  abrirPalco();
+  liveMode=false;liveDone=false;aovivoWin=null;
+  if(lista.length<2){
+    finished=true;reportStatus('idle');
+    avisoPalco('Sorteio geral',lista.length===1?'Só '+lista[0]+' pode concorrer':'Ninguém para sortear',(o&&o.ativos||0)+' alunos ativos na EVO · ganhadores e excluídos ficam de fora');
+    return;
+  }
+  all=lista;auto=true;
   run();
 }
 

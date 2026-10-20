@@ -64,11 +64,11 @@ button:disabled{opacity:.35;cursor:default}
   <div class="info"><div class="e" id="eb">&nbsp;</div><div class="t" id="tt">—</div></div>
 
   <button id="play" disabled>Sorteio geral</button>
-  <div class="dica">Sorteia 1 entre todos os clientes da lista (quem já ganhou e quem foi excluído ficam de fora). Roda sozinho, no automático.</div>
+  <div class="dica">Busca na hora todos os alunos ativos da EVO e sorteia 1 (quem já ganhou e quem foi excluído ficam de fora). Roda sozinho, no automático.</div>
 
   <button id="aovivo" disabled>Sorteio ao vivo<span class="sub">sorteia 1 entre quem está treinando agora</span></button>
 
-  <button id="part">Participantes<span class="sub" id="partTxt">ver lista e excluir alguém</span></button>
+  <button id="part">Participantes<span class="sub" id="partTxt">alunos ativos · ver lista e excluir alguém</span></button>
 
   <div class="g2">
     <button id="mute">Som<span class="sub" id="muteTxt">ligado</span></button>
@@ -110,6 +110,7 @@ function render(){
   if(!K){p.disabled=true;p.textContent='Link sem chave'}
   else if(!S.telao){p.disabled=true;p.textContent='Aguardando telão'}
   else if(S.status==='running'){p.disabled=true;p.textContent='Sorteando…'}
+  else if(buscandoGeral){p.disabled=true;p.textContent='Buscando alunos…'}
   else{p.disabled=false;p.textContent=S.status==='finished'?'Novo sorteio geral':'Sorteio geral'}
   $('#next').disabled=!(on&&S.status==='running');
   ['mute','fullscreen','home','reset'].forEach(id=>$('#'+id).disabled=!on);
@@ -137,11 +138,24 @@ async function send(c){
   }catch(e){$('#msg').textContent='Sem conexão.'}
   setTimeout(refresh,500);
 }
-['play','next','mute','fullscreen','home'].forEach(c=>$('#'+c).onclick=()=>send(c));
+['next','mute','fullscreen','home'].forEach(c=>$('#'+c).onclick=()=>send(c));
+let buscandoGeral=false;
+$('#play').onclick=async()=>{
+  if(!confirm('Fazer o sorteio geral agora?\n\nBusca todos os alunos ativos da EVO e sorteia 1. Quem já ganhou e quem foi excluído ficam de fora.'))return;
+  buscandoGeral=true;render();$('#msg').textContent='Buscando os alunos ativos na EVO…';
+  try{
+    const r=await fetch('../api/cmd?c=geral&k='+encodeURIComponent(K),{method:'POST'});const d=await r.json();
+    if(r.status===403)$('#msg').textContent='Chave inválida: use o link completo.';
+    else if(d.ok===0)$('#msg').textContent=d.motivo||'Aguarde um instante…';
+    else $('#msg').textContent=d.ativos+' alunos ativos · '+d.elegiveis+' concorrendo';
+  }catch(e){$('#msg').textContent='Sem conexão.'}
+  buscandoGeral=false;setTimeout(refresh,500);
+};
 /* Participantes: lista do sorteio geral; excluir / voltar alguém */
 let PP={lista:[],excluidos:[]};
 async function carregarPP(){
-  try{const r=await fetch('../api/participantes?k='+encodeURIComponent(K),{cache:'no-store'});if(r.status===403){$('#ppres').textContent='Chave inválida: use o link completo.';return}PP=await r.json()}catch(e){$('#ppres').textContent='Sem conexão.';return}
+  $('#ppres').textContent='Buscando os alunos ativos na EVO…';
+  try{const r=await fetch('../api/participantes?k='+encodeURIComponent(K),{cache:'no-store'});if(r.status===403){$('#ppres').textContent='Chave inválida: use o link completo.';return}const d=await r.json();if(!r.ok){$('#ppres').textContent=d.error||'Falha ao buscar.';return}PP=d}catch(e){$('#ppres').textContent='Sem conexão.';return}
   $('#partTxt').textContent=PP.concorrendo+' concorrendo de '+PP.total;
   desenharPP();
 }
@@ -149,8 +163,8 @@ function desenharPP(){
   const q=$('#ppbusca').value.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu,'');
   const ok=n=>!q||n.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').includes(q);
   const ganh=PP.lista.filter(x=>x.ganhou).length,exc=PP.lista.filter(x=>x.excluido).length;
-  $('#ppres').innerHTML='<b>'+PP.concorrendo+'</b> concorrendo · '+PP.total+' na lista · '+ganh+' já ganharam · '+exc+' excluídos';
-  const item=x=>'<div class="pp__it'+(x.excluido?' excl':'')+(x.ganhou?' ganhou':'')+'"><div><span>'+esc(x.nome)+'</span>'+(x.excluido?'<small>excluído</small>':x.ganhou?'<small>já ganhou</small>':'')+'</div>'+
+  $('#ppres').innerHTML='<b>'+PP.concorrendo+'</b> concorrendo · '+PP.total+' alunos ativos na EVO · '+ganh+' já ganharam · '+exc+' excluídos'+(PP.foraDaRegra?' · '+PP.foraDaRegra+' só Weekend Fun/VIP (fora)':'');
+  const item=x=>'<div class="pp__it'+(x.excluido?' excl':'')+(x.ganhou?' ganhou':'')+'"><div><span>'+esc(x.nome)+'</span>'+(x.excluido?'<small>excluído</small>':x.ganhou?'<small>já ganhou</small>':'<small>'+esc(x.plano||'')+'</small>')+'</div>'+
     '<button data-n="'+esc(x.nome)+'" data-a="'+(x.excluido?'restaurar':'excluir')+'">'+(x.excluido?'Voltar':'Excluir')+'</button></div>';
   const fora=PP.lista.filter(x=>x.excluido&&ok(x.nome)),dentro=PP.lista.filter(x=>!x.excluido&&ok(x.nome));
   $('#pplista').innerHTML=(dentro.length?dentro.map(item).join(''):'<div class="pp__sec">Ninguém com esse nome</div>')+(fora.length?'<div class="pp__sec">Excluídos</div>'+fora.map(item).join(''):'');
@@ -179,7 +193,7 @@ $('#aovivo').onclick=async()=>{
   aguardandoAoVivo=false;setTimeout(refresh,500);
 };
 $('#reset').onclick=()=>{if(confirm('Reiniciar tudo do zero?\n\nLimpa a lista de quem já ganhou, recarrega a lista de clientes e volta ao início.'))send('reset')};
-refresh();setInterval(refresh,1500);if(K)carregarPP();
+refresh();setInterval(refresh,1500);
 </script>
 </body>
 </html>
