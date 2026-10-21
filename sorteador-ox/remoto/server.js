@@ -13,7 +13,9 @@ const CMDS = new Set(['play', 'next', 'mute', 'fullscreen', 'home', 'reset', 'ao
    servidor). Ganhadores ao vivo ficam em aovivo.json, SEPARADOS do grande sorteio; quem já ganhou
    hoje não entra de novo (no dia seguinte participa). */
 const OX_TREINANDO = 'http://127.0.0.1:8401/api/evo/treinando-agora';
-const AOVIVO_FILE = path.join(__dirname, 'aovivo.json');
+// arquivos gravados ficam no StateDirectory do systemd (/var/lib/sorteio-remote); a pasta do código é só leitura
+const DADOS = process.env.STATE_DIRECTORY || __dirname;
+const AOVIVO_FILE = path.join(DADOS, 'aovivo.json');
 const hojeBr = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
 function lerAoVivo() {
   let d = { dia: hojeBr(), ganhadores: [] };
@@ -21,14 +23,14 @@ function lerAoVivo() {
   if (d.dia !== hojeBr()) d = { dia: hojeBr(), ganhadores: [] };
   return d;
 }
-function gravarAoVivo(d) { fs.writeFileSync(AOVIVO_FILE, JSON.stringify(d)); }
+function gravarAoVivo(d) { try { fs.writeFileSync(AOVIVO_FILE, JSON.stringify(d)); } catch (e) { console.error('não gravei aovivo.json:', e.message); } }
 let ultimoAoVivo = null; // {hora, treinando, elegiveis}
 
 /* Participantes do SORTEIO GERAL = todos os alunos com contrato ativo na EVO, buscados na hora no OX Cloud
    (sem quem só tem Weekend Fun/VIP). O controle consulta a lista e pode EXCLUIR alguém: os excluídos ficam
    em excluidos.json e o telão (geral e ao vivo) deixam de sortear essas pessoas. */
 const OX_ATIVOS = 'http://127.0.0.1:8401/api/evo/alunos-ativos';
-const EXCL_FILE = path.join(__dirname, 'excluidos.json');
+const EXCL_FILE = path.join(DADOS, 'excluidos.json');
 const normNome = (s) => String(s).replace(/\s+/g, ' ').trim().toLowerCase();
 let cacheAtivos = null; // {em, dados}
 async function alunosAtivos(fresco) {
@@ -40,7 +42,7 @@ async function alunosAtivos(fresco) {
   return d;
 }
 function lerExcluidos() { try { return JSON.parse(fs.readFileSync(EXCL_FILE, 'utf8')); } catch (e) { return []; } }
-function gravarExcluidos(l) { fs.writeFileSync(EXCL_FILE, JSON.stringify(l)); }
+function gravarExcluidos(l) { try { fs.writeFileSync(EXCL_FILE, JSON.stringify(l)); } catch (e) { console.error('não gravei excluidos.json:', e.message); } }
 const STATUS = new Set(['idle', 'running', 'finished']);
 
 const st = {
