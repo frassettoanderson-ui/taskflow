@@ -101,3 +101,15 @@ prisma.$use(async (params, next) => {
 
   return result;
 });
+
+// Empresas em fase comercial (lead ainda no CRM, onboarding não iniciado) não aparecem em
+// nenhuma listagem/contagem do sistema. Busca por id/únicos (ficha, ponte) e aggregate
+// (numeração) seguem normais.
+const LISTAGENS_EMPRESA = new Set(['findMany', 'count', 'groupBy']);
+prisma.$use(async (params, next) => {
+  if (params.model === 'Empresa' && LISTAGENS_EMPRESA.has(params.action)) {
+    params.args = params.args ?? {};
+    params.args.where = params.args.where ? { AND: [params.args.where, { emComercial: false }] } : { emComercial: false };
+  }
+  return next(params);
+});

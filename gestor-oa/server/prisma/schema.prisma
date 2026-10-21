@@ -374,6 +374,8 @@ model Empresa {
   // Onboarding: empresa só aparece na lista de Empresas quando o onboarding é concluído (botão "Concluir onboarding").
   // Default true = empresas manuais/legado aparecem normalmente; leads em onboarding entram como false.
   onboardingConcluido  Boolean   @default(true)
+  // Lead ainda no CRM (contrato), onboarding não iniciado: oculta de listas/contagens até iniciar
+  emComercial          Boolean   @default(false)
   atividade            String?
   capitalSocial        Decimal?  @db.Decimal(14, 2)
   inscricaoImobiliaria String?

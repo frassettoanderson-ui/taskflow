@@ -185,6 +185,8 @@ export async function sincronizarDoNauta(nautaClienteId: string): Promise<string
       // Regra do fluxo: empresa vinda de lead só aparece em Empresas após "Concluir onboarding".
       // Sem lead vinculado (cadastro manual no Obrigô) → considera concluído (visível).
       onboardingConcluido: c.lead_id ? !!c.l_onb_ok : true,
+      // Ainda na fase comercial (CRM/contrato, onboarding não iniciado): fica oculta no Obrigô
+      emComercial: c.lead_id ? (!c.l_em_onb && !c.l_onb_ok) : false,
       nautaLeadId: (c.lead_id as string) ?? null,
     };
 
