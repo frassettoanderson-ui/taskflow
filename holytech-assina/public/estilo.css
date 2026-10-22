@@ -1,0 +1,53 @@
+:root {
+  --papel: #F2F1EC; --tinta: #0E0E10; --cinza: #5f5f66; --linha: #dcdad2; --amarelo: #FDBB01;
+  --ok: #3f7a37; --ok-fundo: #e3f1e0; --erro: #b23b2a; --erro-fundo: #fbe4e0;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--papel); color: var(--tinta); font: 15px/1.5 'Geist', system-ui, sans-serif; }
+a { color: inherit; }
+.topo { padding: 18px 20px; display: flex; justify-content: center; border-bottom: 1px solid var(--linha); background: var(--papel); }
+.marca { font-family: 'Archivo', sans-serif; font-stretch: 112%; font-weight: 700; font-size: 18px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+.marca b { font-weight: 800; }
+.ponto { width: 12px; height: 12px; background: var(--amarelo); border-radius: 3px; display: inline-block; }
+main { max-width: 640px; margin: 0 auto; padding: 22px 16px 10px; }
+.cartao { background: #fff; border: 1px solid var(--linha); border-radius: 7px; padding: 22px 20px; margin-bottom: 14px; }
+.cartao.bloqueado { opacity: .45; pointer-events: none; }
+.centro { text-align: center; }
+h1 { font-family: 'Archivo', sans-serif; font-stretch: 112%; font-weight: 800; font-size: 23px; line-height: 1.2; margin: 6px 0 8px; letter-spacing: -.015em; }
+h2 { font-family: 'Archivo', sans-serif; font-stretch: 112%; font-weight: 700; font-size: 17px; margin: 0; }
+.rotulo { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--cinza); margin: 0; }
+.sub { color: var(--cinza); margin: 6px 0; }
+.mono { font-family: 'Geist Mono', monospace; font-size: 11px; word-break: break-all; }
+.passo-cab { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
+.num { width: 26px; height: 26px; border-radius: 5px; background: var(--tinta); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; }
+.cartao.feito .num { background: var(--ok); }
+.visor { max-height: 460px; overflow: auto; border: 1px solid var(--linha); border-radius: 5px; background: #f7f6f2; padding: 8px; margin: 6px 0 10px; }
+.visor canvas { width: 100%; display: block; margin: 0 auto 8px; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.botao { appearance: none; border: 0; background: var(--tinta); color: #fff; font: 600 15px 'Geist', sans-serif; padding: 12px 22px; border-radius: 5px; cursor: pointer; display: inline-block; text-decoration: none; }
+.botao:disabled { opacity: .35; cursor: default; }
+.botao.secundario { background: #fff; color: var(--tinta); border: 1px solid var(--tinta); }
+.botao.grande { width: 100%; padding: 15px; font-size: 16px; margin-top: 12px; }
+.link { background: none; border: 0; color: var(--tinta); text-decoration: underline; cursor: pointer; font: 500 13px 'Geist', sans-serif; padding: 4px; }
+.canais { display: flex; flex-direction: column; gap: 8px; align-items: stretch; margin: 12px 0 4px; }
+.canal { border: 1px solid var(--tinta); background: #fff; border-radius: 5px; padding: 12px; cursor: pointer; font: 500 14px 'Geist', sans-serif; text-align: center; }
+.canal span { display: block; color: var(--cinza); font-size: 12px; font-weight: 400; }
+.campo-codigo { display: block; width: 190px; margin: 10px auto; text-align: center; font: 600 28px 'Geist Mono', monospace; letter-spacing: 8px; padding: 10px; border: 1px solid var(--linha); border-radius: 5px; }
+#codigo-digitar { text-align: center; }
+.campo { width: 100%; padding: 11px 12px; border: 1px solid var(--linha); border-radius: 5px; font: 15px 'Geist', sans-serif; margin: 8px 0; background: #fff; }
+.linha { display: flex; gap: 8px; } .linha .campo { margin: 0; }
+.camera { display: flex; justify-content: center; margin: 12px 0; }
+.camera video, .camera img { width: 100%; max-width: 320px; border-radius: 7px; background: #111; aspect-ratio: 3 / 4; object-fit: cover; transform: scaleX(-1); }
+.camera img { transform: none; }
+.acoes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.aceite { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; margin-top: 6px; }
+.aceite input { margin-top: 4px; width: 18px; height: 18px; flex: none; }
+.msg { text-align: center; font-size: 14px; min-height: 0; margin: 10px 0 0; }
+.msg:empty { display: none; }
+.msg.erro { color: var(--erro); } .msg.ok { color: var(--ok); }
+.selo { display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 4px; background: #efece2; }
+.selo.ok { background: var(--ok-fundo); color: var(--ok); } .selo.erro { background: var(--erro-fundo); color: var(--erro); }
+.lista { list-style: none; padding: 0; margin: 10px 0 0; }
+.lista li { border-top: 1px solid var(--linha); padding: 10px 0; text-align: center; }
+.lista li span { display: block; color: var(--cinza); font-size: 13px; }
+.oculto { display: none !important; }
+.rodape { text-align: center; color: var(--cinza); font-size: 12px; padding: 18px 16px 30px; }

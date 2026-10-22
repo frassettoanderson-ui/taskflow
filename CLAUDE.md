@@ -1,6 +1,6 @@
 # Índice de Projetos — taskflow_backup_completo
 
-> Pasta guarda-chuva (backup) com **13 projetos independentes**, cada um na sua subpasta.
+> Pasta guarda-chuva (backup) com **15 projetos independentes**, cada um na sua subpasta.
 > Para continuar um projeto: **abra um chat novo apontando o diretório de trabalho para a subpasta dele** — o `CLAUDE.md` de cada pasta carrega o contexto automaticamente.
 
 ## Mapa rápido
@@ -19,7 +19,9 @@
 | `transcritor-video/` | **Transcritor YouTube** — áudio→txt em PT | Python (yt-dlp + faster-whisper) | abrir chat em `transcritor-video/` |
 | `kypa/` | **Kypá Cosméticos** — remodelação do site da loja (demo, cores por linha + motion) | HTML/CSS/JS + GSAP | abrir chat em `kypa/` |
 | `xadrez-mestre/` | **Xadrez Mestre** — extensão coach para chess.com (Stockfish local + IA explica) | Extensão MV3 (JS puro) + Gemini | abrir chat em `xadrez-mestre/` |
+| `holytech-site/` | **HolyTech Solutions** — site institucional + landings Holyshop/Holycar/Holybarber/Holyweb (no ar em holytechsolution.com.br) | HTML/CSS/JS estático + build Node | abrir chat em `holytech-site/` |
 | `versatil/` | **Versátil** — loja de logística reversa: e-commerce + disparo em grupos WhatsApp + PDV (esboço) | Next.js + Node/Prisma/Postgres + Asaas + Evolution | abrir chat em `versatil/` |
+| `holytech-assina/` | **HolyTech Assina** — assinatura eletrônica (código + selfie + carimbo HolyTech) p/ substituir o Autentique; no ar em holytechsolution.com.br/assinar | Node/Express + Postgres + pdf-lib | abrir chat em `holytech-assina/` |
 
 ## Observações
 - `financas/` é um **repositório git próprio** embutido; os demais fazem parte deste repo raiz.
