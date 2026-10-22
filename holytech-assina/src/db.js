@@ -76,6 +76,29 @@ export async function migrar() {
       criado_em     timestamptz NOT NULL DEFAULT now()
     );
     CREATE INDEX IF NOT EXISTS eventos_doc_idx ON eventos (documento_id, id);
+
+    -- Representante da conta (ex.: contador responsável) com autorização prévia de assinatura:
+    -- assina 1x o Termo de autorização (código + selfie) e a assinatura dele é aplicada
+    -- automaticamente nos documentos enviados pela API da conta.
+    CREATE TABLE IF NOT EXISTS representantes (
+      id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      conta_id         uuid NOT NULL REFERENCES contas(id),
+      nome             text NOT NULL,
+      cpf              text NOT NULL,
+      cargo            text NOT NULL DEFAULT 'Contador responsável',
+      registro         text,               -- ex.: CRC/SC 041514/O
+      email            text,
+      whatsapp         text,
+      termo_documento_id uuid,
+      autorizado_em    timestamptz,
+      revogado_em      timestamptz,
+      criado_em        timestamptz NOT NULL DEFAULT now()
+    );
+    ALTER TABLE documentos  ADD COLUMN IF NOT EXISTS tipo text NOT NULL DEFAULT 'documento'; -- documento | autorizacao
+    ALTER TABLE documentos  ADD COLUMN IF NOT EXISTS representante_id uuid;
+    ALTER TABLE signatarios ADD COLUMN IF NOT EXISTS representante_id uuid;
+    ALTER TABLE signatarios ADD COLUMN IF NOT EXISTS cargo text;
+    ALTER TABLE signatarios ADD COLUMN IF NOT EXISTS registro text;
   `)
 }
 

@@ -93,7 +93,7 @@ ${aviso ? `<p class="msg erro">${esc(aviso)}</p>` : ''}
 <p class="sub">Solicitante: <b>${esc(v.solicitante)}</b> · Código <b>${esc(v.codigo)}</b></p>
 <p class="sub">Criado em ${fmt(v.criado_em)}${v.concluido_em ? ` · Concluído em ${fmt(v.concluido_em)}` : ''}</p></section>
 <section class="cartao"><h2 class="centro">Signatários</h2><ul class="lista">
-${v.signatarios.map(s => `<li><b>${esc(s.nome)}</b>${s.papel === 'testemunha' ? ' (testemunha)' : ''}<span>${s.status === 'assinado' ? `Assinou em ${fmt(s.assinado_em)} · código via ${s.canal === 'whatsapp' ? 'WhatsApp' : s.canal === 'email' ? 'e-mail' : esc(s.canal || '—')}${s.selfie ? ' · selfie' : ''}` : 'Pendente'}</span></li>`).join('')}
+${v.signatarios.map(s => `<li><b>${esc(s.nome)}</b>${s.papel === 'testemunha' ? ' (testemunha)' : s.papel === 'contratada' ? ` (contratada · ${esc(s.cargo || 'representante')}${s.registro ? ' · ' + esc(s.registro) : ''})` : ''}<span>${s.status !== 'assinado' ? 'Pendente' : s.canal === 'autorizacao' ? `Assinou em ${fmt(s.assinado_em)} · assinatura autorizada (${esc(s.base)})` : `Assinou em ${fmt(s.assinado_em)} · código via ${s.canal === 'whatsapp' ? 'WhatsApp' : s.canal === 'email' ? 'e-mail' : esc(s.canal || '—')}${s.selfie ? ' · selfie' : ''}`}</span></li>`).join('')}
 </ul></section>
 ${v.carimbo ? `<section class="cartao centro"><h2>Carimbo de tempo HolyTech</h2>
 <p class="sub">${fmt(v.carimbo.hora)} · ${esc(v.carimbo.fonte)}</p>

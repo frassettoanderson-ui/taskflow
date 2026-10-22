@@ -13,6 +13,11 @@ Assinatura eletrônica operada pela **HolyTech Solutions** (provedor independent
 - `GET /assinar/api/v1/documentos/:id` · `GET /assinar/api/v1/documentos/:id/final.pdf` · `POST /assinar/api/v1/documentos/:id/cancelar`
 - Webhooks: `signatario.assinou`, `documento.concluido` — header `X-HolyTech-Assinatura` = HMAC-SHA256(corpo, webhook_secret).
 
+## Representante com assinatura automática (ex.: contador da Atuan)
+- `node scripts/representante.mjs criar "<conta>" '{"nome","cpf","cargo","registro","email","whatsapp"}'` → cadastra e gera o **Termo de autorização** (documento `tipo='autorizacao'`) + link p/ ele assinar 1x com código + selfie. Ao concluir → `representantes.autorizado_em`.
+- API: `assinatura_representante: true` (ou o id) no POST → documento já nasce com o signatário papel `contratada` assinado (`otp_canal='autorizacao'`, base = código do termo, selfie_hash do termo); evento `assinatura_representante`. Sem autorização vigente → 400.
+- `listar "<conta>"` · `revogar <id>` (não afeta documentos já assinados).
+
 ## Infra
 - VPS da HolyTech 89.117.79.163, `/var/www/holytech-assina`, PM2 `holytech-assina`, porta 127.0.0.1:3460, nginx `holytech-dominio` → `location /assinar/`.
 - Postgres `holyassina` (role própria). `.env` na VPS: `DATABASE_URL`, `CHAVE_CRIPTO` (64 hex), `URL_PUBLICA=https://holytechsolution.com.br/assinar`. **Nunca** sobe .env nem `dados/` no deploy.

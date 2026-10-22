@@ -46,10 +46,11 @@ const respostaDoc = ({ d, s }) => ({
   id: d.id, titulo: d.titulo, external_id: d.external_id, status: d.status, codigo: d.codigo,
   verificacao: `${config.urlPublica}/v/${d.codigo}`, hash_original: d.hash_original, hash_final: d.hash_final,
   criado_em: d.criado_em, concluido_em: d.concluido_em,
-  signatarios: s.map(x => ({ id: x.id, nome: x.nome, papel: x.papel, status: x.status, assinado_em: x.assinado_em, link: linkDe(x.token) })),
+  signatarios: s.map(x => ({ id: x.id, nome: x.nome, papel: x.papel, status: x.status, assinado_em: x.assinado_em, link: x.papel === 'contratada' ? null : linkDe(x.token) })),
 })
 
-// POST /api/v1/documentos  { titulo, pdf_base64, signatarios:[{nome,cpf,email,whatsapp,papel}], external_id?, callback_url?, enviar_convite? }
+// POST /api/v1/documentos  { titulo, pdf_base64, signatarios:[{nome,cpf,email,whatsapp,papel}], external_id?, callback_url?, enviar_convite?,
+//                            assinatura_representante?: true | '<representante_id>' }  → já sai assinado pelo representante autorizado da conta
 api.post('/documentos', async (req, res) => {
   try {
     const b = req.body || {}
@@ -58,6 +59,15 @@ api.post('/documentos', async (req, res) => {
     if (pdf.length < 100 || pdf.subarray(0, 5).toString() !== '%PDF-') return res.status(400).json({ erro: 'pdf_base64 inválido' })
     const sigs = Array.isArray(b.signatarios) ? b.signatarios : []
     if (!sigs.length || sigs.some(s => !String(s.nome || '').trim() || (!s.email && !s.whatsapp))) return res.status(400).json({ erro: 'cada signatário precisa de nome e e-mail ou WhatsApp' })
+    // Representante com autorização prévia (ex.: contador responsável): valida antes de gravar
+    let rep = null
+    if (b.assinatura_representante) {
+      const q = typeof b.assinatura_representante === 'string'
+        ? await pool.query(`SELECT * FROM representantes WHERE id = $1 AND conta_id = $2`, [b.assinatura_representante, req.conta.id])
+        : await pool.query(`SELECT * FROM representantes WHERE conta_id = $1 AND autorizado_em IS NOT NULL AND revogado_em IS NULL ORDER BY autorizado_em DESC LIMIT 1`, [req.conta.id])
+      rep = q.rows[0]
+      if (!rep || !rep.autorizado_em || rep.revogado_em) return res.status(400).json({ erro: 'representante sem autorização de assinatura vigente (assine o Termo de autorização primeiro)' })
+    }
     const hash = sha256(pdf)
     const arq = `${crypto.randomUUID()}.pdf`
     fs.writeFileSync(path.join(config.dados, 'originais', arq), pdf)
@@ -66,6 +76,19 @@ api.post('/documentos', async (req, res) => {
       [req.conta.id, String(b.titulo).trim(), b.external_id ?? null, b.callback_url ?? null, codigoVerificacao(), hash, arq]
     )).rows[0]
     let ordem = 1
+    if (rep) {
+      // Assinatura aplicada agora, com base no Termo de autorização (evidências do termo: código + selfie)
+      const termo = (await pool.query(
+        `SELECT d.codigo, s.otp_validado_em, s.selfie_hash, s.assinado_em FROM documentos d JOIN signatarios s ON s.documento_id = d.id WHERE d.id = $1 LIMIT 1`, [rep.termo_documento_id]
+      )).rows[0]
+      await pool.query(
+        `INSERT INTO signatarios (documento_id, ordem, nome, cpf, email, whatsapp, papel, token, status, assinado_em, otp_canal, otp_destino, otp_validado_em, selfie_hash, ip, user_agent, representante_id, cargo, registro)
+         VALUES ($1,$2,$3,$4,$5,$6,'contratada',$7,'assinado',now(),'autorizacao',$8,$9,$10,$11,$12,$13,$14,$15)`,
+        [d.id, ordem++, rep.nome, rep.cpf, rep.email, rep.whatsapp, tokenAleatorio(), `Termo de autorização ${termo?.codigo ?? '—'}`, termo?.otp_validado_em ?? null,
+         termo?.selfie_hash ?? null, ipDe(req), 'HolyTech Assina API (assinatura autorizada da conta)', rep.id, rep.cargo, rep.registro]
+      )
+      await evento(d.id, null, 'assinatura_representante', { representante: rep.nome, cargo: rep.cargo, registro: rep.registro, termo: termo?.codigo, termo_assinado_em: termo?.assinado_em }, req)
+    }
     for (const s of sigs) {
       await pool.query(
         `INSERT INTO signatarios (documento_id, ordem, nome, cpf, email, whatsapp, papel, token) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
@@ -210,6 +233,11 @@ async function concluir(documentoId) {
       [documentoId, concluidoEm, arq, hashFinal, JSON.stringify({ evidencias: carimboEvid, final: carimboFinal, hash_evidencias: hashEvid })]
     )
     await evento(documentoId, null, 'documento_concluido', { hash_final: hashFinal, carimbo_hora: carimboEvid.hora, fonte: carimboEvid.fonte })
+    // Termo de autorização concluído → representante passa a ter assinatura automática vigente
+    if (d0.tipo === 'autorizacao' && d0.representante_id) {
+      await pool.query(`UPDATE representantes SET autorizado_em = $2, termo_documento_id = $3, revogado_em = NULL WHERE id = $1`, [d0.representante_id, concluidoEm, d0.id])
+      await evento(documentoId, null, 'representante_autorizado', { representante_id: d0.representante_id })
+    }
     notificar(c, d0.callback_url, 'documento.concluido', { documento_id: d0.id, external_id: d0.external_id, codigo: d0.codigo, hash_final: hashFinal }).catch(() => {})
   } catch (e) {
     await pool.query(`UPDATE documentos SET status = 'pendente' WHERE id = $1 AND status = 'concluindo'`, [documentoId])
@@ -221,14 +249,14 @@ async function concluir(documentoId) {
 async function dadosVerificacao(codigo) {
   const d = (await pool.query(`SELECT d.*, c.nome AS conta_nome FROM documentos d JOIN contas c ON c.id = d.conta_id WHERE d.codigo = $1`, [String(codigo).toUpperCase()])).rows[0]
   if (!d) return null
-  const s = (await pool.query(`SELECT nome, cpf, papel, status, assinado_em, otp_canal, selfie_hash FROM signatarios WHERE documento_id = $1 ORDER BY ordem, nome`, [d.id])).rows
+  const s = (await pool.query(`SELECT nome, cpf, papel, status, assinado_em, otp_canal, otp_destino, selfie_hash, cargo, registro FROM signatarios WHERE documento_id = $1 ORDER BY ordem, nome`, [d.id])).rows
   const cb = d.carimbo || {}
   return {
     titulo: d.titulo, solicitante: d.conta_nome, status: d.status, codigo: d.codigo, criado_em: d.criado_em, concluido_em: d.concluido_em,
     hash_original: d.hash_original, hash_final: d.hash_final,
     carimbo: cb.evidencias ? { hora: cb.evidencias.hora, fonte: cb.evidencias.fonte, chave: cb.evidencias.chave,
       valido: verificarAssinatura(cb.evidencias.assinado, cb.evidencias.assinatura) && (!cb.final || verificarAssinatura(cb.final.assinado, cb.final.assinatura)) } : null,
-    signatarios: s.map(x => ({ nome: x.nome, cpf: x.cpf ? `***.${String(x.cpf).replace(/\D/g, '').slice(3, 6)}.***-**` : null, papel: x.papel, status: x.status, assinado_em: x.assinado_em, canal: x.otp_canal, selfie: !!x.selfie_hash })),
+    signatarios: s.map(x => ({ nome: x.nome, cpf: x.cpf ? `***.${String(x.cpf).replace(/\D/g, '').slice(3, 6)}.***-**` : null, papel: x.papel, status: x.status, assinado_em: x.assinado_em, canal: x.otp_canal, selfie: !!x.selfie_hash, cargo: x.cargo, registro: x.registro, base: x.otp_canal === 'autorizacao' ? x.otp_destino : null })),
   }
 }
 r.get('/v', (_req, res) => res.send(paginaVerificar(null)))
