@@ -37,6 +37,7 @@ const AUDITED_MODELS = new Set<string>([
   'SocProcesso',
   'SocFormulario',
   'Legalizacao',
+  'Licenca',
 ]);
 
 // Evita recursao: a propria gravacao do log nao deve ser auditada.

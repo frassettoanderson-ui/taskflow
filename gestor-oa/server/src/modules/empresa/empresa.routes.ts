@@ -67,7 +67,7 @@ router.get('/proximo-numero', async (req, res) => {
 const sTxt = (v: unknown) => (v == null ? '' : String(v).trim());
 const fmtCep = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
 const fmtTel = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return /^\d{10,11}$/.test(d) ? d.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : d; };
-interface DadosCnpj { razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string; atividade: string }
+interface DadosCnpj { razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string; atividade: string; cnaes: string }
 
 async function buscarJson(url: string): Promise<Record<string, unknown> | null> {
   try {
@@ -76,6 +76,9 @@ async function buscarJson(url: string): Promise<Record<string, unknown> | null> 
     return (await r.json()) as Record<string, unknown>;
   } catch { return null; }
 }
+// CNAE no formato da Receita: 0000-0/00
+function fmtCnae(v: unknown) { const d = String(v ?? '').replace(/D/g, ''); return d.length === 7 ? `${d.slice(0, 4)}-${d.slice(4, 5)}/${d.slice(5)}` : d; }
+const juntarCnaes = (l: { c: unknown; d: unknown }[]) => l.filter((x) => String(x.c ?? '').replace(/D/g, '').length >= 4).map((x) => `${fmtCnae(x.c)} - ${sTxt(x.d)}`).join('; ');
 // Formato "plano" da Receita (minhareceita.org / BrasilAPI)
 function normPlano(d: Record<string, unknown>): DadosCnpj {
   return {
@@ -84,6 +87,7 @@ function normPlano(d: Record<string, unknown>): DadosCnpj {
     numeroEndereco: sTxt(d.numero), complemento: sTxt(d.complemento), bairro: sTxt(d.bairro),
     cidade: sTxt(d.municipio), uf: sTxt(d.uf), telefone: fmtTel(d.ddd_telefone_1), email: sTxt(d.email).toLowerCase(),
     atividade: sTxt(d.cnae_fiscal_descricao),
+    cnaes: juntarCnaes([{ c: d.cnae_fiscal, d: d.cnae_fiscal_descricao }, ...((d.cnaes_secundarios as { codigo?: unknown; descricao?: unknown }[] | undefined) ?? []).map((x) => ({ c: x.codigo, d: x.descricao }))]),
   };
 }
 // Formato aninhado da publica.cnpj.ws
@@ -97,10 +101,11 @@ function normCnpjWs(d: Record<string, unknown>): DadosCnpj {
     numeroEndereco: sTxt(e.numero), complemento: sTxt(e.complemento), bairro: sTxt(e.bairro),
     cidade: sTxt(cid.nome), uf: sTxt(est.sigla), telefone: fmtTel(`${sTxt(e.ddd1)}${sTxt(e.telefone1)}`), email: sTxt(e.email).toLowerCase(),
     atividade: sTxt((e.atividade_principal as Record<string, unknown> | undefined)?.descricao),
+    cnaes: juntarCnaes([e.atividade_principal as Record<string, unknown> | undefined, ...((e.atividades_secundarias as Record<string, unknown>[] | undefined) ?? [])].filter(Boolean).map((x) => ({ c: x!.subclasse ?? x!.id, d: x!.descricao }))),
   };
 }
 
-async function consultarCnpj(cnpj: string): Promise<DadosCnpj> {
+export async function consultarCnpj(cnpj: string): Promise<DadosCnpj> {
   let dados: DadosCnpj | null = null;
   const a = await buscarJson(`https://minhareceita.org/${cnpj}`);
   if (a && a.razao_social) dados = normPlano(a);
@@ -131,6 +136,7 @@ router.post('/:id/atualizar-cnpj', requirePermission('empresas_editar'), async (
     cep: ou(d.cep), logradouro: ou(d.logradouro), numeroEndereco: ou(d.numeroEndereco), complemento: ou(d.complemento),
     bairro: ou(d.bairro), cidade: ou(d.cidade), uf: ou(d.uf), telefone: ou(d.telefone), atividade: ou(d.atividade),
   });
+  if (d.cnaes) await prisma.empresa.update({ where: { id: empresa.id }, data: { cnaes: d.cnaes } });
   return ok(res, { atualizado: true, razaoSocial: d.razaoSocial || empresa.razaoSocial });
 });
 

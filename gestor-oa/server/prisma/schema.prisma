@@ -173,6 +173,8 @@ model Permissao {
 
   societario_ver    Boolean @default(false)
   societario_operar Boolean @default(false)
+  alvaras_ver       Boolean @default(false)
+  alvaras_operar    Boolean @default(false)
 }
 
 // ------------------------------------------------------------
@@ -397,6 +399,7 @@ model Empresa {
   naCarteira           Boolean   @default(true) // false = só tem processo (ex.: abertura em andamento); não aparece em Empresas
   carteiraMei          Boolean   @default(false) // carteira do MEI
   legadoAtuanId        String? // id do cliente no painel antigo da Atuan (importação)
+  cnaes                String? // CNAEs da Receita: "0000-0/00 - descrição; ..." (calculadora de alvarás)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -420,6 +423,7 @@ model Empresa {
   tarefasAgendadas  EmpresaTarefaAgendada[]
   socProcessos      SocProcesso[]
   legalizacoes      Legalizacao[]
+  licencas          Licenca[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -1872,4 +1876,56 @@ model Legalizacao {
 
   @@index([escritorioId, etapa])
   @@index([processoId])
+}
+
+// ============================================================
+// ALVARAS E REGULARIZACAO (regras do painel da Atuan) — licencas e vencimentos
+// ============================================================
+
+model Licenca {
+  id            String    @id @default(cuid())
+  escritorioId  String
+  empresaId     String?
+  empresa       Empresa?  @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  clienteNome   String?
+  tipo          String    @default("Alvará de Funcionamento")
+  orgao         String?
+  protocolo     String?
+  situacao      String    @default("Em preparação")
+  emissao       DateTime? @db.Date
+  validade      DateTime? @db.Date
+  responsavel   String?
+  taxa          Decimal?  @db.Decimal(12, 2)
+  observacao    String?
+  inativo       Boolean   @default(false)
+  inativoEm     DateTime? @db.Date
+  inativoMotivo String?
+  legadoId      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([escritorioId, inativo])
+  @@index([empresaId])
+}
+
+// Parametros da calculadora e checklists de referencia (um registro por escritorio)
+model AlvConfig {
+  escritorioId String   @id
+  parametros   Json     @default("{}")
+  checklists   Json     @default("{}")
+  updatedAt    DateTime @updatedAt
+}
+
+model AlvHistorico {
+  id            String   @id @default(cuid())
+  escritorioId  String
+  licencaId     String?
+  legalizacaoId String?
+  usuarioId     String?
+  usuarioNome   String?
+  acao          String
+  detalhe       String?
+  createdAt     DateTime @default(now())
+
+  @@index([escritorioId, createdAt])
 }

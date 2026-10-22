@@ -1,6 +1,6 @@
 # Índice de Projetos — taskflow_backup_completo
 
-> Pasta guarda-chuva (backup) com **15 projetos independentes**, cada um na sua subpasta.
+> Pasta guarda-chuva (backup) com **16 projetos independentes**, cada um na sua subpasta.
 > Para continuar um projeto: **abra um chat novo apontando o diretório de trabalho para a subpasta dele** — o `CLAUDE.md` de cada pasta carrega o contexto automaticamente.
 
 ## Mapa rápido
@@ -21,6 +21,7 @@
 | `xadrez-mestre/` | **Xadrez Mestre** — extensão coach para chess.com (Stockfish local + IA explica) | Extensão MV3 (JS puro) + Gemini | abrir chat em `xadrez-mestre/` |
 | `holytech-site/` | **HolyTech Solutions** — site institucional + landings Holyshop/Holycar/Holybarber/Holyweb (no ar em holytechsolution.com.br) | HTML/CSS/JS estático + build Node | abrir chat em `holytech-site/` |
 | `versatil/` | **Versátil** — loja de logística reversa: e-commerce + disparo em grupos WhatsApp + PDV (esboço) | Next.js + Node/Prisma/Postgres + Asaas + Evolution | abrir chat em `versatil/` |
+| `extensao-crm/` | **CRM WhatsApp** (nome provisório) — extensão Chrome própria, reescrita inspirada na WaSpeed (funil, ficha, respostas rápidas, agendamentos) | Extensão MV3 TS/React + esbuild + wa-js; dados em chrome.storage | abrir chat em `extensao-crm/` |
 | `holytech-assina/` | **HolyTech Assina** — assinatura eletrônica (código + selfie + carimbo HolyTech) p/ substituir o Autentique; no ar em holytechsolution.com.br/assinar | Node/Express + Postgres + pdf-lib | abrir chat em `holytech-assina/` |
 
 ## Observações

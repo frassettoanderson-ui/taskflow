@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "CRM WhatsApp",
+  "version": "0.4.0",
+  "description": "CRM dentro do WhatsApp Web: funil, ficha do contato, respostas rápidas e agendamentos.",
+  "icons": { "128": "icone.png" },
+  "action": { "default_icon": "icone.png", "default_title": "Abrir o WhatsApp Web" },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["storage", "unlimitedStorage", "alarms", "tabs", "notifications", "downloads"],
+  "host_permissions": ["https://web.whatsapp.com/*", "https://api.groq.com/*", "https://generativelanguage.googleapis.com/*", "https://api.openai.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["vendor/wa-js.js", "bridge.js"],
+      "world": "MAIN",
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

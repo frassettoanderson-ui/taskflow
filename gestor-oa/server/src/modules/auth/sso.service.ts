@@ -29,11 +29,11 @@ const OPERACIONAL = [
   'empresas_ver', 'empresas_criar', 'empresas_editar', 'obrigacoes_ver', 'entregas_ver', 'entregas_baixar',
   'entregas_editar_prazos', 'entregas_dispensar', 'processos_ver', 'processos_operar', 'documentos_ver',
   'documentos_upload', 'relatorios_ver', 'apla_ver', 'portal_solicitacoes', 'solicitacoes_internas_ver',
-  'societario_ver', 'societario_operar',
+  'societario_ver', 'societario_operar', 'alvaras_ver', 'alvaras_operar',
 ];
 const BASICO = [
   'empresas_ver', 'empresas_criar', 'empresas_editar', 'obrigacoes_ver', 'entregas_ver', 'documentos_ver',
-  'documentos_upload', 'relatorios_ver', 'solicitacoes_internas_ver', 'societario_ver',
+  'documentos_upload', 'relatorios_ver', 'solicitacoes_internas_ver', 'societario_ver', 'alvaras_ver',
 ];
 export function permissoesParaCargo(role?: string) {
   const r = String(role || '').toLowerCase();
