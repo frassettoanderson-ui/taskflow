@@ -74,6 +74,8 @@ export async function listar(
   // Onboarding: visão Empresas esconde quem está em onboarding; visão Onboarding-em-lista mostra só eles.
   if (params.somenteOnboarding) and.push({ onboardingConcluido: false });
   else if (!params.incluirOnboarding) and.push({ onboardingConcluido: true });
+  // Societário: ficha criada só para um processo (ex.: abertura em andamento) não entra na carteira/lista
+  if (!params.somenteOnboarding && !params.incluirOnboarding) and.push({ naCarteira: true });
 
   if (params.tagId) and.push({ tags: { some: { tagId: params.tagId } } });
   if (params.regimeId) and.push({ regimeTributarioId: params.regimeId });

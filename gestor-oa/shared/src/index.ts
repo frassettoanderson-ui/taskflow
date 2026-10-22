@@ -137,6 +137,8 @@ export const PERMISSION_FLAGS = [
   'admin_transferir_resp',
   'admin_auditoria',
   'admin_escritorio',
+  'societario_ver',
+  'societario_operar',
 ] as const;
 export type PermissionFlag = (typeof PERMISSION_FLAGS)[number];
 
@@ -181,6 +183,10 @@ export const PERMISSION_AREAS: PermissionArea[] = [
   { id: 'anexos_apagar', label: 'Pode apagar anexos (arquivos)?', niveis: [
     { v: 0, label: 'Nao = Sem permissao' }, { v: 1, label: 'Sim = Exclusoes permitidas' } ] },
   { id: 'processos', label: 'Gestao de processos', niveis: ACESSO },
+  { id: 'societario', label: 'Societario (abertura, alteracao e baixa)', niveis: [
+    { v: 0, label: '[0] = Acesso bloqueado' },
+    { v: 1, label: '[1] = Somente consulta' },
+    { v: 2, label: '[2] = [1] + Operar processos e formularios' } ], extra: true },
   { id: 'entregas_dispensar', label: 'Pode dispensar demandas na Lista de Entregas?', niveis: [
     { v: 0, label: 'Nao' },
     { v: 1, label: 'Sim, mas exigir justificativa' },
@@ -241,6 +247,9 @@ export function nivelParaFlags(niveis: PermissionNiveis): Record<PermissionFlag,
   if (n('entregas_prazos') >= 1) f.entregas_editar_prazos = true;
   // Processos (Sim = total)
   if (n('processos') >= 1) { f.processos_ver = f.processos_operar = f.processos_gerenciar_matrizes = true; }
+  // Societario (painel da Atuan)
+  if (n('societario') >= 1) f.societario_ver = true;
+  if (n('societario') >= 2) f.societario_operar = true;
   // AC Docs / apagar anexos
   if (n('documentos') >= 1) { f.documentos_ver = true; f.documentos_upload = true; }
   if (n('anexos_apagar') >= 1) f.documentos_excluir = true;
@@ -279,6 +288,7 @@ export function flagsParaNiveis(flags: Partial<Record<PermissionFlag, boolean>>)
     anexos_apagar: b('documentos_excluir') ? 1 : 0,
     processos: b('processos_gerenciar_matrizes') ? 3 : b('processos_operar') ? 2 : b('processos_ver') ? 1 : 0,
     entregas_dispensar: b('entregas_dispensar') ? 1 : 0,
+    societario: b('societario_operar') ? 2 : b('societario_ver') ? 1 : 0,
     entregas: b('entregas_baixar') ? 3 : b('entregas_ver') ? 2 : 0,
     entregas_prazos: b('entregas_editar_prazos') ? 1 : 0,
     apla: b('apla_configurar') ? 2 : b('apla_ver') ? 1 : 0,
@@ -306,7 +316,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     descricao: 'Gerencia obrigacoes, empresas, processos e equipe (sem ser administrativo total).',
     niveis: {
       sistema: 1, usuarios: 2, departamentos: 3, obrigacoes: 4, regimes_grupos: 1,
-      empresas: 3, anexos_apagar: 1, processos: 1, entregas_dispensar: 2, entregas: 3,
+      empresas: 3, anexos_apagar: 1, processos: 1, societario: 2, entregas_dispensar: 2, entregas: 3,
       entregas_prazos: 1, apla: 1, portal_config: 1, comunicados: 2, portal_solic: 2,
       documentos: 1, relatorios: 1, solic_internas: 2, auditoria: 1,
     },
@@ -315,14 +325,14 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     id: 'operacional', label: 'Colaborador / Operacional',
     descricao: 'Opera a Lista de Entregas e processos; visualiza empresas e obrigacoes.',
     niveis: {
-      obrigacoes: 1, empresas: 1, processos: 1, entregas_dispensar: 1, entregas: 2,
+      obrigacoes: 1, empresas: 1, processos: 1, societario: 2, entregas_dispensar: 1, entregas: 2,
       documentos: 1, comunicados: 1, portal_solic: 1, relatorios: 1, solic_internas: 1,
     },
   },
   {
     id: 'leitura', label: 'Somente leitura',
     descricao: 'Apenas visualiza empresas, obrigacoes, documentos e relatorios.',
-    niveis: { obrigacoes: 1, empresas: 1, entregas: 1, documentos: 1, comunicados: 1, relatorios: 1 },
+    niveis: { obrigacoes: 1, empresas: 1, societario: 1, entregas: 1, documentos: 1, comunicados: 1, relatorios: 1 },
   },
 ];
 

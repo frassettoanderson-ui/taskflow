@@ -17,47 +17,47 @@ datasource db {
 // TENANT
 // ------------------------------------------------------------
 model Escritorio {
-  id          String   @id @default(cuid())
-  nome        String
-  cnpj        String?
-  logoUrl     String?
+  id        String    @id @default(cuid())
+  nome      String
+  cnpj      String?
+  logoUrl   String?
   // Configuracoes diversas em JSON: { mailFromName, smtp:{host,port,...}, sabadoEhUtil, ... }
-  config      Json     @default("{}")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  config    Json      @default("{}")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  usuarios            Usuario[]
-  sessoes             Sessao[]
-  passwordResets      PasswordResetToken[]
-  logsAuditoria       LogAuditoria[]
-  empresas            Empresa[]
-  departamentos       Departamento[]
-  tags                Tag[]
-  obrigacoes          Obrigacao[]
-  regimes             RegimeTributario[]
-  grupos             GrupoObrigacoes[]
-  feriados            Feriado[]
-  entregas            Entrega[]
-  documentos          DocumentoGED[]
-  protocolos          Protocolo[]
-  protocolosFisicos   ProtocoloFisico[]
-  assinaturas         AssinaturaDocumento[]
-  roboJobs            RoboJob[]
-  matrizes            MatrizProcesso[]
-  processos           Processo[]
+  usuarios             Usuario[]
+  sessoes              Sessao[]
+  passwordResets       PasswordResetToken[]
+  logsAuditoria        LogAuditoria[]
+  empresas             Empresa[]
+  departamentos        Departamento[]
+  tags                 Tag[]
+  obrigacoes           Obrigacao[]
+  regimes              RegimeTributario[]
+  grupos               GrupoObrigacoes[]
+  feriados             Feriado[]
+  entregas             Entrega[]
+  documentos           DocumentoGED[]
+  protocolos           Protocolo[]
+  protocolosFisicos    ProtocoloFisico[]
+  assinaturas          AssinaturaDocumento[]
+  roboJobs             RoboJob[]
+  matrizes             MatrizProcesso[]
+  processos            Processo[]
   processosRecorrentes ProcessoRecorrente[]
-  comunicados         Comunicado[]
-  solicitacoes        SolicitacaoPortal[]
-  templates           TemplateEmail[]
-  comunicacoes        ComunicacaoLog[]
-  chatbots            ChatbotFluxo[]
+  comunicados          Comunicado[]
+  solicitacoes         SolicitacaoPortal[]
+  templates            TemplateEmail[]
+  comunicacoes         ComunicacaoLog[]
+  chatbots             ChatbotFluxo[]
   solicitacoesInternas SolicitacaoInterna[]
-  dashboards          DashboardConfig[]
-  notificacoes        Notificacao[]
-  jobExecucoes        JobExecucao[]
-  motivosCancelamento MotivoCancelamento[]
-  gruposEmpresa       GrupoEmpresa[]
+  dashboards           DashboardConfig[]
+  notificacoes         Notificacao[]
+  jobExecucoes         JobExecucao[]
+  motivosCancelamento  MotivoCancelamento[]
+  gruposEmpresa        GrupoEmpresa[]
 
   @@index([deletedAt])
 }
@@ -66,19 +66,19 @@ model Escritorio {
 // USUARIOS internos do escritorio
 // ------------------------------------------------------------
 model Usuario {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
 
-  nome          String
-  email         String
-  senhaHash     String
-  ativo         Boolean  @default(true)
+  nome      String
+  email     String
+  senhaHash String
+  ativo     Boolean @default(true)
 
   // Funcao/cargo exibido entre colchetes na listagem (ex.: Contador socio, Auxiliar).
-  tipo          String?  @default("Auxiliar")
-  telefone      String?
-  observacoes   String?
+  tipo        String? @default("Auxiliar")
+  telefone    String?
+  observacoes String?
 
   // Configuracao de custo e capacidade do colaborador (alimenta o Metodo APLA).
   custoHora       Decimal? @db.Decimal(12, 2)
@@ -88,26 +88,26 @@ model Usuario {
   beneficios      Decimal? @db.Decimal(12, 2)
 
   // Dados de e-mail (SMTP por usuario) + assinatura + copia oculta
-  smtpHost        String?
-  smtpPorta       Int?
-  smtpUsuario     String?
-  smtpSenha       String?
-  ccoEmails       String?
-  assinaturaArquivo String?
-  fotoPerfilArquivo String?
+  smtpHost               String?
+  smtpPorta              Int?
+  smtpUsuario            String?
+  smtpSenha              String?
+  ccoEmails              String?
+  assinaturaArquivo      String?
+  fotoPerfilArquivo      String?
   notifSolicitacoesEmail Boolean @default(true)
   notifMarketingEmail    Boolean @default(true)
-  painelPreferidoId String?  // Dashboard Flexivel: painel exibido ao iniciar
+  painelPreferidoId      String? // Dashboard Flexivel: painel exibido ao iniciar
 
   // Janelas de acesso permitidas: [{ diaSemana, inicio, fim }]. Vazio = sem restricao.
-  horariosAcesso Json    @default("[]")
+  horariosAcesso Json @default("[]")
 
   // Filtros forcados (Modulo 4): { departamentos: string[], tags: string[] }. {} = sem restricao.
-  filtrosForcados Json   @default("{}")
+  filtrosForcados Json @default("{}")
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  deletedAt     DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
   permissao     Permissao?
   sessoes       Sessao[]
@@ -127,68 +127,71 @@ model Permissao {
   usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   // Niveis escolhidos por area (estilo Acessorias). As flags abaixo sao derivadas.
-  niveis    Json    @default("{}")
+  niveis Json @default("{}")
 
-  empresas_ver              Boolean @default(false)
-  empresas_criar            Boolean @default(false)
-  empresas_editar           Boolean @default(false)
-  empresas_excluir          Boolean @default(false)
-  empresas_importar         Boolean @default(false)
+  empresas_ver      Boolean @default(false)
+  empresas_criar    Boolean @default(false)
+  empresas_editar   Boolean @default(false)
+  empresas_excluir  Boolean @default(false)
+  empresas_importar Boolean @default(false)
 
-  obrigacoes_ver            Boolean @default(false)
-  obrigacoes_gerenciar      Boolean @default(false)
+  obrigacoes_ver       Boolean @default(false)
+  obrigacoes_gerenciar Boolean @default(false)
 
-  entregas_ver              Boolean @default(false)
-  entregas_baixar           Boolean @default(false)
-  entregas_editar_prazos    Boolean @default(false)
-  entregas_acoes_massa      Boolean @default(false)
-  entregas_desfazer_robo    Boolean @default(false)
-  entregas_dispensar        Boolean @default(false)
+  entregas_ver           Boolean @default(false)
+  entregas_baixar        Boolean @default(false)
+  entregas_editar_prazos Boolean @default(false)
+  entregas_acoes_massa   Boolean @default(false)
+  entregas_desfazer_robo Boolean @default(false)
+  entregas_dispensar     Boolean @default(false)
 
-  processos_ver             Boolean @default(false)
+  processos_ver                Boolean @default(false)
   processos_gerenciar_matrizes Boolean @default(false)
-  processos_operar          Boolean @default(false)
+  processos_operar             Boolean @default(false)
 
-  documentos_ver            Boolean @default(false)
-  documentos_upload         Boolean @default(false)
-  documentos_excluir        Boolean @default(false)
+  documentos_ver     Boolean @default(false)
+  documentos_upload  Boolean @default(false)
+  documentos_excluir Boolean @default(false)
 
-  relatorios_ver            Boolean @default(false)
+  relatorios_ver Boolean @default(false)
 
-  apla_ver                  Boolean @default(false)
-  apla_configurar           Boolean @default(false)
+  apla_ver        Boolean @default(false)
+  apla_configurar Boolean @default(false)
 
-  portal_comunicados        Boolean @default(false)
-  portal_solicitacoes       Boolean @default(false)
-  portal_configurar         Boolean @default(false)
+  portal_comunicados  Boolean @default(false)
+  portal_solicitacoes Boolean @default(false)
+  portal_configurar   Boolean @default(false)
 
   solicitacoes_internas_ver       Boolean @default(false)
   solicitacoes_internas_gerenciar Boolean @default(false)
 
-  admin_usuarios            Boolean @default(false)
-  admin_permissoes          Boolean @default(false)
-  admin_transferir_resp     Boolean @default(false)
-  admin_auditoria           Boolean @default(false)
-  admin_escritorio          Boolean @default(false)
+  admin_usuarios        Boolean @default(false)
+  admin_permissoes      Boolean @default(false)
+  admin_transferir_resp Boolean @default(false)
+  admin_auditoria       Boolean @default(false)
+  admin_escritorio      Boolean @default(false)
+
+  societario_ver    Boolean @default(false)
+  societario_operar Boolean @default(false)
 }
 
 // ------------------------------------------------------------
 // SESSOES (refresh tokens) - rotacao a cada refresh
 // ------------------------------------------------------------
 model Sessao {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  usuarioId     String
-  usuario       Usuario  @relation(fields: [usuarioId], references: [id])
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId    String
+  usuario      Usuario    @relation(fields: [usuarioId], references: [id])
 
   // hash do refresh token (nunca armazenar o token em claro)
-  tokenHash     String   @unique
-  userAgent     String?
-  ip            String?
-  expiresAt     DateTime
-  revokedAt     DateTime?
-  createdAt     DateTime @default(now())
+  tokenHash String    @unique
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([usuarioId])
 }
@@ -197,14 +200,14 @@ model Sessao {
 // RECUPERACAO DE SENHA
 // ------------------------------------------------------------
 model PasswordResetToken {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  usuarioId     String
-  tokenHash     String   @unique
-  expiresAt     DateTime
-  usedAt        DateTime?
-  createdAt     DateTime @default(now())
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId    String
+  tokenHash    String     @unique
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime   @default(now())
 
   @@index([usuarioId])
 }
@@ -213,18 +216,18 @@ model PasswordResetToken {
 // AUDITORIA
 // ------------------------------------------------------------
 model LogAuditoria {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  usuarioId     String?
-  usuario       Usuario? @relation(fields: [usuarioId], references: [id])
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId    String?
+  usuario      Usuario?   @relation(fields: [usuarioId], references: [id])
 
-  acao          String   // CREATE | UPDATE | DELETE
-  entidade      String   // nome do model
-  entidadeId    String?
-  antes         Json?
-  depois        Json?
-  createdAt     DateTime @default(now())
+  acao       String // CREATE | UPDATE | DELETE
+  entidade   String // nome do model
+  entidadeId String?
+  antes      Json?
+  depois     Json?
+  createdAt  DateTime @default(now())
 
   @@index([escritorioId, entidade, createdAt])
   @@index([escritorioId, usuarioId])
@@ -243,26 +246,26 @@ enum TipoIdentificador {
 }
 
 model Departamento {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  cor           String   @default("#0f5c5e")
-  responsavelId String?  // responsavel padrao (= primeiro gestor)
-  gestoresIds   Json     @default("[]") // usuarios gestores do departamento (varios)
-  ativo         Boolean  @default(true)
-  parentId      String?  // departamento pai (hierarquia)
-  envioAgendado String   @default("De hora em hora") // periodicidade do envio agrupado/agendado
-  disponivelSolicitacoes Boolean @default(true)        // aparece em novas Solicitacoes (Area VIP)
-  responderPara String?  // endereco "Responder para" dos e-mails do depto
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                     String     @id @default(cuid())
+  escritorioId           String
+  escritorio             Escritorio @relation(fields: [escritorioId], references: [id])
+  nome                   String
+  cor                    String     @default("#0f5c5e")
+  responsavelId          String? // responsavel padrao (= primeiro gestor)
+  gestoresIds            Json       @default("[]") // usuarios gestores do departamento (varios)
+  ativo                  Boolean    @default(true)
+  parentId               String? // departamento pai (hierarquia)
+  envioAgendado          String     @default("De hora em hora") // periodicidade do envio agrupado/agendado
+  disponivelSolicitacoes Boolean    @default(true) // aparece em novas Solicitacoes (Area VIP)
+  responderPara          String? // endereco "Responder para" dos e-mails do depto
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
 
-  parent        Departamento?  @relation("DepHierarquia", fields: [parentId], references: [id], onDelete: SetNull)
-  filhos        Departamento[] @relation("DepHierarquia")
-  responsaveis  EmpresaResponsavelDepartamento[]
-  comentarios   EmpresaComentario[]
-  obrigacoes    Obrigacao[]
+  parent       Departamento?                    @relation("DepHierarquia", fields: [parentId], references: [id], onDelete: SetNull)
+  filhos       Departamento[]                   @relation("DepHierarquia")
+  responsaveis EmpresaResponsavelDepartamento[]
+  comentarios  EmpresaComentario[]
+  obrigacoes   Obrigacao[]
 
   @@unique([escritorioId, nome])
   @@index([escritorioId])
@@ -296,7 +299,7 @@ model WhatsAppMensagem {
   id           String    @id @default(cuid())
   escritorioId String
   numero       String
-  tipo         String    // TEXTO | DOCUMENTO
+  tipo         String // TEXTO | DOCUMENTO
   texto        String?
   documentoId  String?
   fileName     String?
@@ -311,65 +314,65 @@ model WhatsAppMensagem {
 }
 
 model Tag {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  cor           String   @default("#64748b")
-  createdAt     DateTime @default(now())
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  nome         String
+  cor          String     @default("#64748b")
+  createdAt    DateTime   @default(now())
 
-  empresas      EmpresaTag[]
+  empresas EmpresaTag[]
 
   @@unique([escritorioId, nome])
   @@index([escritorioId])
 }
 
 model Empresa {
-  id                 String   @id @default(cuid())
-  escritorioId       String
-  escritorio         Escritorio @relation(fields: [escritorioId], references: [id])
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
 
-  razaoSocial        String
-  nomeFantasia       String?
-  numero             Int?               // [ID] sequencial por escritorio (max 5 digitos)
-  honorario          Decimal?           @db.Decimal(12, 2)
-  apelidoEcontinuo   String?            // nome usado na pasta de backup do e-Continuo
-  emailPrincipal     String?
-  telefone           String?
-  endereco           String?            // legado (endereco em texto livre)
-  cep                String?
-  logradouro         String?
-  numeroEndereco     String?
-  complemento        String?
-  bairro             String?
-  cidade             String?
-  uf                 String?
-  grupoEnvio         String?            // grupo de envio de e-mails (lote)
+  razaoSocial          String
+  nomeFantasia         String?
+  numero               Int? // [ID] sequencial por escritorio (max 5 digitos)
+  honorario            Decimal?            @db.Decimal(12, 2)
+  apelidoEcontinuo     String? // nome usado na pasta de backup do e-Continuo
+  emailPrincipal       String?
+  telefone             String?
+  endereco             String? // legado (endereco em texto livre)
+  cep                  String?
+  logradouro           String?
+  numeroEndereco       String?
+  complemento          String?
+  bairro               String?
+  cidade               String?
+  uf                   String?
+  grupoEnvio           String? // grupo de envio de e-mails (lote)
   // Inscricoes / dados fiscais adicionais (secao Endereco e inscricoes)
-  nire               String?
-  inscricaoMunicipal String?
-  inscMunicipalData  String?
-  website            String?
-  ieIsenta           Boolean  @default(false) // "Empresa isenta" de Inscricao Estadual
-  inscricoesEstaduais Json?              // [{ valor, data, uf }]
-  dataAbertura       DateTime?          // data de abertura da empresa
-  regimeTributarioId String?
-  regimeTributario   RegimeTributario? @relation(fields: [regimeTributarioId], references: [id])
+  nire                 String?
+  inscricaoMunicipal   String?
+  inscMunicipalData    String?
+  website              String?
+  ieIsenta             Boolean             @default(false) // "Empresa isenta" de Inscricao Estadual
+  inscricoesEstaduais  Json? // [{ valor, data, uf }]
+  dataAbertura         DateTime? // data de abertura da empresa
+  regimeTributarioId   String?
+  regimeTributario     RegimeTributario?   @relation(fields: [regimeTributarioId], references: [id])
   motivoCancelamentoId String?
-  motivoCancelamento MotivoCancelamento? @relation(fields: [motivoCancelamentoId], references: [id])
-  grupoEmpresaId     String?
-  grupoEmpresa       GrupoEmpresa? @relation(fields: [grupoEmpresaId], references: [id])
-  anotacoes          String?
-  ativo              Boolean  @default(true)
-  dataEntrada        DateTime?
-  dataSaida          DateTime?
+  motivoCancelamento   MotivoCancelamento? @relation(fields: [motivoCancelamentoId], references: [id])
+  grupoEmpresaId       String?
+  grupoEmpresa         GrupoEmpresa?       @relation(fields: [grupoEmpresaId], references: [id])
+  anotacoes            String?
+  ativo                Boolean             @default(true)
+  dataEntrada          DateTime?
+  dataSaida            DateTime?
 
   // ── Unificação com o ERP (Nauta/Atuan) — cadastro único: contrato, comercial, imóvel, sócios ──
-  diaVencimento        Int?              // dia do mês do vencimento do honorário
-  primeiroVencimento   DateTime?         // 1º vencimento acordado (do lead)
+  diaVencimento        Int? // dia do mês do vencimento do honorário
+  primeiroVencimento   DateTime? // 1º vencimento acordado (do lead)
   valorAbertura        Decimal?  @db.Decimal(12, 2)
-  negociacaoObs        String?           // condições especiais negociadas (vai no contrato)
-  interesse            String?           // tipo de contrato: Abrir minha empresa / Trocar de contador / Deixar de ser MEI / BPO ...
+  negociacaoObs        String? // condições especiais negociadas (vai no contrato)
+  interesse            String? // tipo de contrato: Abrir minha empresa / Trocar de contador / Deixar de ser MEI / BPO ...
   emAbertura           Boolean   @default(false) // empresa em processo de abertura (ainda sem CNPJ/dados)
   // Onboarding: empresa só aparece na lista de Empresas quando o onboarding é concluído (botão "Concluir onboarding").
   // Default true = empresas manuais/legado aparecem normalmente; leads em onboarding entram como false.
@@ -384,32 +387,39 @@ model Empresa {
   proprietarioNome     String?
   proprietarioCpf      String?
   usaGlp               Boolean?
-  certSenha            String?           // senha do certificado digital da empresa (e-CNPJ) — fica na seção Arquivos anexos
+  certSenha            String? // senha do certificado digital da empresa (e-CNPJ) — fica na seção Arquivos anexos
   contabilidade        String    @default("atuan") // 'atuan' | 'nauta' — "nauta" fica FORA da cobrança automática (controle manual)
-  filiais              Json?             // [{ cnpj, fantasia, municipio, estado, telefone }]
+  filiais              Json? // [{ cnpj, fantasia, municipio, estado, telefone }]
   nautaClienteId       String?   @unique // vínculo com clientes.id do ERP (ponte até a fusão)
-  nautaLeadId          String?           // vínculo com leads.id do ERP (honorário/Asaas/onboarding)
+  nautaLeadId          String? // vínculo com leads.id do ERP (honorário/Asaas/onboarding)
+  // ── Painel da Atuan (Societário / Alvarás / MEI) ──
+  frente               String? // carteira do escritório: digital (ATUAN Digital) | nauta | esporadico
+  naCarteira           Boolean   @default(true) // false = só tem processo (ex.: abertura em andamento); não aparece em Empresas
+  carteiraMei          Boolean   @default(false) // carteira do MEI
+  legadoAtuanId        String? // id do cliente no painel antigo da Atuan (importação)
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  deletedAt          DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  socios             EmpresaSocio[]
-  identificadores    EmpresaIdentificador[]
-  contatos           EmpresaContato[]
-  anexos             EmpresaAnexo[]
-  comentarios        EmpresaComentario[]
-  responsaveis       EmpresaResponsavelDepartamento[]
-  tags               EmpresaTag[]
-  obrigacoes         EmpresaObrigacao[]
-  entregas           Entrega[]
-  documentos         DocumentoGED[]
-  protocolos         Protocolo[]
-  protocolosFisicos  ProtocoloFisico[]
-  processos          Processo[]
-  solicitacoes       SolicitacaoPortal[]
-  comunicacoes       ComunicacaoLog[]
-  tarefasAgendadas   EmpresaTarefaAgendada[]
+  socios            EmpresaSocio[]
+  identificadores   EmpresaIdentificador[]
+  contatos          EmpresaContato[]
+  anexos            EmpresaAnexo[]
+  comentarios       EmpresaComentario[]
+  responsaveis      EmpresaResponsavelDepartamento[]
+  tags              EmpresaTag[]
+  obrigacoes        EmpresaObrigacao[]
+  entregas          Entrega[]
+  documentos        DocumentoGED[]
+  protocolos        Protocolo[]
+  protocolosFisicos ProtocoloFisico[]
+  processos         Processo[]
+  solicitacoes      SolicitacaoPortal[]
+  comunicacoes      ComunicacaoLog[]
+  tarefasAgendadas  EmpresaTarefaAgendada[]
+  socProcessos      SocProcesso[]
+  legalizacoes      Legalizacao[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -448,75 +458,75 @@ model EmpresaSocio {
 }
 
 model EmpresaTarefaAgendada {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  titulo        String
-  descricao     String?
-  dataHora      DateTime?
-  tempo         Int      @default(0)   // tempo previsto (min)
+  id             String    @id @default(cuid())
+  escritorioId   String
+  empresaId      String
+  empresa        Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  titulo         String
+  descricao      String?
+  dataHora       DateTime?
+  tempo          Int       @default(0) // tempo previsto (min)
   departamentoId String?
-  dia           Int?
-  mes           Int?
-  ano           Int      @default(0)   // 0 = todos os anos
-  lembrarDias   Int?                   // lembrar em (dias antes)
-  concluida     Boolean  @default(false)
-  concluidaEm   DateTime?
-  autorId       String?
-  createdAt     DateTime @default(now())
+  dia            Int?
+  mes            Int?
+  ano            Int       @default(0) // 0 = todos os anos
+  lembrarDias    Int? // lembrar em (dias antes)
+  concluida      Boolean   @default(false)
+  concluidaEm    DateTime?
+  autorId        String?
+  createdAt      DateTime  @default(now())
 
   @@index([empresaId])
   @@index([escritorioId, dataHora])
 }
 
 model EmpresaTag {
-  empresaId  String
-  empresa    Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  tagId      String
-  tag        Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  empresaId String
+  empresa   Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  tagId     String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([empresaId, tagId])
   @@index([tagId])
 }
 
 model GrupoEmpresa {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  createdAt     DateTime @default(now())
-  empresas      Empresa[]
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  nome         String
+  createdAt    DateTime   @default(now())
+  empresas     Empresa[]
 
   @@index([escritorioId])
 }
 
 model MotivoCancelamento {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  nome         String
+  ativo        Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  empresas      Empresa[]
+  empresas Empresa[]
 
   @@unique([escritorioId, nome])
   @@index([escritorioId])
 }
 
 model EmpresaIdentificador {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  escritorioId String
+  empresaId    String
+  empresa      Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
-  tipo          TipoIdentificador
+  tipo      TipoIdentificador
   // valor normalizado (apenas digitos)
-  valor         String
-  apelido       String?
-  createdAt     DateTime @default(now())
+  valor     String
+  apelido   String?
+  createdAt DateTime          @default(now())
 
   @@unique([escritorioId, tipo, valor])
   @@index([empresaId])
@@ -525,13 +535,13 @@ model EmpresaIdentificador {
 }
 
 model EmpresaResponsavelDepartamento {
-  id              String   @id @default(cuid())
-  escritorioId    String
-  empresaId       String
-  empresa         Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  departamentoId  String
-  departamento    Departamento @relation(fields: [departamentoId], references: [id], onDelete: Cascade)
-  usuarioId       String
+  id             String       @id @default(cuid())
+  escritorioId   String
+  empresaId      String
+  empresa        Empresa      @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  departamentoId String
+  departamento   Departamento @relation(fields: [departamentoId], references: [id], onDelete: Cascade)
+  usuarioId      String
 
   @@unique([empresaId, departamentoId])
   @@index([escritorioId])
@@ -539,44 +549,44 @@ model EmpresaResponsavelDepartamento {
 }
 
 model EmpresaContato {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  escritorioId String
+  empresaId    String
+  empresa      Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
-  nome          String
-  email         String?
-  whatsapp      String?
-  cargo         String?
+  nome     String
+  email    String?
+  whatsapp String?
+  cargo    String?
 
   // Permissoes do contato (usadas na Area VIP - Modulo 10):
   // departamentos liberados e, opcionalmente, obrigacoes especificas.
-  departamentoIds Json  @default("[]")
-  obrigacaoIds    Json  @default("[]")
+  departamentoIds Json @default("[]")
+  obrigacaoIds    Json @default("[]")
 
   // Acesso ao portal (Modulo 10) - preparado, ativado depois
-  senhaHash     String?
-  ativo         Boolean  @default(true)
+  senhaHash String?
+  ativo     Boolean @default(true)
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([empresaId])
   @@index([escritorioId])
 }
 
 model EmpresaAnexo {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  escritorioId String
+  empresaId    String
+  empresa      Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
-  nomeArquivo   String
-  caminho       String
-  tamanho       Int
-  mimeType      String?
-  uploadedById  String?
-  createdAt     DateTime @default(now())
+  nomeArquivo  String
+  caminho      String
+  tamanho      Int
+  mimeType     String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
 
   @@index([empresaId])
 }
@@ -599,28 +609,28 @@ enum OrigemObrigacao {
 }
 
 model Feriado {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  data          DateTime? @db.Date // mantido p/ compat; null quando recorrente (ano=0)
-  dia           Int      @default(0)
-  mes           Int      @default(0)
-  ano           Int      @default(0) // 0 = recorrente (vale todo ano)
-  nome          String
-  abrangencia   String   @default("NACIONAL") // NACIONAL | ESTADUAL | MUNICIPAL
-  uf            String?
-  municipio     String?
-  cidades       String?  // lista livre de cidades (em branco = todas)
-  createdAt     DateTime @default(now())
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  data         DateTime?  @db.Date // mantido p/ compat; null quando recorrente (ano=0)
+  dia          Int        @default(0)
+  mes          Int        @default(0)
+  ano          Int        @default(0) // 0 = recorrente (vale todo ano)
+  nome         String
+  abrangencia  String     @default("NACIONAL") // NACIONAL | ESTADUAL | MUNICIPAL
+  uf           String?
+  municipio    String?
+  cidades      String? // lista livre de cidades (em branco = todas)
+  createdAt    DateTime   @default(now())
 
   @@unique([escritorioId, data, nome])
   @@index([escritorioId, data])
 }
 
 model Obrigacao {
-  id                 String   @id @default(cuid())
-  escritorioId       String
-  escritorio         Escritorio @relation(fields: [escritorioId], references: [id])
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
 
   nome               String
   mininome           String?
@@ -630,55 +640,55 @@ model Obrigacao {
   descricao          String?
   periodicidade      Periodicidade @default(MENSAL)
   // Regra de prazo (JSON): { tipoDia, dia, regraNaoUtil, sabadoEhUtil, diasAntesTecnico, tipoDiasAntes }
-  regraPrazo         Json     @default("{}")
+  regraPrazo         Json          @default("{}")
   // Entrega mes a mes (JSON): 12 itens [{ modo: NAO_ENTREGA|DIA_FIXO|DIA_UTIL|ULT_DIA_UTIL, dia? }]
-  entregaMeses       Json     @default("[]")
-  tempoPrevistoMin   Int      @default(0)
-  lembrarDiasAntes   Int      @default(5)
+  entregaMeses       Json          @default("[]")
+  tempoPrevistoMin   Int           @default(0)
+  lembrarDiasAntes   Int           @default(5)
   // Competencia de referencia: MES_ATUAL | MES_ANTERIOR | ANO_ATUAL | ANO_ANTERIOR
-  competenciaRef     String   @default("MES_ANTERIOR")
-  exigeAnexoNaBaixa  Boolean  @default(false)
-  exigeBaixaPeloRobo Boolean  @default(false)
-  passivelMulta      Boolean  @default(false)
-  alertaNaoLida      Boolean  @default(true)
+  competenciaRef     String        @default("MES_ANTERIOR")
+  exigeAnexoNaBaixa  Boolean       @default(false)
+  exigeBaixaPeloRobo Boolean       @default(false)
+  passivelMulta      Boolean       @default(false)
+  alertaNaoLida      Boolean       @default(true)
   comentarioPadrao   String?
-  ativo              Boolean  @default(true)
+  ativo              Boolean       @default(true)
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  deletedAt          DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
 
-  regimes            RegimeObrigacao[]
-  grupos             GrupoObrigacao[]
-  empresaObrigacoes  EmpresaObrigacao[]
-  entregas           Entrega[]
+  regimes           RegimeObrigacao[]
+  grupos            GrupoObrigacao[]
+  empresaObrigacoes EmpresaObrigacao[]
+  entregas          Entrega[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, departamentoId])
 }
 
 model RegimeTributario {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  nome         String
+  ativo        Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  obrigacoes    RegimeObrigacao[]
-  empresas      Empresa[]
+  obrigacoes RegimeObrigacao[]
+  empresas   Empresa[]
 
   @@unique([escritorioId, nome])
   @@index([escritorioId])
 }
 
 model RegimeObrigacao {
-  id            String   @id @default(cuid())
-  regimeId      String
-  regime        RegimeTributario @relation(fields: [regimeId], references: [id], onDelete: Cascade)
-  obrigacaoId   String
-  obrigacao     Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+  id                    String           @id @default(cuid())
+  regimeId              String
+  regime                RegimeTributario @relation(fields: [regimeId], references: [id], onDelete: Cascade)
+  obrigacaoId           String
+  obrigacao             Obrigacao        @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
   // override opcional de tempo previsto por regime
   tempoPrevistoOverride Int?
 
@@ -687,27 +697,27 @@ model RegimeObrigacao {
 }
 
 model GrupoObrigacoes {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  nome         String
+  ativo        Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
-  obrigacoes    GrupoObrigacao[]
+  obrigacoes GrupoObrigacao[]
 
   @@unique([escritorioId, nome])
   @@index([escritorioId])
 }
 
 model GrupoObrigacao {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   grupoId       String
   grupo         GrupoObrigacoes @relation(fields: [grupoId], references: [id], onDelete: Cascade)
   obrigacaoId   String
-  obrigacao     Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
-  tempoPrevisto Int      @default(0)
+  obrigacao     Obrigacao       @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+  tempoPrevisto Int             @default(0)
 
   @@unique([grupoId, obrigacaoId])
   @@index([obrigacaoId])
@@ -718,27 +728,27 @@ model GrupoObrigacao {
 // regime SUBSTITUI as origens REGIME; grupo so' ADICIONA; remover grupo
 // tira a origem GRUPO e, se ficar sem origens, inativa.
 model EmpresaObrigacao {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  obrigacaoId   String
-  obrigacao     Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  escritorioId String
+  empresaId    String
+  empresa      Empresa   @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  obrigacaoId  String
+  obrigacao    Obrigacao @relation(fields: [obrigacaoId], references: [id], onDelete: Cascade)
 
   // origens: [{ origem: "REGIME"|"GRUPO"|"MANUAL", refId?: string }]
-  origens       Json     @default("[]")
-  ativo         Boolean  @default(true)
+  origens Json    @default("[]")
+  ativo   Boolean @default(true)
 
   // overrides opcionais
-  responsavelId        String?
-  diaPrazoOverride     Int?
-  honorario            Decimal? @db.Decimal(12, 2)
+  responsavelId         String?
+  diaPrazoOverride      Int?
+  honorario             Decimal? @db.Decimal(12, 2)
   tempoPrevistoOverride Int?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  entregas      Entrega[]
+  entregas Entrega[]
 
   @@unique([empresaId, obrigacaoId])
   @@index([escritorioId])
@@ -755,9 +765,9 @@ enum StatusEntrega {
   PENDENTE_ANTECIPADO
   EM_ATRASO_TECNICO
   EM_ATRASO_LEGAL
-  JUSTIFICADA            // pendencia atrasada com justificativa de atraso (NAO entregue) - fiel ao Acessorias
+  JUSTIFICADA // pendencia atrasada com justificativa de atraso (NAO entregue) - fiel ao Acessorias
   ENTREGUE
-  ENTREGUE_JUSTIFICADA   // legado: entregue apos o prazo. Novas baixas usam ENTREGUE (atraso vem da data)
+  ENTREGUE_JUSTIFICADA // legado: entregue apos o prazo. Novas baixas usam ENTREGUE (atraso vem da data)
   DISPENSADA
 }
 
@@ -767,41 +777,41 @@ enum OrigemBaixa {
 }
 
 model Entrega {
-  id                  String   @id @default(cuid())
-  escritorioId        String
-  escritorio          Escritorio @relation(fields: [escritorioId], references: [id])
-  empresaId           String
-  empresa             Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  empresaObrigacaoId  String
-  empresaObrigacao    EmpresaObrigacao @relation(fields: [empresaObrigacaoId], references: [id], onDelete: Cascade)
-  obrigacaoId         String
-  obrigacao           Obrigacao @relation(fields: [obrigacaoId], references: [id])
+  id                 String           @id @default(cuid())
+  escritorioId       String
+  escritorio         Escritorio       @relation(fields: [escritorioId], references: [id])
+  empresaId          String
+  empresa            Empresa          @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresaObrigacaoId String
+  empresaObrigacao   EmpresaObrigacao @relation(fields: [empresaObrigacaoId], references: [id], onDelete: Cascade)
+  obrigacaoId        String
+  obrigacao          Obrigacao        @relation(fields: [obrigacaoId], references: [id])
 
   // competencia (mes/ano de referencia)
-  competenciaAno      Int
-  competenciaMes      Int      // 1-12
+  competenciaAno Int
+  competenciaMes Int // 1-12
 
-  prazoLegal          DateTime @db.Date
-  prazoTecnico        DateTime @db.Date
+  prazoLegal   DateTime @db.Date
+  prazoTecnico DateTime @db.Date
 
-  status              StatusEntrega @default(PENDENTE)
+  status StatusEntrega @default(PENDENTE)
 
   responsavelPrazoId   String?
   responsavelEntregaId String?
 
-  dataEntrega         DateTime?
-  numeroProtocolo     String?
-  vencimentoGuia      DateTime? @db.Date
-  justificativa       String?
-  motivoDispensa      String?
-  origemBaixa         OrigemBaixa?
+  dataEntrega     DateTime?
+  numeroProtocolo String?
+  vencimentoGuia  DateTime?    @db.Date
+  justificativa   String?
+  motivoDispensa  String?
+  origemBaixa     OrigemBaixa?
 
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  anexos              EntregaAnexo[]
-  comentarios         EntregaComentario[]
-  eventos             EntregaEvento[]
+  anexos      EntregaAnexo[]
+  comentarios EntregaComentario[]
+  eventos     EntregaEvento[]
 
   @@unique([empresaId, obrigacaoId, competenciaAno, competenciaMes])
   @@index([escritorioId, competenciaAno, competenciaMes])
@@ -813,55 +823,55 @@ model Entrega {
 }
 
 model EntregaAnexo {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  entregaId     String
-  entrega       Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
-  nomeArquivo   String
-  caminho       String
-  tamanho       Int
-  mimeType      String?
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  escritorioId String
+  entregaId    String
+  entrega      Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+  nomeArquivo  String
+  caminho      String
+  tamanho      Int
+  mimeType     String?
+  createdAt    DateTime @default(now())
 
   @@index([entregaId])
 }
 
 model EntregaComentario {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  entregaId     String
-  entrega       Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
-  texto         String
-  autorId       String?
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  escritorioId String
+  entregaId    String
+  entrega      Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+  texto        String
+  autorId      String?
+  createdAt    DateTime @default(now())
 
   @@index([entregaId])
 }
 
 // Historico de movimentacao da demanda (balaozinho [F2])
 model EntregaEvento {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  entregaId     String
-  entrega       Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
-  texto         String   // ex: "Mudou status de Pendente para Entregue", "Comentou: ..."
-  autorId       String?
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  escritorioId String
+  entregaId    String
+  entrega      Entrega  @relation(fields: [entregaId], references: [id], onDelete: Cascade)
+  texto        String // ex: "Mudou status de Pendente para Entregue", "Comentou: ..."
+  autorId      String?
+  createdAt    DateTime @default(now())
 
   @@index([entregaId])
 }
 
 model EmpresaComentario {
-  id              String   @id @default(cuid())
-  escritorioId    String
-  empresaId       String
-  empresa         Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  escritorioId String
+  empresaId    String
+  empresa      Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
-  texto           String
-  autorId         String?
-  departamentoId  String?
-  departamento    Departamento? @relation(fields: [departamentoId], references: [id])
-  createdAt       DateTime @default(now())
+  texto          String
+  autorId        String?
+  departamentoId String?
+  departamento   Departamento? @relation(fields: [departamentoId], references: [id])
+  createdAt      DateTime      @default(now())
 
   @@index([empresaId])
 }
@@ -892,30 +902,30 @@ enum StatusProtocoloFisico {
 }
 
 model DocumentoGED {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId    String
+  empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   // raiz fixa: "DocsEmpresa" (manual) ou "DocsEntregas" (automatico)
-  raiz          String   @default("DocsEmpresa")
+  raiz         String          @default("DocsEmpresa")
   // subpasta livre, ex.: "Contratos" ou "2026/06/DAS"
-  pasta         String   @default("")
-  nomeArquivo   String
-  caminho       String
-  tamanho       Int
-  mimeType      String?
-  origem        OrigemDocumento @default(MANUAL)
-  entregaId     String?
-  uploadedById  String?
-  createdAt     DateTime @default(now())
+  pasta        String          @default("")
+  nomeArquivo  String
+  caminho      String
+  tamanho      Int
+  mimeType     String?
+  origem       OrigemDocumento @default(MANUAL)
+  entregaId    String?
+  uploadedById String?
+  createdAt    DateTime        @default(now())
 
   // App do cliente: "ciente/OK" dado pelo cliente (por empresa). null = pendente.
-  cienteEm      DateTime?
-  cientePorId   String?
+  cienteEm    DateTime?
+  cientePorId String?
 
-  protocolos    Protocolo[]
+  protocolos Protocolo[]
 
   @@index([escritorioId, empresaId, raiz])
   @@index([empresaId, nomeArquivo])
@@ -923,19 +933,19 @@ model DocumentoGED {
 }
 
 model Protocolo {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  documentoId   String?
-  documento     DocumentoGED? @relation(fields: [documentoId], references: [id], onDelete: SetNull)
+  id           String        @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio    @relation(fields: [escritorioId], references: [id])
+  empresaId    String
+  empresa      Empresa       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  documentoId  String?
+  documento    DocumentoGED? @relation(fields: [documentoId], references: [id], onDelete: SetNull)
 
-  token         String   @unique
-  destinatario  String   // nome/email do contato
-  contatoId     String?
-  canal         CanalProtocolo @default(EMAIL)
-  enviadoEm     DateTime @default(now())
+  token             String         @unique
+  destinatario      String // nome/email do contato
+  contatoId         String?
+  canal             CanalProtocolo @default(EMAIL)
+  enviadoEm         DateTime       @default(now())
   // assunto/prefixo de lembrete usado quando nao lido
   lembreteEnviadoEm DateTime?
 
@@ -946,33 +956,33 @@ model Protocolo {
 }
 
 model ProtocoloVisualizacao {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   protocoloId   String
   protocolo     Protocolo @relation(fields: [protocoloId], references: [id], onDelete: Cascade)
   ip            String?
   userAgent     String?
-  visualizadoEm DateTime @default(now())
+  visualizadoEm DateTime  @default(now())
 
   @@index([protocoloId])
 }
 
 model ProtocoloFisico {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId    String
+  empresa      Empresa    @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
-  descricao     String
-  titulo        String?
-  numero        Int?
-  retiradoPor   String?
-  data          DateTime @default(now())
-  dataEntrega   DateTime? @db.Date
-  status        StatusProtocoloFisico @default(PENDENTE)
+  descricao      String
+  titulo         String?
+  numero         Int?
+  retiradoPor    String?
+  data           DateTime              @default(now())
+  dataEntrega    DateTime?             @db.Date
+  status         StatusProtocoloFisico @default(PENDENTE)
   assinaturaPath String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
 
   @@index([escritorioId, empresaId])
 }
@@ -996,71 +1006,71 @@ enum OrigemRoboJob {
 }
 
 model AssinaturaDocumento {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
+  id                        String     @id @default(cuid())
+  escritorioId              String
+  escritorio                Escritorio @relation(fields: [escritorioId], references: [id])
+  nome                      String
   // obrigacao alvo (catalogo) que esta assinatura identifica
-  obrigacaoNome String   // casado por nome com a obrigacao da empresa
+  obrigacaoNome             String // casado por nome com a obrigacao da empresa
   // palavras/regex que identificam o tipo (todas devem casar)
-  palavras      Json     @default("[]")
+  palavras                  Json       @default("[]")
   // palavras NEGATIVAS: se QUALQUER uma aparecer, esta assinatura NAO casa (ex.: FGTS exclui "Recibo de Pagamento")
-  exclusoes     Json     @default("[]")
+  exclusoes                 Json       @default("[]")
   // regex para extrair competencia e vencimento
-  regexCompetencia String?
-  regexVencimento  String?
-  ativo         Boolean  @default(true)
+  regexCompetencia          String?
+  regexVencimento           String?
+  ativo                     Boolean    @default(true)
   // origem da assinatura: MANUAL (cadastrada) ou IA (o robo aprendeu via IA na Revisao)
-  origem        String   @default("MANUAL")
+  origem                    String     @default("MANUAL")
   // Base de conhecimento e-Continuo
-  enviaEmail    String   @default("Imediato")    // Imediato | Agendado | Nao
-  copiaLocal    Boolean  @default(true)            // mantem copia local (GED)
-  aoReenviar    String   @default("Rep.D.A.A.")    // comportamento ao reenviar
-  semDemanda    String   @default("Cria")          // quando nao ha demanda correspondente
-  exemploArquivo String?                           // PDF de exemplo da guia reconhecida
-  miniNomeLocal String?                            // Mini-Nome local (ex.: PRESUMIDO)
-  caminhoLocal  String?                            // Caminho local (pastas para salvar)
-  anteciparVcto Boolean  @default(true)            // antecipar vcto em dias nao-uteis
-  msgAlertaAntecipado String?                      // mensagem de alerta de pagamento antecipado
-  consideraVcto Boolean  @default(true)            // considera vcto do documento
-  obrigacoesCorrespondentes Json @default("[]")    // obrigacoes correspondentes (varias)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  enviaEmail                String     @default("Imediato") // Imediato | Agendado | Nao
+  copiaLocal                Boolean    @default(true) // mantem copia local (GED)
+  aoReenviar                String     @default("Rep.D.A.A.") // comportamento ao reenviar
+  semDemanda                String     @default("Cria") // quando nao ha demanda correspondente
+  exemploArquivo            String? // PDF de exemplo da guia reconhecida
+  miniNomeLocal             String? // Mini-Nome local (ex.: PRESUMIDO)
+  caminhoLocal              String? // Caminho local (pastas para salvar)
+  anteciparVcto             Boolean    @default(true) // antecipar vcto em dias nao-uteis
+  msgAlertaAntecipado       String? // mensagem de alerta de pagamento antecipado
+  consideraVcto             Boolean    @default(true) // considera vcto do documento
+  obrigacoesCorrespondentes Json       @default("[]") // obrigacoes correspondentes (varias)
+  createdAt                 DateTime   @default(now())
+  updatedAt                 DateTime   @updatedAt
 
   @@index([escritorioId, ativo])
 }
 
 model RoboJob {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
 
-  arquivoNome   String
-  caminho       String
-  paginaIndex   Int?
-  origem        OrigemRoboJob @default(UPLOAD)
-  status        StatusRoboJob @default(PROCESSANDO)
-  motivo        String?
+  arquivoNome String
+  caminho     String
+  paginaIndex Int?
+  origem      OrigemRoboJob @default(UPLOAD)
+  status      StatusRoboJob @default(PROCESSANDO)
+  motivo      String?
 
   // resultado da identificacao
-  empresaId         String?
-  obrigacaoNome     String?
-  competenciaAno    Int?
-  competenciaMes    Int?
-  entregaId         String?
+  empresaId      String?
+  obrigacaoNome  String?
+  competenciaAno Int?
+  competenciaMes Int?
+  entregaId      String?
 
   // etapas do pipeline: [{ etapa, ok, ms, detalhe }]
-  etapas        Json     @default("[]")
+  etapas      Json    @default("[]")
   // trecho do texto extraido (para a tela de revisao)
-  textoTrecho   String?
+  textoTrecho String?
 
   // sugestao da IA (quando as assinaturas nao casam) - apenas sugere; humano confirma
-  iaObrigacao   String?
-  iaPalavras    String[] @default([])
-  iaConfianca   Float?
+  iaObrigacao String?
+  iaPalavras  String[] @default([])
+  iaConfianca Float?
 
-  createdAt     DateTime @default(now())
-  processadoEm  DateTime?
+  createdAt    DateTime  @default(now())
+  processadoEm DateTime?
 
   @@index([escritorioId, status])
   @@index([escritorioId, createdAt])
@@ -1102,120 +1112,120 @@ enum TipoRecorrencia {
 }
 
 model MatrizProcesso {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  departamentoId String?
-  descricao     String?
-  ativo         Boolean  @default(true)
-  soSubmatriz   Boolean  @default(false)
-  pedeAutorizacao Boolean @default(false)
-  barraVermelhaDias Int   @default(45)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String     @id @default(cuid())
+  escritorioId      String
+  escritorio        Escritorio @relation(fields: [escritorioId], references: [id])
+  nome              String
+  departamentoId    String?
+  descricao         String?
+  ativo             Boolean    @default(true)
+  soSubmatriz       Boolean    @default(false)
+  pedeAutorizacao   Boolean    @default(false)
+  barraVermelhaDias Int        @default(45)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
 
-  passos        MatrizPasso[]
-  processos     Processo[]
-  recorrentes   ProcessoRecorrente[]
+  passos      MatrizPasso[]
+  processos   Processo[]
+  recorrentes ProcessoRecorrente[]
 
   @@index([escritorioId])
 }
 
 model MatrizPasso {
-  id            String   @id @default(cuid())
-  matrizId      String
-  matriz        MatrizProcesso @relation(fields: [matrizId], references: [id], onDelete: Cascade)
-  ordem         Int
-  tipo          String   @default("PASSO_SIMPLES") // PASSO_SIMPLES | SUB_MATRIZ | DESDOBRAMENTO | FOLLOW_UP
-  titulo        String
-  descricao     String?
+  id             String         @id @default(cuid())
+  matrizId       String
+  matriz         MatrizProcesso @relation(fields: [matrizId], references: [id], onDelete: Cascade)
+  ordem          Int
+  tipo           String         @default("PASSO_SIMPLES") // PASSO_SIMPLES | SUB_MATRIZ | DESDOBRAMENTO | FOLLOW_UP
+  titulo         String
+  descricao      String?
   departamentoId String?
-  prazoDias     Int      @default(0)
-  basePrazo     BasePrazoPasso @default(INICIO)
-  bloqueante    Boolean  @default(false)
-  visivelCliente Boolean @default(false) // passo compartilhado no portal do cliente
+  prazoDias      Int            @default(0)
+  basePrazo      BasePrazoPasso @default(INICIO)
+  bloqueante     Boolean        @default(false)
+  visivelCliente Boolean        @default(false) // passo compartilhado no portal do cliente
   acaoAutomatica AcaoAutomatica @default(NENHUMA)
-  acaoRef       String?  // obrigacaoNome ou matrizId, conforme a acao
-  subMatrizId   String?  // alvo quando tipo = SUB_MATRIZ
-  config        Json?    // dica / desdobramentos / follow-up
+  acaoRef        String? // obrigacaoNome ou matrizId, conforme a acao
+  subMatrizId    String? // alvo quando tipo = SUB_MATRIZ
+  config         Json? // dica / desdobramentos / follow-up
 
   @@index([matrizId])
 }
 
 model Processo {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  matrizId      String?
-  matriz        MatrizProcesso? @relation(fields: [matrizId], references: [id])
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  id           String          @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio      @relation(fields: [escritorioId], references: [id])
+  matrizId     String?
+  matriz       MatrizProcesso? @relation(fields: [matrizId], references: [id])
+  empresaId    String
+  empresa      Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
-  nome          String
-  numero        Int?
-  titulo        String?
-  observacoes   String?
-  departamentoId String?
-  gestorId      String?
-  status        StatusProcesso @default(EM_ANDAMENTO)
-  dataInicio    DateTime @default(now())
+  nome              String
+  numero            Int?
+  titulo            String?
+  observacoes       String?
+  departamentoId    String?
+  gestorId          String?
+  status            StatusProcesso @default(EM_ANDAMENTO)
+  dataInicio        DateTime       @default(now())
   previsaoConclusao DateTime?
-  dataConclusao DateTime?
-  suspensoAte   DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  dataConclusao     DateTime?
+  suspensoAte       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 
-  passos        ProcessoPasso[]
-  comentarios   ProcessoComentario[]
+  passos      ProcessoPasso[]
+  comentarios ProcessoComentario[]
 
   @@index([escritorioId, status])
   @@index([empresaId])
 }
 
 model ProcessoPasso {
-  id            String   @id @default(cuid())
-  processoId    String
-  processo      Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
-  ordem         Int
-  titulo        String
-  descricao     String?
+  id             String         @id @default(cuid())
+  processoId     String
+  processo       Processo       @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  ordem          Int
+  titulo         String
+  descricao      String?
   departamentoId String?
-  bloqueante    Boolean  @default(false)
-  visivelCliente Boolean @default(false) // passo compartilhado no portal do cliente
-  status        StatusPasso @default(PENDENTE)
-  prazo         DateTime?
-  concluidoEm   DateTime?
-  responsavelId String?
+  bloqueante     Boolean        @default(false)
+  visivelCliente Boolean        @default(false) // passo compartilhado no portal do cliente
+  status         StatusPasso    @default(PENDENTE)
+  prazo          DateTime?
+  concluidoEm    DateTime?
+  responsavelId  String?
   acaoAutomatica AcaoAutomatica @default(NENHUMA)
-  acaoRef       String?
+  acaoRef        String?
 
   @@index([processoId])
 }
 
 model ProcessoComentario {
-  id            String   @id @default(cuid())
-  processoId    String
-  processo      Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
-  texto         String
-  autorId       String?
-  createdAt     DateTime @default(now())
+  id         String   @id @default(cuid())
+  processoId String
+  processo   Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  texto      String
+  autorId    String?
+  createdAt  DateTime @default(now())
 
   @@index([processoId])
 }
 
 model ProcessoRecorrente {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  matrizId      String
-  matriz        MatrizProcesso @relation(fields: [matrizId], references: [id], onDelete: Cascade)
-  empresaId     String?
+  id              String          @id @default(cuid())
+  escritorioId    String
+  escritorio      Escritorio      @relation(fields: [escritorioId], references: [id])
+  matrizId        String
+  matriz          MatrizProcesso  @relation(fields: [matrizId], references: [id], onDelete: Cascade)
+  empresaId       String?
   tipoRecorrencia TipoRecorrencia
-  config        Json     @default("{}") // { diasMes:[], diasSemana:[] }
-  ativo         Boolean  @default(true)
-  ultimaExecucao DateTime?
-  createdAt     DateTime @default(now())
+  config          Json            @default("{}") // { diasMes:[], diasSemana:[] }
+  ativo           Boolean         @default(true)
+  ultimaExecucao  DateTime?
+  createdAt       DateTime        @default(now())
 
   @@index([escritorioId, ativo])
 }
@@ -1236,89 +1246,89 @@ enum AutorTipo {
 }
 
 model Comunicado {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  titulo        String
-  conteudo      String
-  tags          Json     @default("[]")   // segmentacao por tag (ids)
-  regimes       Json     @default("[]")   // segmentacao por regime (ids)
-  publicarEm    DateTime?
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  titulo       String
+  conteudo     String
+  tags         Json       @default("[]") // segmentacao por tag (ids)
+  regimes      Json       @default("[]") // segmentacao por regime (ids)
+  publicarEm   DateTime?
+  ativo        Boolean    @default(true)
+  createdAt    DateTime   @default(now())
 
-  leituras      ComunicadoLeitura[]
+  leituras ComunicadoLeitura[]
 
   @@index([escritorioId, ativo])
 }
 
 model ComunicadoLeitura {
-  id            String   @id @default(cuid())
-  comunicadoId  String
-  comunicado    Comunicado @relation(fields: [comunicadoId], references: [id], onDelete: Cascade)
-  contatoEmail  String
-  lidoEm        DateTime @default(now())
+  id           String     @id @default(cuid())
+  comunicadoId String
+  comunicado   Comunicado @relation(fields: [comunicadoId], references: [id], onDelete: Cascade)
+  contatoEmail String
+  lidoEm       DateTime   @default(now())
 
   @@unique([comunicadoId, contatoEmail])
 }
 
 model SolicitacaoPortal {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  empresaId     String
-  empresa       Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
-  contatoEmail  String
-  contatoNome   String
-  titulo        String
-  descricao     String
-  status        StatusSolicitacao @default(ABERTA)
-  prazo         DateTime?
-  avaliacaoNota Int?
+  id                  String            @id @default(cuid())
+  escritorioId        String
+  escritorio          Escritorio        @relation(fields: [escritorioId], references: [id])
+  empresaId           String
+  empresa             Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  contatoEmail        String
+  contatoNome         String
+  titulo              String
+  descricao           String
+  status              StatusSolicitacao @default(ABERTA)
+  prazo               DateTime?
+  avaliacaoNota       Int?
   avaliacaoComentario String?
-  formularioId  String?
-  respostas     Json?    // respostas do formulario flexivel [{ campoId, label, valor }]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  formularioId        String?
+  respostas           Json? // respostas do formulario flexivel [{ campoId, label, valor }]
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
-  mensagens     SolicitacaoMensagem[]
+  mensagens SolicitacaoMensagem[]
 
   @@index([escritorioId, status])
   @@index([empresaId])
 }
 
 model SolicitacaoMensagem {
-  id            String   @id @default(cuid())
+  id            String            @id @default(cuid())
   solicitacaoId String
   solicitacao   SolicitacaoPortal @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
   autorTipo     AutorTipo
   autorNome     String
   texto         String
-  createdAt     DateTime @default(now())
+  createdAt     DateTime          @default(now())
 
   @@index([solicitacaoId])
 }
 
 model AceiteLGPD {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  contatoEmail  String
-  versao        String
-  ip            String?
-  aceitoEm      DateTime @default(now())
+  id           String   @id @default(cuid())
+  escritorioId String
+  contatoEmail String
+  versao       String
+  ip           String?
+  aceitoEm     DateTime @default(now())
 
   @@index([escritorioId, contatoEmail])
 }
 
 model ContatoToken {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  contatoEmail  String
-  tokenHash     String   @unique
-  tipo          String   @default("CONVITE") // CONVITE | RESET
-  expiresAt     DateTime
-  usedAt        DateTime?
-  createdAt     DateTime @default(now())
+  id           String    @id @default(cuid())
+  escritorioId String
+  contatoEmail String
+  tokenHash    String    @unique
+  tipo         String    @default("CONVITE") // CONVITE | RESET
+  expiresAt    DateTime
+  usedAt       DateTime?
+  createdAt    DateTime  @default(now())
 
   @@index([contatoEmail])
 }
@@ -1348,38 +1358,38 @@ enum StatusComunicacao {
 }
 
 model TemplateEmail {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  tipo          TipoTemplate @default(GENERICO)
-  nome          String
-  assunto       String
-  corpo         String
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String       @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio   @relation(fields: [escritorioId], references: [id])
+  tipo         TipoTemplate @default(GENERICO)
+  nome         String
+  assunto      String
+  corpo        String
+  ativo        Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
 
   @@index([escritorioId, tipo])
 }
 
 model ComunicacaoLog {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  empresaId     String?
-  empresa       Empresa? @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  empresaId    String?
+  empresa      Empresa?   @relation(fields: [empresaId], references: [id], onDelete: SetNull)
 
   canal         CanalComunicacao
   destinatario  String
   assunto       String?
   conteudo      String?
   status        StatusComunicacao @default(FILA)
-  tentativas    Int      @default(0)
+  tentativas    Int               @default(0)
   responsavelId String?
   protocoloId   String?
   loteId        String?
   erro          String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime          @default(now())
   enviadoEm     DateTime?
 
   @@index([escritorioId, createdAt])
@@ -1388,14 +1398,14 @@ model ComunicacaoLog {
 }
 
 model ChatbotFluxo {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  nome          String
-  arvore        Json     @default("{}")
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  nome         String
+  arvore       Json       @default("{}")
+  ativo        Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([escritorioId])
 }
@@ -1420,31 +1430,31 @@ enum StatusSolicitacaoInterna {
 }
 
 model SolicitacaoInterna {
-  id              String   @id @default(cuid())
-  escritorioId    String
-  escritorio      Escritorio @relation(fields: [escritorioId], references: [id])
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
 
-  titulo          String
-  descricao       String
-  categoria       String?
-  prioridade      PrioridadeSolicitacao @default(MEDIA)
-  status          StatusSolicitacaoInterna @default(ABERTA)
+  titulo     String
+  descricao  String
+  categoria  String?
+  prioridade PrioridadeSolicitacao    @default(MEDIA)
+  status     StatusSolicitacaoInterna @default(ABERTA)
 
   // quem abriu (usuario interno)
-  solicitanteId   String
+  solicitanteId         String
   // setor de destino e responsavel designado (usuario)
   departamentoDestinoId String?
-  responsavelId   String?
+  responsavelId         String?
   // vinculos opcionais (mantidos como IDs simples, sem relacao reversa)
-  empresaId       String?
-  processoId      String?
+  empresaId             String?
+  processoId            String?
 
-  prazo           DateTime?
-  resolvidoEm     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  prazo       DateTime?
+  resolvidoEm DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  mensagens       SolicitacaoInternaMensagem[]
+  mensagens SolicitacaoInternaMensagem[]
 
   @@index([escritorioId, status])
   @@index([escritorioId, departamentoDestinoId])
@@ -1453,7 +1463,7 @@ model SolicitacaoInterna {
 }
 
 model SolicitacaoInternaMensagem {
-  id            String   @id @default(cuid())
+  id            String             @id @default(cuid())
   solicitacaoId String
   solicitacao   SolicitacaoInterna @relation(fields: [solicitacaoId], references: [id], onDelete: Cascade)
   autorId       String?
@@ -1461,7 +1471,7 @@ model SolicitacaoInternaMensagem {
   texto         String
   // mudanca de status registrada como evento do thread
   evento        String?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime           @default(now())
 
   @@index([solicitacaoId])
 }
@@ -1471,14 +1481,14 @@ model SolicitacaoInternaMensagem {
 // ============================================================
 
 model DashboardConfig {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  escritorio    Escritorio @relation(fields: [escritorioId], references: [id])
-  usuarioId     String   @unique
+  id           String     @id @default(cuid())
+  escritorioId String
+  escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
+  usuarioId    String     @unique
   // layout: [{ id, tipo, w }] - ordem e largura dos widgets escolhidos
-  layout        Json     @default("[]")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  layout       Json       @default("[]")
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([escritorioId])
 }
@@ -1487,51 +1497,51 @@ model DashboardConfig {
 // Dashboard Flexivel: Indicadores + Paineis (carrossel)
 // ------------------------------------------------------------
 model Indicador {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  nome          String
+  id                   String   @id @default(cuid())
+  escritorioId         String
+  nome                 String
   // tipo: numerico | colaborador | departamento
-  tipo          String   @default("numerico")
+  tipo                 String   @default("numerico")
   // metrica calculada (ex.: entregas_baixadas, a_realizar, atrasadas, pendentes, processos, docs, solicitacoes)
-  metrica       String
+  metrica              String
   // prazo/janela: 7d | 30d | semana_atual | mes_atual
-  prazo         String   @default("mes_atual")
+  prazo                String   @default("mes_atual")
   // visibilidade: todos | somente_meu
-  visibilidade  String   @default("todos")
-  ativo         Boolean  @default(true)
-  criadoPorId   String?
+  visibilidade         String   @default("todos")
+  ativo                Boolean  @default(true)
+  criadoPorId          String?
   // filtros fixos opcionais
   filtroDepartamentoId String?
   filtroGrupoId        String?
   filtroRegimeId       String?
-  createdAt     DateTime @default(now())
+  createdAt            DateTime @default(now())
 
-  paineis       PainelIndicador[]
+  paineis PainelIndicador[]
 
   @@index([escritorioId])
 }
 
 model Painel {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  nome          String
-  transicaoSeg  Int      @default(60)
-  visibilidade  String   @default("todos")
-  ativo         Boolean  @default(true)
-  criadoPorId   String?
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  escritorioId String
+  nome         String
+  transicaoSeg Int      @default(60)
+  visibilidade String   @default("todos")
+  ativo        Boolean  @default(true)
+  criadoPorId  String?
+  createdAt    DateTime @default(now())
 
-  indicadores   PainelIndicador[]
+  indicadores PainelIndicador[]
 
   @@index([escritorioId])
 }
 
 model PainelIndicador {
-  painelId      String
-  painel        Painel    @relation(fields: [painelId], references: [id], onDelete: Cascade)
-  indicadorId   String
-  indicador     Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
-  ordem         Int       @default(0)
+  painelId    String
+  painel      Painel    @relation(fields: [painelId], references: [id], onDelete: Cascade)
+  indicadorId String
+  indicador   Indicador @relation(fields: [indicadorId], references: [id], onDelete: Cascade)
+  ordem       Int       @default(0)
 
   @@id([painelId, indicadorId])
   @@index([indicadorId])
@@ -1541,17 +1551,17 @@ model PainelIndicador {
 // Metodo APLA: custos fixos (rateados na lucratividade)
 // ------------------------------------------------------------
 model CustoFixo {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  nome          String
+  id           String   @id @default(cuid())
+  escritorioId String
+  nome         String
   // escopo: GERAL (toda a empresa) | GRUPO | TAG | EMPRESA
-  escopo        String   @default("GERAL")
-  grupoId       String?
-  tagId         String?
-  empresaId     String?
-  valor         Decimal  @db.Decimal(12, 2)
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  escopo       String   @default("GERAL")
+  grupoId      String?
+  tagId        String?
+  empresaId    String?
+  valor        Decimal  @db.Decimal(12, 2)
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   @@index([escritorioId])
 }
@@ -1560,14 +1570,14 @@ model CustoFixo {
 // Formularios flexiveis de solicitacao (cliente preenche antes de abrir)
 // ------------------------------------------------------------
 model FormularioSolicitacao {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  nome          String
-  descricao     String?
-  ativo         Boolean  @default(true)
+  id           String   @id @default(cuid())
+  escritorioId String
+  nome         String
+  descricao    String?
+  ativo        Boolean  @default(true)
   // campos: [{ id, label, tipo (texto|textarea|numero|data|select), opcoes[], obrigatorio }]
-  campos        Json     @default("[]")
-  createdAt     DateTime @default(now())
+  campos       Json     @default("[]")
+  createdAt    DateTime @default(now())
 
   @@index([escritorioId])
 }
@@ -1576,14 +1586,14 @@ model FormularioSolicitacao {
 // NPS (Avalie-nos): avaliacao do cliente 0-10
 // ------------------------------------------------------------
 model NpsAvaliacao {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  empresaId     String?
-  contatoEmail  String
-  contatoNome   String?
-  nota          Int      // 0..10
-  comentario    String?
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  escritorioId String
+  empresaId    String?
+  contatoEmail String
+  contatoNome  String?
+  nota         Int // 0..10
+  comentario   String?
+  createdAt    DateTime @default(now())
 
   @@index([escritorioId, createdAt])
 }
@@ -1592,30 +1602,30 @@ model NpsAvaliacao {
 // Acessorias DOCS (ACDOX): regua de cobranca de documentos
 // ------------------------------------------------------------
 model ReguaCobranca {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  nome          String
-  diaLimite     Int      @default(10)    // dia do mes limite p/ recebimento
-  departamentoId String?
+  id                 String   @id @default(cuid())
+  escritorioId       String
+  nome               String
+  diaLimite          Int      @default(10) // dia do mes limite p/ recebimento
+  departamentoId     String?
   lembreteAntesDias  Int? // dispara lembrete N dias antes do limite
   lembreteDepoisDias Int? // cobranca N dias apos o vencimento
-  modeloEmail   String?
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  modeloEmail        String?
+  ativo              Boolean  @default(true)
+  createdAt          DateTime @default(now())
 
-  itens         ReguaCobrancaItem[]
-  empresas      ReguaCobrancaEmpresa[]
-  cobrancas     CobrancaDoc[]
+  itens     ReguaCobrancaItem[]
+  empresas  ReguaCobrancaEmpresa[]
+  cobrancas CobrancaDoc[]
 
   @@index([escritorioId])
 }
 
 model ReguaCobrancaItem {
-  id        String   @id @default(cuid())
-  reguaId   String
-  regua     ReguaCobranca @relation(fields: [reguaId], references: [id], onDelete: Cascade)
-  nome      String
-  ordem     Int      @default(0)
+  id      String        @id @default(cuid())
+  reguaId String
+  regua   ReguaCobranca @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+  nome    String
+  ordem   Int           @default(0)
 
   @@index([reguaId])
 }
@@ -1630,19 +1640,19 @@ model ReguaCobrancaEmpresa {
 }
 
 model CobrancaDoc {
-  id            String   @id @default(cuid())
-  escritorioId  String
-  reguaId       String
-  regua         ReguaCobranca @relation(fields: [reguaId], references: [id], onDelete: Cascade)
-  empresaId     String
+  id             String        @id @default(cuid())
+  escritorioId   String
+  reguaId        String
+  regua          ReguaCobranca @relation(fields: [reguaId], references: [id], onDelete: Cascade)
+  empresaId      String
   competenciaAno Int
   competenciaMes Int
-  dataLimite    DateTime
+  dataLimite     DateTime
   // PENDENTE | RECEBIDO | VALIDADO | RECUSADO | VENCIDO
-  status        String   @default("PENDENTE")
-  createdAt     DateTime @default(now())
+  status         String        @default("PENDENTE")
+  createdAt      DateTime      @default(now())
 
-  itens         CobrancaDocItem[]
+  itens CobrancaDocItem[]
 
   @@unique([reguaId, empresaId, competenciaAno, competenciaMes])
   @@index([escritorioId, status])
@@ -1650,12 +1660,12 @@ model CobrancaDoc {
 }
 
 model CobrancaDocItem {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   cobrancaId    String
   cobranca      CobrancaDoc @relation(fields: [cobrancaId], references: [id], onDelete: Cascade)
   nome          String
   // PENDENTE | RECEBIDO | VALIDADO | RECUSADO
-  status        String   @default("PENDENTE")
+  status        String      @default("PENDENTE")
   arquivo       String?
   justificativa String?
   validadoPorId String?
@@ -1678,21 +1688,21 @@ enum TipoNotificacao {
 }
 
 model Notificacao {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   escritorioId String
   escritorio   Escritorio @relation(fields: [escritorioId], references: [id])
   usuarioId    String
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  usuario      Usuario    @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
-  tipo         TipoNotificacao @default(SISTEMA)
-  titulo       String
-  mensagem     String
-  link         String?
-  lida         Boolean  @default(false)
-  lidaEm       DateTime?
+  tipo      TipoNotificacao @default(SISTEMA)
+  titulo    String
+  mensagem  String
+  link      String?
+  lida      Boolean         @default(false)
+  lidaEm    DateTime?
   // chave de deduplicacao (ex.: "ENTREGA_ATRASADA:entregaId") para nao recriar
-  chave        String?
-  createdAt    DateTime @default(now())
+  chave     String?
+  createdAt DateTime        @default(now())
 
   @@unique([usuarioId, chave])
   @@index([escritorioId, usuarioId, lida])
@@ -1700,16 +1710,166 @@ model Notificacao {
 }
 
 model JobExecucao {
-  id           String   @id @default(cuid())
+  id           String      @id @default(cuid())
   escritorioId String?
   escritorio   Escritorio? @relation(fields: [escritorioId], references: [id])
-  job          String   // nome do job
-  status       String   @default("OK") // OK | ERRO
-  itens        Int      @default(0)
-  duracaoMs    Int      @default(0)
+  job          String // nome do job
+  status       String      @default("OK") // OK | ERRO
+  itens        Int         @default(0)
+  duracaoMs    Int         @default(0)
   detalhe      String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime    @default(now())
 
   @@index([job, createdAt])
   @@index([escritorioId, createdAt])
+}
+
+// ============================================================
+// SOCIETARIO (regras do painel da Atuan) — abertura, alteracao e baixa
+// ============================================================
+
+model SocProcesso {
+  id                  String    @id @default(cuid())
+  escritorioId        String
+  empresaId           String?
+  empresa             Empresa?  @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  codigo              String // AAAA-NNN
+  grupo               String? // frente do processo: digital | nauta | esporadico (vazio = a da empresa)
+  servico             String // Abertura | Alteração | Baixa
+  natureza            String    @default("") // LTDA | EI | ASSOCIACAO | MEI (vazio = roteiro LTDA)
+  etapa               String // Formulário | Viabilidade | Documento Básico | Requerimento | Pagamento | Assinatura e arquivamento
+  situacao            String    @default("Em análise") // Aguardando cliente | Em análise | Em exigência | Finalizado
+  responsavel         String?
+  dependeDe           String    @default("Escritório")
+  prazo               DateTime? @db.Date
+  proximaAcao         String?
+  honorario           Decimal?  @db.Decimal(12, 2)
+  honorarioSit        String    @default("Não informado")
+  cpf                 String?
+  senhaGov            String?
+  observacao          String?
+  protocoloRegin      String?
+  requerimento        String?
+  pagamentoFeito      Boolean   @default(false)
+  mudaEndereco        Boolean   @default(false)
+  mudaAtividade       Boolean   @default(false)
+  mudaMunicipio       Boolean   @default(false)
+  baixaCadEconomico   Boolean?
+  baixaCadEconomicoEm DateTime? @db.Date
+  foraDoQuadro        Boolean   @default(false)
+  ocultoAte           DateTime?
+  checklistDe         String? // "<natureza>|<servico>" do roteiro montado
+  concluidoEm         DateTime?
+  encaminhadoEm       DateTime? // encaminhamento pos-conclusao aplicado (ativar empresa / cartao de alvara)
+  origemFormularioId  String?
+  legadoId            String? // id no painel antigo
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  checklist SocChecklistItem[]
+  historico SocHistorico[]
+
+  @@unique([escritorioId, codigo])
+  @@index([escritorioId, situacao])
+  @@index([empresaId])
+}
+
+model SocChecklistItem {
+  id         String      @id @default(cuid())
+  processoId String
+  processo   SocProcesso @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  ordem      Int
+  etapa      String
+  tarefa     String
+  feito      Boolean     @default(false)
+  na         Boolean     @default(false)
+  nota       String?
+
+  @@index([processoId])
+}
+
+// Historico legivel das acoes (equivalente a auditoria do painel)
+model SocHistorico {
+  id           String       @id @default(cuid())
+  escritorioId String
+  processoId   String?
+  processo     SocProcesso? @relation(fields: [processoId], references: [id], onDelete: SetNull)
+  usuarioId    String?
+  usuarioNome  String?
+  acao         String
+  detalhe      String?
+  createdAt    DateTime     @default(now())
+
+  @@index([escritorioId, createdAt])
+  @@index([processoId])
+}
+
+// Formulario societario enviado pelo cliente (site) — aguarda aprovacao e vira processo
+model SocFormulario {
+  id               String    @id @default(cuid())
+  escritorioId     String
+  servidorId       String? // id do envio no servico de formularios (vazio = colado por codigo)
+  protocolo        String?
+  recebidoEm       DateTime  @default(now())
+  enviadoEm        String?
+  servico          String
+  empresaNome      String
+  contato          String?
+  telefone         String?
+  dados            Json
+  documentoArquivo String? // caminho no storage
+  documentoNome    String?
+  documentoTipo    String?
+  documentoTamanho Int?
+  processoId       String?
+  empresaId        String?
+  empresaNova      Boolean   @default(false)
+  aprovadoEm       DateTime?
+  aprovadoPor      String?
+  legadoId         String?
+  createdAt        DateTime  @default(now())
+
+  @@unique([escritorioId, servidorId])
+  @@index([escritorioId, recebidoEm])
+}
+
+// Cartao do Kanban de legalizacao (modulo Alvaras). O Societario cria ao concluir abertura/alteracao.
+model Legalizacao {
+  id               String    @id @default(cuid())
+  escritorioId     String
+  empresaId        String?
+  empresa          Empresa?  @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  clienteNome      String?
+  processoId       String? // SocProcesso de origem
+  licencaId        String?
+  paiId            String?
+  tipo             String    @default("Alvará de Funcionamento")
+  orgao            String?
+  protocolo        String?
+  tipoProcesso     String    @default("Manual") // Abertura | Renovação | Alteração | Baixa | Manual
+  prazo            DateTime? @db.Date
+  vencimento       DateTime? @db.Date
+  etapa            String    @default("A iniciar")
+  observacao       String?
+  alvarasPrevistos Json?
+  alvarasGerados   Json?
+  ocultoNoIniciar  Boolean   @default(false)
+  taxaPaga         Boolean   @default(false)
+  taxaPagaEm       DateTime? @db.Date
+  concluidoEm      DateTime?
+  renovadoEm       DateTime? @db.Date
+  licencaCriada    Boolean   @default(false)
+  validadeAnterior String?
+  situacaoAnterior String?
+  obsAnterior      String?
+  inativo          Boolean   @default(false)
+  inativoEm        DateTime? @db.Date
+  inativoMotivo    String?
+  responsavel      String?
+  legadoId         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([escritorioId, etapa])
+  @@index([processoId])
 }
