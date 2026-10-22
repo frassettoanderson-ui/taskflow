@@ -175,6 +175,8 @@ model Permissao {
   societario_operar Boolean @default(false)
   alvaras_ver       Boolean @default(false)
   alvaras_operar    Boolean @default(false)
+  mei_ver           Boolean @default(false)
+  mei_operar        Boolean @default(false)
 }
 
 // ------------------------------------------------------------
@@ -424,6 +426,7 @@ model Empresa {
   socProcessos      SocProcesso[]
   legalizacoes      Legalizacao[]
   licencas          Licenca[]
+  meis              Mei[]
 
   @@index([escritorioId, deletedAt])
   @@index([escritorioId, ativo])
@@ -1926,6 +1929,126 @@ model AlvHistorico {
   acao          String
   detalhe       String?
   createdAt     DateTime @default(now())
+
+  @@index([escritorioId, createdAt])
+}
+
+// ============================================================
+// MEI (regras do painel da Atuan) — cadastro, honorarios, DAS, DASN, livro-caixa, parcelamentos
+// ============================================================
+
+model Mei {
+  id              String    @id @default(cuid())
+  escritorioId    String
+  empresaId       String?
+  empresa         Empresa?  @relation(fields: [empresaId], references: [id], onDelete: SetNull)
+  apelido         String?
+  codigo          String?
+  cnpj            String?
+  ocupacao        String?
+  atividade       String    @default("servicos") // comercio | servicos | ambos | transporte
+  situacao        String    @default("Ativo") // Ativo | Baixado | Desenquadrado | Inativo
+  abertura        DateTime? @db.Date
+  temEmpregado    Boolean   @default(false)
+  honorario       Decimal   @default(0) @db.Decimal(12, 2)
+  honorarioHist   Json      @default("{}") // { "aaaa-mm": valor } — vale a partir da competencia
+  comissaoPct     Decimal   @default(10) @db.Decimal(6, 2)
+  comissaoPctHist Json      @default("{}")
+  honPago         Json      @default("{}") // { "aaaa-mm": { pagoEm: "aaaa-mm-dd" } }
+  observacao      String?
+  inativoEm       DateTime? @db.Date
+  inativoMotivo   String?
+  simeiBaixa      String? // sim | nao | na
+  simeiBaixaEm    DateTime? @db.Date
+  legadoId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  lancamentos   MeiLancamento[]
+  das           MeiDas[]
+  dasn          MeiDasn[]
+  parcelamentos MeiParcelamento[]
+
+  @@index([escritorioId, situacao])
+}
+
+model MeiLancamento {
+  id          String   @id @default(cuid())
+  meiId       String
+  mei         Mei      @relation(fields: [meiId], references: [id], onDelete: Cascade)
+  data        DateTime @db.Date
+  competencia String // aaaa-mm
+  conta       String
+  descricao   String?
+  valor       Decimal  @db.Decimal(12, 2)
+  automatico  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([meiId, competencia])
+}
+
+model MeiDas {
+  id             String    @id @default(cuid())
+  meiId          String
+  mei            Mei       @relation(fields: [meiId], references: [id], onDelete: Cascade)
+  competencia    String
+  valor          Decimal   @db.Decimal(12, 2)
+  situacao       String    @default("Em aberto") // Em aberto | Pago | Em atraso | Parcelado | Dispensado
+  pagoEm         DateTime? @db.Date
+  parcelamentoId String?
+  createdAt      DateTime  @default(now())
+
+  @@unique([meiId, competencia])
+}
+
+model MeiDasn {
+  id               String    @id @default(cuid())
+  meiId            String
+  mei              Mei       @relation(fields: [meiId], references: [id], onDelete: Cascade)
+  ano              Int
+  situacao         String    @default("Pendente") // Pendente | Entregue | Retificada
+  entregueEm       DateTime? @db.Date
+  receitaInformada Decimal?  @db.Decimal(14, 2)
+  createdAt        DateTime  @default(now())
+
+  @@unique([meiId, ano])
+}
+
+model MeiParcelamento {
+  id            String    @id @default(cuid())
+  meiId         String
+  mei           Mei       @relation(fields: [meiId], references: [id], onDelete: Cascade)
+  competencias  Json // [{ competencia, valor, situacaoAnterior, pagoEmAnterior, valorAnterior, existiaGuia }]
+  principal     Decimal   @db.Decimal(12, 2)
+  juros         Decimal   @db.Decimal(12, 2)
+  total         Decimal   @db.Decimal(12, 2)
+  parcelas      Int
+  valorParcela  Decimal   @db.Decimal(12, 2)
+  valorPrimeira Decimal   @default(0) @db.Decimal(12, 2)
+  parcelasPagas Int       @default(0)
+  adesao        DateTime? @db.Date
+  protocolo     String?
+  observacao    String?
+  situacao      String    @default("Ativo") // Ativo | Quitado | Cancelado
+  createdAt     DateTime  @default(now())
+}
+
+model MeiConfig {
+  escritorioId  String   @id
+  salarioMinimo Json     @default("{}")
+  limiteAnual   Decimal  @default(81000) @db.Decimal(12, 2)
+  updatedAt     DateTime @updatedAt
+}
+
+model MeiHistorico {
+  id           String   @id @default(cuid())
+  escritorioId String
+  meiId        String?
+  usuarioId    String?
+  usuarioNome  String?
+  acao         String
+  detalhe      String?
+  createdAt    DateTime @default(now())
 
   @@index([escritorioId, createdAt])
 }
