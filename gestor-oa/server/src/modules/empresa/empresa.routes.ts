@@ -67,7 +67,11 @@ router.get('/proximo-numero', async (req, res) => {
 const sTxt = (v: unknown) => (v == null ? '' : String(v).trim());
 const fmtCep = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
 const fmtTel = (v: unknown) => { const d = sTxt(v).replace(/\D/g, ''); return /^\d{10,11}$/.test(d) ? d.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3') : d; };
-interface DadosCnpj { razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string; atividade: string; cnaes: string }
+interface DadosCnpj { razaoSocial: string; nomeFantasia: string; cep: string; logradouro: string; numeroEndereco: string; complemento: string; bairro: string; cidade: string; uf: string; telefone: string; email: string; atividade: string; cnaes: string; simples?: OpcaoSimples }
+// Opção pelo Simples/SIMEI do cartão CNPJ (Consulta de optantes): sim | nao | '' e datas dd/mm/aaaa
+export interface OpcaoSimples { simplesOptante: string; simplesDesde: string; simplesSaida: string; simeiOptante: string; simeiDesde: string; simeiSaida: string }
+const dataBR = (v: unknown) => { const m = sTxt(v).match(/^(d{4})-(d{2})-(d{2})/); return m ? `${m[3]}/${m[2]}/${m[1]}` : ''; };
+const simNao = (v: unknown) => (v === true || /^sim$/i.test(sTxt(v)) ? 'sim' : v === false || /^n[ãa]o$/i.test(sTxt(v)) ? 'nao' : '');
 
 async function buscarJson(url: string): Promise<Record<string, unknown> | null> {
   try {
@@ -88,6 +92,10 @@ function normPlano(d: Record<string, unknown>): DadosCnpj {
     cidade: sTxt(d.municipio), uf: sTxt(d.uf), telefone: fmtTel(d.ddd_telefone_1), email: sTxt(d.email).toLowerCase(),
     atividade: sTxt(d.cnae_fiscal_descricao),
     cnaes: juntarCnaes([{ c: d.cnae_fiscal, d: d.cnae_fiscal_descricao }, ...((d.cnaes_secundarios as { codigo?: unknown; descricao?: unknown }[] | undefined) ?? []).map((x) => ({ c: x.codigo, d: x.descricao }))]),
+    simples: {
+      simplesOptante: simNao(d.opcao_pelo_simples), simplesDesde: dataBR(d.data_opcao_pelo_simples), simplesSaida: dataBR(d.data_exclusao_do_simples),
+      simeiOptante: simNao(d.opcao_pelo_mei), simeiDesde: dataBR(d.data_opcao_pelo_mei), simeiSaida: dataBR(d.data_exclusao_do_mei),
+    },
   };
 }
 // Formato aninhado da publica.cnpj.ws
@@ -102,6 +110,12 @@ function normCnpjWs(d: Record<string, unknown>): DadosCnpj {
     cidade: sTxt(cid.nome), uf: sTxt(est.sigla), telefone: fmtTel(`${sTxt(e.ddd1)}${sTxt(e.telefone1)}`), email: sTxt(e.email).toLowerCase(),
     atividade: sTxt((e.atividade_principal as Record<string, unknown> | undefined)?.descricao),
     cnaes: juntarCnaes([e.atividade_principal as Record<string, unknown> | undefined, ...((e.atividades_secundarias as Record<string, unknown>[] | undefined) ?? [])].filter(Boolean).map((x) => ({ c: x!.subclasse ?? x!.id, d: x!.descricao }))),
+    simples: (() => {
+      const s = (d.simples ?? null) as Record<string, unknown> | null;
+      if (!s) return { simplesOptante: 'nao', simplesDesde: '', simplesSaida: '', simeiOptante: 'nao', simeiDesde: '', simeiSaida: '' }; // cnpj.ws: sem bloco = nunca optou
+      return { simplesOptante: simNao(s.simples), simplesDesde: dataBR(s.data_opcao_simples), simplesSaida: dataBR(s.data_exclusao_simples),
+        simeiOptante: simNao(s.mei), simeiDesde: dataBR(s.data_opcao_mei), simeiSaida: dataBR(s.data_exclusao_mei) };
+    })(),
   };
 }
 

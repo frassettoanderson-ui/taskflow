@@ -143,6 +143,8 @@ export const PERMISSION_FLAGS = [
   'alvaras_operar',
   'mei_ver',
   'mei_operar',
+  'ecac_ver',
+  'ecac_operar',
 ] as const;
 export type PermissionFlag = (typeof PERMISSION_FLAGS)[number];
 
@@ -199,6 +201,10 @@ export const PERMISSION_AREAS: PermissionArea[] = [
     { v: 0, label: '[0] = Acesso bloqueado' },
     { v: 1, label: '[1] = Somente consulta' },
     { v: 2, label: '[2] = [1] + Operar' } ], extra: true },
+  { id: 'ecac', label: 'Situação Fiscal (e-CAC: relatórios, robô, optantes)', niveis: [
+    { v: 0, label: '[0] = Acesso bloqueado' },
+    { v: 1, label: '[1] = Somente consulta' },
+    { v: 2, label: '[2] = [1] + Importar, puxar do e-CAC e excluir relatórios' } ], extra: true },
   { id: 'entregas_dispensar', label: 'Pode dispensar demandas na Lista de Entregas?', niveis: [
     { v: 0, label: 'Nao' },
     { v: 1, label: 'Sim, mas exigir justificativa' },
@@ -266,6 +272,8 @@ export function nivelParaFlags(niveis: PermissionNiveis): Record<PermissionFlag,
   if (n('alvaras') >= 2) f.alvaras_operar = true;
   if (n('mei') >= 1) f.mei_ver = true;
   if (n('mei') >= 2) f.mei_operar = true;
+  if (n('ecac') >= 1) f.ecac_ver = true;
+  if (n('ecac') >= 2) f.ecac_operar = true;
   // AC Docs / apagar anexos
   if (n('documentos') >= 1) { f.documentos_ver = true; f.documentos_upload = true; }
   if (n('anexos_apagar') >= 1) f.documentos_excluir = true;
@@ -307,6 +315,7 @@ export function flagsParaNiveis(flags: Partial<Record<PermissionFlag, boolean>>)
     societario: b('societario_operar') ? 2 : b('societario_ver') ? 1 : 0,
     alvaras: b('alvaras_operar') ? 2 : b('alvaras_ver') ? 1 : 0,
     mei: b('mei_operar') ? 2 : b('mei_ver') ? 1 : 0,
+    ecac: b('ecac_operar') ? 2 : b('ecac_ver') ? 1 : 0,
     entregas: b('entregas_baixar') ? 3 : b('entregas_ver') ? 2 : 0,
     entregas_prazos: b('entregas_editar_prazos') ? 1 : 0,
     apla: b('apla_configurar') ? 2 : b('apla_ver') ? 1 : 0,
@@ -334,7 +343,7 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     descricao: 'Gerencia obrigacoes, empresas, processos e equipe (sem ser administrativo total).',
     niveis: {
       sistema: 1, usuarios: 2, departamentos: 3, obrigacoes: 4, regimes_grupos: 1,
-      empresas: 3, anexos_apagar: 1, processos: 1, societario: 2, alvaras: 2, mei: 2, entregas_dispensar: 2, entregas: 3,
+      empresas: 3, anexos_apagar: 1, processos: 1, societario: 2, alvaras: 2, mei: 2, ecac: 2, entregas_dispensar: 2, entregas: 3,
       entregas_prazos: 1, apla: 1, portal_config: 1, comunicados: 2, portal_solic: 2,
       documentos: 1, relatorios: 1, solic_internas: 2, auditoria: 1,
     },
@@ -343,14 +352,14 @@ export const PERMISSION_PRESETS: PermissionPreset[] = [
     id: 'operacional', label: 'Colaborador / Operacional',
     descricao: 'Opera a Lista de Entregas e processos; visualiza empresas e obrigacoes.',
     niveis: {
-      obrigacoes: 1, empresas: 1, processos: 1, societario: 2, alvaras: 2, mei: 2, entregas_dispensar: 1, entregas: 2,
+      obrigacoes: 1, empresas: 1, processos: 1, societario: 2, alvaras: 2, mei: 2, ecac: 2, entregas_dispensar: 1, entregas: 2,
       documentos: 1, comunicados: 1, portal_solic: 1, relatorios: 1, solic_internas: 1,
     },
   },
   {
     id: 'leitura', label: 'Somente leitura',
     descricao: 'Apenas visualiza empresas, obrigacoes, documentos e relatorios.',
-    niveis: { obrigacoes: 1, empresas: 1, societario: 1, alvaras: 1, mei: 1, entregas: 1, documentos: 1, comunicados: 1, relatorios: 1 },
+    niveis: { obrigacoes: 1, empresas: 1, societario: 1, alvaras: 1, mei: 1, ecac: 1, entregas: 1, documentos: 1, comunicados: 1, relatorios: 1 },
   },
 ];
 

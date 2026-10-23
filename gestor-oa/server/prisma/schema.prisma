@@ -177,6 +177,8 @@ model Permissao {
   alvaras_operar    Boolean @default(false)
   mei_ver           Boolean @default(false)
   mei_operar        Boolean @default(false)
+  ecac_ver          Boolean @default(false)
+  ecac_operar       Boolean @default(false)
 }
 
 // ------------------------------------------------------------
@@ -402,6 +404,14 @@ model Empresa {
   carteiraMei          Boolean   @default(false) // carteira do MEI
   legadoAtuanId        String? // id do cliente no painel antigo da Atuan (importação)
   cnaes                String? // CNAEs da Receita: "0000-0/00 - descrição; ..." (calculadora de alvarás)
+  // ── Opção pelo Simples / SIMEI (cartão CNPJ — Consulta de optantes) ──
+  simplesOptante       String? // sim | nao (vazio = não consultado)
+  simplesDesde         String? // dd/mm/aaaa
+  simplesSaida         String?
+  simeiOptante         String?
+  simeiDesde           String?
+  simeiSaida           String?
+  receitaEm            DateTime? // quando o cartão CNPJ foi consultado
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2048,6 +2058,45 @@ model MeiHistorico {
   usuarioNome  String?
   acao         String
   detalhe      String?
+  createdAt    DateTime @default(now())
+
+  @@index([escritorioId, createdAt])
+}
+
+// ------------------------------------------------------------
+// Situação Fiscal (e-CAC) — painel da Atuan / FiscalView
+// Um "Relatório de Situação Fiscal" lido por CNPJ (o mais recente fica). `dados` guarda a
+// leitura completa (débitos, suspensos, parcelamentos, PGFN, omissões, certidão, risco).
+// ------------------------------------------------------------
+model SitFiscalRelatorio {
+  id           String    @id @default(cuid())
+  escritorioId String
+  empresaId    String?
+  cnpj         String // 14 dígitos
+  companyName  String
+  priority     String // Crítico | Atenção | Regular
+  exigivel     Decimal   @default(0) @db.Decimal(14, 2)
+  reportEm     DateTime? // data/hora impressa no relatório
+  fileName     String?
+  dados        Json
+  importadoEm  DateTime  @default(now())
+  importadoPor String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([escritorioId, cnpj])
+  @@index([escritorioId, priority])
+}
+
+// Histórico de importação (o "Importações" do FiscalView)
+model SitFiscalImportacao {
+  id           String   @id @default(cuid())
+  escritorioId String
+  arquivo      String
+  empresa      String?
+  status       String // ok | replaced | ignored | error
+  mensagem     String?
+  usuarioNome  String?
   createdAt    DateTime @default(now())
 
   @@index([escritorioId, createdAt])

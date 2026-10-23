@@ -41,6 +41,13 @@ export const env = {
     escritorios: Object.fromEntries((process.env.SSO_ESCRITORIOS ?? '').split(',').map((p) => p.split(':').map((x) => x.trim())).filter((p) => p.length === 2 && p[0] && p[1])) as Record<string, string>,
   },
 
+  // Ponte do robô do e-CAC (ecac-bridge, mesma VPS). O token fica no arquivo da própria ponte.
+  ecac: {
+    url: process.env.ECAC_BRIDGE_URL ?? 'http://127.0.0.1:8790',
+    token: process.env.ECAC_TOKEN ?? '',
+    tokenFile: process.env.ECAC_TOKEN_FILE ?? '/var/www/ecac-bridge/.token',
+  },
+
   tz: process.env.TZ ?? 'America/Sao_Paulo',
   storageRoot: process.env.STORAGE_ROOT ?? './storage',
 
