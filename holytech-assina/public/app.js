@@ -297,7 +297,7 @@
       corpo.innerHTML = `<div class="folha"><h2>Assinatura da empresa</h2>
         <p class="sub">O responsável (ex.: sócio, diretor, contador) assina <b>uma única vez</b> um termo de autorização, com código e selfie. Depois disso, os documentos marcados com “Já enviar assinado pela empresa” saem com a assinatura dele — e quem recebe assina só a parte dele.</p>
         ${reps.length ? `<table class="tabela"><thead><tr><th>Responsável</th><th>Situação</th><th></th></tr></thead><tbody>${reps.map((r) => `<tr><td><b>${esc(r.nome)}</b><div class="sub" style="margin:0">${esc(r.cargo)}${r.registro ? ` · ${esc(r.registro)}` : ''}</div></td>
-          <td>${r.revogado_em ? '<span class="selo cancelado">revogado</span>' : r.autorizado_em ? `<span class="selo assinado">autorizado</span><div class="dica">desde ${data(r.autorizado_em)}</div>` : `<span class="selo pendente">aguardando o termo</span>${r.link_termo ? `<div><button class="link" data-copiar="${esc(r.link_termo)}">copiar link do termo</button></div>` : ''}`}</td>
+          <td>${r.revogado_em ? '<span class="selo cancelado">revogado</span>' : r.autorizado_em ? `<span class="selo assinado">autorizado</span><div class="dica">desde ${data(r.autorizado_em)}</div>` : `<span class="selo pendente">aguardando o termo</span>${r.link_termo ? `<div><button class="link" data-copiar="${esc(r.link_termo)}">copiar link do termo</button> · <button class="link" data-qr="${esc(r.link_termo)}">mostrar QR code</button></div><div class="qr-termo oculto" style="margin-top:8px"><img src="${esc(r.link_termo)}/qr.svg" alt="QR code do termo" width="130" height="130" style="background:#fff;border:1px solid var(--linha);border-radius:6px;padding:6px"></div>` : ''}`}</td>
           <td style="text-align:right">${!r.revogado_em && ehDono() ? `<button class="btn perigo peq" data-revogar="${r.id}">Revogar</button>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="estado">Nenhum responsável cadastrado ainda.</p>'}
       </div>
       ${ehDono() ? `<form class="folha" id="f"><h3>Cadastrar responsável</h3><p class="sub">Ele recebe o link do termo por e-mail/WhatsApp (ou você copia o link aqui).</p>
@@ -305,8 +305,9 @@
         <label class="campo"><span>Cargo</span><input class="inp" name="cargo" placeholder="Ex.: Sócio administrador, Contador responsável"></label><label class="campo"><span>Registro profissional (opcional)</span><input class="inp" name="registro" placeholder="Ex.: CRC/SC 000000/O"></label>
         <label class="campo"><span>E-mail</span><input class="inp" name="email" type="email"></label><label class="campo"><span>WhatsApp</span><input class="inp" name="whatsapp" data-mascara="fone" inputmode="tel"></label></div>
         <button class="btn sign">Cadastrar e gerar o termo</button><p class="msg" id="m"></p><div id="linkTermo"></div></form>` : ''}`
-      $$('[data-copiar]').forEach((b) => (b.onclick = () => copiar(b.dataset.copiar, 'Link do termo copiado.')))
-      $$('[data-revogar]').forEach((b) => (b.onclick = async () => {
+      $('[data-copiar]').forEach((b) => (b.onclick = () => copiar(b.dataset.copiar, 'Link do termo copiado.')))
+      $('[data-qr]').forEach((b) => (b.onclick = () => b.closest('td').querySelector('.qr-termo').classList.toggle('oculto')))
+      $('[data-revogar]').forEach((b) => (b.onclick = async () => {
         if (!confirm('Revogar a assinatura automática deste responsável? Os documentos já assinados continuam válidos.')) return
         try { await api(`/app/api/representantes/${b.dataset.revogar}/revogar`, { method: 'POST' }); await carregarEu(); toast('Autorização revogada.'); telaConfig('empresa-assina') } catch (er) { toast(er.message, true) }
       }))
@@ -314,7 +315,9 @@
         e.preventDefault(); const f = Object.fromEntries(new FormData(e.target))
         try {
           const r = await api('/app/api/representantes', { method: 'POST', body: { ...f, cpf: dig(f.cpf), whatsapp: dig(f.whatsapp) } })
-          $('#linkTermo').innerHTML = `<p class="msg ok">Termo gerado${r.enviadoPor.length ? ` e enviado por ${r.enviadoPor.join(' e ')}` : ''}. Link para ele assinar:</p><div class="segredo">${esc(r.link)}</div><button type="button" class="btn claro peq" id="copTermo">Copiar link</button>`
+          $('#linkTermo').innerHTML = `<p class="msg ok">Termo gerado${r.enviadoPor.length ? ` e enviado por ${r.enviadoPor.join(' e ')}` : ''}. Link para ele assinar:</p><div class="segredo">${esc(r.link)}</div>
+            <div style="display:flex;gap:14px;align-items:center;margin:10px 0"><img src="${esc(r.link)}/qr.svg" alt="QR code do termo" width="140" height="140" style="background:#fff;border:1px solid var(--linha);border-radius:6px;padding:6px"><span class="sub" style="margin:0">Se ele estiver aqui com você, é só apontar a câmera do celular para o QR e assinar o termo na hora (código + selfie).</span></div>
+            <button type="button" class="btn claro peq" id="copTermo">Copiar link</button>`
           $('#copTermo').onclick = () => copiar(r.link, 'Link do termo copiado.')
           e.target.reset()
         } catch (er) { formMsg($('#m'), er.message) }

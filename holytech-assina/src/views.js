@@ -57,6 +57,10 @@ export function paginaAssinar({ token, doc, sig, conta, canais }) {
 <section class="cartao bloqueado" id="passo-selfie">
   <div class="passo-cab"><span class="num">3</span><h2>Tire uma selfie</h2></div>
   <p class="sub centro">A foto é tirada agora pela câmera e serve apenas para comprovar a autoria desta assinatura. Ela fica guardada de forma criptografada e não aparece no documento.</p>
+  <div id="celular" class="celular oculto">
+    <img src="${B}/s/${esc(token)}/qr.svg" alt="QR code para continuar no celular" width="168" height="168">
+    <div><b>Está no computador?</b><br>Aponte a câmera do celular para o código e continue por lá: a selfie fica melhor e o código que você já confirmou continua valendo.<br><span class="sub" id="celular-status">Esta página atualiza sozinha quando você terminar no celular.</span></div>
+  </div>
   <div class="camera"><video id="video" playsinline muted></video><canvas id="canvas" class="oculto"></canvas><img id="previa" class="oculto" alt="Sua selfie"></div>
   <div class="acoes">
     <button class="botao" id="btn-camera">Abrir câmera</button>

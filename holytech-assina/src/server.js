@@ -1,6 +1,7 @@
 // Holysign (by HolyTech) — assinatura eletrônica com código + selfie + carimbo de tempo HolyTech.
 // Tudo sob o prefixo /holysign (nginx do holytechsolution.com.br encaminha p/ cá); /assinar redireciona.
 import express from 'express'
+import QRCode from 'qrcode'
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
@@ -81,6 +82,19 @@ r.get('/s/:token', async (req, res) => {
   if (x.d.status === 'cancelado') return res.send(paginaMensagem('Documento cancelado', 'Quem enviou este documento cancelou a assinatura.'))
   await evento(x.d.id, x.s.id, 'pagina_aberta', {}, req)
   res.send(paginaAssinar({ token: req.params.token, doc: x.d, sig: x.s, conta: x.c, canais: canaisDisponiveis(x.c, x.s) }))
+})
+
+// QR code do próprio link — para continuar no celular (selfie) quando abriu no computador
+r.get('/s/:token/qr.svg', async (req, res) => {
+  const x = await carregarSig(req.params.token)
+  if (!x) return res.status(404).end()
+  res.type('image/svg+xml').set('Cache-Control', 'no-store').send(await QRCode.toString(linkDe(req.params.token), { type: 'svg', margin: 1, color: { dark: '#0E0E10', light: '#FFFFFF' } }))
+})
+// Estado do signatário (a página do computador acompanha o que foi feito no celular)
+r.get('/s/:token/estado', async (req, res) => {
+  const x = await carregarSig(req.params.token)
+  if (!x) return res.status(404).json({})
+  res.set('Cache-Control', 'no-store').json({ otpValidado: !!x.s.otp_validado_em, selfie: !!x.s.selfie_hash, assinado: x.s.status === 'assinado', documento: x.d.status })
 })
 
 r.get('/s/:token/documento.pdf', async (req, res) => {

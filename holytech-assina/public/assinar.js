@@ -108,5 +108,16 @@
 
   // Retomada (página recarregada no meio do fluxo)
   if (A.otpValidado) codigoOk()
+  // No computador: mostra o QR para continuar no celular e acompanha o que for feito por la
+  const ehCelular = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
+  if (!ehCelular && !(A.otpValidado && A.selfie)) {
+    $('celular').classList.remove('oculto')
+    const acompanhar = setInterval(async () => {
+      try {
+        const e = await (await fetch(A.base + '/s/' + A.token + '/estado', { cache: 'no-store' })).json()
+        if (e.assinado || e.selfie) { clearInterval(acompanhar); location.reload() }
+      } catch { /* tenta de novo */ }
+    }, 4000)
+  }
   if (A.otpValidado && A.selfie) { feito('passo-selfie'); $('btn-camera').classList.add('oculto'); msg('msg-selfie', 'Selfie registrada.', 'ok'); liberar('passo-assinar') }
 })()
