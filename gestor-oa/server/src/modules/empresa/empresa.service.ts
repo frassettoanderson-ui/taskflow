@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { emitirEmpresaCadastrada } from '../../lib/integracoesErp.js';
 import { aplicarRegime } from '../obrigacao/empresaObrigacao.service.js';
 import { prisma } from '../../prisma.js';
 import { Errors } from '../../lib/errors.js';
@@ -342,6 +343,8 @@ export async function criar(escritorioId: string, input: CriarInput) {
     },
     include: { identificadores: true, tags: { include: { tag: true } } },
   });
+  // Integrações: empresa.cadastrada (cadastro manual no Obrigô)
+  emitirEmpresaCadastrada(escritorioId, { ...nova, cnpj: nova.identificadores.find((i) => i.tipo === 'CNPJ')?.valor ?? null }, 'manual');
   // Aplica as obrigacoes do regime escolhido (vinculos de origem REGIME)
   if (input.regimeTributarioId) {
     try { await aplicarRegime(escritorioId, nova.id, input.regimeTributarioId); } catch { /* nao bloqueia o cadastro */ }

@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { prisma } from '../prisma.js';
 import { env } from '../env.js';
+import { emitirEmpresaCadastrada } from './integracoesErp.js';
 
 // Ponte Obrigô → ERP (Nauta/Atuan), até a fusão dos sistemas.
 // O cadastro de cliente passa a ser SÓ o do Obrigô; ao salvar uma Empresa vinculada
@@ -9,7 +10,7 @@ import { env } from '../env.js';
 // Nunca bloqueia o salvamento: qualquer falha só vai pro log.
 
 let nauta: PrismaClient | null = null;
-function clienteNauta(): PrismaClient | null {
+export function clienteNauta(): PrismaClient | null {
   if (!env.nautaDatabaseUrl) return null;
   if (!nauta) nauta = new PrismaClient({ datasources: { db: { url: env.nautaDatabaseUrl } } });
   return nauta;
@@ -212,6 +213,8 @@ export async function sincronizarDoNauta(nautaClienteId: string): Promise<string
         data: { ...data, escritorioId, numero: maxNumero + 1, nautaClienteId, socios: { create: socios } },
       });
       empId = nova.id;
+      // Integrações: empresa.cadastrada (veio do CRM/onboarding do ERP)
+      emitirEmpresaCadastrada(escritorioId, { ...nova, cnpj: cnpjDig.length === 14 ? cnpjDig : null }, 'erp');
     }
 
     // Identificador CNPJ (armazenado só com dígitos, como no import)
