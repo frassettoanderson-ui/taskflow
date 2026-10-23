@@ -10,5 +10,5 @@ rm -f "$PKG"
 ssh $VPS 'set -e; mkdir -p /var/www/holytech-assina && cd /var/www/holytech-assina && tar xzf /tmp/holytech-assina.tgz && rm /tmp/holytech-assina.tgz \
   && npm install --omit=dev --no-audit --no-fund --silent \
   && (pm2 describe holytech-assina >/dev/null 2>&1 && pm2 reload holytech-assina --update-env || pm2 start ecosystem.config.cjs) && pm2 save >/dev/null \
-  && sleep 2 && curl -s http://127.0.0.1:3460/assinar/saude'
+  && sleep 2 && curl -s http://127.0.0.1:3460/holysign/saude'
 echo

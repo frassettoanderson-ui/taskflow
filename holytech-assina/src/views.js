@@ -7,13 +7,13 @@ const fmt = (d) => d ? new Date(d).toLocaleString('pt-BR', { timeZone: 'America/
 
 function layout(titulo, corpo, extraHead = '') {
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(titulo)} · HolyTech Assina</title><meta name="robots" content="noindex">
+<title>${esc(titulo)} · Holysign</title><meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@112,700;112,800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${B}/static/estilo.css">${extraHead}</head>
-<body><header class="topo"><div class="marca"><span class="ponto"></span>HolyTech <b>Assina</b></div></header>
+<body><header class="topo"><a class="marca" href="${B}/">Holy<b>sign</b></a><span class="by">by HolyTech</span></header>
 <main>${corpo}</main>
-<footer class="rodape">Assinatura eletrônica operada pela HolyTech Solutions · <a href="${B}/v">verificar documento</a></footer></body></html>`
+<footer class="rodape">Holysign · assinatura eletrônica operada pela HolyTech Solutions · <a href="${B}/v">verificar documento</a></footer></body></html>`
 }
 
 export function paginaMensagem(titulo, texto) {

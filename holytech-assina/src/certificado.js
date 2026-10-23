@@ -1,4 +1,4 @@
-// PDF final = documento original + páginas do Certificado de Assinatura (HolyTech Assina).
+// PDF final = documento original + páginas do Certificado de Assinatura (Holysign).
 // A selfie NÃO vai no PDF (dado biométrico): só o hash dela, para provar a correspondência.
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 import QRCode from 'qrcode'
@@ -39,7 +39,7 @@ export async function gerarFinal({ originalBytes, documento, conta, signatarios,
 
   novaPagina()
   texto('CERTIFICADO DE ASSINATURA ELETRÔNICA', { f: negrito, s: 15, dy: 20 })
-  texto('HolyTech Assina - HolyTech Solutions (provedor de assinatura)', { s: 10, c: cinza, dy: 22 })
+  texto('Holysign by HolyTech - HolyTech Solutions (provedor de assinatura)', { s: 10, c: cinza, dy: 22 })
   pag.drawImage(qr, { x: W - M - 96, y: H - M - 104, width: 96, height: 96 })
 
   texto('Documento', { f: negrito, s: 11, dy: 15 })
@@ -78,6 +78,6 @@ export async function gerarFinal({ originalBytes, documento, conta, signatarios,
   y -= 4
   texto(`Verificação: ${urlVer}`, { f: negrito, s: 9, dy: 12 })
 
-  pdf.setTitle(limpo(documento.titulo)); pdf.setProducer('HolyTech Assina'); pdf.setCreator('HolyTech Assina')
+  pdf.setTitle(limpo(documento.titulo)); pdf.setProducer('Holysign by HolyTech'); pdf.setCreator('Holysign')
   return Buffer.from(await pdf.save())
 }

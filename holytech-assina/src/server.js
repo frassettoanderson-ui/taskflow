@@ -1,5 +1,5 @@
-// HolyTech Assina — assinatura eletrônica com código + selfie + carimbo de tempo HolyTech.
-// Tudo sob o prefixo /assinar (nginx do holytechsolution.com.br encaminha p/ cá).
+// Holysign (by HolyTech) — assinatura eletrônica com código + selfie + carimbo de tempo HolyTech.
+// Tudo sob o prefixo /holysign (nginx do holytechsolution.com.br encaminha p/ cá); /assinar redireciona.
 import express from 'express'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -10,6 +10,8 @@ import { sha256, tokenAleatorio, codigoVerificacao, cifrar, garantirChaves, chav
 import { canaisDisponiveis, enviarCodigo, enviarConvite } from './canais.js'
 import { gerarFinal } from './certificado.js'
 import { notificar } from './webhook.js'
+import { criarDocumento, docComSignatarios, respostaDoc, cancelarDocumento, linkDe } from './documentos.js'
+import { painel } from './painel.js'
 import { paginaAssinar, paginaVerificar, paginaMensagem } from './views.js'
 
 const app = express()
@@ -34,77 +36,16 @@ const api = express.Router()
 api.use(express.json({ limit: '25mb' }))
 api.use(autenticar)
 
-const linkDe = (token) => `${config.urlPublica}/s/${token}`
-
-async function docComSignatarios(id, contaId) {
-  const d = (await pool.query(`SELECT * FROM documentos WHERE id = $1 AND conta_id = $2`, [id, contaId])).rows[0]
-  if (!d) return null
-  const s = (await pool.query(`SELECT id, nome, cpf, email, whatsapp, papel, status, token, assinado_em, otp_canal FROM signatarios WHERE documento_id = $1 ORDER BY ordem, nome`, [id])).rows
-  return { d, s }
-}
-const respostaDoc = ({ d, s }) => ({
-  id: d.id, titulo: d.titulo, external_id: d.external_id, status: d.status, codigo: d.codigo,
-  verificacao: `${config.urlPublica}/v/${d.codigo}`, hash_original: d.hash_original, hash_final: d.hash_final,
-  criado_em: d.criado_em, concluido_em: d.concluido_em,
-  signatarios: s.map(x => ({ id: x.id, nome: x.nome, papel: x.papel, status: x.status, assinado_em: x.assinado_em, link: x.papel === 'contratada' ? null : linkDe(x.token) })),
-})
-
 // POST /api/v1/documentos  { titulo, pdf_base64, signatarios:[{nome,cpf,email,whatsapp,papel}], external_id?, callback_url?, enviar_convite?,
 //                            assinatura_representante?: true | '<representante_id>' }  → já sai assinado pelo representante autorizado da conta
 api.post('/documentos', async (req, res) => {
   try {
-    const b = req.body || {}
-    const pdf = Buffer.from(String(b.pdf_base64 || ''), 'base64')
-    if (!String(b.titulo || '').trim()) return res.status(400).json({ erro: 'titulo obrigatório' })
-    if (pdf.length < 100 || pdf.subarray(0, 5).toString() !== '%PDF-') return res.status(400).json({ erro: 'pdf_base64 inválido' })
-    const sigs = Array.isArray(b.signatarios) ? b.signatarios : []
-    if (!sigs.length || sigs.some(s => !String(s.nome || '').trim() || (!s.email && !s.whatsapp))) return res.status(400).json({ erro: 'cada signatário precisa de nome e e-mail ou WhatsApp' })
-    // Representante com autorização prévia (ex.: contador responsável): valida antes de gravar
-    let rep = null
-    if (b.assinatura_representante) {
-      const q = typeof b.assinatura_representante === 'string'
-        ? await pool.query(`SELECT * FROM representantes WHERE id = $1 AND conta_id = $2`, [b.assinatura_representante, req.conta.id])
-        : await pool.query(`SELECT * FROM representantes WHERE conta_id = $1 AND autorizado_em IS NOT NULL AND revogado_em IS NULL ORDER BY autorizado_em DESC LIMIT 1`, [req.conta.id])
-      rep = q.rows[0]
-      if (!rep || !rep.autorizado_em || rep.revogado_em) return res.status(400).json({ erro: 'representante sem autorização de assinatura vigente (assine o Termo de autorização primeiro)' })
-    }
-    const hash = sha256(pdf)
-    const arq = `${crypto.randomUUID()}.pdf`
-    fs.writeFileSync(path.join(config.dados, 'originais', arq), pdf)
-    const d = (await pool.query(
-      `INSERT INTO documentos (conta_id, titulo, external_id, callback_url, codigo, hash_original, arquivo_original) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [req.conta.id, String(b.titulo).trim(), b.external_id ?? null, b.callback_url ?? null, codigoVerificacao(), hash, arq]
-    )).rows[0]
-    let ordem = 1
-    if (rep) {
-      // Assinatura aplicada agora, com base no Termo de autorização (evidências do termo: código + selfie)
-      const termo = (await pool.query(
-        `SELECT d.codigo, s.otp_validado_em, s.selfie_hash, s.assinado_em FROM documentos d JOIN signatarios s ON s.documento_id = d.id WHERE d.id = $1 LIMIT 1`, [rep.termo_documento_id]
-      )).rows[0]
-      await pool.query(
-        `INSERT INTO signatarios (documento_id, ordem, nome, cpf, email, whatsapp, papel, token, status, assinado_em, otp_canal, otp_destino, otp_validado_em, selfie_hash, ip, user_agent, representante_id, cargo, registro)
-         VALUES ($1,$2,$3,$4,$5,$6,'contratada',$7,'assinado',now(),'autorizacao',$8,$9,$10,$11,$12,$13,$14,$15)`,
-        [d.id, ordem++, rep.nome, rep.cpf, rep.email, rep.whatsapp, tokenAleatorio(), `Termo de autorização ${termo?.codigo ?? '—'}`, termo?.otp_validado_em ?? null,
-         termo?.selfie_hash ?? null, ipDe(req), 'HolyTech Assina API (assinatura autorizada da conta)', rep.id, rep.cargo, rep.registro]
-      )
-      await evento(d.id, null, 'assinatura_representante', { representante: rep.nome, cargo: rep.cargo, registro: rep.registro, termo: termo?.codigo, termo_assinado_em: termo?.assinado_em }, req)
-    }
-    for (const s of sigs) {
-      await pool.query(
-        `INSERT INTO signatarios (documento_id, ordem, nome, cpf, email, whatsapp, papel, token) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [d.id, ordem++, String(s.nome).trim(), s.cpf ?? null, s.email ? String(s.email).trim() : null, s.whatsapp ?? null, s.papel === 'testemunha' ? 'testemunha' : 'parte', tokenAleatorio()]
-      )
-    }
-    await evento(d.id, null, 'documento_criado', { titulo: d.titulo, hash_original: hash, signatarios: sigs.length, conta: req.conta.nome }, req)
-    const out = await docComSignatarios(d.id, req.conta.id)
-    if (b.enviar_convite) {
-      for (const s of out.s) {
-        const feitos = await enviarConvite(req.conta, s, d.titulo, linkDe(s.token))
-        await evento(d.id, s.id, 'convite_enviado', { canais: feitos })
-      }
-    }
+    const out = await criarDocumento(req.conta, req.body || {}, { ip: ipDe(req), req, origem: 'Holysign API (assinatura autorizada da conta)' })
     res.status(201).json(respostaDoc(out))
-  } catch (e) { console.error(e); res.status(500).json({ erro: 'falha ao criar documento' }) }
+  } catch (e) {
+    if (e.status) return res.status(e.status).json({ erro: e.message })
+    console.error(e); res.status(500).json({ erro: 'falha ao criar documento' })
+  }
 })
 
 api.get('/documentos/:id', async (req, res) => {
@@ -118,12 +59,10 @@ api.get('/documentos/:id/final.pdf', async (req, res) => {
   res.type('application/pdf').send(fs.readFileSync(path.join(config.dados, 'finais', d.arquivo_final)))
 })
 api.post('/documentos/:id/cancelar', async (req, res) => {
-  const d = (await pool.query(`UPDATE documentos SET status = 'cancelado' WHERE id = $1 AND conta_id = $2 AND status = 'pendente' RETURNING id`, [req.params.id, req.conta.id])).rows[0]
-  if (!d) return res.status(404).json({ erro: 'não encontrado ou já concluído' })
-  await evento(d.id, null, 'documento_cancelado', {}, req)
-  res.json({ ok: true })
+  try { res.json(await cancelarDocumento(req.conta, req.params.id, { req })) } catch (e) { res.status(e.status || 500).json({ erro: e.message }) }
 })
 r.use('/api/v1', api)
+r.use(painel)
 
 // ── Fluxo do signatário (link com token) ────────────────────────────────────
 async function carregarSig(token) {
@@ -271,10 +210,14 @@ r.get('/v/:codigo/info.json', async (req, res) => {
   res.json(v)
 })
 
-r.get('/', (_req, res) => res.send(paginaVerificar(null)))
+// Painel (entrar, criar conta, documentos, configurações) — app de uma página
+const appHtml = () => fs.readFileSync(path.join(config.raiz, 'public', 'app.html'), 'utf8').replaceAll('{{BASE}}', B)
+r.get('/', (_req, res) => res.type('html').send(appHtml()))
 app.use(B, r)
+// Links antigos (/assinar/...) continuam funcionando
+app.use(config.baseAntiga, (req, res) => res.redirect(301, B + req.url))
 app.get('/', (_req, res) => res.redirect(B))
 
 await migrar()
 garantirChaves()
-app.listen(config.porta, '127.0.0.1', () => console.log(`HolyTech Assina em :${config.porta}${B} (${config.urlPublica})`))
+app.listen(config.porta, '127.0.0.1', () => console.log(`Holysign em :${config.porta}${B} (${config.urlPublica})`))

@@ -22,7 +22,7 @@
 | `holytech-site/` | **HolyTech Solutions** — site institucional + landings Holyshop/Holycar/Holybarber/Holyweb (no ar em holytechsolution.com.br) | HTML/CSS/JS estático + build Node | abrir chat em `holytech-site/` |
 | `versatil/` | **Versátil** — loja de logística reversa: e-commerce + disparo em grupos WhatsApp + PDV (esboço) | Next.js + Node/Prisma/Postgres + Asaas + Evolution | abrir chat em `versatil/` |
 | `extensao-crm/` | **CRM WhatsApp** (nome provisório) — extensão Chrome própria, reescrita inspirada na WaSpeed (funil, ficha, respostas rápidas, agendamentos) | Extensão MV3 TS/React + esbuild + wa-js; dados em chrome.storage | abrir chat em `extensao-crm/` |
-| `holytech-assina/` | **HolyTech Assina** — assinatura eletrônica (código + selfie + carimbo HolyTech) p/ substituir o Autentique; no ar em holytechsolution.com.br/assinar | Node/Express + Postgres + pdf-lib | abrir chat em `holytech-assina/` |
+| `holytech-assina/` | **Holysign** (ex-HolyTech Assina) — assinatura eletrônica estilo Autentique (cadastro aberto, painel, API/webhook, código + selfie + carimbo HolyTech); no ar em holytechsolution.com.br/holysign | Node/Express + Postgres + pdf-lib | abrir chat em `holytech-assina/` |
 
 ## Observações
 - `financas/` é um **repositório git próprio** embutido; os demais fazem parte deste repo raiz.

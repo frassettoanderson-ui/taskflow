@@ -1,13 +1,15 @@
 :root {
-  --papel: #F2F1EC; --tinta: #0E0E10; --cinza: #5f5f66; --linha: #dcdad2; --amarelo: #FDBB01;
+  --papel: #F2F1EC; --tinta: #0E0E10; --cinza: #5f5f66; --linha: #dcdad2; --amarelo: #FDBB01; --sign: #0E7C7B;
   --ok: #3f7a37; --ok-fundo: #e3f1e0; --erro: #b23b2a; --erro-fundo: #fbe4e0;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--papel); color: var(--tinta); font: 15px/1.5 'Geist', system-ui, sans-serif; }
 a { color: inherit; }
 .topo { padding: 18px 20px; display: flex; justify-content: center; border-bottom: 1px solid var(--linha); background: var(--papel); }
-.marca { font-family: 'Archivo', sans-serif; font-stretch: 112%; font-weight: 700; font-size: 18px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
-.marca b { font-weight: 800; }
+.topo { gap: 8px; align-items: baseline; }
+.by { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--cinza); }
+.marca { text-decoration: none; font-family: 'Archivo', sans-serif; font-stretch: 112%; font-weight: 700; font-size: 18px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+.marca b { font-weight: 800; color: var(--sign); }
 .ponto { width: 12px; height: 12px; background: var(--amarelo); border-radius: 3px; display: inline-block; }
 main { max-width: 640px; margin: 0 auto; padding: 22px 16px 10px; }
 .cartao { background: #fff; border: 1px solid var(--linha); border-radius: 7px; padding: 22px 20px; margin-bottom: 14px; }

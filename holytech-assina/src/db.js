@@ -99,6 +99,34 @@ export async function migrar() {
     ALTER TABLE signatarios ADD COLUMN IF NOT EXISTS representante_id uuid;
     ALTER TABLE signatarios ADD COLUMN IF NOT EXISTS cargo text;
     ALTER TABLE signatarios ADD COLUMN IF NOT EXISTS registro text;
+
+    -- Holysign: contas com cadastro próprio, usuários e sessões do painel
+    ALTER TABLE contas ADD COLUMN IF NOT EXISTS cnpj text;
+    ALTER TABLE contas ADD COLUMN IF NOT EXISTS plano text NOT NULL DEFAULT 'gratis';      -- gratis | cortesia | (pagos no futuro)
+    ALTER TABLE contas ADD COLUMN IF NOT EXISTS limite_mensal int DEFAULT 5;              -- NULL = sem limite
+    ALTER TABLE contas ADD COLUMN IF NOT EXISTS webhook_url text;
+    ALTER TABLE documentos ADD COLUMN IF NOT EXISTS criado_por uuid;
+    CREATE TABLE IF NOT EXISTS usuarios (
+      id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      conta_id       uuid NOT NULL REFERENCES contas(id),
+      nome           text NOT NULL,
+      email          text NOT NULL UNIQUE,
+      senha_hash     text,
+      papel          text NOT NULL DEFAULT 'membro',   -- dono | membro
+      ativo          boolean NOT NULL DEFAULT true,
+      convite_hash   text,                            -- convite de equipe / redefinição de senha
+      convite_expira timestamptz,
+      criado_em      timestamptz NOT NULL DEFAULT now(),
+      ultimo_acesso  timestamptz
+    );
+    CREATE TABLE IF NOT EXISTS sessoes (
+      token_hash  text PRIMARY KEY,
+      usuario_id  uuid NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+      expira      timestamptz NOT NULL,
+      ip          text,
+      user_agent  text,
+      criado_em   timestamptz NOT NULL DEFAULT now()
+    );
   `)
 }
 

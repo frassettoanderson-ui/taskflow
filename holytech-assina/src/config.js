@@ -17,9 +17,16 @@ if (fs.existsSync(envFile)) {
 export const config = {
   raiz,
   porta: Number(process.env.PORT || 3460),
-  // URL pública (sem barra no fim), ex.: https://holytechsolution.com.br/assinar
-  urlPublica: (process.env.URL_PUBLICA || 'http://localhost:3460/assinar').replace(/\/$/, ''),
-  base: '/assinar',
+  // URL pública (sem barra no fim), ex.: https://holytechsolution.com.br/holysign
+  urlPublica: (process.env.URL_PUBLICA || 'http://localhost:3460/holysign').replace(/\/$/, ''),
+  base: '/holysign',
+  baseAntiga: '/assinar', // links antigos redirecionam
+  // E-mail da plataforma (redefinir senha, convites; e canal padrão das contas sem e-mail próprio)
+  plataformaEmail: {
+    host: process.env.HOLYSIGN_SMTP_HOST || '', port: Number(process.env.HOLYSIGN_SMTP_PORT || 465),
+    user: process.env.HOLYSIGN_SMTP_USER || '', pass: process.env.HOLYSIGN_SMTP_PASS || '', from: process.env.HOLYSIGN_SMTP_FROM || '',
+  },
+  limiteGratis: Number(process.env.HOLYSIGN_LIMITE_GRATIS || 5),
   databaseUrl: process.env.DATABASE_URL || 'postgres://localhost/holyassina',
   dados: process.env.DADOS_DIR || path.join(raiz, 'dados'),
   // AES-256-GCM das selfies (32 bytes em hex). Obrigatória em produção.
