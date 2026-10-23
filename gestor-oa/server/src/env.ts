@@ -37,6 +37,8 @@ export const env = {
     // Escritorio (tenant) em que os usuarios do SSO entram. Se vazio e houver apenas
     // um escritorio ativo, usa esse automaticamente.
     escritorioId: process.env.SSO_ESCRITORIO_ID ?? '',
+    // Perfis do ERP -> escritorio: "atuan:<id>,nauta:<id>,meis:<id>" (troca de perfil no topo do ERP)
+    escritorios: Object.fromEntries((process.env.SSO_ESCRITORIOS ?? '').split(',').map((p) => p.split(':').map((x) => x.trim())).filter((p) => p.length === 2 && p[0] && p[1])) as Record<string, string>,
   },
 
   tz: process.env.TZ ?? 'America/Sao_Paulo',

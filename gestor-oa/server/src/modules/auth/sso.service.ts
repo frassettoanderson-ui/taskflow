@@ -9,7 +9,8 @@ import type { SessionMeta } from './auth.service.js';
 
 // Resolve o escritorio (tenant) em que os usuarios do SSO entram.
 // Preferencia: env SSO_ESCRITORIO_ID; senao, se houver so um escritorio ativo, usa esse.
-async function resolverEscritorioId(): Promise<string> {
+export async function resolverEscritorioId(perfil?: string): Promise<string> {
+  if (perfil && env.sso.escritorios[perfil]) return env.sso.escritorios[perfil];
   if (env.sso.escritorioId) return env.sso.escritorioId;
   const ativos = await prisma.escritorio.findMany({
     where: { deletedAt: null },
@@ -52,7 +53,7 @@ export async function loginViaSso(token: string, meta: SessionMeta): Promise<str
 
   const payload = verifySsoToken(token, env.sso.secret);
   const email = payload.email.toLowerCase();
-  const escritorioId = await resolverEscritorioId();
+  const escritorioId = await resolverEscritorioId(payload.perfil);
 
   let usuario = await prisma.usuario.findUnique({
     where: { escritorioId_email: { escritorioId, email } },

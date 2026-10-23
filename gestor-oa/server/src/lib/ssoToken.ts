@@ -8,6 +8,7 @@ export interface SsoPayload {
   email: string;
   nome?: string;
   role?: string;
+  perfil?: string; // atuan | nauta | meis (perfil ativo no ERP)
   iat: number;
   exp: number;
 }

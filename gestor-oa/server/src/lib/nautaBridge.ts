@@ -117,9 +117,17 @@ const soDig = (v: unknown): string => String(v ?? '').replace(/\D/g, '');
 export async function sincronizarDoNauta(nautaClienteId: string): Promise<string | null> {
   const db = clienteNauta();
   if (!db) return null;
-  const escritorioId = env.sso.escritorioId;
+  let escritorioId = env.sso.escritorioId;
   if (!escritorioId) { console.error('[nautaBridge] SSO_ESCRITORIO_ID ausente; sync reversa ignorada'); return null; }
   try {
+    // Perfil do lead no ERP (empresa ativa quando foi criado) decide o escritorio do Obrigo
+    const perf = await db.$queryRawUnsafe<{ slug: string }[]>(
+      `SELECT e.slug FROM clientes c LEFT JOIN leads l ON l.id = c.lead_id JOIN empresas e ON e.id = COALESCE(l.empresa_id, c.empresa_id) WHERE c.id = $1::uuid`, nautaClienteId,
+    ).catch(() => []);
+    if (perf[0]?.slug && env.sso.escritorios[perf[0].slug]) escritorioId = env.sso.escritorios[perf[0].slug];
+    // Empresa ja espelhada fica no escritorio onde esta (ex.: clientes Nauta captados pela Atuan)
+    const jaEsc = (await prisma.empresa.findUnique({ where: { nautaClienteId }, select: { escritorioId: true } }))?.escritorioId;
+    if (jaEsc) escritorioId = jaEsc;
     const rows = await db.$queryRawUnsafe<Record<string, unknown>[]>(
       `SELECT c.*, l.valor_honorario AS l_honorario, l.valor_abertura AS l_abertura, l.negociacao_obs AS l_obs,
               l.honorario_vencimento AS l_venc, l.interesse AS l_interesse, l.whatsapp AS l_whatsapp,
