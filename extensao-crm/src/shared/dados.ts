@@ -140,6 +140,22 @@ export interface Categoria {
   ordem: number;
 }
 
+export type TipoPasso = Exclude<TipoResposta, 'script'>;
+
+export interface PassoFluxo {
+  id: string;
+  tipo: TipoPasso;
+  texto: string;
+  arquivo?: string;
+  nomeArquivo?: string;
+  ptt?: boolean;
+  duracaoSeg?: number;
+  simular: Simulacao;
+  simularSeg: number;
+  /** segundos parado antes desta etapa (depois da anterior) */
+  esperaSeg: number;
+}
+
 export interface RespostaRapida {
   id: string;
   atalho: string;
@@ -150,10 +166,12 @@ export interface RespostaRapida {
   arquivo?: string;
   nomeArquivo?: string;
   ptt?: boolean;
-  /** script: ids das respostas enviadas em sequência */
-  passos?: string[];
-  /** script: segundos de espera entre um passo e outro */
-  intervalo?: number;
+  /** fluxo (tipo 'script'): etapas enviadas em sequência, cada uma com seu tempo */
+  passos?: PassoFluxo[];
+  /** duração do áudio em segundos (para o "gravando..." ter o tempo real do áudio) */
+  duracaoSeg?: number;
+  /** aparece como botão de um clique acima do campo de mensagem */
+  botao?: boolean;
   categoriaId: string | null;
   simular: Simulacao;
   /** segundos de "digitando"/"gravando" antes de enviar */
@@ -238,8 +256,27 @@ export interface Config {
   /** ids das etiquetas do WhatsApp na ordem escolhida para o quadro */
   ordemEtiquetas: string[];
   privacidade: Privacidade;
-  assinatura: { ativa: boolean; nome: string };
+  assinatura: Assinatura;
   backupAuto: { ativo: boolean; hora: string; ultimo?: string };
+}
+
+export interface Assinatura {
+  ativa: boolean;
+  /** ex.: "Anderson - Comercial" */
+  nome: string;
+  posicao: 'topo' | 'rodape';
+  negrito: boolean;
+}
+
+/** Aplica a assinatura a um texto (não assina de novo se já estiver assinado). */
+export function assinar(texto: string, a: Assinatura) {
+  const nome = a.nome.trim();
+  if (!a.ativa || !nome || !texto.trim()) return texto;
+  const marca = a.negrito ? `*${nome}*` : `_${nome}_`;
+  const topo = `${marca}:\n`;
+  const rodape = `\n\n${marca}`;
+  if (a.posicao === 'topo') return texto.startsWith(topo) || texto.startsWith(`${nome}:`) ? texto : `${topo}${texto}`;
+  return texto.trimEnd().endsWith(marca) || texto.trimEnd().endsWith(nome) ? texto : `${texto.trimEnd()}${rodape}`;
 }
 
 export interface Privacidade {
@@ -295,7 +332,7 @@ const PADRAO: Banco = {
     funilAtivo: 'principal',
     ordemEtiquetas: [],
     privacidade: { ativa: false, fotos: true, nomes: true, ultimaMsg: true, mensagens: false, midia: true },
-    assinatura: { ativa: false, nome: '' },
+    assinatura: { ativa: false, nome: '', posicao: 'topo', negrito: true },
     backupAuto: { ativo: false, hora: '18:00' },
   },
 };
@@ -331,6 +368,25 @@ export function normResposta(r: Partial<RespostaRapida> & { id: string }): Respo
   };
 }
 
+export function passoDe(r: Pick<RespostaRapida, 'tipo' | 'texto' | 'arquivo' | 'nomeArquivo' | 'ptt' | 'duracaoSeg' | 'simular' | 'simularSeg'>, esperaSeg = 0): PassoFluxo {
+  return {
+    id: novoId(),
+    tipo: r.tipo === 'script' ? 'texto' : r.tipo,
+    texto: r.texto,
+    arquivo: r.arquivo,
+    nomeArquivo: r.nomeArquivo,
+    ptt: r.ptt,
+    duracaoSeg: r.duracaoSeg,
+    simular: r.simular,
+    simularSeg: r.simularSeg,
+    esperaSeg,
+  };
+}
+
+export function passoVazio(tipo: TipoPasso = 'texto'): PassoFluxo {
+  return { id: novoId(), tipo, texto: '', simular: tipo === 'audio' ? 'gravando' : 'digitando', simularSeg: 3, esperaSeg: 2, ptt: tipo === 'audio' ? true : undefined };
+}
+
 function normalizar<K extends Chave>(chave: K, v: any): Banco[K] {
   if (v == null) return structuredClone(PADRAO[chave]);
   if (chave === 'contatos') {
@@ -338,7 +394,22 @@ function normalizar<K extends Chave>(chave: K, v: any): Banco[K] {
     for (const [id, c] of Object.entries(v as Record<string, any>)) out[id] = normContato({ ...c, id });
     return out as Banco[K];
   }
-  if (chave === 'respostas') return (v as any[]).map(normResposta) as Banco[K];
+  if (chave === 'respostas') {
+    const lista = (v as any[]).map(normResposta);
+    // fluxos antigos guardavam só os ids de outras respostas: vira etapas próprias
+    const porId = new Map(lista.map((r) => [r.id, r]));
+    return lista.map((r) =>
+      r.passos?.length && typeof (r.passos as unknown[])[0] === 'string'
+        ? {
+            ...r,
+            passos: (r.passos as unknown as string[])
+              .map((id, i) => porId.get(id))
+              .filter((x): x is RespostaRapida => !!x && x.tipo !== 'script')
+              .map((x, i) => passoDe(x, i === 0 ? 0 : ((r as any).intervalo ?? 2))),
+          }
+        : r,
+    ) as Banco[K];
+  }
   if (chave === 'agendamentos') return (v as any[]).map((a) => ({ recorrencia: { tipo: 'nenhuma' }, ...a })) as Banco[K];
   if (chave === 'config')
     return {

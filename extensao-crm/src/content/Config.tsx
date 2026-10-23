@@ -295,10 +295,41 @@ function AbaPreferencias() {
         <span>Assinatura do atendente</span>
         <label className="campo--linha">
           <input type="checkbox" checked={config.assinatura.ativa} onChange={(e) => salvar({ assinatura: { ...config.assinatura, ativa: e.target.checked } })} />
-          Colocar meu nome em negrito no início das mensagens enviadas pela extensão
+          Assinar todas as mensagens de texto (inclusive as que eu digito no WhatsApp)
         </label>
-        <input className="entrada" placeholder="Seu nome (ex.: Anderson)" defaultValue={config.assinatura.nome} onBlur={(e) => salvar({ assinatura: { ...config.assinatura, nome: e.target.value.trim() } })} />
-        <small className="ajuda" style={{ textAlign: 'left' }}>Vale para respostas rápidas e mensagens agendadas. O que você digita direto no WhatsApp não muda.</small>
+        <input className="entrada" placeholder="Ex.: Anderson - Comercial" defaultValue={config.assinatura.nome} onBlur={(e) => salvar({ assinatura: { ...config.assinatura, nome: e.target.value.trim() } })} />
+        <div className="campos" style={{ marginTop: 6 }}>
+          <label className="campo">
+            <span>Onde</span>
+            <select className="entrada" value={config.assinatura.posicao} onChange={(e) => salvar({ assinatura: { ...config.assinatura, posicao: e.target.value as 'topo' | 'rodape' } })}>
+              <option value="topo">No começo da mensagem</option>
+              <option value="rodape">No fim da mensagem</option>
+            </select>
+          </label>
+          <label className="campo campo--linha" style={{ alignSelf: 'end' }}>
+            <input type="checkbox" checked={config.assinatura.negrito} onChange={(e) => salvar({ assinatura: { ...config.assinatura, negrito: e.target.checked } })} />
+            Em negrito
+          </label>
+        </div>
+        {config.assinatura.nome.trim() && (
+          <div className="assinatura-previa">
+            {config.assinatura.posicao === 'topo' ? (
+              <>
+                <b>{config.assinatura.negrito ? config.assinatura.nome : <i>{config.assinatura.nome}</i>}:</b>
+                <br />
+                Sua mensagem aqui.
+              </>
+            ) : (
+              <>
+                Sua mensagem aqui.
+                <br />
+                <br />
+                {config.assinatura.negrito ? <b>{config.assinatura.nome}</b> : <i>{config.assinatura.nome}</i>}
+              </>
+            )}
+          </div>
+        )}
+        <small className="ajuda" style={{ textAlign: 'left' }}>Mídia (foto, áudio, vídeo) não é assinada. Se a mensagem já tiver a assinatura, ela não é repetida.</small>
       </div>
 
       <div className="campo campo--largo" style={{ marginTop: 10 }}>

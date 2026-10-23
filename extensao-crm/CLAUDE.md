@@ -45,5 +45,8 @@ Nova conversa (`NovaConversa.tsx`), privacidade (`privacidade.ts`, CSS com selet
 ## v0.4.0 (22/10/2026)
 Status programado (`StatusProgramados.tsx`, aba em Agendadas; motor em `agendador.ts` > rodadaStatus) · notas com anexo · webhooks (`shared/webhook.ts` emite, background faz o POST; fallback no-cors) · IA (`shared/ia.ts` prompts + chamada no background; `AbaIA`, `BotoesIA`, `Assistente`). A IA nunca envia sozinha.
 
+## v0.5.0 (23/10/2026)
+Assinatura em TODAS as mensagens de texto, inclusive as digitadas no WhatsApp (src/content/assinador.ts intercepta Enter/botão enviar; assinar() em dados.ts; topo/rodapé, negrito/itálico). Respostas: tipo Fluxo com etapas próprias (PassoFluxo: texto/imagem/vídeo/áudio/arquivo, cada uma com digitando/gravando e espera); gravar áudio na extensão (MediaRecorder, onda sonora via waveform no wa-js); respostas marcadas como botão aparecem acima do campo (src/content/BotoesRapidos.tsx). Editor de conteúdo reusável: src/content/ConteudoPasso.tsx.
+
 ## Próximas fases
 Ver `ROADMAP.md` (inventário da WaSpeed → o que falta reescrever).

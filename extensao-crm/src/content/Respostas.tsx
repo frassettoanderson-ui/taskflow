@@ -1,10 +1,9 @@
 // Respostas rápidas: cadastro e envio. Também aparecem ao digitar "/" no campo de mensagem.
 import { useMemo, useState, type ReactNode } from 'react';
-import { alterar, gravar, normResposta, novoId, VARIAVEIS, type Categoria, type RespostaRapida, type Simulacao, type TipoResposta } from '../shared/dados';
-import { lerArquivoComoDataUrl } from '../ui/formato';
+import { alterar, gravar, normResposta, novoId, passoVazio, type Categoria, type PassoFluxo, type RespostaRapida, type TipoResposta } from '../shared/dados';
 import { useColecao, useEsc } from '../ui/hooks';
 import { IconBaixar, IconDocumento, IconEnviar, IconFechar, IconImagem, IconInserir, IconLapis, IconLixo, IconMais, IconMicrofone, IconQuadro, IconRaio, IconSubir, IconVideo } from '../ui/icones';
-import { BotoesIA } from './BotoesIA';
+import { ConteudoPasso, type ConteudoEditavel } from './ConteudoPasso';
 import { useCRM } from './contexto';
 import { destinoDe, enviarResposta, inserirResposta } from './envio';
 
@@ -16,7 +15,7 @@ export const ICONE_TIPO: Record<TipoResposta, (p: { tam?: number }) => ReactNode
   document: IconDocumento,
   script: IconQuadro,
 };
-const NOME_TIPO: Record<TipoResposta, string> = { texto: 'Texto', image: 'Imagem', video: 'Vídeo', audio: 'Áudio', document: 'Arquivo', script: 'Script' };
+const NOME_TIPO: Record<TipoResposta, string> = { texto: 'Texto', image: 'Imagem', video: 'Vídeo', audio: 'Áudio', document: 'Arquivo', script: 'Fluxo' };
 const ACEITA: Partial<Record<TipoResposta, string>> = { image: 'image/*', video: 'video/*', audio: 'audio/*', document: '*/*' };
 const LIMITE_MB = 15;
 const CORES = ['#5B8DEF', '#E0A030', '#B96AD9', '#3FA66B', '#D9534F', '#2BB3B1', '#C8551F', '#8A8F98'];
@@ -128,7 +127,7 @@ export function Respostas({ fechar }: { fechar: () => void }) {
                         <span className="resposta__atalho">/{r.atalho}</span>
                         {r.usos > 0 && <span className="resposta__usos">{r.usos}x</span>}
                       </div>
-                      <div className="resposta__previa">{previa(r, respostas)}</div>
+                      <div className="resposta__previa">{previa(r)}</div>
                     </div>
                     <div className="resposta__acoes">
                       {filtro === 'todas' && !busca && (
@@ -173,10 +172,10 @@ export function Respostas({ fechar }: { fechar: () => void }) {
   );
 }
 
-function previa(r: RespostaRapida, todas: RespostaRapida[]) {
+function previa(r: RespostaRapida) {
   if (r.tipo === 'script') {
-    const nomes = (r.passos ?? []).map((id) => todas.find((x) => x.id === id)?.titulo).filter(Boolean);
-    return nomes.length ? nomes.join(' + ') : 'Script vazio';
+    const n = r.passos?.length ?? 0;
+    return n ? `Fluxo com ${n} ${n === 1 ? 'etapa' : 'etapas'}` : 'Fluxo vazio';
   }
   return r.texto || r.nomeArquivo || NOME_TIPO[r.tipo];
 }
@@ -188,28 +187,28 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
   const [r, setR] = useState(inicial);
   const set = (p: Partial<RespostaRapida>) => setR((x) => ({ ...x, ...p }));
   const setAcoes = (p: Partial<RespostaRapida['acoes']>) => setR((x) => ({ ...x, acoes: { ...x.acoes, ...p } }));
-  const disponiveisScript = respostas.filter((x) => x.tipo !== 'script' && x.id !== r.id);
-
-  const escolherArquivo = async (f: File | undefined) => {
-    if (!f) return;
-    if (f.size > LIMITE_MB * 1024 * 1024) return avisar(`Arquivo acima de ${LIMITE_MB} MB`, true);
-    set({ arquivo: await lerArquivoComoDataUrl(f), nomeArquivo: f.name });
-  };
+  const fluxo = r.tipo === 'script';
+  const passos = r.passos ?? [];
+  const setPasso = (i: number, p: Partial<PassoFluxo>) => set({ passos: passos.map((x, k) => (k === i ? { ...x, ...p } : x)) });
 
   const salvar = async () => {
     const atalho = r.atalho.trim().replace(/^\//, '').replace(/\s+/g, '-').toLowerCase();
     if (!r.titulo.trim() || !atalho) return avisar('Preencha título e atalho', true);
     if (respostas.some((x) => x.atalho === atalho && x.id !== r.id)) return avisar(`Já existe uma resposta com o atalho /${atalho}`, true);
-    if (r.tipo === 'texto' && !r.texto.trim()) return avisar('Escreva o texto da resposta', true);
-    if (r.tipo === 'script' && !(r.passos ?? []).length) return avisar('Adicione pelo menos uma resposta ao script', true);
-    if (r.tipo !== 'texto' && r.tipo !== 'script' && !r.arquivo) return avisar('Escolha o arquivo', true);
+    if (fluxo) {
+      if (!passos.length) return avisar('Adicione pelo menos uma etapa ao fluxo', true);
+      if (passos.some((p) => (p.tipo === 'texto' ? !p.texto.trim() : !p.arquivo))) return avisar('Há uma etapa sem conteúdo', true);
+    } else {
+      if (r.tipo === 'texto' && !r.texto.trim()) return avisar('Escreva o texto da resposta', true);
+      if (r.tipo !== 'texto' && !r.arquivo) return avisar('Escolha o arquivo', true);
+    }
     await alterar('respostas', (lista) => {
       const final: RespostaRapida = { ...r, atalho, titulo: r.titulo.trim(), id: r.id || novoId() };
-      if (r.tipo === 'texto' || r.tipo === 'script') {
+      if (r.tipo === 'texto' || fluxo) {
         delete final.arquivo;
         delete final.nomeArquivo;
       }
-      if (r.tipo !== 'script') delete final.passos;
+      if (!fluxo) delete final.passos;
       const i = lista.findIndex((x) => x.id === final.id);
       if (i >= 0) lista[i] = final;
       else lista.push(final);
@@ -218,7 +217,7 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
   };
 
   const apagar = async () => {
-    await alterar('respostas', (lista) => lista.filter((x) => x.id !== r.id).map((x) => (x.passos ? { ...x, passos: x.passos.filter((p) => p !== r.id) } : x)));
+    await alterar('respostas', (lista) => lista.filter((x) => x.id !== r.id));
     voltar();
   };
 
@@ -239,7 +238,7 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
             {(Object.keys(NOME_TIPO) as TipoResposta[]).map((t) => {
               const Icone = ICONE_TIPO[t];
               return (
-                <button key={t} aria-pressed={r.tipo === t} onClick={() => set({ tipo: t, arquivo: t === r.tipo ? r.arquivo : undefined, nomeArquivo: t === r.tipo ? r.nomeArquivo : undefined })}>
+                <button key={t} type="button" aria-pressed={r.tipo === t} onClick={() => set({ tipo: t })}>
                   <Icone />
                   {NOME_TIPO[t]}
                 </button>
@@ -255,7 +254,7 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
               <span>Atalho (digite /atalho na conversa)</span>
               <input className="entrada" value={r.atalho} onChange={(e) => set({ atalho: e.target.value })} placeholder="ola" />
             </label>
-            <label className="campo campo--largo">
+            <label className="campo">
               <span>Categoria</span>
               <select className="entrada" value={r.categoriaId ?? ''} onChange={(e) => set({ categoriaId: e.target.value || null })}>
                 <option value="">Sem categoria</option>
@@ -268,91 +267,35 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
                   ))}
               </select>
             </label>
+            <label className="campo campo--linha" style={{ alignSelf: 'end' }}>
+              <input type="checkbox" checked={!!r.botao} onChange={(e) => set({ botao: e.target.checked })} />
+              Mostrar como botão acima do campo de mensagem
+            </label>
 
-            {r.tipo === 'script' && (
+            {fluxo ? (
               <div className="campo campo--largo">
-                <span>Respostas enviadas em sequência</span>
-                {(r.passos ?? []).map((id, i) => {
-                  const p = respostas.find((x) => x.id === id);
-                  return (
-                    <div key={`${id}${i}`} className="item-linha" style={{ marginTop: 0 }}>
-                      <strong className="passo__num">{i + 1}</strong>
-                      <div className="item-linha__txt">
-                        <div>{p?.titulo ?? 'Resposta apagada'}</div>
-                        <small>{p ? NOME_TIPO[p.tipo] : ''}</small>
-                      </div>
-                      <button className="icone-btn" title="Subir" disabled={i === 0} onClick={() => set({ passos: troca(r.passos!, i, i - 1) })}>
-                        <IconSubir tam={14} />
-                      </button>
-                      <button className="icone-btn" title="Descer" disabled={i === r.passos!.length - 1} onClick={() => set({ passos: troca(r.passos!, i, i + 1) })}>
-                        <IconBaixar tam={14} />
-                      </button>
-                      <button className="icone-btn" title="Tirar do script" onClick={() => set({ passos: r.passos!.filter((_, k) => k !== i) })}>
-                        <IconLixo tam={14} />
-                      </button>
-                    </div>
-                  );
-                })}
-                <select className="entrada" value="" onChange={(e) => e.target.value && set({ passos: [...(r.passos ?? []), e.target.value] })}>
-                  <option value="">{disponiveisScript.length ? 'Adicionar resposta ao script' : 'Cadastre outras respostas primeiro'}</option>
-                  {disponiveisScript.map((x) => (
-                    <option key={x.id} value={x.id}>
-                      {x.titulo} ({NOME_TIPO[x.tipo]})
-                    </option>
-                  ))}
-                </select>
-                <label className="campo" style={{ marginTop: 6 }}>
-                  <span>Espera entre uma e outra (segundos)</span>
-                  <input className="entrada" type="number" min={0} max={60} value={r.intervalo ?? 2} onChange={(e) => set({ intervalo: Number(e.target.value) })} />
-                </label>
+                <span>Etapas do fluxo (enviadas em sequência)</span>
+                {passos.map((p, i) => (
+                  <PassoEditor
+                    key={p.id}
+                    passo={p}
+                    indice={i}
+                    total={passos.length}
+                    aoMudar={(d) => setPasso(i, d)}
+                    aoSubir={() => set({ passos: troca(passos, i, i - 1) })}
+                    aoDescer={() => set({ passos: troca(passos, i, i + 1) })}
+                    aoApagar={() => set({ passos: passos.filter((_, k) => k !== i) })}
+                  />
+                ))}
+                <button type="button" className="btn" style={{ marginTop: 8 }} onClick={() => set({ passos: [...passos, passoVazio('texto')] })}>
+                  <IconMais tam={16} />
+                  Adicionar etapa
+                </button>
               </div>
-            )}
-
-            {ACEITA[r.tipo] && (
-              <label className="campo campo--largo">
-                <span>Arquivo (até {LIMITE_MB} MB)</span>
-                <input className="entrada" type="file" accept={ACEITA[r.tipo]} onChange={(e) => escolherArquivo(e.target.files?.[0])} />
-                {r.nomeArquivo && <small style={{ color: 'var(--tinta-3)' }}>Atual: {r.nomeArquivo}</small>}
-              </label>
-            )}
-            {r.tipo === 'image' && r.arquivo && <img src={r.arquivo} alt="" className="campo--largo" style={{ maxHeight: 160, objectFit: 'contain', borderRadius: 5 }} />}
-            {r.tipo === 'audio' && r.arquivo && <audio src={r.arquivo} controls className="campo--largo" />}
-            {r.tipo === 'audio' && (
-              <label className="campo campo--largo campo--linha">
-                <input type="checkbox" checked={r.ptt !== false} onChange={(e) => set({ ptt: e.target.checked })} />
-                Enviar como áudio gravado (mensagem de voz)
-              </label>
-            )}
-            {r.tipo !== 'audio' && r.tipo !== 'script' && (
-              <label className="campo campo--largo">
-                <span>{r.tipo === 'texto' ? 'Mensagem' : 'Legenda (opcional)'}</span>
-                <textarea className="entrada" rows={5} value={r.texto} onChange={(e) => set({ texto: e.target.value })} placeholder="{{saudacao}}, {{primeiro_nome}}! Tudo bem?" />
-                <BotoesIA texto={r.texto} aoResultado={(t) => set({ texto: t })} />
-                <div className="variaveis">
-                  {VARIAVEIS.map((v) => (
-                    <button key={v} type="button" className="variavel" onClick={() => set({ texto: `${r.texto}{{${v}}}` })}>
-                      {`{{${v}}}`}
-                    </button>
-                  ))}
-                </div>
-              </label>
-            )}
-
-            {r.tipo !== 'script' && (
-              <>
-                <label className="campo">
-                  <span>Antes de enviar, mostrar</span>
-                  <select className="entrada" value={r.simular} onChange={(e) => set({ simular: e.target.value as Simulacao })}>
-                    <option value="nenhuma">Nada</option>
-                    <option value="digitando">Digitando...</option>
-                    <option value="gravando">Gravando áudio...</option>
-                  </select>
-                </label>
-                <label className="campo">
-                  <span>Por quantos segundos</span>
-                  <input className="entrada" type="number" min={1} max={30} disabled={r.simular === 'nenhuma'} value={r.simularSeg} onChange={(e) => set({ simularSeg: Number(e.target.value) })} />
-                </label>
-              </>
+            ) : (
+              <div className="campo campo--largo">
+                <ConteudoPasso valor={r as ConteudoEditavel} aoMudar={(p) => set(p)} />
+              </div>
             )}
 
             <div className="campo campo--largo">
@@ -417,6 +360,43 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+const NOME_PASSO: Record<PassoFluxo['tipo'], string> = { texto: 'Texto', image: 'Imagem', video: 'Vídeo', audio: 'Áudio', document: 'Arquivo' };
+
+function PassoEditor({ passo, indice, total, aoMudar, aoSubir, aoDescer, aoApagar }: { passo: PassoFluxo; indice: number; total: number; aoMudar: (p: Partial<PassoFluxo>) => void; aoSubir: () => void; aoDescer: () => void; aoApagar: () => void }) {
+  const [aberto, setAberto] = useState(true);
+  return (
+    <div className="passo">
+      <div className="passo__cabecalho">
+        <strong className="passo__num">{indice + 1}</strong>
+        <button type="button" className="passo__titulo" onClick={() => setAberto((v) => !v)}>
+          {NOME_PASSO[passo.tipo]}
+          {passo.texto ? ` · ${passo.texto.slice(0, 40)}` : passo.nomeArquivo ? ` · ${passo.nomeArquivo}` : ''}
+        </button>
+        <button type="button" className="icone-btn" title="Subir" disabled={indice === 0} onClick={aoSubir}>
+          <IconSubir tam={14} />
+        </button>
+        <button type="button" className="icone-btn" title="Descer" disabled={indice === total - 1} onClick={aoDescer}>
+          <IconBaixar tam={14} />
+        </button>
+        <button type="button" className="icone-btn" title="Tirar etapa" onClick={aoApagar}>
+          <IconLixo tam={14} />
+        </button>
+      </div>
+      {aberto && (
+        <div className="passo__corpo">
+          {indice > 0 && (
+            <label className="campo campo--largo">
+              <span>Esperar antes desta etapa (segundos)</span>
+              <input className="entrada" type="number" min={0} max={120} value={passo.esperaSeg} onChange={(e) => aoMudar({ esperaSeg: Number(e.target.value) || 0 })} />
+            </label>
+          )}
+          <ConteudoPasso valor={passo} aoMudar={aoMudar} />
+        </div>
+      )}
     </div>
   );
 }

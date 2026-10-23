@@ -29,6 +29,28 @@ function resumoChat(c: any): ChatResumo {
   };
 }
 
+/**
+ * Conversa aberta agora. O wa-js procura a flag `active`, que nem toda versão do WhatsApp preenche;
+ * se falhar, compara o nome no cabeçalho da conversa aberta (#main header) com a lista de chats.
+ */
+function chatAberto(): any {
+  try {
+    const c = WPP.chat.getActiveChat();
+    if (c) return c;
+  } catch {
+    // segue para o plano B
+  }
+  const titulo = document.querySelector('#main header span[dir="auto"]')?.textContent?.trim();
+  if (!titulo) return null;
+  const todos: any[] = WPP.whatsapp.ChatStore.getModelsArray?.() ?? [];
+  const soDigitos = titulo.replace(/\D/g, '');
+  return (
+    todos.find((c) => (c.formattedTitle || c.name || c.contact?.name || c.contact?.pushname) === titulo) ??
+    (soDigitos.length >= 10 ? todos.find((c) => numeroDe(c.contact?.phoneNumber?._serialized ?? c.id?._serialized ?? '') === soDigitos) : undefined) ??
+    null
+  );
+}
+
 function resumoEtiqueta(l: any): EtiquetaWA {
   return { id: String(l.id), nome: l.name ?? '', cor: l.hexColor ?? '#8a8f98', qtd: l.count ?? 0 };
 }
@@ -53,7 +75,7 @@ const metodos: { [K in keyof Metodos]: (...a: Parameters<Metodos[K]>) => ReturnT
   eu: () => WPP.conn.getMyUserId()?._serialized ?? null,
   listarChats: async () => (await WPP.chat.list()).map(resumoChat),
   chatAtivo: () => {
-    const c = WPP.chat.getActiveChat();
+    const c = chatAberto();
     return c ? resumoChat(c) : null;
   },
   abrirChat: async (chatId) => !!(await WPP.chat.openChatBottom(chatId)),
@@ -68,6 +90,8 @@ const metodos: { [K in keyof Metodos]: (...a: Parameters<Metodos[K]>) => ReturnT
       caption: o.legenda,
       filename: o.nomeArquivo,
       isPtt: o.ptt,
+      // onda sonora no balão, igual a um áudio gravado no celular
+      waveform: o.ptt ? true : undefined,
       createChat: true,
     });
     return r?.id ?? '';
@@ -129,6 +153,16 @@ const metodos: { [K in keyof Metodos]: (...a: Parameters<Metodos[K]>) => ReturnT
     await WPP.labels.addOrRemoveLabels(chatIds, mudancas.map((m) => ({ labelId: m.id, type: m.tipo })));
     return true;
   },
+  enviarDoCampo: async (texto) => {
+    await WPP.chat.setInputText(texto);
+    await new Promise((ok) => setTimeout(ok, 80));
+    const botao =
+      document.querySelector<HTMLElement>('footer button[aria-label="Enviar"], footer button[aria-label="Send"]') ??
+      document.querySelector<HTMLElement>('footer span[data-icon="send"], footer span[data-icon="wds-ic-send-filled"]')?.closest<HTMLElement>('button');
+    if (!botao) return false;
+    botao.click();
+    return true;
+  },
   postarStatus: async (tipo, conteudo, o) => {
     if (tipo === 'texto') await WPP.status.sendTextStatus(conteudo, { backgroundColor: o.corFundo, waitForAck: true });
     else if (tipo === 'image') await WPP.status.sendImageStatus(conteudo, { caption: o.legenda, waitForAck: true });
@@ -181,7 +215,23 @@ window.addEventListener('message', async (e) => {
 
 function quandoPronto() {
   emitir({ tipo: 'pronto' });
-  WPP.on('chat.active_chat', (c: any) => emitir({ tipo: 'chat_ativo', chat: c ? resumoChat(c) : null }));
+  // o evento do wa-js nem sempre dispara nas versões novas do WhatsApp: confere a conversa aberta a cada 700 ms
+  let ultimo: string | null = null;
+  const conferir = () => {
+    let c: any = null;
+    try {
+      c = chatAberto();
+    } catch {
+      c = null;
+    }
+    const id = c ? (c.id?._serialized ?? String(c.id)) : null;
+    if (id === ultimo) return;
+    ultimo = id;
+    emitir({ tipo: 'chat_ativo', chat: c ? resumoChat(c) : null });
+  };
+  WPP.on('chat.active_chat', conferir);
+  setInterval(conferir, 700);
+  conferir();
   WPP.on('chat.new_message', (m: any) => emitir({ tipo: 'nova_msg', msg: resumoMsg(m) }));
   WPP.on('chat.update_label', () => emitir({ tipo: 'etiquetas_mudaram' }));
 }

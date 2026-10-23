@@ -9,6 +9,8 @@ import { Notificacoes, useNotificacoes } from './Notificacoes';
 import { aplicarPrivacidade } from './privacidade';
 import { Agendamentos } from './Agendamentos';
 import { iniciarAgendador } from './agendador';
+import { iniciarAssinador } from './assinador';
+import { BotoesRapidos } from './BotoesRapidos';
 import { Config } from './Config';
 import { ProvedorCRM, useCRM, useFunilAtivo } from './contexto';
 import { Ficha } from './Ficha';
@@ -26,12 +28,6 @@ type Filtro =
   | { tipo: 'sem' }
   | { tipo: 'etiqueta'; id: string };
 
-const NATIVOS: { valor: FiltroNativo; nome: string }[] = [
-  { valor: 'unread', nome: 'Não lidas' },
-  { valor: 'personal', nome: 'Individuais' },
-  { valor: 'group', nome: 'Grupos' },
-];
-
 export function App() {
   return (
     <ProvedorCRM>
@@ -41,7 +37,7 @@ export function App() {
 }
 
 function Interface() {
-  const { contatos, chats, avisar, funis, config, business, etiquetasWA } = useCRM();
+  const { contatos, chats, avisar, funis, config, business, etiquetasWA, ativo } = useCRM();
   const funil = useFunilAtivo();
   const agendamentos = useColecao('agendamentos') ?? [];
   const [filtro, setFiltro] = useState<Filtro>({ tipo: 'todas' });
@@ -53,6 +49,7 @@ function Interface() {
   const notif = useNotificacoes();
 
   useEffect(() => iniciarAgendador(avisar), [avisar]);
+  useEffect(() => iniciarAssinador(), []);
 
   useEffect(() => {
     if (config) aplicarPrivacidade(config.privacidade);
@@ -75,8 +72,8 @@ function Interface() {
     return () => document.documentElement.classList.remove('crmw-barra');
   }, []);
   useEffect(() => {
-    document.documentElement.classList.toggle('crmw-ficha', fichaAberta);
-  }, [fichaAberta]);
+    document.documentElement.classList.toggle('crmw-ficha', fichaAberta && !!ativo);
+  }, [fichaAberta, ativo]);
 
   // Pedido vindo do background (ex.: clique na notificação de lembrete)
   useEffect(() => {
@@ -108,7 +105,6 @@ function Interface() {
   }, [contatos, chats, funil, modoEtiquetas]);
 
   const semEtapa = useMemo(() => (funil ? chats.filter((c) => !c.grupo && !contatos[c.id]?.posicoes[funil.id]).length : 0), [chats, contatos, funil]);
-  const naoLidas = useMemo(() => chats.filter((c) => c.naoLidas > 0).length, [chats]);
 
   // Aplica o filtro na própria lista de conversas do WhatsApp
   useEffect(() => {
@@ -143,8 +139,9 @@ function Interface() {
     <>
       <div className="barra">
         <div className="marca" title="CRM WhatsApp">
-          <span className="marca__selo">C</span>
-          CRM
+          <span className="marca__selo">
+            <IconQuadro tam={15} />
+          </span>
         </div>
         <div className="seletor-funil">
           <button className="seletor-funil__botao" onClick={() => setMenuFunil((v) => !v)} aria-expanded={menuFunil} title="Trocar de funil">
@@ -183,34 +180,26 @@ function Interface() {
         <nav className="etapas" aria-label="Filtrar conversas">
           <button className="etapa" aria-pressed={filtro.tipo === 'todas'} onClick={() => setFiltro({ tipo: 'todas' })}>
             Todas
-            <span className="etapa__qtd">{chats.length}</span>
           </button>
-          {NATIVOS.map((n) => (
-            <button key={n.valor} className="etapa etapa--nativa" aria-pressed={ativoIgual({ tipo: 'nativo', valor: n.valor })} onClick={() => clicar({ tipo: 'nativo', valor: n.valor })}>
-              {n.nome}
-              {n.valor === 'unread' && naoLidas > 0 && <span className="etapa__qtd">{naoLidas}</span>}
-            </button>
-          ))}
-          <span className="etapas__divisa" />
           {modoEtiquetas
             ? etiquetasWA.map((e) => (
                 <button key={e.id} className="etapa" style={{ ['--cor' as string]: e.cor }} aria-pressed={ativoIgual({ tipo: 'etiqueta', id: e.id })} onClick={() => clicar({ tipo: 'etiqueta', id: e.id })}>
                   <span className="etapa__marca" />
                   {e.nome}
-                  <span className="etapa__qtd">{contagem.get(e.id) ?? 0}</span>
+                  <Qtd n={contagem.get(e.id) ?? 0} />
                 </button>
               ))
             : etapas.map((e) => (
                 <button key={e.id} className="etapa" style={{ ['--cor' as string]: e.cor }} aria-pressed={ativoIgual({ tipo: 'etapa', etapaId: e.id })} onClick={() => clicar({ tipo: 'etapa', etapaId: e.id })}>
                   <span className="etapa__marca" />
                   {e.nome}
-                  <span className="etapa__qtd">{contagem.get(e.id) ?? 0}</span>
+                  <Qtd n={contagem.get(e.id) ?? 0} />
                 </button>
               ))}
           {!modoEtiquetas && funil && (
             <button className="etapa" aria-pressed={filtro.tipo === 'sem'} onClick={() => clicar({ tipo: 'sem' })}>
               Sem etapa
-              <span className="etapa__qtd">{semEtapa}</span>
+              <Qtd n={semEtapa} />
             </button>
           )}
         </nav>
@@ -240,6 +229,7 @@ function Interface() {
             <IconFicha />
             <span className="acao__rotulo">Ficha</span>
           </button>
+          <span className="acoes__divisa" />
           <button
             className="acao"
             aria-pressed={!!config?.privacidade.ativa}
@@ -261,7 +251,7 @@ function Interface() {
         </div>
       </div>
 
-      {fichaAberta && <Ficha />}
+      {fichaAberta && ativo && <Ficha />}
       {painel === 'kanban' && <Kanban fechar={() => setPainel(null)} />}
       {painel === 'respostas' && <Respostas fechar={() => setPainel(null)} />}
       {painel === 'agendamentos' && <Agendamentos fechar={() => setPainel(null)} />}
@@ -269,8 +259,13 @@ function Interface() {
       {painel === 'nova' && <NovaConversa fechar={() => setPainel(null)} />}
       {painel === 'assistente' && <Assistente fechar={() => setPainel(null)} />}
       <SugestoesBarra />
+      <BotoesRapidos />
     </>
   );
+}
+
+function Qtd({ n }: { n: number }) {
+  return <span className={`etapa__qtd${n ? '' : ' etapa__qtd--zero'}`}>{n}</span>;
 }
 
 export function MenuSuspenso({ fechar, children }: { fechar: () => void; children: React.ReactNode }) {

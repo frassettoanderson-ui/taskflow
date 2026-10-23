@@ -64,6 +64,8 @@ export interface Metodos {
   editarEtiqueta(id: string, nome: string, cor: string): EtiquetaWA;
   apagarEtiqueta(id: string): boolean;
   etiquetarChat(chatIds: string[], mudancas: { id: string; tipo: 'add' | 'remove' }[]): boolean;
+  /** troca o texto do campo da conversa aberta e aperta o botão de enviar do WhatsApp */
+  enviarDoCampo(texto: string): boolean;
   postarStatus(tipo: 'texto' | 'image' | 'video', conteudo: string, opcoes: { legenda?: string; corFundo?: string }): boolean;
   /** últimas mensagens da conversa (mais antigas primeiro), para a IA ter contexto */
   ultimasMensagens(chatId: string, qtd: number): MsgResumo[];
