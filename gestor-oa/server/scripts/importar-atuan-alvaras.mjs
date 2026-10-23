@@ -1,5 +1,6 @@
 // Importa Alvaras do painel antigo da Atuan (/var/lib/atuan-dados/base.json) para o Obrigo —
-// SO a frente ATUAN Digital. Licencas, legalizacoes (Kanban), parametros da calculadora e checklists,
+// frente ATUAN Digital (padrão) ou, com FRENTE=nauta + ATUAN_ESCRITORIO_ID do escritório Nauta, a
+// frente Nauta (perfis Atuan/Nauta/MEIs, 23/10/2026). Licencas, legalizacoes (Kanban), parametros da calculadora e checklists,
 // e os CNAEs dos clientes (para a calculadora). Idempotente pelo legadoId. Uso (em server/):
 //   node scripts/importar-atuan-alvaras.mjs --dry
 //   node scripts/importar-atuan-alvaras.mjs
@@ -9,6 +10,8 @@ import { PrismaClient } from '@prisma/client';
 const DRY = process.argv.includes('--dry');
 const ESCRITORIO = process.env.ATUAN_ESCRITORIO_ID || 'cmuh6l6a8000011mstpvmjte3';
 const BASE = process.env.ATUAN_BASE || '/var/lib/atuan-dados/base.json';
+const FRENTE = process.env.FRENTE || 'digital';
+const CONTABILIDADE = FRENTE === 'nauta' ? 'nauta' : 'atuan';
 const prisma = new PrismaClient();
 
 const dig = (v) => String(v ?? '').replace(/\D/g, '');
@@ -18,10 +21,10 @@ const frente = (c) => (c?.grupo === 'digital' ? 'digital' : c?.grupo === 'espora
 
 const p = JSON.parse(fs.readFileSync(BASE, 'utf8')).pacote.dados;
 const clientes = new Map(p.clientes.map((c) => [c.id, c]));
-const daAtuan = (r) => frente(clientes.get(r.clienteId)) === 'digital';
+const daAtuan = (r) => frente(clientes.get(r.clienteId)) === FRENTE;
 const licencas = (p.licencas ?? []).filter(daAtuan);
 const legal = (p.legalizacoes ?? []).filter(daAtuan);
-console.log(`Painel: ${licencas.length} licença(s) e ${legal.length} legalização(ões) da Atuan.`);
+console.log(`Painel: ${licencas.length} licença(s) e ${legal.length} legalização(ões) da frente ${FRENTE}.`);
 
 const empresaDe = new Map(); let criadas = 0, ligadas = 0, cnaes = 0;
 async function empresaPara(clienteId) {
@@ -47,7 +50,7 @@ async function empresaPara(clienteId) {
           escritorioId: ESCRITORIO, razaoSocial: c.nome || 'Empresa sem nome', nomeFantasia: c.fantasia || null, numero: (ult._max.numero ?? 0) + 1,
           emailPrincipal: c.email || null, telefone: c.telefone || null, cidade: c.cidade || null, uf: c.uf || null, endereco: c.endereco || null,
           cnaes: c.cnaes || null, anotacoes: [c.observacao, 'Importado do painel da Atuan (Alvarás).'].filter(Boolean).join(' · '),
-          ativo: c.situacao !== 'Encerrado', emAbertura: cnpj.length !== 14, frente: frente(c), naCarteira: c.carteira !== false, legadoAtuanId: c.id, contabilidade: 'atuan',
+          ativo: c.situacao !== 'Encerrado', emAbertura: cnpj.length !== 14, frente: frente(c), naCarteira: c.carteira !== false, legadoAtuanId: c.id, contabilidade: CONTABILIDADE,
           identificadores: cnpj.length === 14 ? { create: [{ escritorioId: ESCRITORIO, tipo: 'CNPJ', valor: cnpj }] } : undefined,
         },
       })).id;
