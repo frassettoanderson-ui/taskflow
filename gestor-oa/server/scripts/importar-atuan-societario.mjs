@@ -1,5 +1,7 @@
 // Importa o Societario do painel antigo da Atuan (base unica /var/lib/atuan-dados/base.json)
-// para o Obrigo — SO a frente ATUAN Digital (decisao do usuario em 22/10/2026).
+// para o Obrigo — frente ATUAN Digital (22/10/2026); com FRENTE=nauta importa a frente Nauta no
+// escritorio Nauta (perfis Atuan/Nauta/MEIs, 23/10/2026):
+//   FRENTE=nauta ATUAN_ESCRITORIO_ID=cmqn14wpp0000ne0igfhov87l node scripts/importar-atuan-societario.mjs
 // Idempotente pelo legadoId. Uso (na VPS, em server/):
 //   node scripts/importar-atuan-societario.mjs --dry      (so mostra o que faria)
 //   node scripts/importar-atuan-societario.mjs
@@ -11,6 +13,8 @@ const DRY = process.argv.includes('--dry');
 const ESCRITORIO = process.env.ATUAN_ESCRITORIO_ID || 'cmuh6l6a8000011mstpvmjte3';
 const BASE = process.env.ATUAN_BASE || '/var/lib/atuan-dados/base.json';
 const FORMS = process.env.ATUAN_FORM_ARQUIVO || '/var/lib/atuan-formularios/formularios.json';
+const FRENTE = process.env.FRENTE || 'digital';
+const CONTABILIDADE = FRENTE === 'nauta' ? 'nauta' : 'atuan';
 const STORAGE = path.resolve(process.env.STORAGE_ROOT || './storage');
 const prisma = new PrismaClient();
 
@@ -21,10 +25,11 @@ const frente = (c) => (c?.grupo === 'digital' ? 'digital' : c?.grupo === 'espora
 const p = JSON.parse(fs.readFileSync(BASE, 'utf8')).pacote.dados;
 const clientes = new Map(p.clientes.map((c) => [c.id, c]));
 const frenteProc = (pr) => (pr.grupo === 'digital' || pr.grupo === 'nauta' ? pr.grupo : frente(clientes.get(pr.clienteId)));
-const procs = p.processos.filter((pr) => frenteProc(pr) === 'digital');
-const forms = (p.socFormularios ?? []).filter((f) => !f.processoId || procs.some((x) => x.id === f.processoId));
+const procs = p.processos.filter((pr) => frenteProc(pr) === FRENTE);
+// formularios ainda sem processo ja foram p/ a Atuan na 1a importacao
+const forms = (p.socFormularios ?? []).filter((f) => (FRENTE === 'digital' && !f.processoId) || procs.some((x) => x.id === f.processoId));
 const servForms = fs.existsSync(FORMS) ? JSON.parse(fs.readFileSync(FORMS, 'utf8')) : [];
-console.log(`Painel: ${procs.length} processo(s) Atuan, ${forms.length} formulário(s).`);
+console.log(`Painel: ${procs.length} processo(s) da frente ${FRENTE}, ${forms.length} formulário(s).`);
 
 // ─── Empresas ───────────────────────────────────────────────────────────────
 const empresaDe = new Map(); // clienteId do painel -> Empresa.id
@@ -56,7 +61,7 @@ async function empresaPara(clienteId) {
           emailPrincipal: c.email || null, telefone: c.telefone || null, cidade: c.cidade || null, uf: c.uf || null, endereco: c.endereco || null,
           atividade: c.cnaes || null, anotacoes: [c.observacao, 'Importado do painel da Atuan (Societário).'].filter(Boolean).join(' · '),
           ativo: c.situacao !== 'Encerrado', emAbertura: cnpj.length !== 14, frente: frente(c), carteiraMei: !!c.carteiraMei,
-          naCarteira: c.carteira !== false, legadoAtuanId: c.id, contabilidade: 'atuan',
+          naCarteira: c.carteira !== false, legadoAtuanId: c.id, contabilidade: CONTABILIDADE,
           identificadores: cnpj.length === 14 ? { create: [{ escritorioId: ESCRITORIO, tipo: 'CNPJ', valor: cnpj }] } : undefined,
         },
       });
