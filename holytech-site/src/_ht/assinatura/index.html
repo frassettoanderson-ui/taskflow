@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Assinatura de e-mail · HolyTech</title>
+<link rel="icon" href="/_ht/logos/favicon-holytech.png">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,600..900&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --papel:#f2f1ec; --branco:#fbfaf7; --tinta:#0e0e10; --cinza:#5d5d63; --linha:#dedcd3; --amarelo:#f9b800; }
+  * { box-sizing:border-box }
+  body { margin:0; background:var(--papel); color:var(--tinta); font-family:Geist,system-ui,sans-serif; font-size:15px; line-height:1.5 }
+  .topo { text-align:center; padding:36px 16px 8px }
+  .topo img { height:44px }
+  h1 { font-family:Archivo,sans-serif; font-stretch:112%; font-weight:800; font-size:clamp(26px,4vw,38px); letter-spacing:-.02em; margin:18px 0 6px }
+  .sub { color:var(--cinza); max-width:560px; margin:0 auto }
+  main { max-width:1060px; margin:28px auto 60px; padding:0 16px; display:grid; grid-template-columns:360px 1fr; gap:22px; align-items:start }
+  @media (max-width:860px){ main { grid-template-columns:1fr } }
+  .bloco { background:var(--branco); border:1px solid var(--linha); border-radius:7px; padding:22px }
+  .rotulo { font-family:"Geist Mono",monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--cinza); margin:0 0 14px; text-align:center }
+  label { display:block; font-size:13px; font-weight:600; margin:12px 0 5px }
+  input, select { width:100%; font:inherit; padding:10px 12px; border:1px solid var(--linha); border-radius:5px; background:#fff; color:var(--tinta) }
+  input:focus, select:focus { outline:2px solid var(--amarelo); border-color:transparent }
+  .check { display:flex; gap:8px; align-items:center; font-weight:500; margin-top:10px }
+  .check input { width:auto }
+  .marcas { display:grid; grid-template-columns:repeat(5,1fr); gap:6px }
+  .marcas button { font:inherit; font-size:12px; font-weight:600; padding:8px 0; border:1px solid var(--linha); border-radius:5px; background:#fff; cursor:pointer; color:var(--tinta) }
+  .marcas button[aria-pressed="true"] { border-color:var(--tinta); box-shadow:inset 0 -3px 0 var(--cor, var(--amarelo)) }
+  .previa { background:#fff; border:1px solid var(--linha); border-radius:5px; padding:28px 22px; overflow-x:auto; display:flex; justify-content:center }
+  .acoes { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:16px }
+  .btn { font:inherit; font-weight:600; padding:11px 18px; border-radius:5px; border:1px solid var(--tinta); background:var(--tinta); color:#fff; cursor:pointer }
+  .btn.claro { background:#fff; color:var(--tinta) }
+  .aviso { text-align:center; font-size:13px; color:#1d6b3a; min-height:20px; margin-top:10px }
+  details { margin-top:18px; border-top:1px solid var(--linha); padding-top:14px }
+  summary { cursor:pointer; font-weight:600; text-align:center }
+  .passos { font-size:14px; color:var(--cinza) }
+  .passos b { color:var(--tinta) }
+  textarea { width:100%; min-height:120px; font-family:"Geist Mono",monospace; font-size:12px; border:1px solid var(--linha); border-radius:5px; padding:10px; margin-top:10px }
+</style>
+</head>
+<body>
+<header class="topo">
+  <img src="/_ht/logos/holytech.png" alt="HolyTech Solutions">
+  <h1>Assinatura de e-mail</h1>
+  <p class="sub">Preencha os dados, confira a prévia e copie. O padrão é o mesmo para toda a equipe; só muda a pessoa e, se for o caso, a marca do produto.</p>
+</header>
+
+<main>
+  <section class="bloco" aria-label="Dados da assinatura">
+    <p class="rotulo">Dados</p>
+    <label for="nome">Nome</label>
+    <input id="nome" autocomplete="off" value="Anderson Frassetto">
+    <label for="cargo">Cargo</label>
+    <input id="cargo" autocomplete="off" value="CEO">
+    <label for="email">E-mail</label>
+    <input id="email" type="email" autocomplete="off" value="anderson@holytechsolution.com.br">
+    <label for="tel">Telefone</label>
+    <input id="tel" inputmode="tel" autocomplete="off" placeholder="(48) 99999-9999">
+    <label class="check"><input id="whats" type="checkbox" checked> Este número é WhatsApp</label>
+    <label>Marca</label>
+    <div class="marcas" id="marcas" role="group" aria-label="Marca"></div>
+  </section>
+
+  <section class="bloco" aria-label="Prévia">
+    <p class="rotulo">Prévia</p>
+    <div class="previa"><div id="assinatura"></div></div>
+    <div class="acoes">
+      <button class="btn" id="copiar" type="button">Copiar assinatura</button>
+      <button class="btn claro" id="copiarHtml" type="button">Copiar HTML</button>
+      <button class="btn claro" id="link" type="button">Copiar link desta pessoa</button>
+    </div>
+    <div class="aviso" id="aviso" role="status"></div>
+    <details>
+      <summary>Como colocar no e-mail</summary>
+      <div class="passos">
+        <p><b>Webmail da HolyTech (mail.holytechsolution.com.br):</b> clique em <b>Copiar assinatura</b>, abra Preferências › Correio › Assinatura, cole e salve.</p>
+        <p><b>Gmail:</b> Configurações › Ver todas as configurações › Geral › Assinatura › Criar nova, cole e clique em Salvar alterações no fim da página.</p>
+        <p><b>Outlook:</b> Configurações › Contas › Assinaturas › Nova, cole e salve.</p>
+        <p><b>Celular:</b> no app de e-mail, cole a versão de texto (nome, cargo, telefone e site); a versão com logo funciona no computador e no webmail.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Ver o código HTML</summary>
+      <textarea id="codigo" readonly></textarea>
+    </details>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  var SITE = "https://holytechsolution.com.br";
+  var MARCAS = {
+    holytech:   { nome: "HolyTech", alt: "HolyTech Solutions", cor: "#F9B800", texto: "#9A7200", h: 47, url: SITE + "/" },
+    holyshop:   { nome: "Holyshop", alt: "Holyshop by HolyTech", cor: "#05A064", texto: "#047A4C", h: 47, url: SITE + "/solucoes/holyshop/" },
+    holycar:    { nome: "Holycar", alt: "Holycar by HolyTech", cor: "#0057FF", texto: "#0042C2", h: 40, url: SITE + "/solucoes/holycar/" },
+    holybarber: { nome: "Holybarber", alt: "Holybarber by HolyTech", cor: "#E2402B", texto: "#B52F1D", h: 49, url: SITE + "/solucoes/holybarber/" },
+    holyweb:    { nome: "Holyweb", alt: "Holyweb by HolyTech", cor: "#7634F0", texto: "#5B20C9", h: 43, url: SITE + "/solucoes/holyweb/" }
+  };
+  var $ = function (id) { return document.getElementById(id); };
+  var marca = "holytech";
+
+  function esc(s) { return String(s || "").replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function dig(s) { return String(s || "").replace(/\D/g, ""); }
+
+  // Máscara de telefone brasileiro: (48) 99999-9999 ou (48) 3333-3333
+  function mascara(v) {
+    var d = dig(v).slice(0, 11);
+    if (d.length <= 2) return d.length ? "(" + d : "";
+    if (d.length <= 6) return "(" + d.slice(0, 2) + ") " + d.slice(2);
+    if (d.length <= 10) return "(" + d.slice(0, 2) + ") " + d.slice(2, 6) + "-" + d.slice(6);
+    return "(" + d.slice(0, 2) + ") " + d.slice(2, 7) + "-" + d.slice(7);
+  }
+
+  // Assinatura em tabela com estilos inline: é o que Gmail, Outlook e webmails respeitam
+  function montar() {
+    var m = MARCAS[marca];
+    var nome = $("nome").value.trim(), cargo = $("cargo").value.trim(), email = $("email").value.trim();
+    var tel = $("tel").value.trim(), d = dig(tel), whats = $("whats").checked && d.length >= 10;
+    var linkTel = whats ? "https://wa.me/55" + d : "tel:+55" + d;
+    var a = 'style="color:#0e0e10;text-decoration:none"';
+    var linhas = [];
+    if (d.length >= 10) linhas.push('<a href="' + linkTel + '" ' + a + '>' + esc(tel) + (whats ? ' <span style="color:#8a8a90">(WhatsApp)</span>' : "") + "</a>");
+    if (email) linhas.push('<a href="mailto:' + esc(email) + '" ' + a + ">" + esc(email) + "</a>");
+    linhas.push('<a href="' + m.url + '" style="color:' + m.texto + ';font-weight:bold;text-decoration:none">holytechsolution.com.br</a>');
+
+    var rodape = marca === "holytech"
+      ? '<a href="' + SITE + '/solucoes/holyshop/" style="color:#047A4C;text-decoration:none;font-weight:bold">Holyshop</a> &nbsp;|&nbsp; ' +
+        '<a href="' + SITE + '/solucoes/holycar/" style="color:#0042C2;text-decoration:none;font-weight:bold">Holycar</a> &nbsp;|&nbsp; ' +
+        '<a href="' + SITE + '/solucoes/holybarber/" style="color:#B52F1D;text-decoration:none;font-weight:bold">Holybarber</a> &nbsp;|&nbsp; ' +
+        '<a href="' + SITE + '/solucoes/holyweb/" style="color:#5B20C9;text-decoration:none;font-weight:bold">Holyweb</a>'
+      : 'Um produto <a href="' + SITE + '/" style="color:#9A7200;text-decoration:none;font-weight:bold">HolyTech Solutions</a>';
+
+    return '<table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;color:#0e0e10">' +
+      "<tr>" +
+        '<td valign="middle" style="padding:0 18px 0 0">' +
+          '<a href="' + m.url + '"><img src="' + SITE + "/_ht/email/" + marca + '.png" width="180" height="' + m.h + '" alt="' + m.alt + '" style="display:block;border:0;width:180px;height:' + m.h + 'px"></a>' +
+        "</td>" +
+        '<td valign="middle" style="border-left:3px solid ' + m.cor + ';padding:2px 0 2px 18px">' +
+          '<div style="font-size:16px;font-weight:bold;line-height:20px;color:#0e0e10">' + esc(nome) + "</div>" +
+          (cargo ? '<div style="font-size:13px;line-height:18px;color:#5d5d63">' + esc(cargo) + "</div>" : "") +
+          '<div style="font-size:13px;line-height:20px;padding-top:8px">' + linhas.join("<br>") + "</div>" +
+        "</td>" +
+      "</tr>" +
+      '<tr><td colspan="2" style="padding-top:12px;font-size:11px;line-height:16px;color:#8a8a90">' + rodape + "</td></tr>" +
+      "</table>";
+  }
+
+  function textoPuro() {
+    var t = [$("nome").value.trim(), $("cargo").value.trim()];
+    if (dig($("tel").value).length >= 10) t.push($("tel").value.trim() + ($("whats").checked ? " (WhatsApp)" : ""));
+    if ($("email").value.trim()) t.push($("email").value.trim());
+    t.push("holytechsolution.com.br");
+    return t.filter(Boolean).join("\n");
+  }
+
+  function atualizar() {
+    var html = montar();
+    $("assinatura").innerHTML = html;
+    $("codigo").value = html;
+  }
+
+  function avisar(t) { $("aviso").textContent = t; setTimeout(function () { if ($("aviso").textContent === t) $("aviso").textContent = ""; }, 4000); }
+
+  // Copia como conteúdo formatado (cola com logo e links no Gmail/Outlook/webmail)
+  async function copiarRico() {
+    var html = montar();
+    try {
+      await navigator.clipboard.write([new ClipboardItem({
+        "text/html": new Blob([html], { type: "text/html" }),
+        "text/plain": new Blob([textoPuro()], { type: "text/plain" })
+      })]);
+      avisar("Assinatura copiada. Cole nas configurações do e-mail.");
+    } catch (e) {
+      var r = document.createRange(); r.selectNodeContents($("assinatura"));
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      var ok = document.execCommand("copy"); s.removeAllRanges();
+      avisar(ok ? "Assinatura copiada. Cole nas configurações do e-mail." : "Não consegui copiar: selecione a prévia e use Ctrl+C.");
+    }
+  }
+  async function copiarTexto(t, msg) {
+    try { await navigator.clipboard.writeText(t); avisar(msg); }
+    catch (e) { avisar("Não consegui copiar automaticamente."); }
+  }
+
+  // Link com os dados no endereço: cada pessoa da equipe abre o seu e só copia
+  function linkPessoa() {
+    var p = new URLSearchParams({ nome: $("nome").value.trim(), cargo: $("cargo").value.trim(), email: $("email").value.trim(), tel: dig($("tel").value), whats: $("whats").checked ? "1" : "0", marca: marca });
+    return location.origin + location.pathname + "?" + p.toString();
+  }
+
+  function desenharMarcas() {
+    $("marcas").innerHTML = Object.keys(MARCAS).map(function (k) {
+      return '<button type="button" data-m="' + k + '" aria-pressed="' + (k === marca) + '" style="--cor:' + MARCAS[k].cor + '">' + MARCAS[k].nome + "</button>";
+    }).join("");
+  }
+
+  // Dados vindos do link
+  var q = new URLSearchParams(location.search);
+  if (q.has("nome")) $("nome").value = q.get("nome");
+  if (q.has("cargo")) $("cargo").value = q.get("cargo");
+  if (q.has("email")) $("email").value = q.get("email");
+  if (q.has("tel")) $("tel").value = mascara(q.get("tel"));
+  if (q.has("whats")) $("whats").checked = q.get("whats") !== "0";
+  if (MARCAS[q.get("marca")]) marca = q.get("marca");
+
+  desenharMarcas();
+  $("marcas").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-m]"); if (!b) return;
+    marca = b.dataset.m; desenharMarcas(); atualizar();
+  });
+  ["nome", "cargo", "email", "whats"].forEach(function (id) { $(id).addEventListener("input", atualizar); $(id).addEventListener("change", atualizar); });
+  $("tel").addEventListener("input", function () { this.value = mascara(this.value); atualizar(); });
+  $("copiar").addEventListener("click", copiarRico);
+  $("copiarHtml").addEventListener("click", function () { copiarTexto(montar(), "HTML copiado."); });
+  $("link").addEventListener("click", function () { copiarTexto(linkPessoa(), "Link copiado: quem abrir já vê a assinatura preenchida."); });
+  atualizar();
+})();
+</script>
+</body>
+</html>
