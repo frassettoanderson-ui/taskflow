@@ -55,10 +55,25 @@ async function enviarWhats(w, fone, texto) {
   if (!r.ok) throw new Error(`WhatsApp ${r.status}: ${(await r.text()).slice(0, 160)}`)
 }
 
-export async function enviarEmail(cfg, para, assunto, texto, html) {
+export async function enviarEmail(cfg, para, assunto, texto, html, anexos) {
   const port = Number(cfg.port || 465)
   const t = nodemailer.createTransport({ host: cfg.host, port, secure: port === 465, auth: { user: cfg.user, pass: cfg.pass } })
-  await t.sendMail({ from: cfg.from || cfg.user, to: para, subject: assunto, text: texto, html })
+  await t.sendMail({ from: cfg.from || cfg.user, to: para, subject: assunto, text: texto, html, attachments: anexos })
+}
+
+// Documento concluído: cada signatário (com e-mail) recebe o PDF final assinado
+export async function enviarFinal(conta, sig, titulo, pdf, verificacao) {
+  const c = canaisDe(conta)
+  if (!c.email || !sig.email) return false
+  const texto = `Olá ${sig.nome.split(' ')[0]}! O documento "${titulo}" foi assinado por todos. A via final, com o certificado de assinatura, está em anexo.
+
+Verificação: ${verificacao}
+
+Holysign`
+  await enviarEmail(c.email, sig.email, `Documento assinado: ${titulo}`, texto,
+    caixa(`<p style="font-size:15px">O documento abaixo foi <b>assinado por todos</b>. A via final, com o certificado de assinatura, está em anexo.</p><p style="font-size:17px;font-weight:bold;margin:14px 0">${titulo}</p><p><a href="${verificacao}" style="color:#0E7C7B">Verificar autenticidade</a></p>`),
+    [{ filename: `${titulo.replace(/[^ws.-]+/g, ' ').trim().slice(0, 80) || 'documento'} - assinado.pdf`, content: pdf, contentType: 'application/pdf' }])
+  return true
 }
 
 export const caixa = (conteudo) => `<div style="font-family:Arial,Helvetica,sans-serif;max-width:520px;margin:0 auto;padding:24px;color:#0e0e10;text-align:center">

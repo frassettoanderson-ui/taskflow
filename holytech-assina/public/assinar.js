@@ -1,4 +1,5 @@
-// Fluxo do signatário: ler → código → selfie (câmera ao vivo) → assinar.
+// Fluxo do signatário, uma tela por vez:
+// 1 documento (ler + aceite) → 2 código (WhatsApp ou e-mail) → 3 selfie (ao usar a foto, assina) → 4 baixar a via final.
 (function () {
   const A = window.ASSINA
   const url = (p) => `${A.base}/s/${A.token}/${p}`
@@ -10,10 +11,21 @@
     return j
   }
   const msg = (id, t, tipo) => { const el = $(id); el.textContent = t || ''; el.className = 'msg' + (tipo ? ' ' + tipo : '') }
-  const liberar = (id) => $(id).classList.remove('bloqueado')
-  const feito = (id) => $(id).classList.add('feito')
+  const ehCelular = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
 
-  // 1) Documento (pdf.js; fallback: link para abrir o PDF)
+  const TELAS = ['documento', 'codigo', 'selfie', 'final']
+  let telaAtual = 'documento'
+  function mostrar(t) {
+    telaAtual = t
+    for (const x of TELAS) $('tela-' + x).classList.toggle('oculto', x !== t)
+    const i = TELAS.indexOf(t)
+    document.querySelectorAll('#etapas li').forEach((li, k) => { li.classList.toggle('feita', k < i); li.classList.toggle('atual', k === i) })
+    window.scrollTo(0, 0)
+    if (t === 'selfie') iniciarSelfie()
+    if (t === 'final') aguardarFinal()
+  }
+
+  // ── 1) Documento ───────────────────────────────────────────────────────────
   ;(async () => {
     const visor = $('visor')
     try {
@@ -29,8 +41,15 @@
       }
     } catch { visor.innerHTML = '<p class="sub centro">Não foi possível exibir aqui. Use o link abaixo para abrir o PDF.</p>' }
   })()
+  $('aceite').onchange = (e) => { $('btn-assinar').disabled = !e.target.checked }
+  // Assinar: segue para o que ainda falta (retomada: código já confirmado / foto já registrada)
+  $('btn-assinar').onclick = () => {
+    if (!A.otpValidado) return mostrar('codigo')
+    if (!A.selfie) return mostrar('selfie')
+    concluir()
+  }
 
-  // 2) Código
+  // ── 2) Código ──────────────────────────────────────────────────────────────
   let canalAtual = null
   const caixaCanais = $('codigo-canais')
   if (!A.canais.length) caixaCanais.innerHTML = '<p class="msg erro">Nenhum meio de envio de código disponível. Fale com quem enviou o documento.</p>'
@@ -46,25 +65,40 @@
       const r = await post('codigo', { canal })
       canalAtual = canal
       caixaCanais.classList.add('oculto'); $('codigo-digitar').classList.remove('oculto')
+      $('aviso-spam').classList.toggle('oculto', canal !== 'email')
       $('codigo-destino').textContent = `Código enviado para ${r.destino}`
       msg('msg-codigo', ''); $('codigo').focus()
     } catch (e) { msg('msg-codigo', e.message, 'erro') }
   }
   $('btn-reenviar').onclick = () => canalAtual && pedirCodigo(canalAtual)
+  $('btn-trocar').onclick = () => {
+    $('codigo-digitar').classList.add('oculto'); caixaCanais.classList.remove('oculto'); $('aviso-spam').classList.add('oculto'); msg('msg-codigo', '')
+  }
   $('btn-validar').onclick = async () => {
-    try { await post('validar', { codigo: $('codigo').value }); codigoOk() }
-    catch (e) { msg('msg-codigo', e.message, 'erro') }
+    try {
+      await post('validar', { codigo: $('codigo').value })
+      A.otpValidado = true
+      if (A.selfie) concluir(); else mostrar('selfie')
+    } catch (e) { msg('msg-codigo', e.message, 'erro') }
   }
-  function codigoOk() {
-    feito('passo-codigo'); $('codigo-canais').classList.add('oculto'); $('codigo-digitar').classList.add('oculto')
-    msg('msg-codigo', 'Identidade confirmada.', 'ok'); liberar('passo-selfie')
-    if (A.selfie) fotoPronta() // foto já registrada (ou dispensada pelo escritório): vai direto para assinar
-  }
-  function fotoPronta() { feito('passo-selfie'); $('btn-camera').classList.add('oculto'); msg('msg-selfie', 'Foto registrada.', 'ok'); liberar('passo-assinar') }
+  $('codigo').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-validar').click() })
 
-  // 3) Selfie: só câmera ao vivo (sem galeria)
-  let stream = null
+  // ── 3) Selfie (ao usar a foto, conclui a assinatura) ───────────────────────
+  let stream = null, acompanhando = null
   const video = $('video'), canvas = $('canvas'), previa = $('previa')
+  function iniciarSelfie() {
+    // No computador: QR para tirar a selfie no celular; esta tela avança quando o celular terminar
+    if (!ehCelular && !acompanhando) {
+      $('celular').classList.remove('oculto')
+      acompanhando = setInterval(async () => {
+        try {
+          const e = await (await fetch(url('estado'), { cache: 'no-store' })).json()
+          if (e.assinado) { clearInterval(acompanhando); acompanhando = null; mostrar('final') }
+          else if (e.selfie && telaAtual === 'selfie') { clearInterval(acompanhando); acompanhando = null; A.selfie = true; concluir() }
+        } catch { /* tenta de novo */ }
+      }, 4000)
+    }
+  }
   $('btn-camera').onclick = async () => {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 1280 } }, audio: false })
@@ -86,41 +120,43 @@
     $('btn-foto').classList.remove('oculto'); $('btn-refazer').classList.add('oculto'); $('btn-usar').classList.add('oculto')
   }
   $('btn-usar').onclick = async () => {
-    msg('msg-selfie', 'Enviando…')
+    $('btn-usar').disabled = true; $('btn-refazer').disabled = true
+    msg('msg-selfie', 'Enviando a foto e concluindo a assinatura…')
     try {
       await post('selfie', { imagem: previa.src, origem: 'camera' })
       if (stream) stream.getTracks().forEach(t => t.stop())
-      $('btn-refazer').classList.add('oculto'); $('btn-usar').classList.add('oculto')
-      feito('passo-selfie'); msg('msg-selfie', 'Selfie registrada.', 'ok'); liberar('passo-assinar')
-    } catch (e) { msg('msg-selfie', e.message, 'erro') }
+      A.selfie = true
+      await concluir()
+    } catch (e) { msg('msg-selfie', e.message, 'erro'); $('btn-usar').disabled = false; $('btn-refazer').disabled = false }
   }
 
-  // 4) Assinar
-  $('aceite').onchange = (e) => { $('btn-assinar').disabled = !e.target.checked }
-  $('btn-assinar').onclick = async () => {
-    $('btn-assinar').disabled = true; msg('msg-assinar', 'Assinando…')
+  // Assinar de fato (o aceite foi dado na tela 1)
+  async function concluir() {
     try {
-      const r = await post('assinar', { aceite: true })
-      document.querySelector('main').innerHTML = `<section class="cartao centro"><div class="selo ok">Assinado</div><h1>Documento assinado</h1>
-        <p class="sub">Sua assinatura foi registrada com sucesso. Quando todos assinarem, o documento final com o certificado fica disponível.</p>
-        <a class="botao" href="${r.verificacao}">Ver verificação</a></section>`
-      window.scrollTo(0, 0)
-    } catch (e) { msg('msg-assinar', e.message, 'erro'); $('btn-assinar').disabled = false }
+      if (acompanhando) { clearInterval(acompanhando); acompanhando = null }
+      await post('assinar', { aceite: true })
+      mostrar('final')
+    } catch (e) {
+      const alvo = telaAtual === 'documento' ? 'msg-documento' : telaAtual === 'codigo' ? 'msg-codigo' : 'msg-selfie'
+      msg(alvo, e.message, 'erro')
+    }
   }
 
-  // Retomada (página recarregada no meio do fluxo)
-  if (A.otpValidado) codigoOk()
-  // No computador: mostra o QR para continuar no celular e acompanha o que for feito por la
-  const ehCelular = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
-  // (só quando a foto ainda falta; recarrega apenas se algo mudou no celular)
-  if (!ehCelular && !A.selfie) {
-    $('celular').classList.remove('oculto')
-    const acompanhar = setInterval(async () => {
+  // ── 4) Pronto: libera o download quando a via final estiver gerada ─────────
+  function aguardarFinal() {
+    $('final-email').textContent = A.temEmail ? 'Você também vai receber a via final assinada no seu e-mail.' : ''
+    const verificar = async () => {
       try {
-        const e = await (await fetch(A.base + '/s/' + A.token + '/estado', { cache: 'no-store' })).json()
-        if (e.assinado || (e.selfie && !A.selfie)) { clearInterval(acompanhar); location.reload() }
+        const e = await (await fetch(url('estado'), { cache: 'no-store' })).json()
+        if (e.documento === 'concluido') {
+          $('btn-baixar').classList.remove('desativado')
+          $('final-texto').textContent = 'Sua assinatura foi registrada. A via final, com o certificado de assinatura, já está disponível.'
+          return
+        }
+        $('final-texto').textContent = 'Sua assinatura foi registrada. A via final fica disponível quando todos assinarem.'
       } catch { /* tenta de novo */ }
-    }, 4000)
+      setTimeout(verificar, 3000)
+    }
+    verificar()
   }
-  if (A.otpValidado && A.selfie) fotoPronta()
 })()

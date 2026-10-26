@@ -56,3 +56,13 @@ h2 { font-family: 'Archivo', sans-serif; font-stretch: 112%; font-weight: 700; f
 .lista li span { display: block; color: var(--cinza); font-size: 13px; }
 .oculto { display: none !important; }
 .rodape { text-align: center; color: var(--cinza); font-size: 12px; padding: 18px 16px 30px; }
+
+/* Fluxo em telas: etapas no topo, aviso do spam, download liberado só com a via final pronta */
+.etapas { list-style: none; display: flex; justify-content: center; gap: 6px; padding: 0; margin: 16px 0 0; flex-wrap: wrap; counter-reset: etapa; }
+.etapas li { counter-increment: etapa; font: 500 12px 'Geist Mono', monospace; color: var(--cinza); padding: 5px 10px; border: 1px solid var(--linha); border-radius: 5px; background: #fff; }
+.etapas li::before { content: counter(etapa) " "; font-weight: 600; }
+.etapas li.atual { color: #fff; background: var(--tinta); border-color: var(--tinta); }
+.etapas li.feita { color: var(--sign); border-color: var(--sign); }
+.msg.aviso { color: #7a5600; background: #fff6dc; border: 1px solid #f0d58a; border-radius: 5px; padding: 10px 12px; margin: 12px 0 0; }
+.botao.desativado { opacity: .35; pointer-events: none; }
+.tela .aceite { margin-top: 16px; }

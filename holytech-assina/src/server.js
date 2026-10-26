@@ -8,7 +8,7 @@ import crypto from 'node:crypto'
 import { config } from './config.js'
 import { pool, migrar, evento, ipDe } from './db.js'
 import { sha256, tokenAleatorio, codigoVerificacao, cifrar, garantirChaves, chavePublicaPem, carimbar, verificarAssinatura } from './cripto.js'
-import { canaisDisponiveis, enviarCodigo, enviarConvite } from './canais.js'
+import { canaisDisponiveis, enviarCodigo, enviarConvite, enviarFinal } from './canais.js'
 import { gerarFinal } from './certificado.js'
 import { notificar } from './webhook.js'
 import { criarDocumento, docComSignatarios, respostaDoc, cancelarDocumento, linkDe } from './documentos.js'
@@ -95,6 +95,16 @@ r.get('/s/:token/estado', async (req, res) => {
   const x = await carregarSig(req.params.token)
   if (!x) return res.status(404).json({})
   res.set('Cache-Control', 'no-store').json({ otpValidado: !!x.s.otp_validado_em, selfie: !!x.s.selfie_hash, assinado: x.s.status === 'assinado', documento: x.d.status })
+})
+
+// Via final assinada (tela "Baixar contrato" do signatário que já assinou)
+r.get('/s/:token/final.pdf', async (req, res) => {
+  const x = await carregarSig(req.params.token)
+  if (!x || x.s.status !== 'assinado') return res.status(404).send('Documento não encontrado')
+  if (x.d.status !== 'concluido' || !x.d.arquivo_final) return res.status(409).send('O documento final ainda está sendo gerado. Tente em instantes.')
+  const nome = `${x.d.titulo.replace(/[^ws.-]+/g, ' ').trim().slice(0, 80) || 'documento'} - assinado.pdf`
+  res.set('Content-Disposition', `attachment; filename="${nome}"`)
+  res.type('application/pdf').send(fs.readFileSync(path.join(config.dados, 'finais', x.d.arquivo_final)))
 })
 
 r.get('/s/:token/documento.pdf', async (req, res) => {
@@ -192,6 +202,12 @@ async function concluir(documentoId) {
       await evento(documentoId, null, 'representante_autorizado', { representante_id: d0.representante_id })
     }
     notificar(c, d0.callback_url, 'documento.concluido', { documento_id: d0.id, external_id: d0.external_id, codigo: d0.codigo, hash_final: hashFinal }).catch(() => {})
+    // Via final por e-mail para quem assinou com código (a contratada já tem pela conta)
+    for (const s of sigs.filter(x => x.papel !== 'contratada' && x.email)) {
+      enviarFinal(c, s, d0.titulo, finalPdf, `${config.urlPublica}/v/${d0.codigo}`)
+        .then(ok => ok && evento(documentoId, s.id, 'via_final_enviada', { canal: 'email' }))
+        .catch(e => console.error('[via final]', e.message))
+    }
   } catch (e) {
     await pool.query(`UPDATE documentos SET status = 'pendente' WHERE id = $1 AND status = 'concluindo'`, [documentoId])
     throw e
