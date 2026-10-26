@@ -55,7 +55,7 @@ export async function gerarFinal({ originalBytes, documento, conta, signatarios,
     if (s.papel === 'contratada') {
       texto(`${s.nome}  (CONTRATADA - ${s.cargo || 'representante'}${s.registro ? ', ' + s.registro : ''})`, { f: negrito, s: 10, dy: 13 })
       texto(`CPF: ${cpfFmt(s.cpf)}   |   Assinou em: ${fmt(s.assinado_em)}`, { s: 9, dy: 12 })
-      quebra(`Assinatura aplicada em nome da contratada com base no ${s.otp_destino}, assinado pelo representante com código de verificação e selfie (validado em ${fmt(s.otp_validado_em)}; selfie SHA-256 ${String(s.selfie_hash || '').slice(0, 32)}...). Documento enviado pela integração autenticada da conta (IP ${s.ip || '-'}).`, { s: 9, dy: 12 })
+      quebra(`Assinatura eletrônica aplicada automaticamente em ${fmt(s.assinado_em)}, no momento da geração deste documento, em nome da contratada. Fundamento: autorização prévia e permanente dada pelo representante no ${s.otp_destino}, firmado anteriormente em ${fmt(s.otp_validado_em)} com código de verificação e selfie (selfie SHA-256 ${String(s.selfie_hash || '').slice(0, 32)}...). Documento enviado pela integração autenticada da conta (IP ${s.ip || '-'}).`, { s: 9, dy: 12 })
       y -= 6
       continue
     }
