@@ -102,8 +102,9 @@ r.get('/s/:token/final.pdf', async (req, res) => {
   const x = await carregarSig(req.params.token)
   if (!x || x.s.status !== 'assinado') return res.status(404).send('Documento não encontrado')
   if (x.d.status !== 'concluido' || !x.d.arquivo_final) return res.status(409).send('O documento final ainda está sendo gerado. Tente em instantes.')
-  const nome = `${x.d.titulo.replace(/[^ws.-]+/g, ' ').trim().slice(0, 80) || 'documento'} - assinado.pdf`
-  res.set('Content-Disposition', `attachment; filename="${nome}"`)
+  const nome = `${x.d.titulo.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9 ._-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'documento'} - assinado.pdf`
+  // abre na tela (no celular o download "some" na pasta); ?baixar=1 força o download
+  res.set('Content-Disposition', `${req.query.baixar ? 'attachment' : 'inline'}; filename="${nome}"`)
   res.type('application/pdf').send(fs.readFileSync(path.join(config.dados, 'finais', x.d.arquivo_final)))
 })
 

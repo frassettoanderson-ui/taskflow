@@ -83,9 +83,22 @@
   }
   $('codigo').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-validar').click() })
 
-  // ── 3) Selfie (ao usar a foto, conclui a assinatura) ───────────────────────
-  let stream = null, acompanhando = null
-  const video = $('video'), canvas = $('canvas'), previa = $('previa')
+  // ── 3) Selfie estilo biometria: rosto no oval → foto automática ───────────
+  // Detector de rosto do Google (MediaPipe) roda no próprio aparelho; a imagem não sai daqui para isso.
+  let stream = null, acompanhando = null, detector = null, laco = 0, estavelDesde = 0, capturada = false
+  const video = $('video'), canvas = $('canvas'), previa = $('previa'), oval = $('oval'), dica = $('dica')
+  const MP = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14'
+  const dizer = (t) => { dica.textContent = t; dica.classList.toggle('oculto', !t) }
+  async function carregarDetector() {
+    try {
+      const v = await import(MP + '/vision_bundle.mjs')
+      const fs = await v.FilesetResolver.forVisionTasks(MP + '/wasm')
+      detector = await v.FaceDetector.createFromOptions(fs, {
+        baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite', delegate: 'GPU' },
+        runningMode: 'VIDEO', minDetectionConfidence: 0.6,
+      })
+    } catch { detector = null }
+  }
   function iniciarSelfie() {
     // No computador: QR para tirar a selfie no celular; esta tela avança quando o celular terminar
     if (!ehCelular && !acompanhando) {
@@ -98,26 +111,67 @@
         } catch { /* tenta de novo */ }
       }, 4000)
     }
+    if (!detector) carregarDetector()
+    if (ehCelular && !stream) abrirCamera() // no celular a câmera já abre
   }
-  $('btn-camera').onclick = async () => {
+  async function abrirCamera() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 1280 } }, audio: false })
       video.srcObject = stream; await video.play()
-      $('btn-camera').classList.add('oculto'); $('btn-foto').classList.remove('oculto'); msg('msg-selfie', '')
+      $('btn-camera').classList.add('oculto'); msg('msg-selfie', '')
+      capturada = false; estavelDesde = 0
+      dizer('Posicione o rosto dentro do oval')
+      // sem detector (aparelho antigo/sem internet p/ o modelo) → botão manual depois de 6s
+      setTimeout(() => { if (!detector && !capturada) { $('btn-foto').classList.remove('oculto'); dizer('Centralize o rosto e toque em Tirar foto') } }, 6000)
+      cancelAnimationFrame(laco); laco = requestAnimationFrame(analisar)
     } catch { msg('msg-selfie', 'Não foi possível abrir a câmera. Permita o acesso à câmera no navegador e tente de novo.', 'erro') }
   }
-  $('btn-foto').onclick = () => {
+  $('btn-camera').onclick = abrirCamera
+  // A cada quadro: rosto único, centralizado no oval e do tamanho certo por ~1s → foto
+  function analisar() {
+    if (capturada || !stream) return
+    if (detector && video.readyState >= 2) {
+      const r = detector.detectForVideo(video, performance.now())
+      const faces = r.detections || []
+      const vw = video.videoWidth, vh = video.videoHeight
+      let ok = false
+      if (faces.length === 0) dizer('Posicione o rosto dentro do oval')
+      else if (faces.length > 1) dizer('Só uma pessoa na foto')
+      else {
+        const b = faces[0].boundingBox
+        const cx = (b.originX + b.width / 2) / vw, cy = (b.originY + b.height / 2) / vh, tam = b.width / vw
+        if (tam < 0.32) dizer('Aproxime o rosto')
+        else if (tam > 0.72) dizer('Afaste um pouco')
+        else if (Math.abs(cx - 0.5) > 0.09 || Math.abs(cy - 0.45) > 0.1) dizer('Centralize o rosto no oval')
+        else ok = true
+      }
+      oval.classList.toggle('ok', ok)
+      if (ok) {
+        if (!estavelDesde) estavelDesde = performance.now()
+        const falta = 1200 - (performance.now() - estavelDesde)
+        if (falta <= 0) return capturar()
+        dizer('Não se mexa…')
+      } else estavelDesde = 0
+    }
+    laco = requestAnimationFrame(analisar)
+  }
+  function capturar() {
     const w = video.videoWidth, h = video.videoHeight
     if (!w || !h) return
+    capturada = true; cancelAnimationFrame(laco)
     canvas.width = w; canvas.height = h
     const ctx = canvas.getContext('2d'); ctx.translate(w, 0); ctx.scale(-1, 1); ctx.drawImage(video, 0, 0, w, h)
     previa.src = canvas.toDataURL('image/jpeg', 0.85)
-    video.classList.add('oculto'); previa.classList.remove('oculto')
+    previa.classList.remove('oculto'); $('moldura').classList.add('oculto'); dizer('')
     $('btn-foto').classList.add('oculto'); $('btn-refazer').classList.remove('oculto'); $('btn-usar').classList.remove('oculto')
   }
+  $('btn-foto').onclick = capturar
   $('btn-refazer').onclick = () => {
-    previa.classList.add('oculto'); video.classList.remove('oculto')
-    $('btn-foto').classList.remove('oculto'); $('btn-refazer').classList.add('oculto'); $('btn-usar').classList.add('oculto')
+    previa.classList.add('oculto'); $('moldura').classList.remove('oculto'); oval.classList.remove('ok')
+    $('btn-refazer').classList.add('oculto'); $('btn-usar').classList.add('oculto')
+    capturada = false; estavelDesde = 0; dizer('Posicione o rosto dentro do oval')
+    if (!detector) $('btn-foto').classList.remove('oculto')
+    laco = requestAnimationFrame(analisar)
   }
   $('btn-usar').onclick = async () => {
     $('btn-usar').disabled = true; $('btn-refazer').disabled = true
@@ -143,13 +197,14 @@
   }
 
   // ── 4) Pronto: libera o download quando a via final estiver gerada ─────────
+  $('btn-baixar').addEventListener('click', () => $('baixou').classList.remove('oculto'))
   function aguardarFinal() {
     $('final-email').textContent = A.temEmail ? 'Você também vai receber a via final assinada no seu e-mail.' : ''
     const verificar = async () => {
       try {
         const e = await (await fetch(url('estado'), { cache: 'no-store' })).json()
         if (e.documento === 'concluido') {
-          $('btn-baixar').classList.remove('desativado')
+          $('btn-baixar').classList.remove('desativado'); $('btn-ver').classList.remove('desativado')
           $('final-texto').textContent = 'Sua assinatura foi registrada. A via final, com o certificado de assinatura, já está disponível.'
           return
         }
@@ -159,4 +214,5 @@
     }
     verificar()
   }
+  if (A.otpValidado && !A.selfie && ehCelular) mostrar('selfie')
 })()

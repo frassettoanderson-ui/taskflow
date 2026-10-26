@@ -26,7 +26,7 @@ export function paginaAssinar({ token, doc, sig, conta, canais }) {
   if (sig.status === 'assinado') {
     return layout('Documento assinado', `<section class="cartao centro"><div class="selo ok">Assinado</div><h1>Você já assinou este documento</h1>
 <p class="sub">${esc(doc.titulo)}</p><p class="sub">Assinado em ${fmt(sig.assinado_em)}.</p>
-${doc.status === 'concluido' ? `<a class="botao grande" href="${B}/s/${esc(token)}/final.pdf">Baixar contrato</a>` : '<p class="sub">A via final fica disponível quando todos assinarem.</p>'}
+${doc.status === 'concluido' ? `<a class="botao grande" href="${B}/s/${esc(token)}/final.pdf?baixar=1">Baixar contrato</a><p><a class="link" href="${B}/s/${esc(token)}/final.pdf" target="_blank" rel="noopener">Ver o contrato na tela</a></p>` : '<p class="sub">A via final fica disponível quando todos assinarem.</p>'}
 <p><a class="link" href="${B}/v/${esc(doc.codigo)}">Verificar autenticidade</a></p></section>`)
   }
   if (doc.status !== 'pendente') return paginaMensagem('Documento indisponível', 'Este documento não está mais aceitando assinaturas.')
@@ -70,7 +70,12 @@ ${doc.status === 'concluido' ? `<a class="botao grande" href="${B}/s/${esc(token
     <img src="${B}/s/${esc(token)}/qr.svg" alt="QR code para continuar no celular" width="168" height="168">
     <div><b>Está no computador?</b><br>Aponte a câmera do celular para o código e tire a selfie por lá. O código que você já confirmou continua valendo.<br><span class="sub">Esta tela avança sozinha quando você terminar no celular.</span></div>
   </div>
-  <div class="camera"><video id="video" playsinline muted></video><canvas id="canvas" class="oculto"></canvas><img id="previa" class="oculto" alt="Sua selfie"></div>
+  <div class="camera" id="camera">
+    <video id="video" playsinline muted></video>
+    <div class="moldura" id="moldura"><div class="oval" id="oval"></div></div>
+    <p class="dica oculto" id="dica"></p>
+    <canvas id="canvas" class="oculto"></canvas><img id="previa" class="oculto" alt="Sua selfie">
+  </div>
   <div class="acoes">
     <button class="botao" id="btn-camera">Abrir câmera</button>
     <button class="botao oculto" id="btn-foto">Tirar foto</button>
@@ -84,7 +89,9 @@ ${doc.status === 'concluido' ? `<a class="botao grande" href="${B}/s/${esc(token
   <div class="selo ok">Assinado</div>
   <h1>Assinatura concluída</h1>
   <p class="sub" id="final-texto">Estamos gerando a via final com o certificado de assinatura…</p>
-  <a class="botao grande desativado" id="btn-baixar" href="${B}/s/${esc(token)}/final.pdf">Baixar contrato</a>
+  <a class="botao grande desativado" id="btn-baixar" href="${B}/s/${esc(token)}/final.pdf?baixar=1">Baixar contrato</a>
+  <p><a class="link desativado" id="btn-ver" href="${B}/s/${esc(token)}/final.pdf" target="_blank" rel="noopener">Ver o contrato na tela</a></p>
+  <p class="sub oculto" id="baixou">Pronto. No celular, o arquivo fica na pasta <b>Downloads</b> (ou abra pelo aviso do navegador).</p>
   <p class="sub" id="final-email"></p>
   <p><a class="link" id="link-verificar" href="${B}/v/${esc(doc.codigo)}">Verificar autenticidade</a></p>
 </section>

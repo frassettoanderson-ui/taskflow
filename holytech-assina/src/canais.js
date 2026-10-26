@@ -72,7 +72,7 @@ Verificação: ${verificacao}
 Holysign`
   await enviarEmail(c.email, sig.email, `Documento assinado: ${titulo}`, texto,
     caixa(`<p style="font-size:15px">O documento abaixo foi <b>assinado por todos</b>. A via final, com o certificado de assinatura, está em anexo.</p><p style="font-size:17px;font-weight:bold;margin:14px 0">${titulo}</p><p><a href="${verificacao}" style="color:#0E7C7B">Verificar autenticidade</a></p>`),
-    [{ filename: `${titulo.replace(/[^ws.-]+/g, ' ').trim().slice(0, 80) || 'documento'} - assinado.pdf`, content: pdf, contentType: 'application/pdf' }])
+    [{ filename: `${titulo.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9 ._-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'documento'} - assinado.pdf`, content: pdf, contentType: 'application/pdf' }])
   return true
 }
 
