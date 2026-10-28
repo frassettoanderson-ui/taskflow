@@ -1,17 +1,24 @@
-# OX Controle — painel único telão/luz/som da OXFITNESS
+# OX Show — telão, música, luz e luz ambiente da OXFITNESS num lugar só
 
-Agente Python (só stdlib + pyserial opcional) que roda no PC da academia (DESKTOP-NLQHNPL, 192.168.0.210, acesso só via AnyDesk) e serve um painel em `http://192.168.0.210:8710` com PIN.
+Substitui a corrente frágil OBS + REAPER + loopMIDI + scripts Python + Advanced Scene Switcher por **um programa só** (Python stdlib + pyserial opcional) que roda no PC da academia (DESKTOP-NLQHNPL, 192.168.0.210, acesso só via AnyDesk; usuário roda os scripts que eu mando). O Lumikit continua, minimizado, comandado pela API WebRemote.
 
-- `agente/agente.py` — HTTP :8710; OBS via obs-websocket v5 (cliente próprio, senha lida do config do OBS); Lumikit via WebRemote `http://127.0.0.1:5000/services/*`; luz ambiente via serial COM25 (bytes `B6 B6 01 01 03 00 00 0N A9`).
-- `agente/config.json` — PIN, janela travada do evento, cenas da COM25, "momentos" (sequências de passos `obs`/`luz`/`blackout`/`ambiente`/`espera`).
-- `agente/instalar.ps1` — copia p/ `C:\OXControle`, gera PIN, firewall 8710 (sub-rede local), tarefa agendada "OX Controle" no logon.
-- `teste/rodar_teste.py` — simuladores de Lumikit e OBS; launch.json `ox-controle-teste` (:18710, PIN 4321).
+## Arquivos (`oxshow/`)
+- `oxshow.py` — servidor :8710. Painel `/` (PIN; localhost dispensa), telão `/telao` (só localhost), mídia `/midia/*` com Range, SSE `/telao/sse`.
+  - **Telão**: página em Edge/Chrome `--kiosk` no monitor secundário (LED). Estado empurrado por SSE; vídeo uma vez volta para a "tela padrão". Vigia reabre o navegador se `telao.abrir_automatico`.
+  - **Música**: playlists = pastas em `midia/musicas/`; programação por horário/dia/volume; tocada pelo `<audio>` da página do telão (rampa de volume).
+  - **Luz**: Lumikit `/services/edmx_change_scene/p/i`, `timeline_play/i`, `main_set_blackout_on|off`.
+  - **Ambiente**: COM25 bytes `B6 B6 01 01 03 00 00 0N A9` (1 = normal, 2 = show — hipótese, confirmar).
+  - **Cenas** (passos imediatos), **Eventos** (passos com `em` segundos), **Agenda** (dia/hora, tolerância 120 s, verificação 5 min antes), **Registro** (`registro.json`).
+- `config.json` (equipamentos, PIN, janela protegida) e `dados.json` (cenas/eventos/agenda/música/tela padrão — editado pelo painel). O instalador só copia esses dois na primeira vez.
+- `instalar.ps1` — `C:\OXShow`, copia os 2 vídeos do OBS (renomeia p/ `Red Zone.mp4` e `telao int03.mp4`), PIN, firewall 8710 LocalSubnet, tarefa "OX Show" no logon.
+- Teste local: launch.json `oxshow-teste` (:18720) = `teste/oxshow_teste.py` (Lumikit falso :15000) + mídia gerada com ffmpeg no scratchpad (`OXSHOW_TESTE`).
 
 ## Regra de ouro
-O **evento das 21h (seg-sex)** continua no REAPER (`C:\Automacao\RP OX.rpp` + `play_automatico.lua`): COM25 cena 2 → nota MIDI (loopMIDI → Advanced Scene Switcher → cena Institucional) → MTC p/ timeline do Lumikit → COM25 cena 1. O agente **trava todos os comandos** das 20:58 às 21:03 em dias úteis. Migrar o evento p/ o agente só com teste fora do horário e REAPER guardado.
+O **evento das 21h (seg-sex)** continua no REAPER até a migração. Por isso: agenda vem **desativada**, `telao.abrir_automatico=false`, e `janela_protegida` trava comandos manuais 20:58–21:03 em dias úteis. Migração = testar fora do horário → desligar REAPER/OBS do início do Windows + tarefas `Mudar_Para_Cena_*` → ativar agenda e `abrir_automatico` → tirar `janela_protegida`.
 
 ## Pendências
-- Mesa Duonn AXIOS16E (192.168.0.231): app WASM com WebSocket binário — falta captura HAR p/ descobrir o protocolo.
-- Confirmar o que a COM25 controla (hipótese: luz ambiente) e renomear "Cena 1/2" no config.
-- Mapear cenas do Lumikit nos "momentos" (ex.: Sorteio = luz X).
-- `levantamento*/` (ignorado no git) guarda os arquivos copiados do PC da academia.
+- Instalar e testar no PC real (monitor do LED, autoplay com som, Lumikit `timeline_play` sem MTC — se não tocar, gerar MTC via winmm/loopMIDI).
+- Confirmar o que a COM25 faz; índice da timeline do show no Lumikit.
+- Música: cliente precisa licença ECAD; arquivos próprios (não Spotify).
+- Mesa Duonn AXIOS16E: protocolo WebSocket binário (falta HAR).
+- Fase 2: alerta WhatsApp (chip de avisos do OX Cloud); fase 3 opcional: DMX próprio sem Lumikit.

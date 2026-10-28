@@ -1,0 +1,47 @@
+{
+  "telao_padrao": { "modo": "video", "arquivo": "telao int03.mp4", "repetir": true, "mudo": true },
+
+  "cenas": [
+    { "id": "sorteio", "nome": "Sorteio", "passos": [
+      { "tipo": "telao", "modo": "site", "url": "https://www.oxcloudbr.com.br/sorteio/" },
+      { "tipo": "musica", "acao": "volume", "volume": 30 }
+    ]},
+    { "id": "normal", "nome": "Academia normal", "passos": [
+      { "tipo": "telao", "modo": "padrao" },
+      { "tipo": "musica", "acao": "programacao" },
+      { "tipo": "ambiente", "cena": "1" }
+    ]},
+    { "id": "ambiente-normal", "nome": "Ambiente normal", "passos": [
+      { "tipo": "ambiente", "cena": "1" }
+    ]},
+    { "id": "ambiente-show", "nome": "Ambiente show", "passos": [
+      { "tipo": "ambiente", "cena": "2" }
+    ]},
+    { "id": "institucional", "nome": "Vídeo institucional", "passos": [
+      { "tipo": "telao", "modo": "video", "arquivo": "Red Zone.mp4" }
+    ]}
+  ],
+
+  "eventos": [
+    { "id": "evento-21h", "nome": "Evento das 21h", "passos": [
+      { "em": 0,   "tipo": "ambiente", "cena": "2" },
+      { "em": 0,   "tipo": "musica", "acao": "pausar" },
+      { "em": 3.5, "tipo": "telao", "modo": "video", "arquivo": "Red Zone.mp4" },
+      { "em": 3.5, "tipo": "luz_timeline", "acao": "tocar", "indice": 0 },
+      { "em": 97,  "tipo": "ambiente", "cena": "1" },
+      { "em": 100, "tipo": "musica", "acao": "retomar" }
+    ]}
+  ],
+
+  "agenda": [
+    { "id": "ag-21h", "nome": "Evento das 21h", "ativo": false, "dias": [0, 1, 2, 3, 4], "hora": "20:59:57", "tipo": "evento", "alvo": "evento-21h" },
+    { "id": "ag-19h", "nome": "Ambiente normal 19h", "ativo": false, "dias": [0, 1, 2, 3, 4, 5, 6], "hora": "19:00:00", "tipo": "cena", "alvo": "ambiente-normal" },
+    { "id": "ag-22h", "nome": "Ambiente show 22h", "ativo": false, "dias": [0, 1, 2, 3, 4, 5, 6], "hora": "22:00:00", "tipo": "cena", "alvo": "ambiente-show" }
+  ],
+
+  "musica": {
+    "programacao": [
+      { "inicio": "06:00", "fim": "23:00", "playlist": "Geral", "volume": 60, "dias": [0, 1, 2, 3, 4, 5, 6] }
+    ]
+  }
+}

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>OX Show - Telão</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}
+  .camada{position:fixed;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .4s ease;background:#000}
+  .camada.on{opacity:1}
+  video.camada,img.camada{object-fit:contain}
+  #aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);color:#777;font:14px "Segoe UI",sans-serif;display:none}
+</style>
+</head>
+<body>
+<video id="v1" class="camada" playsinline preload="auto"></video>
+<video id="v2" class="camada" playsinline preload="auto"></video>
+<img id="img" class="camada" alt="">
+<iframe id="site" class="camada" allow="autoplay; fullscreen"></iframe>
+<audio id="musica" preload="auto"></audio>
+<div id="aviso">Reconectando ao OX Show...</div>
+<script>
+const $ = id => document.getElementById(id);
+const videos = [$("v1"), $("v2")];
+let vAtivo = 0, telaoId = null, musicaId = null, volAlvo = 0, estado = null;
+
+function avisar(caminho, corpo){
+  fetch(caminho, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(corpo)}).catch(()=>{});
+}
+function urlMidia(rel){ return "/midia/" + rel.split("/").map(encodeURIComponent).join("/"); }
+
+function mostrar(el){
+  for (const c of document.querySelectorAll(".camada")) c.classList.toggle("on", c === el);
+}
+
+function pararOutros(manter){
+  videos.forEach(v => { if (v !== manter){ setTimeout(() => { if (!v.classList.contains("on")) { v.pause(); v.removeAttribute("src"); v.load(); } }, 500); } });
+  if (manter !== $("site")) setTimeout(() => { if (!$("site").classList.contains("on")) $("site").src = "about:blank"; }, 500);
+}
+
+function tocar(el){
+  const p = el.play();
+  if (p) p.catch(e => { avisar("/telao/erro", {msg: "play: " + e.message}); el.muted = true; el.play().catch(()=>{}); });
+}
+
+function aplicarTelao(t){
+  if (t.id === telaoId) return;
+  telaoId = t.id;
+  if (t.modo === "video"){
+    vAtivo = 1 - vAtivo;
+    const v = videos[vAtivo], id = t.id;
+    v.loop = !!t.repetir;
+    v.muted = !!t.mudo;
+    v.onended = () => { if (!v.loop) avisar("/telao/fim", {id}); };
+    v.onerror = () => { avisar("/telao/erro", {msg: "vídeo não abriu: " + t.arquivo}); if (!v.loop) avisar("/telao/fim", {id}); };
+    v.src = urlMidia("videos/" + t.arquivo);
+    v.currentTime = 0;
+    v.oncanplay = () => { v.oncanplay = null; mostrar(v); pararOutros(v); };
+    tocar(v);
+  } else if (t.modo === "imagem"){
+    $("img").onload = () => { mostrar($("img")); pararOutros($("img")); };
+    $("img").src = urlMidia("imagens/" + t.arquivo);
+  } else if (t.modo === "site"){
+    $("site").onload = () => { if ($("site").src !== "about:blank"){ mostrar($("site")); pararOutros($("site")); } };
+    $("site").src = t.url;
+  } else {
+    mostrar(null); pararOutros(null);
+  }
+}
+
+// ---------------- música: volume com rampa suave
+const audio = $("musica");
+setInterval(() => {
+  const atual = audio.volume, alvo = volAlvo;
+  if (Math.abs(atual - alvo) < 0.01) { audio.volume = alvo; return; }
+  audio.volume = Math.max(0, Math.min(1, atual + Math.sign(alvo - atual) * 0.02));
+}, 40);
+audio.onended = () => avisar("/telao/musica-fim", {id: musicaId});
+audio.onerror = () => { if (audio.getAttribute("src")) avisar("/telao/erro", {msg: "música não abriu", musica: true, id: musicaId}); };
+
+function aplicarMusica(m){
+  volAlvo = m.tocando ? Math.max(0, Math.min(1, (m.volume || 0) / 100)) : 0;
+  if (m.id !== musicaId){
+    musicaId = m.id;
+    if (m.faixa){ audio.src = urlMidia(m.faixa); audio.volume = 0; if (m.tocando) tocar(audio); }
+    else { audio.pause(); audio.removeAttribute("src"); audio.load(); }
+    return;
+  }
+  if (m.tocando && audio.paused && audio.getAttribute("src")) tocar(audio);
+  if (!m.tocando && !audio.paused) setTimeout(() => { if (!estado.musica.tocando) audio.pause(); }, 700);
+}
+
+// ---------------- canal com o OX Show (reconecta sozinho)
+let ultimoDado = Date.now();
+function conectar(){
+  const es = new EventSource("/telao/sse");
+  es.onmessage = ev => {
+    ultimoDado = Date.now();
+    $("aviso").style.display = "none";
+    estado = JSON.parse(ev.data);
+    aplicarTelao(estado.telao);
+    aplicarMusica(estado.musica);
+  };
+  es.onerror = () => { $("aviso").style.display = "block"; };
+}
+conectar();
+
+// se o vídeo em loop travar (frame parado), recarrega a página
+let ultimoTempo = -1, parado = 0;
+setInterval(() => {
+  const v = videos[vAtivo];
+  if (v.classList.contains("on") && !v.paused){
+    parado = v.currentTime === ultimoTempo ? parado + 1 : 0;
+    ultimoTempo = v.currentTime;
+    if (parado >= 6){ avisar("/telao/erro", {msg: "vídeo travado, recarregando"}); location.reload(); }
+  }
+}, 5000);
+</script>
+</body>
+</html>

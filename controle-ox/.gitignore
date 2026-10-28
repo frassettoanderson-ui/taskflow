@@ -1,4 +1,9 @@
 levantamento*/
-OXControle.zip
+*.zip
 __pycache__/
 *.log
+registro.json
+disparos.json
+navegador/
+midia/
+*.tmp

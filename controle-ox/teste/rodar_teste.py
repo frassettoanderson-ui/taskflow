@@ -39,6 +39,12 @@ class Lumi(BaseHTTPRequestHandler):
             data = []
         elif cmd == "main_is_blackout_on":
             data = [{"blackout": "true" if LUZ["blackout"] else "false"}]
+        elif cmd == "timeline_get_names":
+            data = [{"name": "Show 21h"}, {"name": "Abertura"}]
+        elif cmd in ("timeline_play", "timeline_stop"):
+            LUZ["timeline"] = args[0] if args else None
+            print("LUMIKIT", cmd, args, flush=True)
+            data = []
         elif cmd.startswith("main_set_blackout_"):
             LUZ["blackout"] = cmd.endswith("on")
             data = []
