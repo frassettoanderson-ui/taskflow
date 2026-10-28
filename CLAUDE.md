@@ -1,6 +1,6 @@
 # Índice de Projetos — taskflow_backup_completo
 
-> Pasta guarda-chuva (backup) com **16 projetos independentes**, cada um na sua subpasta.
+> Pasta guarda-chuva (backup) com **17 projetos independentes**, cada um na sua subpasta.
 > Para continuar um projeto: **abra um chat novo apontando o diretório de trabalho para a subpasta dele** — o `CLAUDE.md` de cada pasta carrega o contexto automaticamente.
 
 ## Mapa rápido
@@ -23,6 +23,7 @@
 | `versatil/` | **Versátil** — loja de logística reversa: e-commerce + disparo em grupos WhatsApp + PDV (esboço) | Next.js + Node/Prisma/Postgres + Asaas + Evolution | abrir chat em `versatil/` |
 | `extensao-crm/` | **CRM WhatsApp** (nome provisório) — extensão Chrome própria, reescrita inspirada na WaSpeed (funil, ficha, respostas rápidas, agendamentos) | Extensão MV3 TS/React + esbuild + wa-js; dados em chrome.storage | abrir chat em `extensao-crm/` |
 | `holytech-assina/` | **Holysign** (ex-HolyTech Assina) — assinatura eletrônica estilo Autentique (cadastro aberto, painel, API/webhook, código + selfie + carimbo HolyTech); no ar em holytechsolution.com.br/holysign | Node/Express + Postgres + pdf-lib | abrir chat em `holytech-assina/` |
+| `controle-ox/` | **OX Controle** — painel único telão (OBS) + luz (Lumikit) + luz ambiente (COM25) da OXFITNESS; evento 21h segue no REAPER | Python stdlib (agente local) + HTML | abrir chat em `controle-ox/` |
 
 ## Observações
 - `financas/` é um **repositório git próprio** embutido; os demais fazem parte deste repo raiz.
