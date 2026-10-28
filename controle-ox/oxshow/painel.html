@@ -279,7 +279,14 @@ let D = null, M = {videos:[], imagens:[], playlists:{}}, E = null, luzPag = 0, l
 // ---------------------------------------------------------- utilidades
 function lerPin(){ try { return localStorage.getItem("oxshowpin") || ""; } catch(e){ return ""; } }
 function salvarPin(v){ try { localStorage.setItem("oxshowpin", v); } catch(e){} }
+// Dentro do OX Cloud (Academia › Telão) o painel fala com o PC da academia pelo servidor, com o login de lá.
+const NUVEM = (() => { try { return window.parent !== window && typeof window.parent.__oxShowApi === "function" ? window.parent.__oxShowApi : null; } catch(e){ return null; } })();
 async function api(caminho, metodo, corpo){
+  if (NUVEM){
+    const j = (await NUVEM(caminho, metodo || "GET", corpo)) || {};
+    if (j.ok === false) throw new Error(j.erro || "Erro");
+    return j;
+  }
   const op = {method: metodo || "GET", headers: {"X-Pin": lerPin()}};
   if (corpo !== undefined){ op.headers["Content-Type"] = "application/json"; op.body = JSON.stringify(corpo); }
   const r = await fetch(caminho, op);
@@ -639,6 +646,7 @@ $("pinForm").onsubmit = e => { e.preventDefault(); salvarPin($("pinInput").value
 iniciar();
 setInterval(() => { if (!ocupado && !document.hidden && !$("modal").classList.contains("on")) atualizar(); }, 2000);
 setInterval(() => { if (!document.hidden && $("aba-agora").classList.contains("on")) carregarLuz(); }, 8000);
+if (NUVEM) $("tlAbrir").textContent = "Abrir telão no PC da academia";
 </script>
 </body>
 </html>

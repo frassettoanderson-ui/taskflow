@@ -17,10 +17,11 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from logging.handlers import RotatingFileHandler
-from urllib.parse import unquote, urlparse, parse_qs
+from urllib.parse import quote, unquote, urlparse, parse_qs
 
 PASTA = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.environ.get("OX_CONFIG") or os.path.join(PASTA, "config.json")
@@ -350,7 +351,7 @@ def achar(colecao, iid):
     return item
 
 
-def rodar_cena(iid, profundidade=0):
+def rodar_cena(iid, profundidade=0, origem=""):
     cena = achar("cenas", iid)
     falhas = []
     for p in cena.get("passos", []):
@@ -358,7 +359,7 @@ def rodar_cena(iid, profundidade=0):
             executar_passo(p, profundidade)
         except Exception as e:
             falhas.append(str(e))
-    registrar("cena", cena["nome"], falhas)
+    registrar("cena", cena["nome"], falhas, origem)
     return falhas
 
 
@@ -710,6 +711,10 @@ class Handler(BaseHTTPRequestHandler):
         pin = str(CFG.get("pin") or "")
         return not pin or self.headers.get("X-Pin", "") == pin or self._local() and not CFG.get("pin_local")
 
+    def _origem(self):
+        u = self.headers.get("X-Usuario")
+        return f"OX Cloud: {unquote(u)}" if u else "manual"
+
     def _ler(self):
         n = int(self.headers.get("Content-Length") or 0)
         return json.loads(self.rfile.read(n) or b"{}") if n else {}
@@ -857,11 +862,11 @@ class Handler(BaseHTTPRequestHandler):
                 if janela_protegida() and corpo.get("tipo") != "evento-parar":
                     raise PermissionError("Evento das 21h (REAPER) em andamento: comandos travados alguns minutos.")
                 if corpo["tipo"] == "cena":
-                    falhas = rodar_cena(corpo["id"])
+                    falhas = rodar_cena(corpo["id"], origem=self._origem())
                     if falhas:
                         return self._json(207, {"ok": False, "erro": " | ".join(falhas)})
                 elif corpo["tipo"] == "evento":
-                    iniciar_evento(corpo["id"], "manual")
+                    iniciar_evento(corpo["id"], self._origem())
                 else:
                     raise ValueError("tipo inválido")
             elif rota == "/api/passo":
@@ -904,8 +909,66 @@ class Handler(BaseHTTPRequestHandler):
             MUSICA.acao({"acao": "programacao"})
         if colecao == "telao_padrao":
             ESTADO.publicar()
-        log.info("dados '%s' salvos pelo painel", colecao)
+        log.info("dados '%s' salvos pelo painel (%s)", colecao, self._origem())
         return self._json(200, {"ok": True})
+
+
+# ---------------------------------------------------------- OX Cloud (painel de qualquer rede)
+# Conexão de SAÍDA para o OX Cloud (long-poll): busca os comandos do painel de lá, executa aqui
+# como se fosse o painel local e devolve a resposta. Não precisa abrir porta no roteador.
+VERSAO = "1.1"
+
+
+def laco_nuvem():
+    nuvem = CFG.get("nuvem") or {}
+    url, token = (nuvem.get("url") or "").rstrip("/"), nuvem.get("token") or ""
+    if not url or not token:
+        return
+    cab = {"X-Agente-Token": token, "X-Agente-Versao": VERSAO, "X-Agente-Maquina": os.environ.get("COMPUTERNAME", "")}
+    log.info("OX Cloud: conectando em %s", url)
+    falhas = 0
+    while True:
+        try:
+            req = urllib.request.Request(url + "/api/show/agente/fila", headers=cab)
+            with urllib.request.urlopen(req, timeout=40) as r:
+                pedidos = json.loads(r.read() or b"{}").get("pedidos") or []
+            if falhas:
+                log.info("OX Cloud: reconectado")
+            falhas = 0
+            for p in pedidos:
+                threading.Thread(target=atender_nuvem, args=(url, cab, p), daemon=True).start()
+        except Exception as e:
+            falhas += 1
+            if falhas in (1, 10) or falhas % 120 == 0:
+                log.warning("OX Cloud sem conexão (%s): %s", falhas, e)
+            time.sleep(5)
+
+
+def atender_nuvem(url, cab, p):
+    caminho = str(p.get("caminho") or "")
+    if not caminho.startswith("/api/"):
+        status, corpo = 403, json.dumps({"erro": "caminho não permitido"})
+    else:
+        dados = None if p.get("corpo") is None else json.dumps(p["corpo"]).encode("utf-8")
+        h = {"X-Pin": str(CFG.get("pin") or ""), "X-Usuario": quote(str(p.get("usuario") or "OX Cloud"))}
+        if dados is not None:
+            h["Content-Type"] = "application/json"
+        porta = int(CFG.get("porta_painel", 8710))
+        req = urllib.request.Request(f"http://127.0.0.1:{porta}{caminho}", data=dados, headers=h, method=p.get("metodo") or "GET")
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                status, corpo = r.status, r.read().decode("utf-8", "replace")
+        except urllib.error.HTTPError as e:
+            status, corpo = e.code, e.read().decode("utf-8", "replace")
+        except Exception as e:
+            status, corpo = 502, json.dumps({"erro": f"OX Show não respondeu: {e}"})
+    try:
+        resp = json.dumps({"id": p.get("id"), "status": status, "corpo": corpo}).encode("utf-8")
+        req = urllib.request.Request(url + "/api/show/agente/resposta", data=resp, method="POST",
+                                     headers={**cab, "Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=15).close()
+    except Exception as e:
+        log.warning("OX Cloud: falha ao devolver resposta: %s", e)
 
 
 def main():
@@ -916,6 +979,7 @@ def main():
     srv.daemon_threads = True
     threading.Thread(target=laco_agenda, daemon=True).start()
     threading.Thread(target=laco_vigia, daemon=True).start()
+    threading.Thread(target=laco_nuvem, daemon=True).start()
     if CFG["telao"].get("abrir_automatico"):
         threading.Thread(target=abrir_telao, daemon=True).start()
     log.info("OX Show no ar na porta %s (mídia em %s)", porta, MIDIA)
