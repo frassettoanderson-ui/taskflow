@@ -46,7 +46,7 @@ function gravarExcluidos(l) { try { fs.writeFileSync(EXCL_FILE, JSON.stringify(l
 const STATUS = new Set(['idle', 'running', 'finished']);
 
 const st = {
-  seq: 0,
+  seq: Math.floor(Date.now() / 1000), // começa pela hora: depois de reiniciar continua maior que o do telão aberto (sem F5)
   cmds: [],            // {seq, cmd}, últimos 30
   state: { status: 'idle', muted: false, manual: false, title: '', eyebrow: '', winners: [] },
   aovivoSeq: 0,        // seq do último sorteio ao vivo enviado ao telão
@@ -114,6 +114,17 @@ http.createServer((req, res) => {
       json(res, { total: lista.length, foraDaRegra: d.foraDaRegra, concorrendo: lista.filter((x) => !x.ganhou && !x.excluido).length, lista, excluidos: excl });
     }).catch((e) => json(res, { error: 'Não consegui buscar os alunos na EVO: ' + (e.message || 'erro') }, 502));
   }
+  // quem está treinando agora (celular, atualiza sozinho): mesma regra do sorteio ao vivo
+  if (p === '/treinando') {
+    if (u.searchParams.get('k') !== KEY) return json(res, { error: 'chave invalida' }, 403);
+    return treinando().then((d) => {
+      const { ja, jaNome, excl } = foraDoAoVivo();
+      const lista = (d.treinando || []).map((x) => ({ nome: x.nome, entrou: x.entrou,
+        situacao: excl.has(normNome(x.nome)) ? 'excluido' : ja.has(x.idMember) || jaNome.has(x.nome.toLowerCase()) ? 'ganhou' : 'concorre' }))
+        .sort((a, b) => b.entrou.localeCompare(a.entrou));
+      json(res, { hora: d.hora, treinando: lista.length, concorrendo: lista.filter((x) => x.situacao === 'concorre').length, lista });
+    }).catch((e) => json(res, { error: 'Não consegui consultar a catraca: ' + (e.message || 'erro') }, 502));
+  }
   if (req.method === 'POST' && (p === '/excluir' || p === '/restaurar')) {
     if (u.searchParams.get('k') !== KEY) return json(res, { error: 'chave invalida' }, 403);
     const nome = str(u.searchParams.get('nome') || '', 80).trim();
@@ -156,20 +167,34 @@ async function geral(res) {
   return json(res, { ok: 1, seq: st.seq, ativos: d.alunos.length, elegiveis: elegiveis.length });
 }
 
+/** Quem está treinando agora (catraca, via OX Cloud). Cache curto: o controle consulta sozinho a cada 20 s. */
+let cacheTreinando = null; // {em, dados}
+async function treinando(fresco) {
+  if (!fresco && cacheTreinando && Date.now() - cacheTreinando.em < 15000) return cacheTreinando.dados;
+  const r = await fetch(OX_TREINANDO, { signal: AbortSignal.timeout(20000) });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d && d.erro || ('HTTP ' + r.status));
+  cacheTreinando = { em: Date.now(), dados: d };
+  return d;
+}
+/** Quem não concorre no ao vivo: já ganhou hoje ou foi excluído. */
+function foraDoAoVivo() {
+  const av = lerAoVivo();
+  return {
+    ja: new Set(av.ganhadores.map((g) => g.id).filter(Boolean)),
+    jaNome: new Set(av.ganhadores.map((g) => g.nome.toLowerCase())),
+    excl: new Set(lerExcluidos().map((x) => normNome(x.nome))),
+  };
+}
+
 /** Busca quem está treinando, tira quem já ganhou hoje e manda a lista ao telão. */
 async function aoVivo(res) {
   let dados;
-  try {
-    const r = await fetch(OX_TREINANDO, { signal: AbortSignal.timeout(20000) });
-    dados = await r.json();
-    if (!r.ok) throw new Error(dados && dados.erro || ('HTTP ' + r.status));
-  } catch (e) {
-    return json(res, { ok: 0, motivo: 'Não consegui consultar a catraca da EVO: ' + (e.message || 'erro') }, 502);
+  try { dados = await treinando(true); }
+  catch (e) {
+    return json(res, { ok: 0, motivo: 'Não consegui consultar a catraca: ' + (e.message || 'erro') }, 502);
   }
-  const av = lerAoVivo();
-  const ja = new Set(av.ganhadores.map((g) => g.id).filter(Boolean));
-  const jaNome = new Set(av.ganhadores.map((g) => g.nome.toLowerCase()));
-  const excl = new Set(lerExcluidos().map((x) => normNome(x.nome)));
+  const { ja, jaNome, excl } = foraDoAoVivo();
   const elegiveis = (dados.treinando || []).filter((p) => !ja.has(p.idMember) && !jaNome.has(p.nome.toLowerCase()) && !excl.has(normNome(p.nome)));
   ultimoAoVivo = { hora: dados.hora, treinando: (dados.treinando || []).length, elegiveis: elegiveis.length };
   st.seq++;

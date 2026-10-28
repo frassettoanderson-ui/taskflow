@@ -30,6 +30,16 @@ button:disabled{opacity:.35;cursor:default}
 #aovivo{background:#1d3b26;border-color:#34d058;font-size:30px;margin-top:6px}
 .av{border:2px solid #2b5236;padding:10px 14px;font:600 14px/1.5 'Archivo',sans-serif;color:#c9d0d8}
 .av b{color:#34d058}
+.tr{border:2px solid #2b5236;background:#101a13;display:flex;flex-direction:column;margin-top:-4px}
+.tr__cab{padding:10px 14px;font:600 14px/1.4 'Archivo',sans-serif;color:#c9d0d8;text-align:center}
+.tr__cab b{color:#34d058;font-size:17px}
+.tr__lista{max-height:260px;overflow-y:auto;border-top:1px solid #2b5236}
+.tr__it{display:flex;justify-content:space-between;gap:10px;padding:7px 14px;border-bottom:1px solid #1b2a1f;font:600 14px 'Archivo',sans-serif}
+.tr__it small{flex:none;font-size:12px;letter-spacing:.06em;color:var(--mute);font-variant-numeric:tabular-nums}
+.tr__it.ganhou small{color:var(--gold)}
+.tr__it.excluido{opacity:.5}
+.tr__it.excluido span{text-decoration:line-through}
+.tr__vazio{padding:12px 14px;font:600 13px 'Archivo',sans-serif;color:var(--mute);text-align:center}
 #reset{background:transparent;border-color:var(--red);color:#ff6b78;margin-top:10px}
 .win{border:2px solid var(--line);padding:10px 14px;font:600 14px/1.5 'Archivo',sans-serif;color:#c9d0d8}
 .win b{color:var(--gold)}
@@ -67,6 +77,10 @@ button:disabled{opacity:.35;cursor:default}
   <div class="dica">Busca na hora todos os alunos ativos da EVO e sorteia 1 (quem já ganhou e quem foi excluído ficam de fora). Roda sozinho, no automático.</div>
 
   <button id="aovivo" disabled>Sorteio ao vivo<span class="sub">sorteia 1 entre quem está treinando agora</span></button>
+  <div class="tr" id="tr">
+    <div class="tr__cab" id="trcab">Treinando agora: buscando…</div>
+    <div class="tr__lista" id="trlista"></div>
+  </div>
 
   <button id="part">Participantes<span class="sub" id="partTxt">alunos ativos · ver lista e excluir alguém</span></button>
 
@@ -116,8 +130,8 @@ function render(){
   ['mute','fullscreen','home','reset'].forEach(id=>$('#'+id).disabled=!on);
   $('#aovivo').disabled=!on||S.status==='running'||aguardandoAoVivo;
   const av=$('#av'),A=S.aovivo||{ganhadores:[]};
-  av.hidden=!(A.ganhadores.length||A.ultimo);
-  if(!av.hidden)av.innerHTML=(A.ultimo?'Último ao vivo ('+esc(A.ultimo.hora)+'): '+A.ultimo.treinando+' treinando, '+A.ultimo.elegiveis+' concorrendo<br>':'')+(A.ganhadores.length?'<b>Ganharam ao vivo hoje ('+A.ganhadores.length+'):</b> '+A.ganhadores.map(g=>esc(g.nome)+' '+esc(g.hora)).join(', '):'');
+  av.hidden=!A.ganhadores.length;
+  if(!av.hidden)av.innerHTML='<b>Ganharam ao vivo hoje ('+A.ganhadores.length+'):</b> '+A.ganhadores.map(g=>esc(g.nome)+' '+esc(g.hora)).join(', ');
   $('#muteTxt').textContent=S.muted?'desligado':'ligado';
   const w=$('#win');
   w.hidden=!(S.telao&&S.winners.length);
@@ -190,10 +204,23 @@ $('#aovivo').onclick=async()=>{
     else if(d.ok===0)$('#msg').textContent=d.motivo||'Aguarde um instante…';
     else $('#msg').textContent=d.treinando+' treinando agora · '+d.elegiveis+' concorrendo';
   }catch(e){$('#msg').textContent='Sem conexão.'}
-  aguardandoAoVivo=false;setTimeout(refresh,500);
+  aguardandoAoVivo=false;setTimeout(refresh,500);setTimeout(carregarTreinando,1500);
 };
 $('#reset').onclick=()=>{if(confirm('Reiniciar tudo do zero?\n\nLimpa a lista de quem já ganhou, recarrega a lista de clientes e volta ao início.'))send('reset')};
+/* Treinando agora: lista da catraca, atualiza sozinha a cada 20 s */
+const SIT={ganhou:'já ganhou hoje',excluido:'excluído'};
+async function carregarTreinando(){
+  if(!K||document.hidden)return;
+  try{
+    const r=await fetch('../api/treinando?k='+encodeURIComponent(K),{cache:'no-store'});const d=await r.json();
+    if(!r.ok){$('#trcab').textContent=d.error||'Não consegui consultar a catraca.';return}
+    $('#trcab').innerHTML='Treinando agora ('+esc(d.hora)+'): <b>'+d.treinando+'</b> · '+d.concorrendo+' concorrendo';
+    $('#trlista').innerHTML=d.lista.length?d.lista.map(x=>'<div class="tr__it '+x.situacao+'"><span>'+esc(x.nome)+'</span><small>'+(SIT[x.situacao]?SIT[x.situacao]+' · ':'')+'entrou '+esc(x.entrou)+'</small></div>').join(''):'<div class="tr__vazio">Ninguém treinando agora.</div>';
+  }catch(e){$('#trcab').textContent='Sem conexão.'}
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)carregarTreinando()});
 refresh();setInterval(refresh,1500);
+carregarTreinando();setInterval(carregarTreinando,20000);
 </script>
 </body>
 </html>
