@@ -13,6 +13,12 @@ Substitui a corrente frágil OBS + REAPER + loopMIDI + scripts Python + Advanced
 - `instalar.ps1` — `C:\OXShow`, copia os 2 vídeos do OBS (renomeia p/ `Red Zone.mp4` e `telao int03.mp4`), PIN, firewall 8710 LocalSubnet, tarefa "OX Show" no logon.
 - Teste local: launch.json `oxshow-teste` (:18720) = `teste/oxshow_teste.py` (Lumikit falso :15000) + mídia gerada com ffmpeg no scratchpad (`OXSHOW_TESTE`).
 
+## Painel de qualquer rede (OX Cloud)
+- OX Cloud › Academia › **Telão, música e luz** (`/app/academia/telao`, permissão `telao.operar`; admin já tem). A página põe `public/oxshow/painel.html` num iframe e define `window.__oxShowApi`; o painel detecta e manda tudo por `/api/show/proxy/*`.
+- O `oxshow.py` abre conexão de SAÍDA (`laco_nuvem`, long-poll `GET /api/show/agente/fila` com `X-Agente-Token`, resposta em `POST /api/show/agente/resposta`) e repassa cada pedido para `127.0.0.1:8710` (só `/api/`), com `X-Usuario` → o registro mostra "OX Cloud: nome".
+- Token: `SHOW_AGENTE_TOKEN` no `.env` da VPS (`/opt/raniandark-pdv/server`) e `nuvem.token` no `config.json` da academia. Rotas no repo raniandark-pdv: `server/src/modules/show/show.routes.ts`.
+- **Ao mudar `painel.html`, copiar para `raniandark-pdv/web/public/oxshow/` e publicar o front.** Atualizar o PC: `atualizar.ps1` (zip com `token-nuvem.txt`, gitignored).
+
 ## Regra de ouro
 O **evento das 21h (seg-sex)** continua no REAPER até a migração. Por isso: agenda vem **desativada**, `telao.abrir_automatico=false`, e `janela_protegida` trava comandos manuais 20:58–21:03 em dias úteis. Migração = testar fora do horário → desligar REAPER/OBS do início do Windows + tarefas `Mudar_Para_Cena_*` → ativar agenda e `abrir_automatico` → tirar `janela_protegida`.
 
