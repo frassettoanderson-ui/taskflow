@@ -49,7 +49,7 @@ const st = {
   seq: Math.floor(Date.now() / 1000), // começa pela hora: depois de reiniciar continua maior que o do telão aberto (sem F5)
   cmds: [],            // {seq, cmd}, últimos 30
   state: { status: 'idle', muted: false, manual: false, title: '', eyebrow: '', winners: [] },
-  aovivoSeq: 0,        // seq do último sorteio ao vivo enviado ao telão
+  aovivoSeqs: new Set(), // seqs dos sorteios ao vivo enviados ao telão (o ganhador de qualquer um deles fica gravado)
   lastSync: 0,
   lastCmd: {},         // anti duplo-toque por comando
 };
@@ -86,7 +86,7 @@ http.createServer((req, res) => {
       };
       // telão informa o ganhador do sorteio ao vivo (uma vez por sorteio)
       const w = s.aovivoWin;
-      if (w && Number.isInteger(w.seq) && w.seq === st.aovivoSeq && typeof w.nome === 'string') {
+      if (w && Number.isInteger(w.seq) && st.aovivoSeqs.has(w.seq) && typeof w.nome === 'string') {
         const av = lerAoVivo();
         if (!av.ganhadores.some((g) => g.seq === w.seq)) {
           av.ganhadores.push({ seq: w.seq, id: Number(w.id) || null, nome: str(w.nome, 80), hora: new Date(Date.now() - 3 * 3600e3).toISOString().slice(11, 16) });
@@ -120,7 +120,7 @@ http.createServer((req, res) => {
     return treinando().then((d) => {
       const { ja, jaNome, excl } = foraDoAoVivo();
       const lista = (d.treinando || []).map((x) => ({ nome: x.nome, entrou: x.entrou,
-        situacao: excl.has(normNome(x.nome)) ? 'excluido' : ja.has(x.idMember) || jaNome.has(x.nome.toLowerCase()) ? 'ganhou' : 'concorre' }))
+        situacao: excl.has(normNome(x.nome)) ? 'excluido' : (x.idMember && ja.has(x.idMember)) || jaNome.has(normNome(x.nome)) ? 'ganhou' : 'concorre' }))
         .sort((a, b) => b.entrou.localeCompare(a.entrou));
       json(res, { hora: d.hora, treinando: lista.length, concorrendo: lista.filter((x) => x.situacao === 'concorre').length, lista });
     }).catch((e) => json(res, { error: 'Não consegui consultar a catraca: ' + (e.message || 'erro') }, 502));
@@ -182,7 +182,7 @@ function foraDoAoVivo() {
   const av = lerAoVivo();
   return {
     ja: new Set(av.ganhadores.map((g) => g.id).filter(Boolean)),
-    jaNome: new Set(av.ganhadores.map((g) => g.nome.toLowerCase())),
+    jaNome: new Set(av.ganhadores.map((g) => normNome(g.nome))),
     excl: new Set(lerExcluidos().map((x) => normNome(x.nome))),
   };
 }
@@ -195,10 +195,11 @@ async function aoVivo(res) {
     return json(res, { ok: 0, motivo: 'Não consegui consultar a catraca: ' + (e.message || 'erro') }, 502);
   }
   const { ja, jaNome, excl } = foraDoAoVivo();
-  const elegiveis = (dados.treinando || []).filter((p) => !ja.has(p.idMember) && !jaNome.has(p.nome.toLowerCase()) && !excl.has(normNome(p.nome)));
+  const elegiveis = (dados.treinando || []).filter((p) => !(p.idMember && ja.has(p.idMember)) && !jaNome.has(normNome(p.nome)) && !excl.has(normNome(p.nome)));
   ultimoAoVivo = { hora: dados.hora, treinando: (dados.treinando || []).length, elegiveis: elegiveis.length };
   st.seq++;
-  st.aovivoSeq = st.seq;
+  st.aovivoSeqs.add(st.seq);
+  if (st.aovivoSeqs.size > 50) st.aovivoSeqs.delete(st.aovivoSeqs.values().next().value);
   st.cmds.push({ seq: st.seq, cmd: 'aovivo', lista: elegiveis.map((p) => ({ id: p.idMember, nome: p.nome })), treinando: ultimoAoVivo.treinando });
   if (st.cmds.length > 30) st.cmds.shift();
   return json(res, { ok: 1, seq: st.seq, ...ultimoAoVivo });

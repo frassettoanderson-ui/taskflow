@@ -232,7 +232,9 @@ const $=s=>document.querySelector(s);
 if(!new URLSearchParams(location.search).has('config'))document.body.classList.add('simple');
 const Q=new URLSearchParams(location.search);
 const W=+Q.get('w')||2816, H=+Q.get('h')||980, U=H/1080, UW=Math.max(U,W/1920*.9);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+/* gen: cada sorteio novo aumenta; as esperas do sorteio anterior nunca terminam (ele para onde estava) */
+let gen=0;
+const sleep=ms=>{const g=gen;return new Promise(r=>setTimeout(()=>{if(g===gen)r()},ms))};
 
 /* ---------- aleatoriedade (criptográfica, sem viés) ---------- */
 function rnd(n){const b=new Uint32Array(1),lim=Math.floor(4294967296/n)*n;let x;do{crypto.getRandomValues(b);x=b[0]}while(x>=lim);return x%n}
@@ -368,8 +370,9 @@ function ring(c,col){
 let keyResolve=null,auto=false;
 function waitKey(msg){
   const h=$('#hint');if(!auto){h.textContent=msg||'Espaço para continuar';h.classList.add('on')}
+  const g=gen;
   return new Promise(res=>{
-    const done=()=>{keyResolve=null;h.classList.remove('on');clearTimeout(tm);res()};
+    const done=()=>{if(g!==gen)return;keyResolve=null;h.classList.remove('on');clearTimeout(tm);res()};
     keyResolve=done;const tm=auto?setTimeout(done,1200):0;
   });
 }
@@ -793,8 +796,20 @@ function avisoPalco(eb,t,msg){
   $('#cards').innerHTML='';$('#beams').classList.remove('on');$('#hint').classList.remove('on');
   setTitle(eb,t);$('#again').hidden=true;$('#endmsg').textContent=msg||'';$('#endbtns').classList.add('on');
 }
+/* para o sorteio que estiver rodando (abertura, voz, animação) para começar outro do zero */
+function pararSorteio(){
+  gen++;keyResolve=null;$('#hint').classList.remove('on');
+  if(vozSrc){try{vozSrc.src.stop()}catch(e){}vozSrc=null}
+  $('#arena').classList.remove('on','sai');
+  const sp=$('#splash');sp.classList.remove('in');sp.classList.add('off');
+  stage.querySelectorAll('.press,.arm,.blade,.ring,.fly').forEach(e=>e.remove());
+  $('#cards').innerHTML='';$('#endbtns').classList.remove('on');$('#beams').classList.remove('on');
+  confetti=[];heat=0;finished=false;
+}
+/* cada clique em "Sorteio ao vivo" recomeça do zero: lista de quem está treinando AGORA, abertura com a voz e a animação toda */
 function aoVivo(o){
-  if(remStatus==='running')return;           // não interrompe um sorteio em andamento
+  pararSorteio();
+  arenaFeita=false;
   const lista=(o&&o.lista)||[];
   abrirPalco();
   liveSeq=o.seq;liveTotal=o.treinando||lista.length;aovivoWin=null;
