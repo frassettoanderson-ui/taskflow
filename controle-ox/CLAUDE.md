@@ -13,11 +13,11 @@ Substitui a corrente frágil OBS + REAPER + loopMIDI + scripts Python + Advanced
 - `instalar.ps1` — `C:\OXShow`, copia os 2 vídeos do OBS (renomeia p/ `Red Zone.mp4` e `telao int03.mp4`), PIN, firewall 8710 LocalSubnet, tarefa "OX Show" no logon.
 - Teste local: launch.json `oxshow-teste` (:18720) = `teste/oxshow_teste.py` (Lumikit falso :15000) + mídia gerada com ffmpeg no scratchpad (`OXSHOW_TESTE`).
 
-## Painel de qualquer rede (OX Cloud)
-- OX Cloud › Academia › **Telão, música e luz** (`/app/academia/telao`, permissão `telao.operar`; admin já tem). A página põe `public/oxshow/painel.html` num iframe e define `window.__oxShowApi`; o painel detecta e manda tudo por `/api/show/proxy/*`.
-- O `oxshow.py` abre conexão de SAÍDA (`laco_nuvem`, long-poll `GET /api/show/agente/fila` com `X-Agente-Token`, resposta em `POST /api/show/agente/resposta`) e repassa cada pedido para `127.0.0.1:8710` (só `/api/`), com `X-Usuario` → o registro mostra "OX Cloud: nome".
-- Token: `SHOW_AGENTE_TOKEN` no `.env` da VPS (`/opt/raniandark-pdv/server`) e `nuvem.token` no `config.json` da academia. Rotas no repo raniandark-pdv: `server/src/modules/show/show.routes.ts`.
-- **Ao mudar `painel.html`, copiar para `raniandark-pdv/web/public/oxshow/` e publicar o front.** Atualizar o PC: `atualizar.ps1` (zip com `token-nuvem.txt`, gitignored).
+## Painel de qualquer rede: oxfitnesstrainingcenter.com.br/show
+- Página própria `web/index.html` (login + barra de status + iframe do `painel.html`), login único do usuário (credenciais com o usuário; no `.env` da VPS OX como `SHOW_LOGIN_USUARIO` / `SHOW_LOGIN_SENHA` = `sal:hash` scrypt N=16384 r=8 p=1 dklen 64). Não fica mais dentro do OX Cloud (removido a pedido em 28/10).
+- Hospedagem: o domínio do site ainda aponta para a **VPS antiga** (`root@89.117.79.163`): arquivos em `/var/www/oxshow-web/` (index.html + painel.html), nginx `sites-available/oxfitness-dominio` com `location /show/` (alias) e `/show/api/` → proxy `https://oxcloudbr.com.br/api/show/`. **Ao mudar `painel.html` ou `web/index.html`, copiar para lá (scp).** Se o domínio migrar para a VPS OX, levar essas duas locations.
+- API/relay no repo raniandark-pdv: `server/src/modules/show/show.routes.ts` (`/show/login`, `/show/status`, `/show/proxy/*`, agente `/show/agente/fila|resposta`). Token do painel assinado com `JWT_SECRET + ":oxshow"` (não vale no OX Cloud).
+- O `oxshow.py` abre conexão de SAÍDA (`laco_nuvem`, long-poll com `X-Agente-Token` = `SHOW_AGENTE_TOKEN` do `.env` da VPS OX / `nuvem.token` no `config.json` da academia) e repassa cada pedido para `127.0.0.1:8710` (só `/api/`), com `X-Usuario` → registro mostra "OX Cloud: usuário". Atualizar o PC: `atualizar.ps1` (zip com `token-nuvem.txt`, gitignored).
 
 ## Regra de ouro
 O **evento das 21h (seg-sex)** continua no REAPER até a migração. Por isso: agenda vem **desativada**, `telao.abrir_automatico=false`, e `janela_protegida` trava comandos manuais 20:58–21:03 em dias úteis. Migração = testar fora do horário → desligar REAPER/OBS do início do Windows + tarefas `Mudar_Para_Cena_*` → ativar agenda e `abrir_automatico` → tirar `janela_protegida`.

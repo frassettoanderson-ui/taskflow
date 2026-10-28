@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>OX Show</title>
+<style>
+  :root { --fundo:#0b0b0c; --cartao:#151517; --linha:#26262a; --texto:#f2f2f2; --suave:#9a9aa2; --ox:#e1251b; --ok:#3fb950; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--fundo); color: var(--texto); font: 15px/1.4 system-ui, "Segoe UI", Roboto, sans-serif; }
+  .marca { font-weight: 900; letter-spacing: .04em; }
+  .marca b { color: var(--ox); }
+
+  #entrar { min-height: 100%; display: grid; place-items: center; padding: 24px 16px; }
+  #entrar form { width: 100%; max-width: 340px; text-align: center; }
+  #entrar .marca { font-size: 46px; margin-bottom: 4px; }
+  #entrar p { color: var(--suave); margin: 0 0 28px; }
+  #entrar input { width: 100%; padding: 13px 14px; margin-bottom: 10px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 8px; color: var(--texto); font-size: 16px; text-align: center; }
+  #entrar input:focus { outline: none; border-color: var(--ox); }
+  #entrar button { width: 100%; padding: 13px; margin-top: 6px; background: var(--ox); color: #fff; border: 0; border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  #entrar button:disabled { opacity: .6; cursor: wait; }
+  #erro { min-height: 22px; margin-top: 12px; color: #ff6b61; font-size: 14px; }
+
+  #painel { display: none; height: 100%; flex-direction: column; }
+  #painel.on { display: flex; }
+  .topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--linha); }
+  #status { font-size: 13px; color: var(--suave); flex: 1; }
+  #status.on { color: var(--ok); }
+  #status.off { color: #ff6b61; }
+  #sair { background: none; border: 1px solid var(--linha); color: var(--suave); border-radius: 6px; padding: 6px 12px; cursor: pointer; font-size: 13px; }
+  #sair:hover { color: var(--texto); }
+  iframe { flex: 1; width: 100%; border: 0; }
+</style>
+</head>
+<body>
+<section id="entrar">
+  <form id="form">
+    <div class="marca"><b>OX</b> SHOW</div>
+    <p>Telão, música e luz da OXFITNESS</p>
+    <input id="usuario" placeholder="Usuário" autocomplete="username" autocapitalize="none" required>
+    <input id="senha" type="password" placeholder="Senha" autocomplete="current-password" required>
+    <button type="submit" id="btEntrar">Entrar</button>
+    <div id="erro"></div>
+  </form>
+</section>
+
+<section id="painel">
+  <div class="topo">
+    <div id="status">Verificando o PC da academia...</div>
+    <button id="sair">Sair</button>
+  </div>
+  <iframe id="quadro" title="Painel OX Show"></iframe>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+let token = "", statusT;
+try { token = localStorage.getItem("oxshow.token") || ""; } catch (e) {}
+
+async function chamar(caminho, metodo, corpo) {
+  const op = { method: metodo || "GET", headers: { Authorization: "Bearer " + token } };
+  if (corpo !== undefined) { op.headers["Content-Type"] = "application/json"; op.body = JSON.stringify(corpo); }
+  const r = await fetch("api" + caminho, op);
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { sair(); throw new Error("Entre de novo."); }
+  if (!r.ok) throw new Error(j.erro || "Erro " + r.status);
+  return j;
+}
+
+// o painel (painel.html, o mesmo do PC da academia) chama /api/...; aqui vira /show/api/proxy/...
+window.__oxShowApi = (caminho, metodo, corpo) => chamar("/proxy" + caminho.replace(/^\/api/, ""), metodo, corpo);
+
+async function lerStatus() {
+  try {
+    const s = await chamar("/status");
+    $("status").textContent = s.online ? "PC da academia conectado" : "PC da academia sem conexão: verifique se está ligado e com internet";
+    $("status").className = s.online ? "on" : "off";
+  } catch (e) { $("status").textContent = e.message; $("status").className = "off"; }
+}
+
+function abrir() {
+  $("entrar").style.display = "none";
+  $("painel").classList.add("on");
+  $("quadro").src = "painel.html";
+  lerStatus(); clearInterval(statusT); statusT = setInterval(lerStatus, 15000);
+}
+
+function sair() {
+  token = ""; try { localStorage.removeItem("oxshow.token"); } catch (e) {}
+  clearInterval(statusT);
+  $("quadro").src = "about:blank";
+  $("painel").classList.remove("on");
+  $("entrar").style.display = "";
+}
+
+$("form").onsubmit = async e => {
+  e.preventDefault();
+  $("erro").textContent = ""; $("btEntrar").disabled = true;
+  try {
+    const r = await fetch("api/login", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usuario: $("usuario").value, senha: $("senha").value }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.erro || "Não foi possível entrar.");
+    token = j.token; try { localStorage.setItem("oxshow.token", token); } catch (e) {}
+    $("senha").value = "";
+    abrir();
+  } catch (e) { $("erro").textContent = e.message; }
+  finally { $("btEntrar").disabled = false; }
+};
+$("sair").onclick = sair;
+if (token) abrir();
+</script>
+</body>
+</html>
