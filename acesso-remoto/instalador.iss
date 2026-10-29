@@ -1,4 +1,4 @@
-; HolyTech Remoto — instala o cliente oficial do RustDesk já apontado para o
+﻿; HolyTech Remoto — instala o cliente oficial do RustDesk já apontado para o
 ; servidor próprio (VPS OX Cloud) e, se informada, define a senha permanente.
 ; Compilar com build.ps1 (baixa o MSI oficial antes).
 
