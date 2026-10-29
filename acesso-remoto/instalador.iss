@@ -78,6 +78,15 @@ begin
   Result := ExpandConstant('{commonpf64}\RustDesk\rustdesk.exe');
 end;
 
+// true quando o RustDesk instalado é 1.2 ou mais novo (aceita --config/--password)
+function VersaoNova: Boolean;
+var
+  MS, LS: Cardinal;
+begin
+  Result := FileExists(Exe) and GetVersionNumbers(Exe, MS, LS) and
+    ((MS shr 16 > 1) or ((MS shr 16 = 1) and ((MS and $FFFF) >= 2)));
+end;
+
 procedure Rodar(const Params: String);
 var
   Cod: Integer;
@@ -93,19 +102,34 @@ var
 begin
   if CurStep <> ssPostInstall then Exit;
 
+  // RustDesk antigo (instalado pelo .exe, não pelo MSI) impede o MSI e não entende --config
+  if FileExists(Exe) and not VersaoNova then
+  begin
+    WizardForm.StatusLabel.Caption := 'Removendo o RustDesk antigo...';
+    Exec(Exe, '--uninstall', '', SW_HIDE, ewWaitUntilTerminated, Cod);
+    Tentativas := 0;
+    while FileExists(Exe) and (Tentativas < 60) do
+    begin
+      Sleep(1000);
+      Tentativas := Tentativas + 1;
+    end;
+    RegDeleteKeyIncludingSubkeys(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RustDesk');
+  end;
+
   WizardForm.StatusLabel.Caption := 'Instalando o RustDesk...';
   Exec('msiexec.exe', '/i "' + ExpandConstant('{tmp}\rustdesk.msi') + '" /qn /norestart', '',
     SW_HIDE, ewWaitUntilTerminated, Cod);
 
   Tentativas := 0;
-  while (not FileExists(Exe)) and (Tentativas < 60) do
+  while (not VersaoNova) and (Tentativas < 60) do
   begin
     Sleep(1000);
     Tentativas := Tentativas + 1;
   end;
-  if not FileExists(Exe) then
+  if not VersaoNova then
   begin
-    MsgBox('O RustDesk não foi instalado (código ' + IntToStr(Cod) + ').', mbError, MB_OK);
+    MsgBox('O RustDesk {#RustDeskVersao} não foi instalado (msiexec código ' + IntToStr(Cod) + ').' + #13#10 +
+      'Desinstale qualquer RustDesk antigo pelo Painel de Controle e rode de novo.', mbError, MB_OK);
     Exit;
   end;
   Sleep(3000);
