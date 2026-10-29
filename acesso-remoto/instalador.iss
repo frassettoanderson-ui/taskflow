@@ -145,6 +145,16 @@ begin
     Rodar('--password "' + PaginaSenha.Values[0] + '"');
   end;
 
+  // config herdada de RustDesk antigo pode ter o serviço desligado; e o serviço pode ter
+  // sido apagado pelo desinstalador antigo depois do MSI
+  Rodar('--option stop-service ""');
+  if not RegKeyExists(HKLM, 'SYSTEM\CurrentControlSet\Services\RustDesk') then
+  begin
+    WizardForm.StatusLabel.Caption := 'Instalando o serviço...';
+    Rodar('--install-service');
+    Sleep(3000);
+  end;
+
   Exec(ExpandConstant('{sys}\sc.exe'), 'stop RustDesk', '', SW_HIDE, ewWaitUntilTerminated, Cod);
   Sleep(2000);
   Exec(ExpandConstant('{sys}\sc.exe'), 'start RustDesk', '', SW_HIDE, ewWaitUntilTerminated, Cod);
