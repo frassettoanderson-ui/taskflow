@@ -13,5 +13,5 @@ Acesso remoto aos PCs usando **RustDesk** com **servidor próprio** (nada passa 
 - Limitação: o programa instalado continua se chamando "RustDesk" (só o instalador tem nome/ícone HolyTech). Renomear o app em si exige compilar o RustDesk do código-fonte.
 
 ## Falta
-- Testar o instalador num PC real (config + senha + ID).
+- PC do Anderson registrado (ID 469100913) em 29/10. Falta testar o instalador num 2º PC e conectar de verdade. A recriação automática do serviço (RustDesk antigo removido) ainda não foi testada pelo instalador.
 - Opcional: subdomínio (ex. `remoto.holytechsolution.com.br`) no lugar do IP.
