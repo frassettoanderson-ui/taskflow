@@ -1,6 +1,6 @@
 # Índice de Projetos — taskflow_backup_completo
 
-> Pasta guarda-chuva (backup) com **17 projetos independentes**, cada um na sua subpasta.
+> Pasta guarda-chuva (backup) com **18 projetos independentes**, cada um na sua subpasta.
 > Para continuar um projeto: **abra um chat novo apontando o diretório de trabalho para a subpasta dele** — o `CLAUDE.md` de cada pasta carrega o contexto automaticamente.
 
 ## Mapa rápido
@@ -24,6 +24,7 @@
 | `extensao-crm/` | **CRM WhatsApp** (nome provisório) — extensão Chrome própria, reescrita inspirada na WaSpeed (funil, ficha, respostas rápidas, agendamentos) | Extensão MV3 TS/React + esbuild + wa-js; dados em chrome.storage | abrir chat em `extensao-crm/` |
 | `holytech-assina/` | **Holysign** (ex-HolyTech Assina) — assinatura eletrônica estilo Autentique (cadastro aberto, painel, API/webhook, código + selfie + carimbo HolyTech); no ar em holytechsolution.com.br/holysign | Node/Express + Postgres + pdf-lib | abrir chat em `holytech-assina/` |
 | `controle-ox/` | **OX Show** — telão + música do dia + luz (Lumikit via API) + luz ambiente (COM25) da OXFITNESS num programa só, com cenas/eventos/agenda; substitui OBS+REAPER | Python stdlib (local) + HTML | abrir chat em `controle-ox/` |
+| `acesso-remoto/` | **HolyTech Remoto** — "AnyDesk próprio": servidor RustDesk na VPS OX Cloud + instalador com servidor embutido | Inno Setup + RustDesk (Docker na VPS) | abrir chat em `acesso-remoto/` |
 
 ## Observações
 - `financas/` é um **repositório git próprio** embutido; os demais fazem parte deste repo raiz.
