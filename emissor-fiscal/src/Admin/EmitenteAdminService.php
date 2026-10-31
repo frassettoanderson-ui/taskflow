@@ -66,16 +66,20 @@ final class EmitenteAdminService
             'csc' => (string) ($d['csc'] ?? ''),
             'nfse_provider' => (string) ($d['nfse_provider'] ?? ''),
             'nfse_senha' => (string) ($d['nfse_senha'] ?? ''),
+            // IPM: subdomínio do Atende.Net (ex.: "imbituba") e código TOM do município; sem eles o
+            // provider usa o nome da cidade sem acento e o código IBGE
+            'ipm_subdominio' => strtolower(preg_replace('/[^A-Za-z0-9-]/', '', (string) ($d['ipm_subdominio'] ?? ''))),
+            'municipio_tom' => preg_replace('/\D/', '', (string) ($d['municipio_tom'] ?? '')),
             'resp_tec_contato' => (string) ($d['resp_tec_contato'] ?? ''),
             'resp_tec_email' => (string) ($d['resp_tec_email'] ?? ''),
             // ambiente POR EMITENTE (1 produção, 2 homologação); sem ele vale o FISCAL_AMBIENTE global
             'ambiente' => in_array((int) ($d['ambiente'] ?? 0), [1, 2], true) ? (int) $d['ambiente'] : null,
         ], fn ($v) => $v !== '' && $v !== null);
 
-        // preserva cert_password/csc/ambiente antigos se não vieram agora (update parcial)
+        // preserva cert_password/csc/ambiente/dados IPM antigos se não vieram agora (update parcial)
         $this->mutarJson($this->emitentesPath(), function (array $atual) use ($cnpj, $registro): array {
             $anterior = $atual[$cnpj] ?? [];
-            foreach (['cert_password', 'csc', 'nfse_senha', 'ambiente'] as $segredo) {
+            foreach (['cert_password', 'csc', 'nfse_senha', 'ambiente', 'ipm_subdominio', 'municipio_tom'] as $segredo) {
                 if (empty($registro[$segredo]) && !empty($anterior[$segredo])) {
                     $registro[$segredo] = $anterior[$segredo];
                 }

@@ -59,9 +59,75 @@ final class IpmAtendeNetProvider implements NFSeProvider
         ?Certificate $cert,
         string $identificador,
         string $justificativa,
-        int $ambiente
+        int $ambiente,
+        array $extras = []
     ): array {
-        throw new \RuntimeException('Cancelamento de NFS-e (IPM) ainda não implementado.');
+        if ($emitente->nfseSenha === '') {
+            throw new \RuntimeException(
+                "Emitente {$emitente->cnpj} sem 'nfse_senha' (senha do portal da prefeitura) — obrigatória no IPM."
+            );
+        }
+        // O IPM cancela pelo NÚMERO da NFS-e (a "chave" que devolvemos na emissão é o código verificador).
+        $numero = preg_replace('/\D/', '', (string) ($extras['numero'] ?? ''));
+        if ($numero === '') {
+            $numero = preg_replace('/\D/', '', $identificador);
+        }
+        if ($numero === '') {
+            throw new \InvalidArgumentException('Informe "numero" (número da NFS-e) para cancelar no IPM.');
+        }
+        if ($ambiente !== 1) {
+            // Em homologação o IPM só valida (nfse_teste) e não emite: não existe nota para cancelar.
+            return [
+                'status' => 'rejeitado',
+                'chave'  => $identificador,
+                'motivo' => 'Em homologação o IPM não emite NFS-e, então não há nota para cancelar.',
+                'xml'    => null,
+            ];
+        }
+
+        $resp = $this->post($emitente, $this->montarXmlCancelamento($emitente, $numero, $justificativa, $extras));
+        return $this->tratarCancelamento($resp, $identificador ?: $numero);
+    }
+
+    /**
+     * XML de cancelamento (NTE-35): mesma rota da emissão, <situacao>C</situacao> + número.
+     * ⚠️ VERIFICAR com uma nota real: tags exatas e texto de sucesso da resposta.
+     */
+    private function montarXmlCancelamento(Emitente $e, string $numero, string $justificativa, array $extras): string
+    {
+        $tom = $e->municipioTom ?: $e->cMun;
+        $serie = preg_replace('/\D/', '', (string) ($extras['serie'] ?? ''));
+
+        return '<?xml version="1.0" encoding="UTF-8"?>'
+            . '<nfse>'
+            . '<nf>'
+            . "<numero>{$numero}</numero>"
+            . ($serie !== '' ? "<serie_nfse>{$serie}</serie_nfse>" : '')
+            . '<situacao>C</situacao>'
+            . '<observacao>' . $this->txt(mb_substr(trim($justificativa), 0, 255)) . '</observacao>'
+            . '</nf>'
+            . '<prestador>'
+            . "<cpfcnpj>{$e->cnpj}</cpfcnpj>"
+            . "<cidade>{$tom}</cidade>"
+            . '</prestador>'
+            . '</nfse>';
+    }
+
+    private function tratarCancelamento(array $resp, string $chave): array
+    {
+        $body = $resp['body'];
+        $msg = $this->tag($body, 'mensagem') ?: $this->tag($body, 'motivo')
+            ?: $this->tag($body, 'erro') ?: $this->tag($body, 'descricao');
+        $situacao = $this->tag($body, 'situacao_descricao_nfse') ?: $this->tag($body, 'situacao');
+        $cancelada = stripos($situacao, 'cancel') !== false
+            || (stripos($msg, 'cancelad') !== false && !preg_match('/n[ãa]o|erro|inv[áa]lid/iu', $msg));
+
+        return [
+            'status' => $cancelada ? 'cancelado' : 'rejeitado',
+            'chave'  => $chave,
+            'motivo' => $msg !== '' ? $msg : ($cancelada ? 'NFS-e cancelada' : 'HTTP ' . $resp['status']),
+            'xml'    => $cancelada ? $body : null,
+        ];
     }
 
     // ------------------------------------------------------------------

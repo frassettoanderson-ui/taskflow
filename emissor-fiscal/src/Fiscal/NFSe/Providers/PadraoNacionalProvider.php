@@ -95,15 +95,77 @@ final class PadraoNacionalProvider implements NFSeProvider
         ?Certificate $cert,
         string $identificador,
         string $justificativa,
-        int $ambiente
+        int $ambiente,
+        array $extras = []
     ): array {
-        // O cancelamento no Padrão Nacional é feito por EVENTO (pedido de
-        // cancelamento e101101): monta o XML do evento, assina e faz
-        // POST /nfse/{chave}/eventos. Implementar após validar o leiaute do
-        // evento em homologação.
-        throw new \RuntimeException(
-            'Cancelamento de NFS-e (Padrão Nacional) ainda não implementado — ver docs/NFSE.md.'
-        );
+        // Cancelamento = EVENTO e101101 (pedido de registro de evento): monta o
+        // pedRegEvento -> assina infPedReg -> gzip/base64 -> POST /nfse/{chave}/eventos.
+        $chave = $this->soDigitos($identificador);
+        if (strlen($chave) !== 50) {
+            throw new \InvalidArgumentException('Chave de acesso da NFS-e inválida (50 dígitos).');
+        }
+        // cMotivo: 1 = erro na emissão, 2 = serviço não prestado, 9 = outros
+        $cMotivo = (int) ($extras['codigo_motivo'] ?? 1);
+        if (!in_array($cMotivo, [1, 2, 9], true)) {
+            throw new \InvalidArgumentException('codigo_motivo inválido (1 erro na emissão, 2 serviço não prestado, 9 outros).');
+        }
+
+        $pedido = $this->montarPedidoCancelamento($emitente, $chave, $cMotivo, $justificativa, $ambiente);
+        $assinado = $this->normalizarXml(Signer::sign($cert, $pedido, 'infPedReg', 'Id'));
+
+        $resp = $this->request($cert, 'POST', '/nfse/' . $chave . '/eventos', $ambiente, [
+            'pedidoRegistroEventoXmlGZipB64' => base64_encode(gzencode($assinado)),
+        ]);
+        $body = json_decode($resp['body'], true) ?: [];
+
+        if ($resp['status'] === 201 || $resp['status'] === 200) {
+            $eventoXml = isset($body['eventoXmlGZipB64'])
+                ? gzdecode(base64_decode($body['eventoXmlGZipB64']))
+                : null;
+            return [
+                'status' => 'cancelado',
+                'chave'  => $chave,
+                'motivo' => 'Cancelamento registrado',
+                'xml'    => $eventoXml ?: $assinado,
+            ];
+        }
+
+        return [
+            'status' => 'rejeitado',
+            'chave'  => $chave,
+            'motivo' => $this->extrairErros($body, $resp['status']),
+            'xml'    => null,
+        ];
+    }
+
+    /**
+     * Pedido de registro do evento de cancelamento (e101101).
+     * ⚠️ VERIFICAR EM HOMOLOGAÇÃO: formato do Id ("PRE" + chave(50) + tpEvento(6)
+     * + nPedRegEvento(3)) e nome do campo do JSON (pedidoRegistroEventoXmlGZipB64).
+     */
+    private function montarPedidoCancelamento(Emitente $e, string $chave, int $cMotivo, string $justificativa, int $ambiente): string
+    {
+        $id = 'PRE' . $chave . '101101' . '001';
+        $xMotivo = htmlspecialchars(mb_substr(trim($justificativa), 0, 255), ENT_XML1);
+
+        return <<<XML
+<?xml version="1.0" encoding="UTF-8"?>
+<pedRegEvento xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
+  <infPedReg Id="{$id}">
+    <tpAmb>{$ambiente}</tpAmb>
+    <verAplic>emissor-fiscal-1.0</verAplic>
+    <dhEvento>{$this->agora()}</dhEvento>
+    <CNPJAutor>{$e->cnpj}</CNPJAutor>
+    <chNFSe>{$chave}</chNFSe>
+    <nPedRegEvento>1</nPedRegEvento>
+    <e101101>
+      <xDesc>Cancelamento de NFS-e</xDesc>
+      <cMotivo>{$cMotivo}</cMotivo>
+      <xMotivo>{$xMotivo}</xMotivo>
+    </e101101>
+  </infPedReg>
+</pedRegEvento>
+XML;
     }
 
     // ------------------------------------------------------------------

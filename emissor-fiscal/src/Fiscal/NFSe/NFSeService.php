@@ -108,13 +108,19 @@ final class NFSeService
         return ['chave' => $chave, 'arquivo' => $arquivo, 'pdf_base64' => base64_encode($pdf)];
     }
 
-    public function cancelar(string $identificador, string $justificativa, string $municipio): array
+    public function cancelar(string $identificador, string $justificativa, string $municipio, array $extras = []): array
     {
-        if (mb_strlen($justificativa) < 15) {
+        if (mb_strlen(trim($justificativa)) < 15) {
             throw new \InvalidArgumentException('Justificativa deve ter ao menos 15 caracteres.');
         }
         $provider = $this->provider($municipio);
-        return $provider->cancelar($this->emitente, $this->certPara($provider), $identificador, $justificativa, $this->ambiente)
-            + ['provider' => $provider->nome()];
+        $r = $provider->cancelar($this->emitente, $this->certPara($provider), $identificador, $justificativa, $this->ambiente, $extras);
+
+        // guarda o XML do evento de cancelamento junto dos autorizados (obrigação de 5 anos)
+        if ($r['status'] === 'cancelado' && !empty($r['xml'])) {
+            $r['arquivo'] = $this->store->salvar($this->emitente->cnpj, $r['chave'] ?: $identificador, $r['xml'], 'nfse-cancelamento');
+        }
+        $r['provider'] = $provider->nome();
+        return $r;
     }
 }

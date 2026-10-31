@@ -453,12 +453,23 @@ $router->add('POST', '/v1/nfse/danfse', function (Request $req) use ($nfseDoEmit
 });
 
 $router->add('POST', '/v1/nfse/cancelar', function (Request $req) use ($nfseDoEmitente) {
+    $chave = (string) ($req->body['chave'] ?? '');
+    $numero = (string) ($req->body['numero'] ?? '');
+    if ($chave === '' && $numero === '') {
+        Response::erro('Informe "chave" (Padrão Nacional) ou "numero" (IPM) da NFS-e.', 400);
+    }
     $r = $nfseDoEmitente($req)->cancelar(
-        (string) ($req->body['chave'] ?? ''),
+        $chave !== '' ? $chave : $numero,
         (string) ($req->body['justificativa'] ?? ''),
-        (string) ($req->body['municipio'] ?? '')
+        (string) ($req->body['municipio'] ?? ''),
+        array_filter([
+            'codigo_motivo' => $req->body['codigo_motivo'] ?? null, // nacional: 1 erro, 2 não prestado, 9 outros
+            'numero'        => $numero,
+            'serie'         => $req->body['serie'] ?? null,
+        ], fn ($v) => $v !== null && $v !== '')
     );
-    Response::json(['ok' => ($r['status'] ?? '') === 'cancelado'] + $r);
+    $ok = ($r['status'] ?? '') === 'cancelado';
+    Response::json(['ok' => $ok] + $r, $ok ? 200 : 422);
 });
 
 $router->dispatch($req);

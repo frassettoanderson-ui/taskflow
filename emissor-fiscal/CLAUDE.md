@@ -61,7 +61,8 @@ Assíncrono+webhook só se o volume exigir.
   Simples Nacional e MEI (CRT 1/4). Exige CSC/CSCid no emitente.
 - ✅ **NFS-e**: arquitetura de providers (`NFSeProvider` + `ProviderRegistry`) +
   **Padrão Nacional** (emitir/consultar via DPS→assina→gzip/base64→REST mTLS).
-  Cancelamento nacional (por evento) e adaptadores municipais ainda pendentes.
+  Cancelamento (evento e101101) e IPM/Atende.Net (emitir + cancelar) prontos;
+  cancelamento ainda sem 1º teste real. Outros adaptadores municipais pendentes.
   Detalhes e o que verificar: `docs/NFSE.md`.
 - ⏳ **Falta testar em homologação** com certificado real (nunca rodou ainda)
 - 📄 **Reforma Tributária IBS/CBS**: mapeada em `docs/REFORMA-IBS-CBS.md` (não implementada)

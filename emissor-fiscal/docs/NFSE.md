@@ -30,11 +30,28 @@ fala o mesmo **payload normalizado** — quem varia é a tradução interna.
 - ✅ Arquitetura: interface, registry, service, rotas, payload normalizado.
 - ✅ `PadraoNacionalProvider`: **emitir** e **consultar** (fluxo DPS -> assina ->
   gzip/base64 -> REST com **mTLS** pelo certificado do emitente).
-- ⏳ **cancelar** (Padrão Nacional): é por **evento** (pedido de cancelamento
-  e101101) — monta XML do evento, assina, `POST /nfse/{chave}/eventos`.
-  Ainda **não implementado** (lança erro explicativo).
-- ⏳ **Nunca testado em produção restrita (homologação).**
+- ✅ **cancelar** (Padrão Nacional): evento e101101 — `pedRegEvento` assinado
+  (Id `PRE` + chave + `101101` + `001`) -> gzip/base64 em
+  `pedidoRegistroEventoXmlGZipB64` -> `POST /nfse/{chave}/eventos`. O XML do evento
+  fica em `storage/xml/<cnpj>/nfse-cancelamento/`. ⚠️ Montagem e assinatura
+  testadas offline; **falta o 1º cancelamento na produção restrita** para
+  confirmar o Id e o nome do campo JSON.
+- ✅ `IpmAtendeNetProvider` (Imbituba e outras de SC): emitir; **cancelar** pela
+  mesma rota com `<situacao>C</situacao>` + número da nota (só em produção: em
+  homologação o IPM apenas valida e não existe nota). ⚠️ Texto de sucesso da
+  resposta deduzido do NTE-35 — conferir no 1º cancelamento real.
+  Cadastro aceita `ipm_subdominio` (ex.: `imbituba`) e `municipio_tom`; sem
+  eles usa o nome da cidade sem acento e o código IBGE.
+- ✅ **Emitido na produção restrita** (COMPLEMENTARE, 04/09/2025) e em produção.
 - 🔜 Adaptadores municipais (ABRASF etc.) — só quando surgir cliente fora do padrão.
+
+## Rota de cancelamento
+
+`POST /v1/nfse/cancelar` — `{emitente, chave | numero, justificativa (≥15),
+codigo_motivo?, serie?, municipio?}`. Padrão Nacional usa `chave` (50 dígitos) e
+`codigo_motivo` (1 erro na emissão — padrão, 2 serviço não prestado, 9 outros);
+IPM usa `numero`. Responde 200 `{ok:true,status:"cancelado"}` ou 422
+`{ok:false,status:"rejeitado",motivo}`.
 
 ## ⚠️ Verificar em homologação (produção restrita) antes de produção
 

@@ -30,12 +30,17 @@ interface NFSeProvider
     /** Consulta uma NFS-e (por chave / código / número, conforme o provider). */
     public function consultar(Emitente $emitente, ?Certificate $cert, string $identificador, int $ambiente): array;
 
-    /** Cancela uma NFS-e. */
+    /**
+     * Cancela uma NFS-e. $extras: dados que só alguns providers usam
+     * (codigo_motivo no Padrão Nacional; numero no IPM).
+     * @return array{status:string,chave:string,motivo:string,xml:?string}
+     */
     public function cancelar(
         Emitente $emitente,
         ?Certificate $cert,
         string $identificador,
         string $justificativa,
-        int $ambiente
+        int $ambiente,
+        array $extras = []
     ): array;
 }
