@@ -199,7 +199,14 @@ XML;
         // totTrib é obrigatório. Normal usa indTotTrib; Simples/MEI usa pTotTribSN
         // (percentual aproximado de tributos do SN; E0712 proíbe indTotTrib p/ ME/EPP).
         if ($opSimpNac === 1) {
-            $tagTotTrib = '<totTrib><indTotTrib>0</indTotTrib></totTrib>';
+            // Não optante (Lucro Presumido/Real): E0713 proíbe indTotTrib e pTotTribSN;
+            // informa os percentuais aproximados (Lei 12.741) federal, estadual e municipal.
+            $pct = fn (string $k) => number_format((float) ($serv[$k] ?? 0), 2, '.', '');
+            $tagTotTrib = '<totTrib><pTotTrib>'
+                . "<pTotTribFed>{$pct('pct_tributos_fed')}</pTotTribFed>"
+                . "<pTotTribEst>{$pct('pct_tributos_est')}</pTotTribEst>"
+                . "<pTotTribMun>{$pct('pct_tributos_mun')}</pTotTribMun>"
+                . '</pTotTrib></totTrib>';
         } else {
             $pSN = number_format((float) ($serv['pct_tributos_sn'] ?? 0), 2, '.', '');
             $tagTotTrib = "<totTrib><pTotTribSN>{$pSN}</pTotTribSN></totTrib>";
