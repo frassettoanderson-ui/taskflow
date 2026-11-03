@@ -12,7 +12,13 @@ export interface FiltroDeRelatorio {
   channel?: SalesChannel;
 }
 
-/** Pedidos que contam como venda: não conta cancelado nem o que não foi pago. */
+/**
+ * Pedidos que contam como venda: tudo que NÃO foi cancelado.
+ * Pagamento é tratado à parte (etiqueta Em aberto/Pago) e NÃO filtra aqui — um
+ * pedido "em aberto" ainda é venda em andamento. É a mesma régua do "Faturado
+ * hoje" do painel. (Se um dia quisermos "só o que foi pago", filtra-se por
+ * payment.status = PAID — hoje é decisão consciente de contar tudo.)
+ */
 const VENDIDOS: OrderStatus[] = [
   OrderStatus.RECEIVED,
   OrderStatus.ACCEPTED,

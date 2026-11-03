@@ -50,6 +50,24 @@ iFood tem, está anotado como possibilidade.
 Semáforo sempre em **par**: cor forte + fundo suave (`--ok`/`--ok-bg`,
 `--aviso`/`--aviso-bg`, `--danger`/`--danger-bg`, `--info`/`--info-bg`).
 
+### O cartão de pedido é PINTADO com a cor do canal
+
+Exceção consciente ao "cartão é papel branco": no painel de pedidos cada cartão
+é um bloco **na cor viva do canal** (delivery brasa, salão jade, balcão
+ametista), com **texto branco** e uma **faixa no topo** um tom mais escura
+dizendo o TIPO. A cor faz o trabalho que antes era de uma bolinha — dá para
+varrer a tela e achar "os delivery" pela cor, não pela leitura. Pedido do
+fundador: *cores vivas para organizar, sem as bolinhas "cara de IA"*.
+
+Cuidados medidos (o branco sobre cor viva é traiçoeiro):
+- o corpo é **escurecido um tom** (`color-mix(... 94→80%, #000)`) para o branco
+  passar com folga (nome/valor ~5,7:1; a faixa ~8,3:1);
+- pastilhas de status e tempo têm fundo **preto translúcido**, não branco — o
+  branco clarearia o fundo e derrubaria o contraste do texto (3,8 → 7,9:1);
+- a etiqueta de pagamento é pastilha **branca sólida** com o tom do estado
+  (`--ok` Pago / `--aviso` Em aberto), de propósito em paleta diferente das
+  etapas, para o olho entender que é outra informação.
+
 ### O menu lateral é escuro de propósito
 
 Espresso `#21190F` contra o papel do conteúdo. Faz três coisas: dá profundidade,

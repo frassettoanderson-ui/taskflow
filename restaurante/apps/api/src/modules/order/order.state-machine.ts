@@ -1,23 +1,25 @@
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, SalesChannel } from '@prisma/client';
 
 /**
  * A MÁQUINA DE ESTADOS DO PEDIDO.
  *
  * Diz, para cada situação, quais são as próximas situações permitidas.
- * Isso impede bobagem: um pedido não pode pular de "recebido" direto para
+ * Isso impede bobagem: um pedido não pode pular de "aguardando" direto para
  * "entregue", nem voltar de "entregue" para "em preparo".
  *
- *   aguardando pagamento
- *          ↓
- *      recebido → aceito → em preparo → pronto → saiu p/ entrega → entregue
- *          └───────────── cancelado ─────────────┘
+ *   aguardando → aceito → em preparo → pronto → saiu p/ entrega → entregue/finalizado
+ *        └────────────────────── cancelado ──────────────────────┘
+ *
+ * IMPORTANTE: o PAGAMENTO não está nesta linha. Antes existia um estado
+ * "aguardando pagamento" que prendia o pedido fora da cozinha até pagar. Agora
+ * pagamento e andamento são coisas separadas: o pedido anda pelas etapas
+ * independentemente, e se pagou ou não é uma ETIQUETA à parte (Em aberto/Pago).
  */
 export const TRANSICOES: Record<OrderStatus, OrderStatus[]> = {
-  [OrderStatus.AWAITING_PAYMENT]: [OrderStatus.RECEIVED, OrderStatus.CANCELED],
   [OrderStatus.RECEIVED]: [OrderStatus.ACCEPTED, OrderStatus.CANCELED],
   [OrderStatus.ACCEPTED]: [OrderStatus.IN_PREPARATION, OrderStatus.CANCELED],
   [OrderStatus.IN_PREPARATION]: [OrderStatus.READY, OrderStatus.CANCELED],
-  // De "pronto" dá para ir para entrega OU direto para entregue (caso de retirada no balcão).
+  // De "pronto" dá para ir para entrega OU direto para finalizado (retirada/balcão).
   [OrderStatus.READY]: [
     OrderStatus.OUT_FOR_DELIVERY,
     OrderStatus.DELIVERED,
@@ -47,8 +49,7 @@ export function estaFinalizado(status: OrderStatus): boolean {
 
 /** Nomes em português, usados nas telas e nas mensagens. */
 export const NOME_DO_STATUS: Record<OrderStatus, string> = {
-  [OrderStatus.AWAITING_PAYMENT]: 'Aguardando pagamento',
-  [OrderStatus.RECEIVED]: 'Recebido',
+  [OrderStatus.RECEIVED]: 'Aguardando',
   [OrderStatus.ACCEPTED]: 'Aceito',
   [OrderStatus.IN_PREPARATION]: 'Em preparo',
   [OrderStatus.READY]: 'Pronto',
@@ -56,3 +57,15 @@ export const NOME_DO_STATUS: Record<OrderStatus, string> = {
   [OrderStatus.DELIVERED]: 'Entregue',
   [OrderStatus.CANCELED]: 'Cancelado',
 };
+
+/**
+ * O rótulo mostrado ao usuário. A ÚLTIMA etapa muda de nome conforme o canal:
+ * "Entregue" no delivery (o entregador levou), "Finalizado" em mesa e balcão
+ * (não há o que entregar — a comanda foi encerrada). O resto é igual para todos.
+ */
+export function rotuloDoStatus(status: OrderStatus, channel?: SalesChannel | null): string {
+  if (status === OrderStatus.DELIVERED && channel && channel !== SalesChannel.DELIVERY) {
+    return 'Finalizado';
+  }
+  return NOME_DO_STATUS[status];
+}

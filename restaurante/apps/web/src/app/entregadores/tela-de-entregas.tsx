@@ -310,7 +310,7 @@ export function TelaDeEntregas({
                     <td style={{ textAlign: 'right', fontWeight: 600 }}>{dinheiro(c.pagamentoCents)}</td>
                     <td className="sub">{hora(c.entregueEm)}</td>
                     <td>
-                      <span className="situacao" data-status={c.acertado ? 'DELIVERED' : 'AWAITING_PAYMENT'}>
+                      <span className="situacao" data-status={c.acertado ? 'DELIVERED' : 'PENDENTE'}>
                         {c.acertado ? 'acertado' : 'a acertar'}
                       </span>
                     </td>

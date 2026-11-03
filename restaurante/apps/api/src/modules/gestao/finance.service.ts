@@ -11,6 +11,8 @@ export interface Periodo {
   brandId?: string;
 }
 
+// Venda = pedido não cancelado. Pagamento (Em aberto/Pago) é etiqueta à parte e
+// não entra neste filtro — "em aberto" conta como venda em andamento.
 const VENDIDOS: OrderStatus[] = [
   OrderStatus.RECEIVED,
   OrderStatus.ACCEPTED,

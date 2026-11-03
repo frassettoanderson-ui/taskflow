@@ -26,7 +26,6 @@ export type Acompanhamento = {
 };
 
 const NOME_DO_STATUS: Record<string, string> = {
-  AWAITING_PAYMENT: 'Aguardando pagamento',
   RECEIVED: 'Recebido pelo restaurante',
   ACCEPTED: 'Aceito',
   IN_PREPARATION: 'Em preparo',
@@ -50,11 +49,12 @@ export function PedidoDoPortal({ inicial, code }: { inicial: Acompanhamento; cod
     }
   }, [code]);
 
-  /** Gera o Pix assim que a tela abre, se ainda não houver. */
+  /** Gera o Pix assim que a tela abre, se ainda não houver. (Pagamento é
+   *  separado da etapa: o gatilho é "ainda não tem cobrança".) */
   useEffect(() => {
-    if (pedido.status !== 'AWAITING_PAYMENT' || pedido.pagamento) return;
+    if (pedido.pagamento || pedido.status === 'CANCELED') return;
     fetch(`/api/public/orders/${code}/pagamento`, { method: 'POST' }).then(() => recarregar());
-  }, [pedido.status, pedido.pagamento, code, recarregar]);
+  }, [pedido.pagamento, pedido.status, code, recarregar]);
 
   /** Enquanto o pedido anda, atualiza sozinho. */
   useEffect(() => {
@@ -81,7 +81,7 @@ export function PedidoDoPortal({ inicial, code }: { inicial: Acompanhamento; cod
   }
 
   const cor = pedido.marca.primaryColor;
-  const aguardando = pedido.status === 'AWAITING_PAYMENT';
+  const aguardando = pedido.status !== 'CANCELED' && pedido.pagamento?.status !== 'PAID';
 
   return (
     <main className="shell" style={{ maxWidth: 620, ['--marca' as any]: cor }}>

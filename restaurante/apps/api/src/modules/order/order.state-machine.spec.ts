@@ -1,9 +1,8 @@
-import { OrderStatus } from '@prisma/client';
-import { estaFinalizado, podeIr, proximoStatus } from './order.state-machine';
+import { OrderStatus, SalesChannel } from '@prisma/client';
+import { estaFinalizado, podeIr, proximoStatus, rotuloDoStatus } from './order.state-machine';
 
 describe('Máquina de estados do pedido', () => {
   it('o caminho normal do pedido é permitido', () => {
-    expect(podeIr(OrderStatus.AWAITING_PAYMENT, OrderStatus.RECEIVED)).toBe(true);
     expect(podeIr(OrderStatus.RECEIVED, OrderStatus.ACCEPTED)).toBe(true);
     expect(podeIr(OrderStatus.ACCEPTED, OrderStatus.IN_PREPARATION)).toBe(true);
     expect(podeIr(OrderStatus.IN_PREPARATION, OrderStatus.READY)).toBe(true);
@@ -14,7 +13,7 @@ describe('Máquina de estados do pedido', () => {
   it('não deixa pular etapas', () => {
     expect(podeIr(OrderStatus.RECEIVED, OrderStatus.DELIVERED)).toBe(false);
     expect(podeIr(OrderStatus.ACCEPTED, OrderStatus.OUT_FOR_DELIVERY)).toBe(false);
-    expect(podeIr(OrderStatus.AWAITING_PAYMENT, OrderStatus.IN_PREPARATION)).toBe(false);
+    expect(podeIr(OrderStatus.RECEIVED, OrderStatus.IN_PREPARATION)).toBe(false);
   });
 
   it('não deixa voltar atrás', () => {
@@ -32,7 +31,6 @@ describe('Máquina de estados do pedido', () => {
 
   it('dá para cancelar enquanto o pedido está em andamento', () => {
     for (const s of [
-      OrderStatus.AWAITING_PAYMENT,
       OrderStatus.RECEIVED,
       OrderStatus.ACCEPTED,
       OrderStatus.IN_PREPARATION,
@@ -43,8 +41,17 @@ describe('Máquina de estados do pedido', () => {
     }
   });
 
-  it('de "pronto" dá para ir direto a entregue (retirada no balcão)', () => {
+  it('de "pronto" dá para ir direto a finalizado (retirada no balcão)', () => {
     expect(podeIr(OrderStatus.READY, OrderStatus.DELIVERED)).toBe(true);
+  });
+
+  it('a última etapa muda de nome pelo canal: Entregue no delivery, Finalizado no resto', () => {
+    expect(rotuloDoStatus(OrderStatus.DELIVERED, SalesChannel.DELIVERY)).toBe('Entregue');
+    expect(rotuloDoStatus(OrderStatus.DELIVERED, SalesChannel.DINE_IN)).toBe('Finalizado');
+    expect(rotuloDoStatus(OrderStatus.DELIVERED, SalesChannel.COUNTER)).toBe('Finalizado');
+    // as demais etapas não mudam com o canal
+    expect(rotuloDoStatus(OrderStatus.RECEIVED, SalesChannel.DELIVERY)).toBe('Aguardando');
+    expect(rotuloDoStatus(OrderStatus.RECEIVED, SalesChannel.DINE_IN)).toBe('Aguardando');
   });
 
   it('o botão da cozinha sugere sempre o próximo passo, nunca cancelar', () => {

@@ -45,7 +45,7 @@ const NOME_DO_STATUS: Record<string, string> = {
   ACCEPTED: 'Aceito',
   IN_PREPARATION: 'Preparando',
   READY: 'Pronto',
-  DELIVERED: 'Entregue',
+  DELIVERED: 'Finalizado',
   OUT_FOR_DELIVERY: 'A caminho',
   CANCELED: 'Cancelado',
 };

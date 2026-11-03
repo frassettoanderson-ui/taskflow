@@ -4,13 +4,26 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderSource, OrderStatus, Prisma, SalesChannel } from '@prisma/client';
+import {
+  OrderSource,
+  OrderStatus,
+  PaymentMethod,
+  PaymentStatus,
+  Prisma,
+  SalesChannel,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantPrismaService } from '../../common/tenant/tenant-prisma.service';
 import { TenantContextService } from '../../common/tenant/tenant-context.service';
 import { RealtimeService } from '../../common/realtime/realtime.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { estaFinalizado, NOME_DO_STATUS, podeIr, proximoStatus } from './order.state-machine';
+import {
+  estaFinalizado,
+  NOME_DO_STATUS,
+  podeIr,
+  proximoStatus,
+  rotuloDoStatus,
+} from './order.state-machine';
 import { OperationService } from '../operation/operation.service';
 import { NOME_DO_CANAL } from '../operation/channel';
 import { CouponService } from '../marketing/coupon.service';
@@ -25,6 +38,13 @@ import { FinanceService } from '../gestao/finance.service';
 
 /** Letras e números sem os que se confundem (0/O, 1/I). */
 const ALFABETO = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/** Forma de pagamento em português, para o cartão do painel. */
+const FORMA_DE_PAGAMENTO: Record<PaymentMethod, string> = {
+  [PaymentMethod.PIX]: 'Pix',
+  [PaymentMethod.CARD]: 'Cartão',
+  [PaymentMethod.CASH]: 'Dinheiro',
+};
 
 @Injectable()
 export class OrderService {
@@ -170,7 +190,8 @@ export class OrderService {
           customerId: cliente.id,
           code,
           dailyNumber: numeroDoDia,
-          status: OrderStatus.AWAITING_PAYMENT,
+          // Nasce em Aguardando e já aparece na fila; se pagou ou não é etiqueta à parte.
+          status: OrderStatus.RECEIVED,
           customerName: dto.customerName.trim(),
           customerPhone: dto.customerPhone.trim(),
           addressStreet: dto.addressStreet,
@@ -446,7 +467,8 @@ export class OrderService {
           customerId: cliente.id,
           code,
           dailyNumber: numeroDoDia,
-          status: OrderStatus.AWAITING_PAYMENT,
+          // Nasce em Aguardando e já aparece na fila; se pagou ou não é etiqueta à parte.
+          status: OrderStatus.RECEIVED,
           customerName: dto.customerName.trim(),
           customerPhone: dto.customerPhone.trim(),
           addressStreet: dto.addressStreet,
@@ -1030,16 +1052,24 @@ export class OrderService {
       /** número do dia (1,2,3...); null se o caixa estava fechado */
       numero: p.dailyNumber ?? null,
       status: p.status,
-      statusLabel: NOME_DO_STATUS[p.status as OrderStatus],
+      // Rótulo já resolvido pelo canal: a última etapa vira "Entregue" no
+      // delivery e "Finalizado" em mesa/balcão.
+      statusLabel: rotuloDoStatus(p.status as OrderStatus, p.channel as SalesChannel),
       finalizado: estaFinalizado(p.status),
+      /** ETIQUETA DE PAGAMENTO — separada do andamento. true = Pago, false = Em aberto. */
+      pago: p.payment?.status === PaymentStatus.PAID,
       // O próximo passo vem calculado do servidor: a regra mora num lugar só,
       // e o botão da cozinha só obedece.
       proximoStatus: proximoStatus(p.status as OrderStatus),
       proximoStatusLabel: proximoStatus(p.status as OrderStatus)
-        ? NOME_DO_STATUS[proximoStatus(p.status as OrderStatus) as OrderStatus]
+        ? rotuloDoStatus(proximoStatus(p.status as OrderStatus) as OrderStatus, p.channel as SalesChannel)
         : null,
       channel: p.channel,
       channelLabel: NOME_DO_CANAL[p.channel as SalesChannel],
+      /** bairro da entrega — vai embaixo do nome no cartão (só delivery tem). */
+      bairro: p.addressDistrict ?? null,
+      /** forma de pagamento em português, quando já se sabe (Pix/Cartão/Dinheiro). */
+      formaPagamento: FORMA_DE_PAGAMENTO[p.payment?.method as PaymentMethod] ?? null,
       source: p.source,
       unitId: p.unitId,
       customerId: p.customerId,

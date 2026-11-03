@@ -268,13 +268,14 @@ enum OrderSource {
 
 /// Os estados por que um pedido passa.
 enum OrderStatus {
-  AWAITING_PAYMENT // aguardando pagamento
-  RECEIVED // recebido (caiu na cozinha)
+  // "RECEIVED" é a nossa AGUARDANDO: o pedido chega e fica aqui até ser aceito.
+  // O pagamento NÃO faz parte desta linha — é uma etiqueta à parte (ver Payment).
+  RECEIVED // Aguardando
   ACCEPTED // aceito
   IN_PREPARATION // em preparo
   READY // pronto
-  OUT_FOR_DELIVERY // saiu para entrega
-  DELIVERED // entregue
+  OUT_FOR_DELIVERY // saiu para entrega (só delivery)
+  DELIVERED // Entregue (delivery) / Finalizado (mesa e balcão)
   CANCELED // cancelado
 }
 
@@ -333,7 +334,7 @@ model Order {
   /// o pedido que já está gravado em vez de criar outro.
   clientRef String? @unique
 
-  status OrderStatus @default(AWAITING_PAYMENT)
+  status OrderStatus @default(RECEIVED)
 
   // ---- cliente (sem cadastro: só o necessário para entregar) ----
   customerName    String

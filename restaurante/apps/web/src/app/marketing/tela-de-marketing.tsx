@@ -400,7 +400,7 @@ export function TelaDeMarketing({
                     {c.phone ?? 'sem telefone'} · {c.brand?.name} · {data(c.updatedAt)}
                   </div>
                 </span>
-                <span className="situacao" data-status={c.status === 'RECOVERED' ? 'DELIVERED' : 'AWAITING_PAYMENT'}>
+                <span className="situacao" data-status={c.status === 'RECOVERED' ? 'DELIVERED' : 'PENDENTE'}>
                   {c.status === 'OPEN'
                     ? 'parado'
                     : c.status === 'NOTIFIED'

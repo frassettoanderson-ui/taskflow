@@ -42,10 +42,12 @@ const ABAS_TIPO = [
   { valor: 'DELIVERY', label: 'Delivery' },
 ];
 
+// As etapas do pedido, na ordem. A última (Entregue/Finalizado) é o fim da
+// linha e não vira contador aqui — estes chips contam só o que está EM ANDAMENTO.
 const ETAPAS = [
-  { status: 'AWAITING_PAYMENT', label: 'Aguardando pgto' },
-  { status: 'RECEIVED', label: 'Recebido' },
-  { status: 'IN_PREPARATION', label: 'Em preparo', tambem: ['ACCEPTED'] },
+  { status: 'RECEIVED', label: 'Aguardando' },
+  { status: 'ACCEPTED', label: 'Aceito' },
+  { status: 'IN_PREPARATION', label: 'Em preparo' },
   { status: 'READY', label: 'Pronto' },
   { status: 'OUT_FOR_DELIVERY', label: 'Saiu' },
 ];
@@ -227,7 +229,7 @@ export function PedidosPorTipo({
     [pedidos],
   );
   const contarEtapa = (etapa: (typeof ETAPAS)[number]) =>
-    emAndamento.filter((p) => p.status === etapa.status || etapa.tambem?.includes(p.status)).length;
+    emAndamento.filter((p) => p.status === etapa.status).length;
 
   const lista = useMemo(
     () =>
@@ -241,14 +243,11 @@ export function PedidosPorTipo({
 
   /**
    * Há quanto tempo o pedido está aberto, e se isso já é motivo de aflição.
-   *
-   * Pedido esperando o cliente pagar não conta como atraso: a demora é dele,
-   * não da cozinha — seria injusto pintar o cartão de vermelho por isso.
+   * O relógio corre desde que o pedido chega — pagamento é outra história e não
+   * mexe aqui (um pedido "Em aberto" ainda é um pedido esperando na fila).
    */
   function tempo(p: PedidoDoPainel) {
     const minutos = Math.max(0, Math.floor((agora - new Date(p.createdAt).getTime()) / 60000));
-    if (p.status === 'AWAITING_PAYMENT') return { minutos, nivel: 'neutro' as const };
-
     const esperado = MINUTOS_ESPERADOS[p.channel] ?? 30;
     const nivel = minutos >= esperado ? 'atrasado' : minutos >= esperado / 2 ? 'atencao' : 'ok';
     return { minutos, nivel };
@@ -448,6 +447,11 @@ export function PedidosPorTipo({
             const t = tempo(p);
             const Icone = ICONE_DO_CANAL[p.channel as keyof typeof ICONE_DO_CANAL];
             const mesa = p.channel === 'DINE_IN' && p.table?.number ? `Mesa ${p.table.number}` : null;
+            // Embaixo do nome: o bairro no delivery, a mesa no salão, nada no balcão.
+            const detalhe = p.bairro ?? mesa ?? null;
+            const pagamentoTexto = `${p.pago ? 'Pago' : 'Em aberto'}${
+              p.formaPagamento ? ` · ${p.formaPagamento}` : ''
+            }`;
 
             return (
               <Link
@@ -456,41 +460,41 @@ export function PedidosPorTipo({
                 key={p.id}
                 data-canal={CLASSE_DO_CANAL[p.channel] ?? 'delivery'}
               >
-                <div className="pedido-tags">
-                  <span className={`tag tag-tipo ${CLASSE_DO_CANAL[p.channel]}`}>
-                    {Icone && <Icone tamanho={14} />}
-                    {mesa ?? ROTULO_DO_CANAL[p.channel] ?? p.channelLabel}
+                {/* faixa do topo: o TIPO do pedido e o tempo correndo */}
+                <div className="pc-aba">
+                  <span className="pc-tipo">
+                    {Icone && <Icone tamanho={15} />}
+                    {ROTULO_DO_CANAL[p.channel] ?? p.channelLabel}
                   </span>
-                  <span className={`tempo-chip ${t.nivel}`} title="Tempo desde que o pedido entrou">
-                    <IconeRelogio tamanho={13} />
+                  <span className={`pc-tempo ${t.nivel}`} title="Tempo desde que o pedido entrou">
+                    <IconeRelogio tamanho={12} />
                     {textoDoTempo(t.minutos)}
                   </span>
                 </div>
 
-                <div className="pedido-miolo">
-                  <span className="pedido-numero">{p.numero != null ? p.numero : '—'}</span>
-                  <span className="situacao" data-status={p.status}>
-                    {p.statusLabel}
-                  </span>
-                </div>
-
-                <div className="pedido-baixo">
-                  <div className="pedido-linha">
-                    <span className="pedido-cliente">{p.customerName}</span>
-                    <strong className="pedido-total">{dinheiro(p.totalCents)}</strong>
-                  </div>
-                  <div className="pedido-linha sub">
-                    <span>
-                      {p.code} · {p.items.reduce((s, i) => s + i.quantity, 0)} item(ns)
-                    </span>
-                    <span>{horaCurta(p.createdAt)}</span>
-                  </div>
-                  {multi && p.brand && (
-                    <div className="pedido-marca-linha">
-                      <span className="dot" style={{ background: p.brand.primaryColor }} />
-                      {p.brand.name}
+                <div className="pc-corpo">
+                  {/* número + nome, e o bairro/mesa logo abaixo do nome */}
+                  <div className="pc-cabeca">
+                    <span className="pc-numero">{p.numero != null ? p.numero : '—'}</span>
+                    <div className="pc-quem">
+                      <strong className="pc-nome">{p.customerName}</strong>
+                      {detalhe && <span className="pc-detalhe">{detalhe}</span>}
                     </div>
-                  )}
+                  </div>
+
+                  {/* status (etapa) e pagamento, lado a lado mas coisas distintas */}
+                  <div className="pc-etiquetas">
+                    <span className="pc-status">{p.statusLabel}</span>
+                    <span className="pc-pagamento" data-pago={p.pago}>
+                      {pagamentoTexto}
+                    </span>
+                  </div>
+
+                  {/* rodapé: estabelecimento (no multi) à esquerda, valor à direita */}
+                  <div className="pc-rodape">
+                    {multi && p.brand && <span className="pc-loja">{p.brand.name}</span>}
+                    <strong className="pc-valor">{dinheiro(p.totalCents)}</strong>
+                  </div>
                 </div>
               </Link>
             );
@@ -507,6 +511,7 @@ export function PedidosPorTipo({
                 <th>Itens</th>
                 {multi && <th>Estabelecimento</th>}
                 <th>Situação</th>
+                <th>Pagamento</th>
                 <th>Tempo</th>
                 <th style={{ textAlign: 'right' }}>Total</th>
               </tr>
@@ -537,7 +542,6 @@ export function PedidosPorTipo({
                       <Link href={`/pedido/${p.code}`} className="lista-cliente">
                         {p.customerName}
                       </Link>
-                      <div className="sub">{p.code}</div>
                     </td>
 
                     {/* É aqui que a lista ganha da grade: dá para ler O QUE foi
@@ -569,6 +573,12 @@ export function PedidosPorTipo({
                         {p.statusLabel}
                       </span>
                       {p.scheduledFor && <div className="sub">agendado</div>}
+                    </td>
+
+                    <td>
+                      <span className="pagamento-flag" data-pago={p.pago}>
+                        {p.pago ? 'Pago' : 'Em aberto'}
+                      </span>
                     </td>
 
                     <td>

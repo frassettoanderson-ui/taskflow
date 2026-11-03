@@ -90,14 +90,16 @@ export function Acompanhamento({ inicial }: { inicial: PedidoPublico }) {
     return () => fonte.close();
   }, [inicial.code, recarregar]);
 
-  /** Gera a cobrança Pix assim que a tela abre, se ainda não houver. */
+  /** Gera a cobrança Pix assim que a tela abre, se ainda não houver.
+   *  (Pagamento é separado da etapa: o gatilho agora é "ainda não tem cobrança",
+   *  não mais um status "aguardando pagamento" que deixou de existir.) */
   useEffect(() => {
-    if (pedido.status !== 'AWAITING_PAYMENT' || pedido.payment || gerandoPix) return;
+    if (pedido.payment || gerandoPix || pedido.status === 'CANCELED') return;
     setGerandoPix(true);
     fetch(`/api/public/orders/${inicial.code}/pagamento`, { method: 'POST' })
       .then(() => recarregar())
       .finally(() => setGerandoPix(false));
-  }, [pedido.status, pedido.payment, gerandoPix, inicial.code, recarregar]);
+  }, [pedido.payment, gerandoPix, inicial.code, recarregar]);
 
   async function simularPagamento() {
     setSimulando(true);
@@ -110,8 +112,11 @@ export function Acompanhamento({ inicial }: { inicial: PedidoPublico }) {
   }
 
   const cor = pedido.brand?.primaryColor ?? '#f97316';
-  const aguardandoPagamento = pedido.status === 'AWAITING_PAYMENT';
   const cancelado = pedido.status === 'CANCELED';
+  // "Aguardando o cliente pagar" = ainda não há pagamento confirmado. Nada a ver
+  // com a etapa do pedido, que segue sua vida na cozinha em paralelo. Um pedido
+  // cancelado não pede pagamento.
+  const aguardandoPagamento = !cancelado && pedido.payment?.status !== 'PAID';
 
   // Em que ponto da trilha estamos?
   const indiceAtual = ETAPAS.findIndex((e) => e.status === pedido.status);

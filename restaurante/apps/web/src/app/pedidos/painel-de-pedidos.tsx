@@ -33,6 +33,12 @@ export type PedidoDoPainel = {
   channel: string;
   channelLabel: string;
   finalizado: boolean;
+  /** ETIQUETA DE PAGAMENTO, separada da etapa: true = Pago, false = Em aberto. */
+  pago: boolean;
+  /** forma de pagamento (Pix/Cartão/Dinheiro), quando já se sabe. */
+  formaPagamento: string | null;
+  /** bairro da entrega — mostrado embaixo do nome (só delivery costuma ter). */
+  bairro: string | null;
   customerName: string;
   customerPhone: string;
   totalCents: number;
@@ -46,13 +52,12 @@ export type PedidoDoPainel = {
 
 const SITUACOES = [
   { valor: '', label: 'Todas as situações' },
-  { valor: 'AWAITING_PAYMENT', label: 'Aguardando pagamento' },
-  { valor: 'RECEIVED', label: 'Recebido' },
+  { valor: 'RECEIVED', label: 'Aguardando' },
   { valor: 'ACCEPTED', label: 'Aceito' },
   { valor: 'IN_PREPARATION', label: 'Em preparo' },
   { valor: 'READY', label: 'Pronto' },
   { valor: 'OUT_FOR_DELIVERY', label: 'Saiu para entrega' },
-  { valor: 'DELIVERED', label: 'Entregue' },
+  { valor: 'DELIVERED', label: 'Entregue / Finalizado' },
   { valor: 'CANCELED', label: 'Cancelado' },
 ];
 
@@ -230,7 +235,6 @@ export function PainelDePedidos({
           <table className="tabela">
             <thead>
               <tr>
-                <th>Código</th>
                 <th>Marca</th>
                 <th>Canal</th>
                 <th>Cliente</th>
@@ -243,11 +247,6 @@ export function PainelDePedidos({
             <tbody>
               {pedidos.map((p) => (
                 <tr key={p.id}>
-                  <td>
-                    <Link href={`/pedido/${p.code}`} className="codigo">
-                      {p.code}
-                    </Link>
-                  </td>
                   <td>
                     <span className="marca-tag">
                       <span

@@ -54,9 +54,11 @@
   --info-bg: #e5effa;
 
   /* ---- forma ---- */
-  --radius: 14px;
-  --radius-sm: 10px;
-  --radius-lg: 20px;
+  /* Cantos mais discretos: o fundador pediu menos arredondado. Mexer AQUI
+     ajusta cartões, painéis e botões de uma vez (quase tudo usa estes três). */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
 
   /* sombras QUENTES (marrom, não cinza) — é o que dá o ar de papel */
   --sombra-sm: 0 1px 2px rgba(84, 56, 32, 0.07);
@@ -1954,7 +1956,9 @@ select:focus {
   white-space: nowrap;
 }
 
-.situacao[data-status='AWAITING_PAYMENT'] {
+/* Token de cor "pendente/atenção" — usado por telas que NÃO são de pedido
+   (acerto de motoboy, carrinho não recuperado) só para pegar o tom âmbar. */
+.situacao[data-status='PENDENTE'] {
   background: var(--aviso-bg);
   color: var(--aviso);
 }
@@ -1980,6 +1984,35 @@ select:focus {
 .situacao[data-status='CANCELED'] {
   background: var(--danger-bg);
   color: var(--danger);
+}
+
+/* ---- etiqueta de PAGAMENTO (separada da etapa) ----
+   Paleta quente de propósito: "Em aberto" âmbar, "Pago" verde. Fica num tom
+   diferente das etapas (azul→laranja→verde) para o olho entender que é OUTRA
+   informação, não mais uma fase do pedido. O pontinho reforça de longe. */
+.pagamento-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--aviso-bg);
+  color: var(--aviso);
+}
+.pagamento-flag::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.pagamento-flag[data-pago='true'] {
+  background: var(--ok-bg);
+  color: var(--ok);
 }
 
 /* ---- cartão de marca no painel ---- */
@@ -3093,51 +3126,81 @@ select:focus {
   align-items: start;
 }
 
+/* O cartão é PINTADO com a cor do canal — a cor É a informação, some a
+   bolinha. Delivery brasa, salão jade, balcão ametista. Texto branco: o corpo
+   é escurecido um tom (via color-mix) para o branco passar em contraste com
+   folga (medido: branco sobre os três dá ~5:1 ou mais). */
 .pedido-card {
+  --cor: var(--delivery);
   position: relative;
-  aspect-ratio: 1 / 1;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
-  background: var(--surface);
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 15px;
-  padding-top: 18px;
-  text-decoration: none;
-  color: var(--text);
   overflow: hidden;
+  text-decoration: none;
+  color: #fff;
   box-shadow: var(--sombra-sm);
-  transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s;
+  transition: transform 0.14s ease, box-shadow 0.14s ease;
 }
-
-/* a faixa de cor no topo diz o canal antes de a pessoa ler qualquer coisa */
-.pedido-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 4px;
-  background: var(--delivery);
+.pedido-card[data-canal='delivery'] {
+  --cor: var(--delivery);
 }
-.pedido-card[data-canal='salao']::before {
-  background: var(--salao);
+.pedido-card[data-canal='salao'] {
+  --cor: var(--salao);
 }
-.pedido-card[data-canal='balcao']::before {
-  background: var(--balcao);
+.pedido-card[data-canal='balcao'] {
+  --cor: var(--balcao);
 }
 
 .pedido-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--sombra-lg);
-  border-color: var(--border-forte);
 }
 
-.pedido-tags {
+/* a faixa do topo: a mesma cor, um tom mais escura, dizendo o TIPO */
+.pc-aba {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--cor) 72%, #000);
+}
+.pc-tipo {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
+  font-family: var(--fonte-display-stack);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+}
+/* o tempo correndo, discreto na faixa; quando atrasa, vira pastilha branca que
+   salta mesmo sobre a cor viva */
+.pc-tempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  /* pastilha ESCURA (não branca): clarear o fundo derrubaria o contraste do
+     texto branco. Assim medimos ~7,9:1 em vez de ~3,8:1. */
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+}
+.pc-tempo.atencao {
+  background: #fff;
+  color: var(--aviso);
+}
+.pc-tempo.atrasado {
+  background: #fff;
+  color: var(--danger);
+  animation: bate 1.6s ease-in-out infinite;
 }
 
 .tag {
@@ -3199,70 +3262,114 @@ select:focus {
   }
 }
 
-.pedido-miolo {
+/* o corpo, na cor viva do canal, um tom escurecido para o branco passar */
+.pc-corpo {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-}
-.pedido-numero {
-  font-family: var(--fonte-display-stack);
-  font-size: 52px;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  color: var(--text);
+  gap: 12px;
+  padding: 13px 13px 14px;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--cor) 94%, #000),
+    color-mix(in srgb, var(--cor) 80%, #000)
+  );
 }
 
-.pedido-baixo {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-.pedido-linha {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-}
-.pedido-cliente {
-  font-size: 13.5px;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pedido-total {
-  font-size: 14.5px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.pedido-linha.sub {
-  font-size: 11.5px;
-  color: var(--muted);
-}
-.pedido-linha.sub span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pedido-marca-linha {
+.pc-cabeca {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding-top: 6px;
-  margin-top: 2px;
-  border-top: 1px dashed var(--border);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
+  gap: 11px;
 }
-.pedido-marca-linha .dot {
-  width: 8px;
-  height: 8px;
+.pc-numero {
+  font-family: var(--fonte-display-stack);
+  font-size: 33px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #fff;
+  flex: none;
+}
+.pc-quem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pc-nome {
+  font-family: var(--fonte-display-stack);
+  font-size: 15.5px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-detalhe {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pc-etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+/* o status (etapa): pastilha ESCURA translúcida — mantém o branco legível
+   sobre a cor viva (pastilha branca clarearia e reprovaria no contraste). */
+.pc-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+}
+/* o pagamento: pastilha BRANCA sólida com o tom do estado, para saltar e para
+   deixar claro que é OUTRA informação, não mais uma etapa. */
+.pc-pagamento {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: #fff;
+  color: var(--aviso);
+}
+.pc-pagamento[data-pago='true'] {
+  color: var(--ok);
+}
+
+.pc-rodape {
+  margin-top: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.pc-loja {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pc-valor {
+  margin-left: auto;
+  font-family: var(--fonte-display-stack);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #fff;
+  white-space: nowrap;
 }
 
 /* estado vazio com alguma graça, em vez de uma frase solta */
@@ -3304,14 +3411,15 @@ select:focus {
     flex: 1;
     min-width: 145px;
   }
-  /* 152px faz caber DOIS cartões num celular de 375px (343px úteis menos o
-     vão de 12px). Com 165 sobrava um por linha e a tela virava um rolo. */
+  /* O cartão colorido agora carrega mais informação (nome, bairro, status,
+     pagamento, valor). Em telas estreitas ele ganha a linha inteira para caber
+     legível; a partir de ~360px úteis por coluna, dois cabem lado a lado. */
   .pedidos-lista {
-    grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 12px;
   }
-  .pedido-numero {
-    font-size: 40px;
+  .pc-numero {
+    font-size: 28px;
   }
 }
 

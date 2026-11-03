@@ -57,8 +57,10 @@ export class PaymentService {
       // Já tem cobrança? Devolve a mesma (não cria duas para o mesmo pedido).
       if (pedido.payment) return this.formatar(pedido.payment);
 
-      if (pedido.status !== OrderStatus.AWAITING_PAYMENT) {
-        throw new BadRequestException('Este pedido não está aguardando pagamento.');
+      // Pagamento é SEPARADO do andamento: dá para gerar a cobrança em qualquer
+      // etapa. Só não faz sentido cobrar um pedido cancelado.
+      if (pedido.status === OrderStatus.CANCELED) {
+        throw new BadRequestException('Este pedido foi cancelado.');
       }
 
       const regras = lerRegras();
@@ -320,10 +322,8 @@ export class PaymentService {
         { chargeId: resultado.chargeId, amountCents: pagamento.amountCents },
       );
 
-      // Só agora o pedido vira "recebido" e aparece para a cozinha.
-      if (pedido.status === OrderStatus.AWAITING_PAYMENT) {
-        await this.orders.mudarStatus(orderId, OrderStatus.RECEIVED, 'pagamento');
-      }
+      // Pagar NÃO mexe mais na etapa do pedido — ele já está na fila desde que
+      // chegou. O pagamento só acende a etiqueta "Pago" (via Payment.status).
 
       return { ok: true, repetido: false, status: 'PAID' };
     });
