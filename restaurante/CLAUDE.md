@@ -1,3 +1,11 @@
+# ⚠️ PROJETO MUDOU DE LUGAR (03/11/2026)
+
+Este sistema virou o **HolyFood** (família Holy) e o código vivo agora está em
+**`C:\dev\holytech\food`** (git próprio). Não mexer mais aqui: esta pasta ficou só como registro.
+Para continuar, abra o chat em `C:\dev\holytech\food`.
+
+---
+
 # Sistema para Restaurantes — Contexto do Projeto
 
 > Este arquivo é a **fonte de verdade** do projeto. Consultar em TODAS as etapas, antes de qualquer decisão de código.
