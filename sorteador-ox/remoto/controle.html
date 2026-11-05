@@ -34,8 +34,11 @@ button:disabled{opacity:.35;cursor:default}
 .tr__cab{padding:10px 14px;font:600 14px/1.4 'Archivo',sans-serif;color:#c9d0d8;text-align:center}
 .tr__cab b{color:#34d058;font-size:17px}
 .tr__lista{max-height:260px;overflow-y:auto;border-top:1px solid #2b5236}
-.tr__it{display:flex;justify-content:space-between;gap:10px;padding:7px 14px;border-bottom:1px solid #1b2a1f;font:600 14px 'Archivo',sans-serif}
+.tr__it{display:flex;align-items:center;gap:10px;padding:7px 10px 7px 14px;border-bottom:1px solid #1b2a1f;font:600 14px 'Archivo',sans-serif}
+.tr__it span{flex:1;min-width:0}
 .tr__it small{flex:none;font-size:12px;letter-spacing:.06em;color:var(--mute);font-variant-numeric:tabular-nums}
+.tr__it button{flex:none;padding:6px 10px;font:800 12px 'Archivo',sans-serif;letter-spacing:.06em;background:transparent;border:2px solid var(--red);color:#ff6b78}
+.tr__it.excluido button{border-color:#34d058;color:#34d058}
 .tr__it.ganhou small{color:var(--gold)}
 .tr__it.excluido{opacity:.5}
 .tr__it.excluido span{text-decoration:line-through}
@@ -215,9 +218,19 @@ async function carregarTreinando(){
     const r=await fetch('../api/treinando?k='+encodeURIComponent(K),{cache:'no-store'});const d=await r.json();
     if(!r.ok){$('#trcab').textContent=d.error||'Não consegui consultar a catraca.';return}
     $('#trcab').innerHTML='Treinando agora ('+esc(d.hora)+'): <b>'+d.treinando+'</b> · '+d.concorrendo+' concorrendo';
-    $('#trlista').innerHTML=d.lista.length?d.lista.map(x=>'<div class="tr__it '+x.situacao+'"><span>'+esc(x.nome)+'</span><small>'+(SIT[x.situacao]?SIT[x.situacao]+' · ':'')+'entrou '+esc(x.entrou)+'</small></div>').join(''):'<div class="tr__vazio">Ninguém treinando agora.</div>';
+    const bt=x=>x.situacao==='concorre'?'<button data-n="'+esc(x.nome)+'" data-a="excluir">Excluir</button>':x.situacao==='excluido'?'<button data-n="'+esc(x.nome)+'" data-a="restaurar">Voltar</button>':'';
+    $('#trlista').innerHTML=d.lista.length?d.lista.map(x=>'<div class="tr__it '+x.situacao+'"><span>'+esc(x.nome)+'</span><small>'+(SIT[x.situacao]?SIT[x.situacao]+' · ':'')+'entrou '+esc(x.entrou)+'</small>'+bt(x)+'</div>').join(''):'<div class="tr__vazio">Ninguém treinando agora.</div>';
   }catch(e){$('#trcab').textContent='Sem conexão.'}
 }
+/* excluir / voltar alguém direto da lista de quem está treinando (mesma exclusão do botão Participantes) */
+$('#trlista').onclick=async e=>{
+  const b=e.target.closest('button[data-n]');if(!b)return;
+  const n=b.dataset.n,a=b.dataset.a;
+  if(a==='excluir'&&!confirm('Excluir '+n+' do sorteio?\n\nA pessoa deixa de concorrer no ao vivo e no sorteio geral. Dá para voltar depois.'))return;
+  b.disabled=true;
+  try{const r=await fetch('../api/'+a+'?nome='+encodeURIComponent(n)+'&k='+encodeURIComponent(K),{method:'POST'});if(!r.ok)$('#msg').textContent='Não consegui '+(a==='excluir'?'excluir.':'voltar.');else if(navigator.vibrate)navigator.vibrate(40)}catch(e){$('#msg').textContent='Sem conexão.'}
+  carregarTreinando();
+};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)carregarTreinando()});
 refresh();setInterval(refresh,1500);
 carregarTreinando();setInterval(carregarTreinando,20000);
