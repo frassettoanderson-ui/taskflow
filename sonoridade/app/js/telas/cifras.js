@@ -133,7 +133,6 @@ export function montar(el) {
       </div>
       <div id="lista"></div>
     </section>
-    <p class="creditos">Cifras de teste copiadas do Cifra Club, só para uso pessoal.</p>
   `;
   const $ = (s) => el.querySelector(s);
 
@@ -150,9 +149,8 @@ export function montar(el) {
         <span class="musica-nome">${destacar(m.titulo, palavras)}</span>
         <span class="musica-artista">${destacar(m.artista, palavras)}</span>
         ${trecho ? `<span class="musica-trecho">${destacar(trecho, palavras)}</span>` : ''}
-        <span class="musica-versoes">${vs.map((v) => `<span class="versao">${v.nome}${vs.length > 1 && v.tom !== m.tom ? ` · ${esc(v.tom)}` : ''}</span>`).join('')}</span>
+        <span class="musica-versoes"><span class="versao">Tom ${esc(m.tom)}</span>${vs.map((v, i) => `<span class="versao${i ? ' apagada' : ''}">${v.nome}${vs.length > 1 && v.tom !== m.tom ? ` · ${esc(v.tom)}` : ''}</span>`).join('')}</span>
       </span>
-      <span class="musica-tom" aria-label="Tom ${esc(m.tom)}"><small>Tom</small><b>${esc(m.tom)}</b></span>
     </a>
     </div>`;
   };

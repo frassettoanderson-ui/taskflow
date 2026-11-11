@@ -89,7 +89,6 @@ export function montar(el, query) {
           </header>
           <div class="mural">${g.acordes.map((s) => cartao(s, '', `lista=${g.id}`)).join('')}</div>
         </section>`).join('')}
-      <p class="creditos">Toque no cartão para ouvir. Em "Detalhes", as dicas e o acorde corda por corda.</p>
     `;
     // o índice de cima acompanha o grupo que está na tela
     espiao?.disconnect();

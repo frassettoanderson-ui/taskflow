@@ -83,7 +83,6 @@ export function montar(el, query) {
       ${fileira('Continuar assistindo', continuar, vs)}
       ${TRILHAS.map((t) => fileira(t.nome, t.aulas.map((a) => aula(a.yt)).filter((a) => serve(a, inst)), vs)).join('')}
 
-      <p class="creditos">Aulas provisórias do canal Cifra Club, só para montar a tela. Depois entram as aulas do Evaldo.</p>
     `;
     ligarFileiras(el);
   }

@@ -30,7 +30,6 @@ export function montar(el) {
           <span class="ini-nome">${c.nome}</span>
         </a>`).join('')}
     </nav>
-    <p class="creditos">Som do violão: MusyngKite (CC BY-SA 3.0)</p>
   `;
 
   // abertura toda vez que o app é aberto (não repete ao voltar de outra tela); tocar na logo repete

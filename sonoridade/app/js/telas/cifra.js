@@ -164,7 +164,6 @@ function tela(el, m) {
       </div>
     </section>
 
-    <p class="creditos">Cifra copiada do <a href="${esc(m.fonte)}" target="_blank" rel="noopener">Cifra Club</a>, só para uso pessoal.</p>
     <div class="cf-espaco"></div>
 
     <div class="doca" id="doca">
