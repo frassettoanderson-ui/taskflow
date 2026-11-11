@@ -15,3 +15,8 @@ Acesso remoto aos PCs usando **RustDesk** com **servidor próprio** (nada passa 
 ## Falta
 - PC do Anderson registrado (ID 469100913) em 29/10. Falta testar o instalador num 2º PC e conectar de verdade. A recriação automática do serviço (RustDesk antigo removido) ainda não foi testada pelo instalador.
 - Opcional: subdomínio (ex. `remoto.holytechsolution.com.br`) no lugar do IP.
+
+## Link de download (11/11/2026)
+- **https://holytechsolution.com.br/remoto** → baixa o instalador direto (302 para `/remoto/HolyTech-Remoto-Setup.exe`).
+- Arquivo em `/var/www/holytech-remoto/` na VPS 89.117.79.163; bloco `location /remoto` no nginx `holytech-dominio` (backup `/root/nginx-holytech-dominio-bak-*-remoto`).
+- Ao gerar instalador novo: `scp -i ~/.ssh/id_ed25519 Output\HolyTech-Remoto-Setup.exe root@89.117.79.163:/var/www/holytech-remoto/`.
