@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
-$versao = '1.5.0'
+$versao = '1.5.3'
 $msi = "vendor\rustdesk-$versao-x86_64.msi"
 if (-not (Test-Path $msi)) {
     New-Item -ItemType Directory -Force vendor | Out-Null

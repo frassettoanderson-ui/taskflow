@@ -3,8 +3,8 @@
 ; Compilar com build.ps1 (baixa o MSI oficial antes).
 
 #define AppNome "HolyTech Remoto"
-#define AppVersao "1.0.0"
-#define RustDeskVersao "1.5.0"
+#define AppVersao "1.1.0"
+#define RustDeskVersao "1.5.3"
 #define Servidor "178.238.226.21"
 #define Chave "RO+BSgUSgcTp5rY1AY62i+3jptBiYajH5B8GCiMMj64="
 ; Mesma config acima no formato de "exportar configuração" do RustDesk (JSON em base64, invertido)
@@ -138,6 +138,8 @@ begin
   Rodar('--config "{#ConfigStr}"');
   Rodar('--option custom-rendezvous-server {#Servidor}');
   Rodar('--option key "{#Chave}"');
+  // atualização automática embutida do RustDesk (checa 1x/dia, não atualiza com sessão aberta)
+  Rodar('--option allow-auto-update Y');
 
   if PaginaSenha.Values[0] <> '' then
   begin
