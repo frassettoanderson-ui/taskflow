@@ -130,9 +130,6 @@ svg { flex: none; }
   transition: opacity .55s ease, transform .55s cubic-bezier(.2,.7,.2,1);
   transition-delay: calc(var(--i, 0) * 60ms + 80ms);
 }
-@media (prefers-reduced-motion: reduce) {
-  .app-inicio .ini-topo, .app-inicio .ini-cartao { opacity: 1; transform: none; transition: none; }
-}
 
 /* ---------- abertura: vídeo de 3,4 s feito no Remotion (img/abertura/) ---------- */
 body.com-abertura { overflow: hidden; }
@@ -458,7 +455,6 @@ input[type=range] { width: 100%; accent-color: var(--ouro); margin-top: 8px; }
 @media (min-width: 900px) {
   .app { max-width: 860px; }
 }
-@media (prefers-reduced-motion: reduce) { .b-dedo { animation: none; } }
 
 /* ---------- aulas (vitrine estilo Netflix) ---------- */
 .destaque {
@@ -853,7 +849,6 @@ button.cf-volta:not(:disabled) { color: var(--ouro); text-decoration: underline;
 
 @media (min-width: 520px) { .mural { grid-template-columns: repeat(3, 1fr); } .tom-ouvir { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 900px) { .mural { grid-template-columns: repeat(4, 1fr); } .mural-tom { grid-template-columns: repeat(6, 1fr); } }
-@media (prefers-reduced-motion: reduce) { .mural-cartao.soando, .mural-cartao.soando .mural-sim { animation: none; } }
 
 /* ---------- Tocar cifra: gravação original ---------- */
 .cf-original {
@@ -1039,6 +1034,4 @@ html[data-zoom="sai"]::view-transition-old(root) { z-index: 2; }
 /* navegador sem View Transitions: só a tela nova cresce */
 .app.zoom-entra-sozinha { animation: vt-nova-cresce .5s cubic-bezier(.22, .8, .24, 1) both; transform-origin: var(--zx, 50%) var(--zy, 50%); }
 html[data-zoom="sai"] .app.zoom-entra-sozinha { animation-name: vt-tras-volta; transform-origin: 50% 40%; }
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
-}
+

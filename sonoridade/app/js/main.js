@@ -62,9 +62,9 @@ function navegar() {
 
   const antes = caminhoAnterior;
   caminhoAnterior = caminho;
-  const calmo = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // primeira tela, mesma tela (só mudou o ?filtro) ou movimento reduzido: troca direto
-  if (antes === null || antes.split('?')[0] === caminho.split('?')[0] || calmo) { trocarTela(rota, params); return; }
+  // primeira tela ou mesma tela (só mudou o ?filtro): troca direto. O zoom roda mesmo com "reduzir movimento"
+  // ligado no aparelho (pedido do usuário: ele faz parte da identidade do app)
+  if (antes === null || antes.split('?')[0] === caminho.split('?')[0]) { trocarTela(rota, params); return; }
 
   const d = profundidade(caminho) - profundidade(antes);
   const sentido = d > 0 ? 'entra' : d < 0 ? 'sai' : 'lado';
