@@ -1,0 +1,59 @@
+
+  @page { size: A4; margin: 15mm 16mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Archivo', Arial, sans-serif; color: #161616; font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  .amarelo { color: #E0A500; }
+  code, .mono { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 9.5pt; }
+
+  /* capa */
+  .capa { height: 255mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always; }
+  .capa img { width: 120mm; margin-bottom: 18mm; }
+  .capa h1 { font-size: 30pt; font-weight: 800; margin: 0 0 4mm; letter-spacing: -0.5px; }
+  .capa .sub { font-size: 13pt; color: #555; max-width: 125mm; margin: 0; }
+  .capa .faixa { width: 30mm; height: 2.5mm; background: #F9B800; margin: 10mm auto; }
+  .capa .link { font-size: 12pt; font-weight: 600; }
+
+  h2 { font-size: 17pt; font-weight: 800; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2.5px solid #F9B800; page-break-after: avoid; }
+  h2 .n { color: #E0A500; margin-right: 2mm; }
+  h3 { font-size: 12pt; margin: 6mm 0 2mm; page-break-after: avoid; }
+  section { margin-bottom: 9mm; }
+  .quebra { page-break-before: always; }
+  p { margin: 0 0 2.5mm; }
+
+  ol.passos { list-style: none; counter-reset: p; padding: 0; margin: 0; }
+  ol.passos > li { counter-increment: p; position: relative; padding: 0 0 3mm 11mm; page-break-inside: avoid; }
+  ol.passos > li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 7mm; height: 7mm; border-radius: 50%; background: #161616; color: #F9B800; font-weight: 800; font-size: 10pt; display: flex; align-items: center; justify-content: center; }
+  ol.passos ul { margin: 1mm 0 0; padding-left: 5mm; }
+
+  .dados { border: 2px solid #161616; border-radius: 3mm; padding: 5mm 6mm; margin: 3mm 0 4mm; text-align: center; page-break-inside: avoid; }
+  .dados .rot { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 1.2px; color: #666; margin-top: 2mm; }
+  .dados .val { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12pt; font-weight: 500; word-break: break-all; }
+
+  .nota { background: #FFF6D6; border-left: 4px solid #F9B800; padding: 3mm 4mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid; }
+  .alerta { background: #F3F3F3; border-left: 4px solid #161616; padding: 3mm 4mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid; }
+
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 10pt; page-break-inside: avoid; }
+  th, td { text-align: left; padding: 2.2mm 3mm; border-bottom: 1px solid #ddd; vertical-align: top; }
+  th { background: #161616; color: #fff; font-weight: 600; }
+  td.c, th.c { text-align: center; }
+  .sim { color: #0A8A4A; font-weight: 800; }
+  .nao { color: #B3261E; font-weight: 800; }
+
+  .problema { margin-bottom: 3.5mm; page-break-inside: avoid; }
+  .problema .t { display: block; font-weight: 800; }
+  .rodape { text-align: center; font-size: 9pt; color: #777; margin-top: 10mm; }
+
+  .topo { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #ddd; padding-bottom: 4mm; margin-bottom: 7mm; }
+  .topo h1 { font-size: 19pt; font-weight: 800; margin: 0; letter-spacing: -0.3px; }
+  .topo p { margin: 1mm 0 0; color: #555; font-size: 10.5pt; }
+  .topo img { height: 9mm; }
+  section { margin-bottom: 7mm; }
+  body { font-size: 10pt; line-height: 1.42; }
+  section { margin-bottom: 5mm; }
+  h2 { font-size: 13.5pt; margin-bottom: 2.5mm; padding-bottom: 1.5mm; }
+  ol.passos > li { padding-bottom: 2mm; }
+  .topo { margin-bottom: 5mm; }
+  .dados { padding: 3.5mm 5mm; margin: 2mm 0 3mm; }
+  .problema { margin-bottom: 2.5mm; }
+  ol.passos > li { padding-left: 9mm; min-height: 6mm; }
+  ol.passos > li::before { width: 5.2mm; height: 5.2mm; font-size: 8pt; top: 0.3mm; }
