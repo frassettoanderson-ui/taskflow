@@ -1,0 +1,6 @@
+Gere 4 fotos com a ferramenta de geração de imagem e salve cada uma nesta pasta como PNG, com estes nomes exatos. Siga o estilo de estilo.txt em todas (realista, escuro, âmbar/dourado, sem texto, sem rostos em destaque, paisagem 1536x1024).
+1. sertanejo.png — viola caipira de 10 cordas e um chapéu de palha sobre uma cerca de madeira de fazenda ao entardecer, luz dourada baixa.
+2. rock.png — close de uma guitarra elétrica escura encostada num amplificador valvulado com as válvulas acesas em âmbar, palco escuro.
+3. mpb.png — violão de nylon sobre uma cadeira de madeira numa varanda antiga com piso de ladrilho, à noite, luz de abajur quente, clima de bossa nova.
+4. pop.png — microfone de estúdio com filtro anti-pop em primeiro plano e um violão desfocado ao fundo, luzes quentes de estúdio em bokeh.
+Não crie nenhum outro arquivo.

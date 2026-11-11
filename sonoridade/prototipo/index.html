@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0a08">
+  <title>Sonoridade · Protótipo</title>
+  <link rel="icon" href="logo.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <header class="topo">
+    <img class="logo" src="logo.webp" alt="Sonoridade">
+    <p class="etiqueta">Protótipo · Fase 0</p>
+  </header>
+
+  <main>
+    <!-- Música -->
+    <section class="cartao musica">
+      <img id="capa" class="capa" alt="">
+      <div class="musica-info">
+        <h1 id="titulo">—</h1>
+        <p id="detalhes" class="apagado">—</p>
+      </div>
+      <button id="btnCarregar" class="botao principal">Carregar VS</button>
+      <div id="progresso" class="progresso" hidden></div>
+    </section>
+
+    <div id="estudio" hidden>
+      <!-- Instrumento -->
+      <section class="cartao">
+        <h2>Eu toco</h2>
+        <div class="segmentos" id="instrumentos">
+          <button data-inst="violao">Violão</button>
+          <button data-inst="guitarra">Guitarra</button>
+          <button data-inst="baixo">Baixo</button>
+        </div>
+      </section>
+
+      <!-- Modo progressivo -->
+      <section class="cartao">
+        <h2>Modo progressivo</h2>
+        <div class="etapas" id="etapas">
+          <button data-etapa="1"><b>1</b><span>Ouvir</span><small>seu instrumento alto · 70%</small></button>
+          <button data-etapa="2"><b>2</b><span>Tocar junto</span><small>seu instrumento alto · 85%</small></button>
+          <button data-etapa="3"><b>3</b><span>Apoio</span><small>seu instrumento baixinho · 100%</small></button>
+          <button data-etapa="4"><b>4</b><span>Sozinho</span><small>sem o seu instrumento · 100%</small></button>
+        </div>
+        <p id="dicaEtapa" class="apagado centro">Escolha o seu instrumento para usar as etapas.</p>
+      </section>
+
+      <!-- Transporte -->
+      <section class="cartao transporte">
+        <div class="tempos"><span id="tAtual">0:00</span><span id="tTotal">0:00</span></div>
+        <div class="linha-tempo">
+          <div id="faixaLoop" class="faixa-loop" hidden></div>
+          <input id="barra" type="range" min="0" max="1" step="0.01" value="0" aria-label="Posição na música">
+        </div>
+        <div class="controles">
+          <button id="btnVoltar" class="botao redondo" title="Voltar 5 s" aria-label="Voltar 5 segundos">−5</button>
+          <button id="btnTocar" class="botao redondo grande" aria-label="Tocar">▶</button>
+          <button id="btnAvancar" class="botao redondo" title="Avançar 5 s" aria-label="Avançar 5 segundos">+5</button>
+        </div>
+        <div class="loop">
+          <button id="btnA" class="botao">Início do loop</button>
+          <button id="btnB" class="botao">Fim do loop</button>
+          <button id="btnLoop" class="botao" disabled>Loop desligado</button>
+        </div>
+        <p id="infoLoop" class="apagado centro">Marque o início e o fim do trecho enquanto a música toca.</p>
+      </section>
+
+      <!-- Velocidade e tom -->
+      <section class="cartao ajustes">
+        <div class="ajuste">
+          <h2>Velocidade</h2>
+          <output id="valVel">100%</output>
+          <input id="vel" type="range" min="50" max="120" step="5" value="100" aria-label="Velocidade">
+        </div>
+        <div class="ajuste">
+          <h2>Tom</h2>
+          <div class="tom">
+            <button id="tomMenos" class="botao redondo" aria-label="Baixar meio tom">−</button>
+            <output id="valTom">Ré</output>
+            <button id="tomMais" class="botao redondo" aria-label="Subir meio tom">+</button>
+          </div>
+          <small id="avisoTom" class="apagado">original</small>
+        </div>
+      </section>
+
+      <!-- Mixer -->
+      <section class="cartao">
+        <h2>Faixas</h2>
+        <div id="mixer" class="mixer"></div>
+      </section>
+    </div>
+
+    <!-- Afinador / detector de nota -->
+    <section class="cartao afinador">
+      <h2>Afinador</h2>
+      <div class="nota" id="nota">—</div>
+      <div class="medidor"><div class="centro-marca"></div><div id="agulha" class="agulha"></div></div>
+      <p id="freq" class="apagado">Toque uma corda perto do microfone</p>
+      <button id="btnMic" class="botao">Ligar microfone</button>
+    </section>
+
+    <!-- Diagnóstico da Fase 0 -->
+    <details class="cartao diagnostico">
+      <summary>Diagnóstico (Fase 0)</summary>
+      <dl id="diag"></dl>
+    </details>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

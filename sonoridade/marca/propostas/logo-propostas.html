@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sonoridade — logos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap" rel="stylesheet">
+<style>
+  :root { --fundo:#0d0d0c; --placa:#171715; --linha:#2e2e2a; --texto:#f1ede4; --apagado:#99948a; --ouro:#e3ad45; --claro:#f4efe4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fundo); color:var(--texto); font-family:'Archivo',system-ui,sans-serif; padding:28px 16px 60px; }
+  h1 { font-stretch:75%; font-weight:800; font-size:30px; text-align:center; margin:0 0 6px; }
+  .sub { text-align:center; color:var(--apagado); margin:0 0 28px; }
+  .proposta { max-width:980px; margin:0 auto 26px; background:var(--placa); border:1px solid var(--linha); border-radius:7px; padding:22px; }
+  .proposta h2 { margin:0 0 4px; font-stretch:75%; font-weight:800; font-size:24px; text-align:center; }
+  .proposta p { margin:0 0 18px; color:var(--apagado); text-align:center; }
+  .grade { display:grid; grid-template-columns: 2fr 1fr 1fr; gap:14px; align-items:stretch; }
+  .caixa { border-radius:7px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:22px 12px; min-height:200px; }
+  .escura { background:var(--fundo); }
+  .clara { background:var(--claro); color:#191307; }
+  .rotulo { font-size:12px; color:var(--apagado); }
+  .clara .rotulo { color:#6b6457; }
+  .lockup { display:flex; align-items:center; gap:14px; }
+  .lockup svg.marca { width:78px; height:78px; flex:none; }
+  .nome { font-stretch:72%; font-weight:800; font-size:46px; letter-spacing:-.01em; line-height:1; }
+  .icone { width:110px; height:110px; border-radius:24px; overflow:hidden; display:block; }
+  .pequenos { display:flex; align-items:end; gap:12px; }
+  .pequenos svg { display:block; }
+  @media (max-width: 760px) { .grade { grid-template-columns:1fr; } .nome { font-size:38px; } }
+</style>
+</head>
+<body>
+<h1>Sonoridade: três caminhos de logo</h1>
+<p class="sub">Desenho chapado, nas cores do app. Cada um mostra a logo com nome, o ícone do celular e os tamanhos pequenos.</p>
+
+<!-- ============ símbolos (reaproveitados com <use>) ============ -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- A · Boca do violão: aro + cordas, a do meio vibrando -->
+    <symbol id="boca" viewBox="0 0 200 200">
+      <circle cx="100" cy="100" r="64" fill="none" stroke="currentColor" stroke-width="20"/>
+      <g stroke="var(--corda, #f1ede4)" stroke-linecap="round" fill="none">
+        <line y1="70"  x1="14" y2="70"  x2="186" stroke-width="3.4"/>
+        <line y1="85"  x1="14" y2="85"  x2="186" stroke-width="4.2"/>
+        <line y1="115" x1="14" y2="115" x2="186" stroke-width="5.2"/>
+        <line y1="130" x1="14" y2="130" x2="186" stroke-width="6"/>
+      </g>
+      <path d="M14 100 H56 C66 88 74 88 82 100 C90 112 102 112 110 100 C118 88 126 88 134 100 C141 110 144 106 146 100 H186" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+
+    <!-- B · S de corda: um S feito de três cordas paralelas, com os pinos nas pontas -->
+    <mask id="mS" maskUnits="userSpaceOnUse" x="0" y="0" width="200" height="200">
+      <g fill="none" stroke-linecap="butt">
+        <path d="M146 50 C128 26 58 26 58 66 C58 104 142 92 142 134 C142 176 72 178 54 150" stroke="#fff" stroke-width="42"/>
+        <path d="M146 50 C128 26 58 26 58 66 C58 104 142 92 142 134 C142 176 72 178 54 150" stroke="#000" stroke-width="27"/>
+        <path d="M146 50 C128 26 58 26 58 66 C58 104 142 92 142 134 C142 176 72 178 54 150" stroke="#fff" stroke-width="9"/>
+      </g>
+    </mask>
+    <symbol id="esse" viewBox="0 0 200 200">
+      <rect width="200" height="200" fill="currentColor" mask="url(#mS)"/>
+    </symbol>
+
+    <!-- C · Diagrama de acorde (Sol maior): o desenho que o app mais mostra -->
+    <symbol id="acorde" viewBox="0 0 200 200">
+      <g stroke="var(--corda, #f1ede4)" stroke-linecap="round">
+        <line x1="40" y1="38" x2="160" y2="38" stroke-width="11" stroke="currentColor"/>
+        <line x1="40" y1="76" x2="160" y2="76" stroke-width="3"/>
+        <line x1="40" y1="114" x2="160" y2="114" stroke-width="3"/>
+        <line x1="40" y1="152" x2="160" y2="152" stroke-width="3"/>
+        <line x1="40" y1="38" x2="40" y2="172" stroke-width="3.6"/>
+        <line x1="64" y1="38" x2="64" y2="172" stroke-width="3.3"/>
+        <line x1="88" y1="38" x2="88" y2="172" stroke-width="3"/>
+        <line x1="112" y1="38" x2="112" y2="172" stroke-width="2.7"/>
+        <line x1="136" y1="38" x2="136" y2="172" stroke-width="2.4"/>
+        <line x1="160" y1="38" x2="160" y2="172" stroke-width="2.1"/>
+      </g>
+      <g fill="currentColor">
+        <circle cx="40" cy="133" r="15"/>
+        <circle cx="64" cy="95" r="15"/>
+        <circle cx="160" cy="133" r="15"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<template id="modelo">
+  <section class="proposta">
+    <h2></h2>
+    <p></p>
+    <div class="grade">
+      <div class="caixa escura">
+        <div class="lockup" style="color:var(--ouro)"><svg class="marca"><use/></svg><span class="nome" style="color:var(--texto)">sonoridade</span></div>
+        <div class="rotulo">logo com nome, fundo escuro</div>
+      </div>
+      <div class="caixa escura">
+        <svg class="icone" viewBox="0 0 200 200"><rect width="200" height="200" fill="#171715"/><svg x="22" y="22" width="156" height="156" style="color:#e3ad45"><use/></svg></svg>
+        <div class="rotulo">ícone do celular</div>
+      </div>
+      <div class="caixa clara">
+        <div class="lockup" style="color:#b9811d; --corda:#191307"><svg class="marca" style="width:52px;height:52px"><use/></svg><span class="nome" style="font-size:30px">sonoridade</span></div>
+        <div class="pequenos" style="color:#b9811d; --corda:#191307">
+          <svg width="48" height="48"><use/></svg><svg width="32" height="32"><use/></svg><svg width="20" height="20"><use/></svg>
+        </div>
+        <div class="rotulo">fundo claro e tamanhos pequenos</div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<div id="lista"></div>
+
+<script>
+  const PROPOSTAS = [
+    ['boca', 'A · Boca do violão', 'O aro da boca do violão com as cordas passando; a do meio está vibrando, que é o "som" do nome.'],
+    ['esse', 'B · S de corda', 'Um S desenhado por três cordas paralelas. Funciona sozinho como monograma e fica forte em tamanho pequeno.'],
+    ['acorde', 'C · Desenho de acorde', 'O diagrama de acorde (Sol maior), a figura que todo músico reconhece e que o app mostra o tempo todo.'],
+  ];
+  const lista = document.getElementById('lista');
+  const modelo = document.getElementById('modelo');
+  for (const [id, titulo, texto] of PROPOSTAS) {
+    const n = modelo.content.cloneNode(true);
+    n.querySelector('h2').textContent = titulo;
+    n.querySelector('p').textContent = texto;
+    n.querySelectorAll('use').forEach((u) => u.setAttribute('href', '#' + id));
+    lista.appendChild(n);
+  }
+</script>
+</body>
+</html>

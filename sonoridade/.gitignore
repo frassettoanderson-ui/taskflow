@@ -1,0 +1,6 @@
+# áudio dos VS é pesado e não vai para o git
+prototipo/vs/**/*.m4a
+prototipo/vs/**/*.jpg
+
+# cifras de teste copiadas do Cifra Club (uso pessoal, não vão para o git)
+app/dados-teste/

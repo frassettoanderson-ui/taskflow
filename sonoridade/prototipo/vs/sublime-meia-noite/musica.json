@@ -1,0 +1,17 @@
+{
+  "titulo": "Sublime – Meia Noite",
+  "tom": "D",
+  "bpm": 125,
+  "capa": "capa.jpg",
+  "origem": "Sublime-Meia Noite-D-125.00bpm.zip (pasta MultiTracks)",
+  "faixas": [
+    { "id": "violao",    "nome": "Violão",    "arquivo": "violao.m4a",    "origem": "AG.wav",          "cor": "#d9a441" },
+    { "id": "guitarra",  "nome": "Guitarra",  "arquivo": "guitarra.m4a",  "origem": "EG 1.wav",        "cor": "#c8643b" },
+    { "id": "baixo",     "nome": "Baixo",     "arquivo": "baixo.m4a",     "origem": "Bass.wav",        "cor": "#7a8f3a" },
+    { "id": "bateria",   "nome": "Bateria",   "arquivo": "bateria.m4a",   "origem": "Drums.wav",       "cor": "#8a7f72" },
+    { "id": "percussao", "nome": "Percussão", "arquivo": "percussao.m4a", "origem": "Perc.wav",        "cor": "#6f665c" },
+    { "id": "piano",     "nome": "Piano",     "arquivo": "piano.m4a",     "origem": "Piano.wav",       "cor": "#5c7d8a" },
+    { "id": "click",     "nome": "Click",     "arquivo": "click.m4a",     "origem": "Click Track.wav", "cor": "#e8e2d6", "volume": 60 },
+    { "id": "guia",      "nome": "Guia",      "arquivo": "guia.m4a",      "origem": "Guide.wav",       "cor": "#b9a7d6", "volume": 60 }
+  ]
+}

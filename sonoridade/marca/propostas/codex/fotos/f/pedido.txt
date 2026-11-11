@@ -1,0 +1,8 @@
+Gere 6 fotos com a ferramenta de geração de imagem e salve cada uma nesta pasta como PNG, com estes nomes exatos. Siga o estilo de estilo.txt em todas (realista, escuro, âmbar/dourado, sem texto, sem rostos em destaque, paisagem 1536x1024).
+1. jazz.png — contrabaixo acústico e guitarra jazz archtop num clube de jazz pequeno, mesas com velas desfocadas, luz âmbar.
+2. country.png — violão folk e botas de couro sobre o assoalho de um celeiro de madeira, feno e luz dourada de lampião.
+3. infantil.png — violão pequeno (tamanho infantil) ao lado de brinquedos de madeira e um ukulele num quarto aconchegante à noite, luz quente de abajur.
+4. classico.png — violão clássico sobre uma estante com partitura (sem notas legíveis), banqueta de pé e luz de vela, ambiente de sala antiga.
+5. internacional.png — palco grande de show visto de trás, guitarra em primeiro plano e plateia enorme desfocada com luzes âmbar.
+6. axe.png — mãos tocando violão num trio elétrico à noite, confetes dourados no ar e luzes quentes desfocadas.
+Não crie nenhum outro arquivo.

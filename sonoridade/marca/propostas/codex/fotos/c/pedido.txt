@@ -1,0 +1,7 @@
+Gere 5 fotos com a ferramenta de geração de imagem e salve cada uma nesta pasta como PNG, com estes nomes exatos. Siga o estilo de estilo.txt em todas (realista, escuro, âmbar/dourado, sem texto, sem rostos em destaque, paisagem 1536x1024).
+1. ultimas.png — close de um violão encostado numa estante de partitura em casa, à noite, com uma xícara de café ao lado e uma luminária quente acesa: sensação de "voltar a tocar de onde parou".
+2. novidades.png — close de uma caixa de cordas novas e um violão com a etiqueta ainda presa ao braço, luz quente de fim de tarde entrando de lado; sensação de coisa nova chegando.
+3. mais-tocadas.png — palco de igreja à noite visto de trás do violonista, mãos tocando, plateia desfocada com luzes âmbar ao fundo; sensação de música que todo mundo conhece.
+4. louvor.png — mãos levantadas em adoração desfocadas ao fundo e um violão em primeiro plano, luz dourada suave vinda do alto.
+5. hinos.png — um hinário antigo de capa de couro aberto (páginas sem texto legível) sobre um banco de madeira de igreja, com um violão encostado, luz de vela âmbar.
+Não crie nenhum outro arquivo.

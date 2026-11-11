@@ -1,0 +1,11 @@
+Brief de logo — "Sonoridade"
+
+O que é: app (PWA) para estudar violão, guitarra e baixo com foco em música de louvor (igreja). Uso de um grupo de músicos amigos. Tom: musical, artesanal, sério e acolhedor, moderno. Nada de "templo"/religioso explícito (sem cruz, pomba, mãos).
+
+Cores: ouro chapado #E3AD45 sobre preto quase puro #0D0D0C (pode usar creme #F1EDE4 como segunda cor). Uma ou duas cores no máximo.
+
+Estilo OBRIGATÓRIO: logo de marca profissional, VETOR CHAPADO (flat), formas limpas e geométricas, como um estúdio de branding faria (pense Pentagram, Koto, Collins). Tem que funcionar como ícone de app pequeno (32 px) e em uma cor só.
+
+PROIBIDO: brilho, glow, luz, degradê, 3D, metal reflexivo, textura, sombra, purpurina, ilustração realista de instrumento, vários instrumentos juntos, clave de sol, notas musicais clipart, ondas de som genéricas de equalizador, círculo dourado brilhante tipo medalha.
+
+Cada imagem: fundo #0D0D0C liso, o símbolo grande ao centro e o nome "Sonoridade" escrito EXATAMENTE assim (S-o-n-o-r-i-d-a-d-e) logo abaixo, numa tipografia bonita e bem desenhada. Nada mais na imagem (sem mockup, sem texto extra, sem slogan). Formato quadrado 1024x1024.

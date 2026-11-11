@@ -1,0 +1,8 @@
+Gere 6 fotos com a ferramenta de geração de imagem e salve cada uma nesta pasta como PNG, com estes nomes exatos. Siga o estilo de estilo.txt em todas (realista, escuro, âmbar/dourado, sem texto, sem rostos em destaque, paisagem 1536x1024).
+1. samba.png — pandeiro e cavaquinho sobre uma mesa de bar de madeira antiga, garrafas desfocadas ao fundo, luz quente de lâmpada pendurada.
+2. pagode.png — roda de pagode vista de perto: mãos tocando cavaquinho e banjo, tantã desfocado, luz âmbar de quintal à noite.
+3. forro.png — sanfona (acordeom) e zabumba no chão de terra batida de um salão rústico, bandeirinhas desfocadas ao fundo em tons quentes.
+4. bossa-nova.png — violão de nylon apoiado numa poltrona de couro perto de uma janela com cortina e o mar desfocado à noite, luz de abajur.
+5. reggae.png — close de mãos tocando guitarra com batida abafada, num palco pequeno de madeira à beira-mar à noite, luzes quentes de cordão.
+6. blues.png — guitarra semiacústica antiga e um slide de vidro sobre uma cadeira num bar escuro, fumaça leve, luz âmbar de cima.
+Não crie nenhum outro arquivo.
