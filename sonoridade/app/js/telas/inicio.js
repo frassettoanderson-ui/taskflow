@@ -1,6 +1,6 @@
 // Tela inicial: estúdio ao fundo, dois cartões grandes (Cifras e Tocar com banda) e cinco menores.
 // Ao abrir o app, abertura: vídeo de 3,4 s com som (img/abertura/abertura-h|v.mp4, feito no Remotion em
-// julius-videos/src/sonoridade): seis cordas dedilham um Cadd9, viram um ponto de luz, nasce o S e o nome.
+// julius-videos/src/sonoridade): seis cordas dedilham um Cadd9, viram um ponto de luz, nasce a palheta e a luz escreve o nome.
 // O navegador só deixa tocar com som depois de um toque, por isso "Toque para começar".
 import { ICONES } from '../ui/comum.js';
 
@@ -14,14 +14,14 @@ const CARTOES = [
   { id: 'exercicios', href: '#/exercicios', nome: 'Exercícios', foto: 'exercicios' },
   { id: 'ferramentas', href: '#/ferramentas', nome: 'Ferramentas', foto: 'ferramentas' },
 ];
-const VA = 'v=1';
+const VA = 'v=2';
 
 export function montar(el) {
   el.classList.add('app-inicio');
   el.innerHTML = `
     <div class="ini-fundo" aria-hidden="true"><img src="img/inicio/estudio.webp?${V}" alt=""></div>
     <header class="ini-topo">
-      <img class="ini-logo" src="img/logo.webp?v=2" alt="Sonoridade">
+      <img class="ini-logo" src="img/logo.webp?v=3" alt="Sonoridade">
     </header>
     <nav class="ini-grade">
       ${CARTOES.map((c, i) => `
