@@ -64,6 +64,15 @@ final class NFCeService
             $this->store->salvar($this->emitente->cnpj, "ref-{$referencia}", json_encode(['chave' => $chave, 'numero' => $numero, 'serie' => $this->emitente->nfceSerie, 'em' => date('c')]), 'referencias');
         }
 
+        // Contingência offline: não vai à SEFAZ agora; o sistema chama /v1/nfce/transmitir depois.
+        if (is_array($payload['contingencia'] ?? null)) {
+            $this->store->salvar($this->emitente->cnpj, $chave, $xmlAssinado, 'contingencia');
+            return [
+                'status' => 'contingencia', 'chave' => $chave, 'numero' => $numero, 'protocolo' => null,
+                'motivo' => 'Emitida em contingência offline: transmitir à SEFAZ em até 24 h.', 'xml' => $xmlAssinado,
+            ];
+        }
+
         $idLote = str_pad((string) random_int(1, 999999999), 15, '0', STR_PAD_LEFT);
         try {
             $resp = $this->tools->sefazEnviaLote([$xmlAssinado], $idLote, 1); // sempre síncrono
@@ -142,6 +151,7 @@ final class NFCeService
         }
         if ($cStat === '100' || $pStat === '100') {
             $assinado = $this->store->recuperar($this->emitente->cnpj, $chave, 'pendente')
+                ?? $this->store->recuperar($this->emitente->cnpj, $chave, 'contingencia')
                 ?? $this->store->recuperar($this->emitente->cnpj, $chave, 'rejeitado');
             if ($assinado !== null && $this->store->recuperar($this->emitente->cnpj, $chave, 'autorizado') === null) {
                 try {
@@ -156,6 +166,44 @@ final class NFCeService
             return ['status' => 'nao_consta', 'chave' => $chave, 'protocolo' => null, 'motivo' => trim("{$cStat} - {$xMotivo}")];
         }
         return ['status' => 'pendente', 'chave' => $chave, 'protocolo' => null, 'motivo' => trim("{$cStat} - {$xMotivo}")];
+    }
+
+    /**
+     * Transmite uma NFC-e emitida em contingência offline. autorizado (guarda o XML autorizado),
+     * rejeitado (precisa de correção) ou pendente (SEFAZ ainda fora).
+     */
+    public function transmitir(string $chave): array
+    {
+        $xml = $this->store->recuperar($this->emitente->cnpj, $chave, 'contingencia');
+        if ($xml === null) {
+            throw new \RuntimeException("NFC-e em contingência não encontrada para a chave {$chave}.");
+        }
+        if ($this->store->recuperar($this->emitente->cnpj, $chave, 'autorizado') !== null) {
+            return $this->sincronizar($chave);
+        }
+        $idLote = str_pad((string) random_int(1, 999999999), 15, '0', STR_PAD_LEFT);
+        try {
+            $resp = $this->tools->sefazEnviaLote([$xml], $idLote, 1);
+        } catch (\Throwable $e) {
+            return ['status' => 'pendente', 'chave' => $chave, 'protocolo' => null, 'motivo' => 'SEFAZ sem resposta: ' . $e->getMessage()];
+        }
+        $st = new \DOMDocument();
+        $st->loadXML($resp);
+        $prot = $st->getElementsByTagName('protNFe')->item(0);
+        $cStat = $prot ? ($prot->getElementsByTagName('cStat')->item(0)->nodeValue ?? '') : ($st->getElementsByTagName('cStat')->item(0)->nodeValue ?? '');
+        $xMotivo = $prot ? ($prot->getElementsByTagName('xMotivo')->item(0)->nodeValue ?? '') : ($st->getElementsByTagName('xMotivo')->item(0)->nodeValue ?? '');
+        $nProt = $prot ? ($prot->getElementsByTagName('nProt')->item(0)->nodeValue ?? null) : null;
+        if ($cStat === '100' || $cStat === '150') {
+            $this->store->salvar($this->emitente->cnpj, $chave, Complements::toAuthorize($xml, $resp), 'autorizado');
+            return ['status' => 'autorizado', 'chave' => $chave, 'protocolo' => $nProt, 'motivo' => trim("{$cStat} - {$xMotivo}")];
+        }
+        if ($cStat === '204' || $cStat === '539') {
+            return $this->sincronizar($chave); // duplicidade: já foi autorizada antes
+        }
+        if ($cStat === '108' || $cStat === '109' || $cStat === '') {
+            return ['status' => 'pendente', 'chave' => $chave, 'protocolo' => null, 'motivo' => trim("{$cStat} - {$xMotivo}")];
+        }
+        return ['status' => 'rejeitado', 'chave' => $chave, 'protocolo' => null, 'motivo' => trim("{$cStat} - {$xMotivo}")];
     }
 
     public function consultar(string $chave): array
@@ -233,7 +281,9 @@ final class NFCeService
 
     public function danfce(string $chave): array
     {
-        $xml = $this->store->recuperar($this->emitente->cnpj, $chave, 'autorizado');
+        // autorizada; senão a emitida em contingência (o DANFCE sai com "EMITIDA EM CONTINGÊNCIA")
+        $xml = $this->store->recuperar($this->emitente->cnpj, $chave, 'autorizado')
+            ?? $this->store->recuperar($this->emitente->cnpj, $chave, 'contingencia');
         if ($xml === null) {
             throw new \RuntimeException("XML autorizado não encontrado para a chave {$chave}.");
         }

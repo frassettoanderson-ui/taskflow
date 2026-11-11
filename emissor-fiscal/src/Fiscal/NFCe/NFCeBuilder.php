@@ -55,13 +55,19 @@ final class NFCeBuilder
         $ide->idDest = 1;         // NFC-e é sempre operação interna
         $ide->cMunFG = $cMun;
         $ide->tpImp = 4;          // DANFE NFC-e
-        $ide->tpEmis = 1;         // normal (TODO: contingência offline tpEmis=9)
+        // Contingência offline (tpEmis 9): a nota é assinada e impressa sem a SEFAZ e transmitida depois (até 24 h).
+        $cont = is_array($p['contingencia'] ?? null) ? $p['contingencia'] : null;
+        $ide->tpEmis = $cont ? 9 : 1;
         $ide->tpAmb = $this->ambiente;
         $ide->finNFe = 1;
         $ide->indFinal = 1;       // consumidor final
         $ide->indPres = 1;        // presencial
         $ide->procEmi = 0;
         $ide->verProc = 'emissor-fiscal-1.0';
+        if ($cont) {
+            $ide->dhCont = $ide->dhEmi;
+            $ide->xJust = mb_substr(trim((string) ($cont['justificativa'] ?? '')) ?: 'SEFAZ sem resposta - emissao em contingencia offline', 0, 256);
+        }
         $make->tagide($ide);
 
         // ------- emit -------

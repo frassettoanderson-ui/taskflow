@@ -346,6 +346,15 @@ $router->add('POST', '/v1/nfce/sincronizar', function (Request $req) use ($nfceD
     Response::ok($nfceDoEmitente($req)->sincronizar($chave));
 });
 
+// NFC-e emitida em contingência offline: transmite à SEFAZ.
+$router->add('POST', '/v1/nfce/transmitir', function (Request $req) use ($nfceDoEmitente) {
+    $chave = (string) ($req->body['chave'] ?? '');
+    if (strlen($chave) !== 44) {
+        Response::erro('chave de acesso inválida (44 dígitos).', 400);
+    }
+    Response::ok($nfceDoEmitente($req)->transmitir($chave));
+});
+
 // Chave/número que o emissor reservou para uma referência (id da venda) antes de enviar à SEFAZ.
 $router->add('POST', '/v1/nfce/referencia', function (Request $req) use ($nfceDoEmitente) {
     $r = $nfceDoEmitente($req)->porReferencia((string) ($req->body['referencia'] ?? ''));
