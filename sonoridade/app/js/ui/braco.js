@@ -225,7 +225,6 @@ function desenharCorda(g, d, envelope) {
 
 export function vibrar(raiz, a, { direcao = 'baixo', atraso = 0, passo = 12 } = {}) {
   if (!raiz || !a) return;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
   const ordem = direcao === 'cima' ? [1, 2, 3, 4] : [6, 5, 4, 3, 2, 1];
   const tocadas = ordem.filter((n) => a.casas[6 - n] >= 0);
   const agora = performance.now();
