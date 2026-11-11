@@ -337,6 +337,21 @@ $router->add('POST', '/v1/nfce/consultar', function (Request $req) use ($nfceDoE
     Response::ok($nfceDoEmitente($req)->consultar($chave));
 });
 
+// Nota que ficou pendente (SEFAZ sem resposta): consulta e, se autorizada, guarda o XML autorizado.
+$router->add('POST', '/v1/nfce/sincronizar', function (Request $req) use ($nfceDoEmitente) {
+    $chave = (string) ($req->body['chave'] ?? '');
+    if (strlen($chave) !== 44) {
+        Response::erro('chave de acesso inválida (44 dígitos).', 400);
+    }
+    Response::ok($nfceDoEmitente($req)->sincronizar($chave));
+});
+
+// Chave/número que o emissor reservou para uma referência (id da venda) antes de enviar à SEFAZ.
+$router->add('POST', '/v1/nfce/referencia', function (Request $req) use ($nfceDoEmitente) {
+    $r = $nfceDoEmitente($req)->porReferencia((string) ($req->body['referencia'] ?? ''));
+    Response::ok(['encontrada' => $r !== null] + ($r ?? []));
+});
+
 $router->add('POST', '/v1/nfce/inutilizar', function (Request $req) use ($nfceDoEmitente) {
     $b = $req->body;
     $r = $nfceDoEmitente($req)->inutilizar(

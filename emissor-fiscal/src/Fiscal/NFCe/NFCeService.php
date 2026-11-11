@@ -55,8 +55,27 @@ final class NFCeService
         // signNFe com model 65 injeta o QR Code (infNFeSupl) usando o CSC/CSCid.
         $xmlAssinado = $this->tools->signNFe($make->getXML());
 
+        // Com "referencia" (ex.: id da venda), a chave e o número ficam guardados ANTES de ir para a SEFAZ.
+        // Se a SEFAZ demorar ou a conexão cair, a nota fica "pendente" (pode ter sido autorizada):
+        // o sistema consulta depois pela chave (/v1/nfce/sincronizar) ou pela referência (/v1/nfce/referencia).
+        $referencia = preg_replace('/[^A-Za-z0-9_-]/', '', (string) ($payload['referencia'] ?? ''));
+        if ($referencia !== '') {
+            $this->store->salvar($this->emitente->cnpj, $chave, $xmlAssinado, 'pendente');
+            $this->store->salvar($this->emitente->cnpj, "ref-{$referencia}", json_encode(['chave' => $chave, 'numero' => $numero, 'serie' => $this->emitente->nfceSerie, 'em' => date('c')]), 'referencias');
+        }
+
         $idLote = str_pad((string) random_int(1, 999999999), 15, '0', STR_PAD_LEFT);
-        $resp = $this->tools->sefazEnviaLote([$xmlAssinado], $idLote, 1); // sempre síncrono
+        try {
+            $resp = $this->tools->sefazEnviaLote([$xmlAssinado], $idLote, 1); // sempre síncrono
+        } catch (\Throwable $e) {
+            if ($referencia === '') {
+                throw $e;
+            }
+            return [
+                'status' => 'pendente', 'chave' => $chave, 'numero' => $numero, 'protocolo' => null,
+                'motivo' => 'SEFAZ sem resposta: ' . $e->getMessage(), 'xml' => null,
+            ];
+        }
 
         $st = new \DOMDocument();
         $st->loadXML($resp);
@@ -67,7 +86,7 @@ final class NFCeService
         if ($protNFe === null) {
             $this->store->salvar($this->emitente->cnpj, $chave, $xmlAssinado, 'rejeitado');
             return [
-                'status' => 'rejeitado', 'chave' => $chave, 'protocolo' => null,
+                'status' => 'rejeitado', 'chave' => $chave, 'numero' => $numero, 'protocolo' => null,
                 'motivo' => trim("{$cStat} - {$xMotivo}"), 'xml' => null,
             ];
         }
@@ -80,16 +99,63 @@ final class NFCeService
             $xmlProc = Complements::toAuthorize($xmlAssinado, $resp);
             $arquivo = $this->store->salvar($this->emitente->cnpj, $chave, $xmlProc, 'autorizado');
             return [
-                'status' => 'autorizado', 'chave' => $chave, 'protocolo' => $nProt,
+                'status' => 'autorizado', 'chave' => $chave, 'numero' => $numero, 'protocolo' => $nProt,
                 'motivo' => trim("{$protStat} - {$protMotivo}"), 'xml' => $xmlProc, 'arquivo' => $arquivo,
             ];
         }
 
         $this->store->salvar($this->emitente->cnpj, $chave, $xmlAssinado, 'rejeitado');
         return [
-            'status' => 'rejeitado', 'chave' => $chave, 'protocolo' => $nProt,
+            'status' => 'rejeitado', 'chave' => $chave, 'numero' => $numero, 'protocolo' => $nProt,
             'motivo' => trim("{$protStat} - {$protMotivo}"), 'xml' => null,
         ];
+    }
+
+    /** Chave/número guardados para uma referência (venda) antes do envio; null se o emissor nunca recebeu. */
+    public function porReferencia(string $referencia): ?array
+    {
+        $referencia = preg_replace('/[^A-Za-z0-9_-]/', '', $referencia);
+        $j = $referencia === '' ? null : $this->store->recuperar($this->emitente->cnpj, "ref-{$referencia}", 'referencias');
+        return $j ? json_decode($j, true) : null;
+    }
+
+    /**
+     * Situação de uma nota pendente na SEFAZ. autorizado (guarda o XML autorizado), cancelado,
+     * nao_consta (cStat 217: o número não foi usado -> inutilizar) ou pendente (SEFAZ ainda sem resposta).
+     */
+    public function sincronizar(string $chave): array
+    {
+        try {
+            $resp = $this->tools->sefazConsultaChave($chave);
+        } catch (\Throwable $e) {
+            return ['status' => 'pendente', 'chave' => $chave, 'protocolo' => null, 'motivo' => 'SEFAZ sem resposta: ' . $e->getMessage()];
+        }
+        $st = new \DOMDocument();
+        $st->loadXML($resp);
+        $cStat = $st->getElementsByTagName('cStat')->item(0)->nodeValue ?? '';
+        $xMotivo = $st->getElementsByTagName('xMotivo')->item(0)->nodeValue ?? '';
+        $prot = $st->getElementsByTagName('protNFe')->item(0);
+        $pStat = $prot ? ($prot->getElementsByTagName('cStat')->item(0)->nodeValue ?? '') : '';
+        $nProt = $prot ? ($prot->getElementsByTagName('nProt')->item(0)->nodeValue ?? null) : null;
+        if ($cStat === '101' || $cStat === '135' || $cStat === '155') {
+            return ['status' => 'cancelado', 'chave' => $chave, 'protocolo' => $nProt, 'motivo' => trim("{$cStat} - {$xMotivo}")];
+        }
+        if ($cStat === '100' || $pStat === '100') {
+            $assinado = $this->store->recuperar($this->emitente->cnpj, $chave, 'pendente')
+                ?? $this->store->recuperar($this->emitente->cnpj, $chave, 'rejeitado');
+            if ($assinado !== null && $this->store->recuperar($this->emitente->cnpj, $chave, 'autorizado') === null) {
+                try {
+                    $this->store->salvar($this->emitente->cnpj, $chave, Complements::toAuthorize($assinado, $resp), 'autorizado');
+                } catch (\Throwable) {
+                    $this->store->salvar($this->emitente->cnpj, "{$chave}-consulta", $resp, 'eventos');
+                }
+            }
+            return ['status' => 'autorizado', 'chave' => $chave, 'protocolo' => $nProt, 'motivo' => trim("{$cStat} - {$xMotivo}")];
+        }
+        if ($cStat === '217') {
+            return ['status' => 'nao_consta', 'chave' => $chave, 'protocolo' => null, 'motivo' => trim("{$cStat} - {$xMotivo}")];
+        }
+        return ['status' => 'pendente', 'chave' => $chave, 'protocolo' => null, 'motivo' => trim("{$cStat} - {$xMotivo}")];
     }
 
     public function consultar(string $chave): array
