@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>HolyTech Remoto — Guia</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 18mm 17mm 20mm; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Archivo', Arial, sans-serif; color: #161616; font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  .amarelo { color: #E0A500; }
+  code, .mono { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 9.5pt; }
+
+  /* capa */
+  .capa { height: 255mm; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always; }
+  .capa img { width: 120mm; margin-bottom: 18mm; }
+  .capa h1 { font-size: 30pt; font-weight: 800; margin: 0 0 4mm; letter-spacing: -0.5px; }
+  .capa .sub { font-size: 13pt; color: #555; max-width: 125mm; margin: 0; }
+  .capa .faixa { width: 30mm; height: 2.5mm; background: #F9B800; margin: 10mm auto; }
+  .capa .link { font-size: 12pt; font-weight: 600; }
+
+  h2 { font-size: 17pt; font-weight: 800; margin: 0 0 3mm; padding-bottom: 2mm; border-bottom: 2.5px solid #F9B800; page-break-after: avoid; }
+  h2 .n { color: #E0A500; margin-right: 2mm; }
+  h3 { font-size: 12pt; margin: 6mm 0 2mm; page-break-after: avoid; }
+  section { margin-bottom: 9mm; }
+  .quebra { page-break-before: always; }
+  p { margin: 0 0 2.5mm; }
+
+  ol.passos { list-style: none; counter-reset: p; padding: 0; margin: 0; }
+  ol.passos > li { counter-increment: p; position: relative; padding: 0 0 3mm 11mm; page-break-inside: avoid; }
+  ol.passos > li::before { content: counter(p); position: absolute; left: 0; top: 0; width: 7mm; height: 7mm; border-radius: 50%; background: #161616; color: #F9B800; font-weight: 800; font-size: 10pt; display: flex; align-items: center; justify-content: center; }
+  ol.passos ul { margin: 1mm 0 0; padding-left: 5mm; }
+
+  .dados { border: 2px solid #161616; border-radius: 3mm; padding: 5mm 6mm; margin: 3mm 0 4mm; text-align: center; page-break-inside: avoid; }
+  .dados .rot { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 1.2px; color: #666; margin-top: 2mm; }
+  .dados .val { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 12pt; font-weight: 500; word-break: break-all; }
+
+  .nota { background: #FFF6D6; border-left: 4px solid #F9B800; padding: 3mm 4mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid; }
+  .alerta { background: #F3F3F3; border-left: 4px solid #161616; padding: 3mm 4mm; margin: 3mm 0; font-size: 10pt; page-break-inside: avoid; }
+
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 10pt; page-break-inside: avoid; }
+  th, td { text-align: left; padding: 2.2mm 3mm; border-bottom: 1px solid #ddd; vertical-align: top; }
+  th { background: #161616; color: #fff; font-weight: 600; }
+  td.c, th.c { text-align: center; }
+  .sim { color: #0A8A4A; font-weight: 800; }
+  .nao { color: #B3261E; font-weight: 800; }
+
+  .problema { margin-bottom: 3.5mm; page-break-inside: avoid; }
+  .problema .t { display: block; font-weight: 800; }
+  .rodape { text-align: center; font-size: 9pt; color: #777; margin-top: 10mm; }
+</style>
+</head>
+<body>
+
+<div class="capa">
+  <img src="holytech.png" alt="HolyTech Solutions">
+  <h1>HolyTech Remoto</h1>
+  <p class="sub">Guia para instalar e acessar computadores à distância pelo nosso servidor próprio</p>
+  <div class="faixa"></div>
+  <p class="link">holytechsolution.com.br/remoto</p>
+</div>
+
+<section>
+  <h2><span class="n">1</span>Como funciona</h2>
+  <p>O HolyTech Remoto usa o <b>RustDesk</b>, um programa de acesso remoto parecido com o AnyDesk, ligado ao <b>servidor próprio da HolyTech</b>. Nada passa por servidores de terceiros.</p>
+  <p>Cada computador instalado ganha um <b>ID</b> (um número de 9 dígitos) e uma <b>senha</b>. Para entrar em um computador, você digita o ID dele, a senha, e a tela dele abre no seu.</p>
+  <p>O programa liga sozinho junto com o Windows. Não precisa ninguém na frente do computador para aceitar o acesso.</p>
+
+  <h3>O que dá para fazer em cada aparelho</h3>
+  <table>
+    <tr><th>Aparelho</th><th class="c">Acessar outros</th><th class="c">Ser acessado</th><th>Como instalar</th></tr>
+    <tr><td>Windows</td><td class="c sim">Sim</td><td class="c sim">Sim</td><td>Instalador HolyTech (já configurado)</td></tr>
+    <tr><td>Mac</td><td class="c sim">Sim</td><td class="c sim">Sim*</td><td>App oficial + configuração manual</td></tr>
+    <tr><td>Android</td><td class="c sim">Sim</td><td class="c sim">Sim</td><td>App oficial + configuração manual</td></tr>
+    <tr><td>iPhone / iPad</td><td class="c sim">Sim</td><td class="c nao">Não</td><td>App oficial + configuração manual</td></tr>
+  </table>
+  <p style="font-size:9pt;color:#666">* No Mac, só depois que alguém faz login. A Apple não permite que nenhum app controle iPhone ou iPad.</p>
+</section>
+
+<section>
+  <h2><span class="n">2</span>Dados do servidor</h2>
+  <p>No Windows, o instalador já vem com isso preenchido. Em Mac, iPhone, iPad e Android, digite estes dados na configuração de rede do app:</p>
+  <div class="dados">
+    <div class="rot">Servidor de ID</div>
+    <div class="val">178.238.226.21</div>
+    <div class="rot" style="margin-top:4mm">Chave</div>
+    <div class="val">RO+BSgUSgcTp5rY1AY62i+3jptBiYajH5B8GCiMMj64=</div>
+  </div>
+  <p>Deixe os campos <b>Servidor de Relay</b> e <b>Servidor de API</b> em branco.</p>
+  <div class="alerta">Digite a chave exatamente igual, com letras maiúsculas e minúsculas, o <code>+</code> e o <code>=</code> no final. Um caractere errado e o aparelho não conecta.</div>
+</section>
+
+<section class="quebra">
+  <h2><span class="n">3</span>Windows: computador que vai ser acessado</h2>
+  <p>Faça isso uma vez em cada computador de cliente ou da empresa.</p>
+  <ol class="passos">
+    <li>No computador, abra o navegador e entre em <b>holytechsolution.com.br/remoto</b>. O download começa sozinho.</li>
+    <li>Abra o arquivo <b>HolyTech-Remoto-Setup.exe</b>.
+      <ul><li>Se o Windows mostrar <i>"O Windows protegeu o computador"</i>, clique em <b>Mais informações</b> e depois em <b>Executar assim mesmo</b>.</li></ul></li>
+    <li>Na tela <b>Senha de acesso</b>, crie uma senha de pelo menos 8 caracteres (sem aspas) e repita.
+      <ul><li>Use uma senha diferente para cada computador.</li></ul></li>
+    <li>Avance até o fim. A última tela mostra o <b>ID deste computador</b>.</li>
+    <li><b>Anote o ID e a senha</b>, junto com o nome do cliente ou do computador.</li>
+  </ol>
+  <div class="nota">Se o computador já tinha um RustDesk antigo, o instalador remove e coloca a versão nova sozinho. Se a tela final <b>não</b> mostrar o ID, alguma coisa falhou: tire um print e mande para o suporte.</div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>Windows: o seu computador (de onde você acessa)</h2>
+  <ol class="passos">
+    <li>Rode o mesmo instalador no seu computador.</li>
+    <li>Na tela de senha, <b>deixe em branco</b>. Assim ninguém entra no seu computador sem você aceitar.</li>
+    <li>Pronto. O programa aparece no menu Iniciar com o nome <b>RustDesk</b>.</li>
+  </ol>
+  <div class="nota">Dica: com o RustDesk aberto, clique com o botão direito no ícone da barra de tarefas e escolha <b>Fixar na barra de tarefas</b>.</div>
+</section>
+
+<section class="quebra">
+  <h2><span class="n">5</span>Acessar um computador</h2>
+  <ol class="passos">
+    <li>Abra o <b>RustDesk</b> no seu computador.</li>
+    <li>No campo <b>Controle um Computador Remoto</b>, digite o ID do computador e clique em <b>Conectar</b>.</li>
+    <li>Digite a senha daquele computador e marque <b>Lembrar senha</b>.</li>
+    <li>A tela dele abre numa janela. Você usa mouse e teclado normalmente.</li>
+  </ol>
+
+  <h3>Montar a sua lista de computadores (Favoritos)</h3>
+  <ol class="passos">
+    <li>Depois da primeira conexão, o computador aparece em <b>Sessões recentes</b> (ícone do relógio).</li>
+    <li>Clique com o botão direito nele e escolha <b>Adicionar aos favoritos</b>.</li>
+    <li>Clique com o botão direito de novo, escolha <b>Renomear</b> e coloque o nome do cliente.</li>
+    <li>Use a aba <b>Favoritos</b> (ícone da estrela) como a sua lista do dia a dia.</li>
+  </ol>
+  <table>
+    <tr><th>Bolinha ao lado do nome</th><th>Significado</th></tr>
+    <tr><td><b style="color:#0A8A4A">Verde</b></td><td>Computador ligado e conectado: dá para acessar.</td></tr>
+    <tr><td><b style="color:#888">Cinza</b></td><td>Desligado ou sem internet.</td></tr>
+  </table>
+  <div class="alerta">A lista de Favoritos fica salva só no computador onde você montou. Em outro computador, é preciso montar de novo.</div>
+</section>
+
+<section class="quebra">
+  <h2><span class="n">6</span>Mac</h2>
+  <ol class="passos">
+    <li>Baixe o RustDesk em <b>rustdesk.com</b> (versão macOS, arquivo <code>.dmg</code>) e arraste para a pasta <b>Aplicativos</b>.</li>
+    <li>Abra o RustDesk. Se o Mac avisar que o app veio da internet, confirme em <b>Abrir</b>.</li>
+    <li>Clique nos três pontinhos ao lado do ID, ou vá em <b>Configurações → Rede</b>, e abra <b>Servidor de ID/Relay</b>.</li>
+    <li>Preencha o <b>Servidor de ID</b> e a <b>Chave</b> com os dados da seção 2 e salve.</li>
+    <li>Se o Mac <b>vai ser acessado</b>, libere três permissões em <b>Ajustes do Sistema → Privacidade e Segurança</b>, marcando o RustDesk em cada uma:
+      <ul>
+        <li><b>Gravação de Tela</b> (sem ela, a tela aparece preta)</li>
+        <li><b>Acessibilidade</b> (sem ela, o mouse e o teclado não funcionam)</li>
+        <li><b>Monitoramento de Entrada</b></li>
+      </ul></li>
+    <li>Em <b>Configurações → Segurança</b>, defina uma <b>senha permanente</b> e anote o ID.</li>
+  </ol>
+  <div class="nota">Depois de liberar as permissões, feche e abra o RustDesk de novo para valer.</div>
+</section>
+
+<section>
+  <h2><span class="n">7</span>iPhone e iPad</h2>
+  <p>Servem só para <b>acessar</b> os computadores, por exemplo quando você está na rua.</p>
+  <ol class="passos">
+    <li>Instale o <b>RustDesk Remote Desktop</b> pela App Store.</li>
+    <li>Abra o app e toque em <b>Configurações</b> (engrenagem) e depois em <b>Servidor de ID/Relay</b>.</li>
+    <li>Preencha o <b>Servidor de ID</b> e a <b>Chave</b> da seção 2 e toque em <b>OK</b>.</li>
+    <li>Na tela inicial, digite o ID do computador, toque na seta e informe a senha.</li>
+  </ol>
+  <div class="nota">No celular, toque com um dedo para clicar, use dois dedos para rolar e abra o teclado pelo ícone na barra inferior.</div>
+</section>
+
+<section style="page-break-inside: avoid">
+  <h2><span class="n">8</span>Android</h2>
+  <ol class="passos">
+    <li>Instale o <b>RustDesk Remote Desktop</b> pela Play Store.</li>
+    <li>Em <b>Configurações → Servidor de ID/Relay</b>, preencha o <b>Servidor de ID</b> e a <b>Chave</b> da seção 2.</li>
+    <li>Para <b>acessar</b> computadores: digite o ID na tela inicial e informe a senha.</li>
+    <li>Para o celular <b>ser acessado</b>: na aba <b>Compartilhar tela</b>, toque em <b>Iniciar serviço</b> e aceite as permissões de captura de tela e de acessibilidade.</li>
+  </ol>
+</section>
+
+<section class="quebra">
+  <h2><span class="n">9</span>Problemas comuns</h2>
+  <div class="problema"><span class="t">Fica em "Conectando..." ou diz que o computador está offline</span>
+    O computador está desligado ou sem internet. Peça para alguém ligar e espere a bolinha ficar verde.</div>
+  <div class="problema"><span class="t">"Senha incorreta"</span>
+    Confira a senha anotada na instalação daquele computador. Se ela foi perdida, alguém na frente do computador pode criar uma nova em <b>Configurações → Segurança → Senha permanente</b>.</div>
+  <div class="problema"><span class="t">"Chave inválida" ou o aparelho não aparece online (Mac, iPhone, Android)</span>
+    O Servidor de ID ou a Chave foram digitados errado. Confira caractere por caractere com a seção 2.</div>
+  <div class="problema"><span class="t">No Mac, a tela aparece preta ou o mouse não mexe</span>
+    Faltam as permissões de Gravação de Tela e Acessibilidade (seção 6, passo 5).</div>
+  <div class="problema"><span class="t">A conexão caiu sozinha</span>
+    O RustDesk pode ter acabado de se atualizar (ele se atualiza sozinho, uma vez por dia, quando ninguém está conectado). Espere 1 ou 2 minutos e conecte de novo.</div>
+  <div class="problema"><span class="t">O Windows avisa que o instalador é desconhecido</span>
+    É normal: o instalador não tem assinatura digital paga. Clique em <b>Mais informações → Executar assim mesmo</b>.</div>
+
+  <h3>Boas práticas de segurança</h3>
+  <ol class="passos">
+    <li>Use uma senha diferente para cada computador e guarde as senhas num lugar seguro.</li>
+    <li>Nunca envie ID e senha juntos, pela mesma mensagem, para outra pessoa.</li>
+    <li>Ao terminar o atendimento, feche a janela da conexão.</li>
+  </ol>
+
+  <p class="rodape">HolyTech Solutions · holytechsolution.com.br</p>
+</section>
+
+</body>
+</html>
