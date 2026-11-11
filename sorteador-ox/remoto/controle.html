@@ -77,7 +77,7 @@ button:disabled{opacity:.35;cursor:default}
   <div class="info"><div class="e" id="eb">&nbsp;</div><div class="t" id="tt">—</div></div>
 
   <button id="play" disabled>Sorteio geral</button>
-  <div class="dica">Busca na hora todos os alunos ativos da EVO e sorteia 1 (quem já ganhou e quem foi excluído ficam de fora). Roda sozinho, no automático.</div>
+  <div class="dica">Busca na hora todos os alunos ativos no OX e sorteia 1 (personal, funcionário, quem já ganhou e quem foi excluído ficam de fora). Roda sozinho, no automático.</div>
 
   <button id="aovivo" disabled>Sorteio ao vivo<span class="sub">sorteia 1 entre quem está treinando agora</span></button>
   <div class="tr" id="tr">
@@ -158,8 +158,8 @@ async function send(c){
 ['next','mute','fullscreen','home'].forEach(c=>$('#'+c).onclick=()=>send(c));
 let buscandoGeral=false;
 $('#play').onclick=async()=>{
-  if(!confirm('Fazer o sorteio geral agora?\n\nBusca todos os alunos ativos da EVO e sorteia 1. Quem já ganhou e quem foi excluído ficam de fora.'))return;
-  buscandoGeral=true;render();$('#msg').textContent='Buscando os alunos ativos na EVO…';
+  if(!confirm('Fazer o sorteio geral agora?\n\nBusca todos os alunos ativos no OX e sorteia 1. Personal, funcionário, quem já ganhou e quem foi excluído ficam de fora.'))return;
+  buscandoGeral=true;render();$('#msg').textContent='Buscando os alunos ativos no OX…';
   try{
     const r=await fetch('../api/cmd?c=geral&k='+encodeURIComponent(K),{method:'POST'});const d=await r.json();
     if(r.status===403)$('#msg').textContent='Chave inválida: use o link completo.';
@@ -171,7 +171,7 @@ $('#play').onclick=async()=>{
 /* Participantes: lista do sorteio geral; excluir / voltar alguém */
 let PP={lista:[],excluidos:[]};
 async function carregarPP(){
-  $('#ppres').textContent='Buscando os alunos ativos na EVO…';
+  $('#ppres').textContent='Buscando os alunos ativos no OX…';
   try{const r=await fetch('../api/participantes?k='+encodeURIComponent(K),{cache:'no-store'});if(r.status===403){$('#ppres').textContent='Chave inválida: use o link completo.';return}const d=await r.json();if(!r.ok){$('#ppres').textContent=d.error||'Falha ao buscar.';return}PP=d}catch(e){$('#ppres').textContent='Sem conexão.';return}
   $('#partTxt').textContent=PP.concorrendo+' concorrendo de '+PP.total;
   desenharPP();
@@ -180,7 +180,7 @@ function desenharPP(){
   const q=$('#ppbusca').value.trim().toLowerCase().normalize('NFD').replace(/\p{M}/gu,'');
   const ok=n=>!q||n.toLowerCase().normalize('NFD').replace(/\p{M}/gu,'').includes(q);
   const ganh=PP.lista.filter(x=>x.ganhou).length,exc=PP.lista.filter(x=>x.excluido).length;
-  $('#ppres').innerHTML='<b>'+PP.concorrendo+'</b> concorrendo · '+PP.total+' alunos ativos na EVO · '+ganh+' já ganharam · '+exc+' excluídos'+(PP.foraDaRegra?' · '+PP.foraDaRegra+' só Weekend Fun/VIP (fora)':'');
+  $('#ppres').innerHTML='<b>'+PP.concorrendo+'</b> concorrendo · '+PP.total+' alunos ativos no OX · '+ganh+' já ganharam · '+exc+' excluídos'+(PP.foraDaRegra?' · '+PP.foraDaRegra+' personal ou funcionário (fora)':'');
   const item=x=>'<div class="pp__it'+(x.excluido?' excl':'')+(x.ganhou?' ganhou':'')+'"><div><span>'+esc(x.nome)+'</span>'+(x.excluido?'<small>excluído</small>':x.ganhou?'<small>já ganhou</small>':'<small>'+esc(x.plano||'')+'</small>')+'</div>'+
     '<button data-n="'+esc(x.nome)+'" data-a="'+(x.excluido?'restaurar':'excluir')+'">'+(x.excluido?'Voltar':'Excluir')+'</button></div>';
   const fora=PP.lista.filter(x=>x.excluido&&ok(x.nome)),dentro=PP.lista.filter(x=>!x.excluido&&ok(x.nome));

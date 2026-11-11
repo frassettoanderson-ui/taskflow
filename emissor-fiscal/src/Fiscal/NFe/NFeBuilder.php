@@ -138,6 +138,8 @@ final class NFeBuilder
         $totalProd = 0.0;
         $somaBcIcms = 0.0;
         $somaIcms = 0.0;
+        $somaPis = 0.0;
+        $somaCofins = 0.0;
         $somaBcSt = 0.0;
         $somaSt = 0.0;
         $somaIpiDevol = 0.0;
@@ -188,6 +190,8 @@ final class NFeBuilder
             $totItem = $this->montarImpostos($make, $n, $item, $vprod);
             $somaBcIcms += $totItem['vBC'];
             $somaIcms += $totItem['vICMS'];
+            $somaPis += $totItem['vPIS'] ?? 0.0;
+            $somaCofins += $totItem['vCOFINS'] ?? 0.0;
             $somaBcSt += $totItem['vBCST'];
             $somaSt += $totItem['vST'];
             $somaIpiDevol += $totItem['vIPIDevol'];
@@ -239,8 +243,8 @@ final class NFeBuilder
         $icmsTot->vII = '0.00';
         $icmsTot->vIPI = '0.00';
         $icmsTot->vIPIDevol = number_format($somaIpiDevol, 2, '.', '');
-        $icmsTot->vPIS = '0.00';
-        $icmsTot->vCOFINS = '0.00';
+        $icmsTot->vPIS = number_format($somaPis, 2, '.', '');
+        $icmsTot->vCOFINS = number_format($somaCofins, 2, '.', '');
         $icmsTot->vOutro = number_format($somaAcess['vOutro'], 2, '.', '');
         // vNF = produtos − desconto + frete + seguro + outras + ICMS-ST destacado + IPI devolvido
         $vNF = $totalProd - $somaAcess['vDesc'] + $somaAcess['vFrete'] + $somaAcess['vSeg'] + $somaAcess['vOutro'] + $somaSt + $somaIpiDevol;
@@ -307,6 +311,19 @@ final class NFeBuilder
      *  - st_retido: {bc, aliquota, valor} — CST 60 (ICMS-ST retido anteriormente)
      *  - ipi_devolvido: {percentual, valor} — grupo impostoDevol
      */
+    /** CST + base/alíquota/valor de PIS ou COFINS de um item. */
+    private function pisCofins(array $it, string $qual, float $vprod): array
+    {
+        $cst = (string) ($it['cst_' . $qual] ?? '07');
+        $aliq = isset($it['aliquota_' . $qual]) ? (float) $it['aliquota_' . $qual] : 0.0;
+        $vprod = max(0.0, round($vprod - (float) ($it['valor_desconto'] ?? 0), 2)); // base = valor líquido do item
+        if (in_array($cst, ['01', '02'], true) && $aliq > 0) {
+            return ['cst' => $cst, 'vBC' => number_format($vprod, 2, '.', ''), 'p' => number_format($aliq, 4, '.', ''),
+                    'v' => number_format(round($vprod * $aliq / 100, 2), 2, '.', '')];
+        }
+        return ['cst' => $cst, 'vBC' => '0.00', 'p' => '0.00', 'v' => '0.00'];
+    }
+
     private function montarImpostos(Make $make, int $item, array $it, float $vprod): array
     {
         $origem = (string) ($it['origem'] ?? 0); // 0 = nacional
@@ -380,23 +397,27 @@ final class NFeBuilder
             $make->tagIBSCBS($ibscbs);
         }
 
-        // PIS
+        // PIS/COFINS: regime cumulativo (Lucro Presumido) manda CST 01 + aliquota_pis/aliquota_cofins (0,65% / 3%)
+        // sobre o valor liquido do item. Sem aliquota (ou CST sem tributacao), sai zerado como antes.
+        $pv = $this->pisCofins($it, 'pis', $vprod);
         $pis = new \stdClass();
         $pis->item = $item;
-        $pis->CST = (string) ($it['cst_pis'] ?? '07'); // 07 = isenta
-        $pis->vBC = '0.00';
-        $pis->pPIS = '0.00';
-        $pis->vPIS = '0.00';
+        $pis->CST = $pv['cst'];
+        $pis->vBC = $pv['vBC'];
+        $pis->pPIS = $pv['p'];
+        $pis->vPIS = $pv['v'];
         $make->tagPIS($pis);
 
-        // COFINS
+        $cv = $this->pisCofins($it, 'cofins', $vprod);
         $cofins = new \stdClass();
         $cofins->item = $item;
-        $cofins->CST = (string) ($it['cst_cofins'] ?? '07');
-        $cofins->vBC = '0.00';
-        $cofins->pCOFINS = '0.00';
-        $cofins->vCOFINS = '0.00';
+        $cofins->CST = $cv['cst'];
+        $cofins->vBC = $cv['vBC'];
+        $cofins->pCOFINS = $cv['p'];
+        $cofins->vCOFINS = $cv['v'];
         $make->tagCOFINS($cofins);
+        $totIcms['vPIS'] = (float) $pv['v'];
+        $totIcms['vCOFINS'] = (float) $cv['v'];
 
         // IPI devolvido (devolução de compra com IPI)
         if (!empty($it['ipi_devolvido']) && (float) ($it['ipi_devolvido']['valor'] ?? 0) > 0) {

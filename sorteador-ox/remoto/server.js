@@ -9,8 +9,8 @@ const path = require('path');
 const KEY = fs.readFileSync(path.join(__dirname, 'key.txt'), 'utf8').trim();
 const CMDS = new Set(['play', 'next', 'mute', 'fullscreen', 'home', 'reset', 'aovivo', 'geral']);
 
-/* Sorteio AO VIVO: só quem está treinando agora (catraca da EVO, via API do OX Cloud no próprio
-   servidor). Ganhadores ao vivo ficam em aovivo.json, SEPARADOS do grande sorteio; quem já ganhou
+/* Sorteio AO VIVO: só quem está treinando agora (catraca, via API do OX Cloud no próprio servidor;
+   sem personal e funcionário). Ganhadores ao vivo ficam em aovivo.json, SEPARADOS do grande sorteio; quem já ganhou
    hoje não entra de novo (no dia seguinte participa). */
 const OX_TREINANDO = 'http://127.0.0.1:8401/api/evo/treinando-agora';
 // arquivos gravados ficam no StateDirectory do systemd (/var/lib/sorteio-remote); a pasta do código é só leitura
@@ -26,8 +26,8 @@ function lerAoVivo() {
 function gravarAoVivo(d) { try { fs.writeFileSync(AOVIVO_FILE, JSON.stringify(d)); } catch (e) { console.error('não gravei aovivo.json:', e.message); } }
 let ultimoAoVivo = null; // {hora, treinando, elegiveis}
 
-/* Participantes do SORTEIO GERAL = todos os alunos com contrato ativo na EVO, buscados na hora no OX Cloud
-   (sem quem só tem Weekend Fun/VIP). O controle consulta a lista e pode EXCLUIR alguém: os excluídos ficam
+/* Participantes do SORTEIO GERAL = todos os alunos com plano ativo, buscados na hora no OX Cloud
+   (sem personal e funcionário; desde 11/11 a lista sai do OX, sem consultar a EVO). O controle consulta a lista e pode EXCLUIR alguém: os excluídos ficam
    em excluidos.json e o telão (geral e ao vivo) deixam de sortear essas pessoas. */
 const OX_ATIVOS = 'http://127.0.0.1:8401/api/evo/alunos-ativos';
 const EXCL_FILE = path.join(DADOS, 'excluidos.json');
@@ -112,7 +112,7 @@ http.createServer((req, res) => {
       const ganhou = new Set(st.state.winners.map(normNome));
       const lista = d.alunos.map((a) => ({ nome: a.nome, plano: a.plano, ganhou: ganhou.has(normNome(a.nome)), excluido: ex.has(normNome(a.nome)) }));
       json(res, { total: lista.length, foraDaRegra: d.foraDaRegra, concorrendo: lista.filter((x) => !x.ganhou && !x.excluido).length, lista, excluidos: excl });
-    }).catch((e) => json(res, { error: 'Não consegui buscar os alunos na EVO: ' + (e.message || 'erro') }, 502));
+    }).catch((e) => json(res, { error: 'Não consegui buscar os alunos no OX: ' + (e.message || 'erro') }, 502));
   }
   // quem está treinando agora (celular, atualiza sozinho): mesma regra do sorteio ao vivo
   if (p === '/treinando') {
@@ -153,11 +153,11 @@ http.createServer((req, res) => {
   json(res, { error: 'nao encontrado' }, 404);
 }).listen(8410, '127.0.0.1');
 
-/** Sorteio geral: busca os alunos ativos na EVO (na hora), tira excluídos e quem já ganhou, e manda ao telão. */
+/** Sorteio geral: busca os alunos ativos no OX (na hora), tira excluídos e quem já ganhou, e manda ao telão. */
 async function geral(res) {
   let d;
   try { d = await alunosAtivos(true); }
-  catch (e) { return json(res, { ok: 0, motivo: 'Não consegui buscar os alunos na EVO: ' + (e.message || 'erro') }, 502); }
+  catch (e) { return json(res, { ok: 0, motivo: 'Não consegui buscar os alunos no OX: ' + (e.message || 'erro') }, 502); }
   const excl = new Set(lerExcluidos().map((x) => normNome(x.nome)));
   const ganhou = new Set(st.state.winners.map(normNome));
   const elegiveis = d.alunos.filter((a) => !excl.has(normNome(a.nome)) && !ganhou.has(normNome(a.nome)));

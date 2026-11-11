@@ -145,6 +145,8 @@ final class NFCeBuilder
 
         $somaBcIcms = 0.0;
         $somaIcms = 0.0;
+        $somaPis = 0.0;
+        $somaCofins = 0.0;
         foreach ($itens as $i => $item) {
             $n = $i + 1;
             $qtd = (float) $item['quantidade'];
@@ -188,6 +190,8 @@ final class NFCeBuilder
             $totItem = $this->montarImpostos($make, $n, $item, round($vprod - $vDesc + $vOutro, 2));
             $somaBcIcms += $totItem['vBC'];
             $somaIcms += $totItem['vICMS'];
+            $somaPis += $totItem['vPIS'] ?? 0.0;
+            $somaCofins += $totItem['vCOFINS'] ?? 0.0;
         }
 
         // ------- totais -------
@@ -198,6 +202,8 @@ final class NFCeBuilder
         }
         $icmsTot->vBC = number_format($somaBcIcms, 2, '.', '');
         $icmsTot->vICMS = number_format($somaIcms, 2, '.', '');
+        $icmsTot->vPIS = number_format($somaPis, 2, '.', '');
+        $icmsTot->vCOFINS = number_format($somaCofins, 2, '.', '');
         $icmsTot->vProd = number_format($totalProd, 2, '.', '');
         $icmsTot->vDesc = number_format($totalDesc, 2, '.', '');
         $icmsTot->vOutro = number_format($totalOutro, 2, '.', '');
@@ -316,6 +322,18 @@ final class NFCeBuilder
     }
 
     /** @return array{vBC: float, vICMS: float} contribuição do item para o total de ICMS */
+    /** CST + base/alíquota/valor de PIS ou COFINS de um item. */
+    private function pisCofins(array $it, string $qual, float $vprod): array
+    {
+        $cst = (string) ($it['cst_' . $qual] ?? '07');
+        $aliq = isset($it['aliquota_' . $qual]) ? (float) $it['aliquota_' . $qual] : 0.0;
+        if (in_array($cst, ['01', '02'], true) && $aliq > 0) {
+            return ['cst' => $cst, 'vBC' => number_format($vprod, 2, '.', ''), 'p' => number_format($aliq, 4, '.', ''),
+                    'v' => number_format(round($vprod * $aliq / 100, 2), 2, '.', '')];
+        }
+        return ['cst' => $cst, 'vBC' => '0.00', 'p' => '0.00', 'v' => '0.00'];
+    }
+
     private function montarImpostos(Make $make, int $item, array $it, float $vprod): array
     {
         $origem = (string) ($it['origem'] ?? 0);
@@ -370,21 +388,27 @@ final class NFCeBuilder
             $make->tagIBSCBS($ibscbs);
         }
 
+        // PIS/COFINS: regime cumulativo (Lucro Presumido) manda CST 01 + aliquota_pis/aliquota_cofins (0,65% / 3%)
+        // sobre o valor liquido do item. Sem aliquota (ou CST sem tributacao), sai zerado como antes.
+        $pv = $this->pisCofins($it, 'pis', $vprod);
         $pis = new \stdClass();
         $pis->item = $item;
-        $pis->CST = (string) ($it['cst_pis'] ?? '07');
-        $pis->vBC = '0.00';
-        $pis->pPIS = '0.00';
-        $pis->vPIS = '0.00';
+        $pis->CST = $pv['cst'];
+        $pis->vBC = $pv['vBC'];
+        $pis->pPIS = $pv['p'];
+        $pis->vPIS = $pv['v'];
         $make->tagPIS($pis);
 
+        $cv = $this->pisCofins($it, 'cofins', $vprod);
         $cofins = new \stdClass();
         $cofins->item = $item;
-        $cofins->CST = (string) ($it['cst_cofins'] ?? '07');
-        $cofins->vBC = '0.00';
-        $cofins->pCOFINS = '0.00';
-        $cofins->vCOFINS = '0.00';
+        $cofins->CST = $cv['cst'];
+        $cofins->vBC = $cv['vBC'];
+        $cofins->pCOFINS = $cv['p'];
+        $cofins->vCOFINS = $cv['v'];
         $make->tagCOFINS($cofins);
+        $totIcms['vPIS'] = (float) $pv['v'];
+        $totIcms['vCOFINS'] = (float) $cv['v'];
 
         return $totIcms;
     }
