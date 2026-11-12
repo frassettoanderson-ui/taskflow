@@ -1,12 +1,14 @@
 // Som do violão a partir de notas GRAVADAS (uma amostra por nota), tocadas corda a corda
 // como numa batida de verdade. Se a internet falhar, cai para o violão sintetizado.
 //
-// Amostras: soundfont MusyngKite (licença CC BY-SA 3.0), servidas pelo projeto
+// Amostras do violão: soundfont FluidR3_GM (licença MIT), escolhida pelo usuário em 11/11/2026 ouvindo
+// a mesma batida em 5 bancos; o baixo continua no MusyngKite (CC BY-SA 3.0). As duas servidas pelo projeto
 // gleitz/midi-js-soundfonts. Para funcionar offline no futuro, copiar as notas usadas para app/sons/.
 
 const ABERTAS = [40, 45, 50, 55, 59, 64]; // Mi2 Lá2 Ré3 Sol3 Si3 Mi4 (6ª → 1ª)
 const NOMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
-const BASE = 'https://gleitz.github.io/midi-js-soundfonts/MusyngKite/';
+const BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
+const BASE_BAIXO = 'https://gleitz.github.io/midi-js-soundfonts/MusyngKite/';
 export const TIMBRES = {
   aco: { nome: 'Aço', pasta: 'acoustic_guitar_steel-mp3' },
   nailon: { nome: 'Náilon', pasta: 'acoustic_guitar_nylon-mp3' },
@@ -92,7 +94,7 @@ const amostrasBaixo = new Map();
 function carregarBaixo(midi) {
   if (!amostrasBaixo.has(midi)) {
     const c = contexto();
-    amostrasBaixo.set(midi, fetch(`${BASE}${PASTA_BAIXO}/${nomeNota(midi)}.mp3`)
+    amostrasBaixo.set(midi, fetch(`${BASE_BAIXO}${PASTA_BAIXO}/${nomeNota(midi)}.mp3`)
       .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
       .then((ab) => c.decodeAudioData(ab))
       .catch(() => null));
@@ -125,7 +127,19 @@ function bufferJa(midi) {
   return null;
 }
 
+// Na batida cada corda é uma voz: tocar a corda de novo corta só ela. Assim, na volta (que pega só as
+// cordas finas) as graves continuam soando, como no violão de verdade.
+const cordas = [null, null, null, null, null, null];   // { g: GainNode, m: nota } da 6ª à 1ª
+function calarCorda(i, t, rapidez = 0.03) {
+  const v = cordas[i];
+  if (!v) return;
+  v.g.gain.cancelScheduledValues(t);
+  v.g.gain.setTargetAtTime(0, t, rapidez);
+  cordas[i] = null;
+}
+
 function calarAnterior(t, rapidez = 0.03) {
+  for (let i = 0; i < 6; i++) calarCorda(i, t, rapidez);
   if (!tocando) return;
   tocando.gain.cancelScheduledValues(t);
   tocando.gain.setTargetAtTime(0, t, rapidez);
@@ -146,13 +160,13 @@ function tocarNota(buf, t, ganho, destino) {
 export function batida(acorde, { direcao = 'baixo', quando = 0, forca = 1 } = {}) {
   const c = contexto();
   const t = Math.max(quando || 0, c.currentTime + 0.01);
-  calarAnterior(t);
-  const g = c.createGain();
-  g.gain.value = forca;
-  g.connect(entrada);
-  tocando = g;
+  // o que estava soando fora da batida (nota solta, dedilhado) para
+  if (tocando) { tocando.gain.cancelScheduledValues(t); tocando.gain.setTargetAtTime(0, t, 0.03); tocando = null; }
 
   const notas = notasDo(acorde);
+  // corda que mudou de nota (troca de acorde) ou que não toca neste acorde: a mão esquerda abafa
+  for (let i = 0; i < 6; i++) if (cordas[i] && cordas[i].m !== notas[i]) calarCorda(i, t, 0.025);
+
   const ordem = direcao === 'cima' ? [5, 4, 3, 2] : [0, 1, 2, 3, 4, 5];
   // a palheta acelera ao atravessar as cordas: espaço entre cordas diminui um pouco
   let atraso = 0;
@@ -161,11 +175,16 @@ export function batida(acorde, { direcao = 'baixo', quando = 0, forca = 1 } = {}
   for (const i of ordem) {
     const m = notas[i];
     if (m === null) continue;
-    const buf = bufferJa(m) || sintetica(m);
+    const quando2 = t + atraso + Math.random() * 0.003;
+    calarCorda(i, quando2);
     const peso = direcao === 'cima'
-      ? 0.55 + (i === 5 ? 0.15 : 0)                  // subida: agudas na frente
-      : 0.78 + (k === 0 ? 0.12 : 0) + (i >= 4 ? -0.08 : 0);
-    tocarNota(buf, t + atraso + Math.random() * 0.003, peso * (0.9 + Math.random() * 0.1), g);
+      ? 0.62 * (k === 0 ? 1.08 : 1)                  // subida: um pouco mais leve, aguda na frente
+      : 0.8 * (k === 0 ? 1.1 : 1) - (i >= 4 ? 0.05 : 0);
+    const g = c.createGain();
+    g.gain.value = forca * peso * (0.9 + Math.random() * 0.1);
+    g.connect(entrada);
+    cordas[i] = { g, m };
+    tocarNota(bufferJa(m) || sintetica(m), quando2, 1, g);
     atraso += passo;
     passo *= 0.9;
     k++;

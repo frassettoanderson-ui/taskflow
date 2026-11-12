@@ -188,7 +188,7 @@ export function montar(el, ex) {
   function leituraSentido() {
     if (r.sentB.length < 6 || r.sentC.length < 6) return null;   // espera conhecer a mão do aluno
     const desce = mediana(r.sentB.slice(-24)), sobe = mediana(r.sentC.slice(-24));
-    if (desce - sobe < 0.5) return null;                // não deu para separar com segurança
+    if (desce - sobe < 6) return null;                  // menos de 6 ms de diferença: não dá para separar com segurança
     return { desce, sobe };
   }
 
