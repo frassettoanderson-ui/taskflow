@@ -13,6 +13,7 @@
 - **Status (10/11/2026):** planejamento + protótipo. Plano completo em [PLANO.md](PLANO.md) — ler antes de qualquer coisa.
 - **Referência:** QMe Prompter (transcrição em `../transcritor-video/transcricoes/QMe Prompter - Andre Sarmanho.txt`); dele só entra o que ajuda a estudar (cifra rolando, loop, tom, capo, graus, importar PDF).
 - **Logo (atual, 11/11/2026):** [marca/logo-sonoridade.png](marca/logo-sonoridade.png): palheta prateada com o S + letreiro "Sonoridade" dourado com clave de sol (enviada pelo usuário). No app: `app/img/logo.webp`, ícones `icone-*.png` (fundo escuro) e `favicon.png`; no vídeo de abertura: `julius-videos/public/sonoridade/logo.png`. As logos antigas (S em ouro no círculo) ficaram em `marca/antigas/`.
+- **Apostila do Método Sonoridade (11/11/2026):** `apostila/` — PDF `Apostila-Metodo-Sonoridade-Vol1.pdf` (Vol. 1, 45 págs.: capa com a logo, sumário, 7 temas da 1ª aula do curso: violão, ritmo/BPM, notas, cromática, acordes, graus, campo harmônico; cada tema = abertura escura + teoria + desenhos + quadros + exercícios; gabarito no fim). Ideia do usuário: material POR TEMA; no fim do curso vira apostila + plano de aulas. Gerar: `python apostila/gerar-pdf.py` (node gerar.mjs → apostila.html → Chrome headless → acerta o sumário em 2 passadas). Texto em `gerar.mjs`, desenhos SVG em `diagramas.mjs`, visual em `apostila.css`.
 - **Plataforma proposta:** PWA (instala por link no iPhone/Android/PC); nativo só se a Fase 0 falhar.
 
 ## Regras do projeto
