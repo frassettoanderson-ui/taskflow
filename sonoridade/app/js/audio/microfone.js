@@ -65,3 +65,44 @@ const NOMES = ['Dó', 'Dó#', 'Ré', 'Ré#', 'Mi', 'Fá', 'Fá#', 'Sol', 'Sol#',
 const LETRAS = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 export const nomeMidi = (m) => NOMES[((m % 12) + 12) % 12];
 export const letraMidi = (m) => `${LETRAS[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
+
+// Ouvir golpes (exercício de ritmo): microfone → AudioWorklet que acha cada batida.
+// aoGolpe({ t, forca, sentido }) com t no relógio do AudioContext; aoNivel(0..1) para o medidor.
+// fonte (opcional): outro nó de áudio no lugar do microfone (usado para testar).
+let workletPronto = null;
+export async function ouvirGolpes({ aoGolpe, aoNivel, fonte = null }) {
+  const c = contexto();
+  if (c.state !== 'running') await c.resume();
+  if (!workletPronto) workletPronto = c.audioWorklet.addModule(new URL('./golpes-worklet.js', import.meta.url));
+  await workletPronto;
+  let stream = null;
+  let origem = fonte;
+  if (!origem) {
+    stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+    });
+    origem = c.createMediaStreamSource(stream);
+  }
+  const no = new AudioWorkletNode(c, 'ouvido-golpes', { numberOfInputs: 1, numberOfOutputs: 1, channelCount: 1, channelCountMode: 'explicit' });
+  no.port.onmessage = (e) => {
+    if (e.data.tipo === 'golpe') aoGolpe?.(e.data);
+    else if (e.data.tipo === 'nivel') aoNivel?.(Math.min(1, e.data.nivel * 8));
+  };
+  origem.connect(no);
+  // o worklet só roda ligado a uma saída: vai para um ganho zerado
+  const mudo = c.createGain(); mudo.gain.value = 0;
+  no.connect(mudo).connect(c.destination);
+  return {
+    sensibilidade(v) { no.port.postMessage({ sensib: v }); },
+    // menor distância entre dois golpes (s): uns 45% do passo da batida
+    intervalo(s) { no.port.postMessage({ intervalo: s }); },
+    // atraso do microfone até o worklet (estimado), para comparar com o que o aluno ouviu
+    atrasoEntrada: stream ? 0.012 : 0,
+    desligar() {
+      stream?.getTracks().forEach((t) => t.stop());
+      try { origem.disconnect(no); } catch { /* já desligado */ }
+      try { no.disconnect(); mudo.disconnect(); } catch { /* já desligado */ }
+      no.port.onmessage = null;
+    },
+  };
+}

@@ -1027,3 +1027,45 @@ html[data-zoom="sai"]::view-transition-old(root) { z-index: 2; }
 .app.zoom-entra-sozinha { animation: vt-nova-cresce .5s cubic-bezier(.22, .8, .24, 1) both; transform-origin: var(--zx, 50%) var(--zy, 50%); }
 html[data-zoom="sai"] .app.zoom-entra-sozinha { animation-name: vt-tras-volta; transform-origin: 50% 40%; }
 
+
+/* ---------- Exercício: batida no tempo ---------- */
+.rt-batida { display: grid; justify-items: center; gap: 10px; background: var(--placa); border-radius: var(--r); padding: 14px 10px 12px; margin-bottom: 10px; }
+.rt-batida .passo svg { width: 30px; height: 30px; }
+.rt-dica { margin: 0; color: var(--apagado); font-size: 14.5px; line-height: 1.4; text-align: center; max-width: 46ch; }
+.rt-sensib { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; width: 100%; }
+.rt-sensib button { border: 0; border-radius: var(--r-p); background: var(--placa-2); color: var(--apagado); font: 600 13px var(--fonte); padding: 9px 2px; cursor: pointer; }
+.rt-sensib button.ativo { background: var(--placa-3); color: var(--texto); }
+.rt-aviso-fone { text-align: center; color: var(--ouro-claro); font-size: 13.5px; margin: -4px 0 10px; line-height: 1.4; }
+#play.largo { margin: 4px 0 12px; }
+
+.rt-painel { position: relative; display: grid; gap: 12px; background: #121211; border-radius: var(--r); padding: 16px 12px 12px; }
+.rt-contagem { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(13, 13, 12, .88); border-radius: var(--r); font-size: 96px; font-weight: 800; font-stretch: 78%; color: var(--ouro-claro); z-index: 2; }
+.rt-tempo { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 14px; }
+.rt-numero { display: grid; justify-items: center; line-height: 1; min-width: 92px; }
+.rt-numero b { font-size: 56px; font-weight: 800; font-stretch: 78%; color: var(--ouro-claro); font-variant-numeric: tabular-nums; }
+.rt-numero span { font-size: 12px; color: var(--apagado); font-weight: 600; margin-top: 4px; }
+.rt-recado { font-size: 17px; line-height: 1.35; }
+.rt-recado b { color: var(--vermelho); }
+.rt-recado b.ok, .rt-veredito b.ok { color: #8fc46a; }
+
+.rt-regua { position: relative; height: 46px; }
+.rt-regua::before { content: ''; position: absolute; left: 0; right: 0; top: 10px; height: 10px; border-radius: 5px; background: var(--placa-3); }
+.rt-faixa { position: absolute; top: 10px; height: 10px; background: #4f7a39; border-radius: 3px; }
+.rt-regua::after { content: ''; position: absolute; left: 50%; top: 5px; width: 2px; height: 20px; margin-left: -1px; background: var(--texto); opacity: .6; }
+.rt-ponteiro { position: absolute; top: 2px; width: 16px; height: 26px; margin-left: -8px; border-radius: 4px; transition: left .25s ease-out; }
+.rt-ponteiro.certo { background: #8fc46a; }
+.rt-ponteiro.fora { background: var(--vermelho); }
+.rt-regua small { position: absolute; bottom: 0; font-size: 11.5px; color: var(--apagado); }
+.rt-esq { left: 0; } .rt-dir { right: 0; }
+.rt-meio { left: 50%; transform: translateX(-50%); color: var(--texto) !important; font-weight: 700; }
+
+.rt-conferencia .passo { outline: 2px solid transparent; outline-offset: -2px; }
+.rt-conferencia .passo.r-ok { background: #24361b; outline-color: #8fc46a; }
+.rt-conferencia .passo.r-falta { outline-color: var(--vermelho); outline-style: dashed; }
+.rt-conferencia .passo.r-sobra { background: #3a1d17; outline-color: var(--vermelho); }
+.rt-conferencia .passo.r-trocado { background: #3a2c12; outline-color: var(--ouro); }
+.rt-conferencia .passo.agora { background: var(--ouro); }
+.rt-veredito { margin: 0; text-align: center; min-height: 1.4em; font-size: 15.5px; line-height: 1.4; }
+.rt-veredito b { color: var(--ouro-claro); }
+.rt-nivel { height: 4px; border-radius: 2px; background: var(--placa-2); overflow: hidden; }
+.rt-nivel i { display: block; height: 100%; width: 0; background: var(--apagado); transition: width .08s linear; }

@@ -3,11 +3,13 @@
 //   aranha  — cromática 1-2-3-4 com metrônomo, mostrando o dedo da vez no braço
 //   notas   — notas no braço: acertar o nome (tocando no botão ou tocando no instrumento, pelo microfone)
 //   ouvido  — ouvir um acorde e dizer se é maior, menor ou com sétima
+//   ritmo   — batida no tempo: o microfone mede o BPM do aluno e confere a batida (ex-ritmo.js)
 import { posicao } from '../dados/teoria.js';
 import { braco, vibrar } from '../ui/braco.js';
 import { barraTopo, esc, guardar, ler, ICONES } from '../ui/comum.js';
 import * as som from '../audio/som.js';
 import { microfonePossivel, ligarMicrofone, midiDe } from '../audio/microfone.js';
+import { montar as ritmo } from './ex-ritmo.js';
 
 const ABERTAS = [40, 45, 50, 55, 59, 64];             // 6ª → 1ª
 const midiDa = (corda, casa) => ABERTAS[6 - corda] + casa;
@@ -18,6 +20,7 @@ const sorteio = (lista) => lista[Math.floor(Math.random() * lista.length)];
 
 const EXERCICIOS = [
   { id: 'troca', nome: 'Troca de acordes', resumo: 'Quantas trocas você faz em 1 minuto? O jeito mais rápido de destravar a mão esquerda.', icone: 'troca' },
+  { id: 'ritmo', nome: 'Batida no tempo', resumo: 'Toque a batida e o app escuta: diz se você está acima ou abaixo do BPM e se a batida está certa.', icone: 'ritmo' },
   { id: 'aranha', nome: 'Aranha (cromática)', resumo: 'Dedos 1, 2, 3 e 4, uma casa cada, corda por corda, no tempo do metrônomo.', icone: 'aranha' },
   { id: 'notas', nome: 'Notas no braço', resumo: 'Que nota é essa? Responda tocando no botão ou tocando no instrumento.', icone: 'notas' },
   { id: 'ouvido', nome: 'Ouvido', resumo: 'O app toca um acorde: é maior, menor ou com sétima?', icone: 'ouvido' },
@@ -29,6 +32,7 @@ const ICONE = {
   aranha: '<svg viewBox="0 0 64 64" class="icone"><path d="M6 16h52M6 28h52M6 40h52M6 52h52M18 10v48M30 10v48M42 10v48"/><circle class="cheio" cx="12" cy="16" r="4"/><circle class="cheio" cx="24" cy="28" r="4"/><circle class="cheio" cx="36" cy="40" r="4"/><circle class="cheio" cx="48" cy="52" r="4"/></svg>',
   notas: '<svg viewBox="0 0 64 64" class="icone"><path d="M6 18h52M6 32h52M6 46h52M22 12v40M40 12v40"/><circle class="cheio" cx="31" cy="32" r="7"/><path d="M50 8v10M45 13h10" /></svg>',
   sequencias: '<svg viewBox="0 0 64 64" class="icone"><rect x="4" y="22" width="14" height="20" rx="2"/><rect x="25" y="22" width="14" height="20" rx="2"/><rect x="46" y="22" width="14" height="20" rx="2"/><path d="M18 32h7M39 32h7"/></svg>',
+  ritmo: '<svg viewBox="0 0 64 64" class="icone"><path d="M14 10v30M6 32l8 10 8-10M50 54V24M42 32l8-10 8 10"/><path d="M28 46h8M28 38h8"/></svg>',
   ouvido: '<svg viewBox="0 0 64 64" class="icone"><path d="M22 40c0-6 4-8 4-14a10 10 0 0 1 20 0c0 8-8 10-8 18a6 6 0 0 1-12 0"/><path d="M34 26a3 3 0 0 1 3 3"/><path d="M10 22c2 2 2 8 0 10M4 18c4 4 4 14 0 18"/></svg>',
 };
 
@@ -36,13 +40,14 @@ export function montar(el, id) {
   if (!id) return lista(el);
   const ex = EXERCICIOS.find((x) => x.id === id && !x.href);
   if (!ex) { el.innerHTML = `${barraTopo('Exercícios', '#/exercicios')}<p class="intro">Exercício não encontrado.</p>`; return; }
-  return ({ troca, aranha, notas, ouvido })[id](el, ex);
+  return ({ troca, aranha, notas, ouvido, ritmo })[id](el, ex);
 }
 
 function lista(el) {
   const recordes = ler('exercicios.recordes', {});
   const extra = {
     troca: () => { const v = Object.values(recordes.troca || {}); return v.length ? `Recorde: ${Math.max(...v)} trocas` : ''; },
+    ritmo: () => { const v = Object.values(recordes.ritmo || {}); return v.length ? `Melhor: ${Math.max(...v)} compassos seguidos` : ''; },
     aranha: () => (recordes.aranha ? `Mais rápido: ${recordes.aranha} bpm` : ''),
     notas: () => (recordes.notas ? `Melhor sequência: ${recordes.notas}` : ''),
     ouvido: () => (recordes.ouvido ? `Melhor sequência: ${recordes.ouvido}` : ''),

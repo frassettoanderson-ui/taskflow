@@ -58,6 +58,9 @@ function respostaSala(c) {
   return b;
 }
 
+// nó por onde passa todo o som do app (o teste do exercício de ritmo liga o detector aqui)
+export const saidaDoApp = () => { contexto(); return entrada; };
+
 export function tempoAudio() {
   const c = contexto();
   return c.currentTime - (c.outputLatency || c.baseLatency || 0);
