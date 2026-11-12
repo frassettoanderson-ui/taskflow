@@ -4,6 +4,7 @@ import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as D from './diagramas.mjs';
+import { TREINOS, ficha } from './treinos.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 // páginas de cada tema (preenchido na 2ª passada por gerar-pdf.py)
@@ -53,8 +54,44 @@ const app = (h) => caixa('app', ROTULO.app, h);
 const linhas = (n) => `<div class="linhas">${'<i></i>'.repeat(n)}</div>`;
 const tabela = (cab, linhasT, cls = '') => `<table class="tab ${cls}"><thead><tr>${cab.map((c) => `<th>${c}</th>`).join('')}</tr></thead><tbody>${linhasT.map((l) => `<tr>${l.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
 
+
+// foto do violão com os nomes das partes (coordenadas em pixels da foto 1024x1536)
+function violaoFoto() {
+  const OX = 338, W = 1700, H = 1536;
+  const P = [
+    ['Mão (cabeça)', 505, 70, 'e', 60], ['Pestana (nut)', 510, 266, 'e', 240], ['Casa', 510, 301, 'e', 320], ['Braço / escala', 500, 620, 'e', 620],
+    ['Boca', 432, 960, 'e', 960], ['Rastilho', 480, 1192, 'e', 1150], ['Tampo', 330, 1320, 'e', 1320],
+    ['Tarraxas', 602, 78, 'd', 78], ['Trastes', 538, 352, 'd', 340], ['Marcações', 512, 401, 'd', 410], ['Cordas', 524, 800, 'd', 800],
+    ['Escudo', 620, 1060, 'd', 1040], ['Cavalete', 610, 1205, 'd', 1210], ['Corpo (caixa)', 860, 1420, 'd', 1420],
+  ];
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" xmlns="http://www.w3.org/2000/svg"><image href="fotos/violao.jpg" x="${OX}" y="0" width="1024" height="1536"/>`;
+  for (const [txt, x, y, lado, ly] of P) {
+    const px = x + OX, tx = lado === 'e' ? 300 : 1400;
+    const cot = lado === 'e' ? tx + 14 : tx - 14;
+    svg += `<polyline points="${px},${y} ${lado === 'e' ? px - 40 : px + 40},${ly} ${cot},${ly}" fill="none" stroke="#b07d22" stroke-width="3"/>`;
+    svg += `<circle cx="${px}" cy="${y}" r="9" fill="#b07d22" stroke="#fff" stroke-width="4"/>`;
+    svg += `<text x="${lado === 'e' ? tx : tx}" y="${ly}" font-family="Archivo, sans-serif" font-weight="700" font-size="40" fill="#1d1a15" text-anchor="${lado === 'e' ? 'end' : 'start'}" dominant-baseline="middle">${txt}</text>`;
+  }
+  return svg + '</svg>';
+}
+
+
+// mão esquerda (foto espelhada) com o número de cada dedo
+function maoFoto() {
+  const N = [[657, 103, '1'], [810, 26, '2'], [939, 77, '3'], [1087, 205, '4'], [374, 487, 'P']];
+  let svg = `<svg viewBox="150 0 1236 1024" width="100%" xmlns="http://www.w3.org/2000/svg"><image href="fotos/mao.jpg" x="0" y="0" width="1536" height="1024"/>`;
+  for (const [x, y, n] of N) {
+    const cy = Math.max(y - 20, 48);
+    svg += `<circle cx="${x}" cy="${cy}" r="44" fill="${n === 'P' ? '#7d7464' : '#1d1a15'}" stroke="#fff" stroke-width="8"/>`;
+    svg += `<text x="${x}" y="${cy + 2}" font-family="Archivo, sans-serif" font-weight="800" font-size="50" fill="${n === 'P' ? '#fff' : '#e3ad45'}" text-anchor="middle" dominant-baseline="middle">${n}</text>`;
+  }
+  return svg + '</svg>';
+}
+const foto = (nome, leg = '', cls = 'media') => `<img class="foto ${cls}" src="fotos/${nome}.jpg" alt="">${leg ? `<p class="foto-leg">${leg}</p>` : ''}`;
+const duasFotos = (a, la, b, lb) => `<div class="duas-fotos"><figure><img class="foto" src="fotos/${a}.jpg" alt=""><figcaption>${la}</figcaption></figure><figure><img class="foto" src="fotos/${b}.jpg" alt=""><figcaption>${lb}</figcaption></figure></div>`;
+
 const TEMAS = [];
-function tema(num, titulo, foto, aprender, corpo, resumo, exercicios) {
+function tema(num, titulo, foto, aprender, corpo, resumo) {
   TEMAS.push({ num, titulo, aprender });
   const n = String(num).padStart(2, '0');
   return `
@@ -72,9 +109,10 @@ function tema(num, titulo, foto, aprender, corpo, resumo, exercicios) {
   <section class="tema">
     ${corpo}
     <div class="exercicios">
-      <h2 class="ex-tit"><span>Exercícios</span> Tema ${n} · ${titulo}</h2>
-      <div class="resumo"><p class="caixa-tit">Antes de começar, revise</p><ul>${resumo.map((r) => `<li>${r}</li>`).join('')}</ul></div>
-      <ol>${exercicios.map((e) => `<li>${e}</li>`).join('')}</ol>
+      <div class="ex-topo"><h2 class="ex-tit"><span>Treinos</span> Tema ${n} · ${titulo}</h2>
+      <div class="resumo"><p class="caixa-tit">Antes de tocar, revise</p><ul>${resumo.map((r) => `<li>${r}</li>`).join('')}</ul></div>
+      ${(TREINOS[num] || [])[0] || ''}</div>
+      ${(TREINOS[num] || []).slice(1).join('')}
     </div>
   </section>`;
 }
@@ -89,7 +127,7 @@ const t1 = tema(1, 'Conhecendo o violão', IMG + 'acordes.webp',
   `
   <h2>1.1 As partes do violão</h2>
   <p>Antes de tocar a primeira nota, vale conhecer o instrumento pelo nome. Nas aulas, nas cifras e nos vídeos você vai ouvir esses termos o tempo todo, e saber onde fica cada parte evita confusão.</p>
-  ${fig(D.violao(), 'As partes do violão. O desenho é esquemático: cada modelo muda um pouco o formato, mas as partes são sempre as mesmas.', 'violao')}
+  ${fig(violaoFoto(), 'As partes do violão. Cada modelo muda um pouco o formato (e alguns não têm escudo), mas as partes são sempre as mesmas.', 'violao-foto')}
   ${tabela(['Parte', 'Para que serve'], [
     ['<b>Mão (cabeça)</b>', 'Ponta do braço onde ficam as tarraxas.'],
     ['<b>Tarraxas</b>', 'Esticam ou afrouxam cada corda. É por elas que se <b>afina</b> o violão.'],
@@ -98,6 +136,7 @@ const t1 = tema(1, 'Conhecendo o violão', IMG + 'acordes.webp',
     ['<b>Trastes</b>', 'As barrinhas de metal que atravessam a escala. Elas dividem o braço em casas.'],
     ['<b>Casa</b>', 'O espaço entre dois trastes. É onde o dedo aperta.'],
     ['<b>Marcações</b>', 'As bolinhas na escala (casas 3, 5, 7, 9 e 12). Servem de referência para achar as casas rápido.'],
+    ['<b>Escudo</b>', 'Placa que protege o tampo das batidas da mão ou da palheta. Nem todo violão tem.'],
     ['<b>Corpo, tampo e boca</b>', 'A caixa de madeira que amplifica o som. O tampo é a madeira da frente; a boca é o furo redondo.'],
     ['<b>Cavalete e rastilho</b>', 'O cavalete prende as cordas no corpo; o rastilho é a pecinha branca em cima dele, onde as cordas apoiam.'],
   ])}
@@ -124,11 +163,12 @@ const t1 = tema(1, 'Conhecendo o violão', IMG + 'acordes.webp',
     <li><b>Cada casa sobe meio tom.</b> Quanto mais perto do corpo, mais aguda a nota.</li>
     <li><b>Na casa 12 a nota se repete,</b> uma oitava acima da corda solta. A casa 12 fica exatamente no meio da corda e por isso tem marcação dupla.</li>
   </ul>
+  ${foto('dedo-traste', 'O dedo aperta logo atrás do traste, quase encostado nele.')}
   ${pratica('<p>O dedo deve apertar <b>logo atrás do traste</b>, quase encostado nele, e não no meio da casa. Assim a nota sai limpa com menos força e sem chiado.</p>')}
 
   <h2>1.4 Os dedos têm número</h2>
   <div class="duas">
-    <div>${fig(D.mao(), '')}</div>
+    <div>${fig(maoFoto(), 'Mão esquerda')}</div>
     <div>
       <p>Em toda cifra, tablatura e diagrama de acorde, os dedos da <b>mão esquerda</b> (a que aperta as cordas) aparecem como números:</p>
       ${tabela(['Nº', 'Dedo'], [['<b>1</b>', 'indicador'], ['<b>2</b>', 'médio'], ['<b>3</b>', 'anelar'], ['<b>4</b>', 'mínimo'], ['<b>P</b>', 'polegar (fica atrás do braço)']], 'estreita')}
@@ -137,6 +177,7 @@ const t1 = tema(1, 'Conhecendo o violão', IMG + 'acordes.webp',
   </div>
 
   <h2>1.5 Postura</h2>
+  ${duasFotos('postura', 'Sentado, costas retas, violão na perna direita.', 'polegar', 'O polegar fica atrás do braço, relaxado.')}
   <ul class="pontos">
     <li>Sente na ponta da cadeira, costas retas, ombros soltos.</li>
     <li>O violão apoia na perna direita, com o braço levemente apontado para cima.</li>
@@ -147,14 +188,7 @@ const t1 = tema(1, 'Conhecendo o violão', IMG + 'acordes.webp',
   ${atencao('<p>Dor nas pontas dos dedos nas primeiras semanas é normal: a pele vai engrossar. Já dor no pulso, no antebraço ou no ombro <b>não é normal</b>: pare, solte a mão e revise a postura.</p>')}
   ${app('<p>Use o <b>Afinador</b> (Ferramentas) sempre antes de estudar: ele mostra qual corda você está tocando e se ela está acima ou abaixo da nota certa.</p>')}
   `,
-  ['O violão tem mão, braço, corpo e as peças que seguram as cordas (pestana, cavalete e rastilho).', 'As cordas são numeradas da mais fina (1ª, embaixo) para a mais grossa (6ª, em cima): <b>Mi Lá Ré Sol Si Mi</b> da 6ª para a 1ª.', 'Casas são os espaços entre os trastes, contados a partir da mão. Corda solta = casa 0; cada casa sobe meio tom.', 'Dedos da mão esquerda: 1 indicador, 2 médio, 3 anelar, 4 mínimo.'],
-  [
-    `<p>Escreva o nome das partes numeradas no desenho abaixo.</p>${fig(D.violao({ numerado: true }), '', 'violao pequeno')}`,
-    `<p>Complete a tabela das cordas soltas.</p>${tabela(['Corda', 'Nota (nome)', 'Cifra (letra)'], [['6ª', '', ''], ['5ª', '', ''], ['4ª', '', ''], ['3ª', '', ''], ['2ª', '', ''], ['1ª', '', '']], 'estreita vazia')}`,
-    `<p>Responda: (a) Qual é a corda mais fina? (b) Em que casa a nota da corda solta se repete? (c) Qual dedo é o número 3? (d) Onde o dedo deve apertar dentro da casa?</p>${linhas(4)}`,
-    `<p><b>Prática com o afinador (5 min):</b> afine as seis cordas. Depois toque cada corda solta dizendo o nome em voz alta, da 6ª para a 1ª e da 1ª para a 6ª, até sair sem pensar.</p>`,
-    `<p><b>Prática de casas (5 min):</b> na 1ª corda, toque a casa 0, depois a 1, 2, 3… até a 12, contando em voz alta. Confira na casa 12 que o som é o mesmo da corda solta, só que mais agudo.</p>`,
-  ]);
+  ['O violão tem mão, braço, corpo e as peças que seguram as cordas (pestana, cavalete e rastilho).', 'As cordas são numeradas da mais fina (1ª, embaixo) para a mais grossa (6ª, em cima): <b>Mi Lá Ré Sol Si Mi</b> da 6ª para a 1ª.', 'Casas são os espaços entre os trastes, contados a partir da mão. Corda solta = casa 0; cada casa sobe meio tom.', 'Dedos da mão esquerda: 1 indicador, 2 médio, 3 anelar, 4 mínimo.']);
 
 // =====================================================================
 // TEMA 2
@@ -177,7 +211,7 @@ const t2 = tema(2, 'Ritmo, batida e BPM', IMG + 'batidas.webp',
       </ul>
       <p>O <b>metrônomo</b> é o aparelho (ou app) que faz um clique em cada tempo, na velocidade escolhida. Ele é o professor de ritmo mais honesto que existe: não deixa você correr nas partes fáceis nem atrasar nas difíceis.</p>
     </div>
-    <div class="centro">${D.metronomo(130)}</div>
+    <div class="centro"><img class="foto" src="fotos/metronomo.jpg" alt="" style="margin:0"></div>
   </div>
   ${fig(D.pulsos({ bpm: 60, segundos: 4 }), '60 BPM: um clique por segundo. Em dourado, o tempo 1 de cada compasso (o clique mais forte do metrônomo).')}
   ${fig(D.pulsos({ bpm: 120, segundos: 4 }), '120 BPM: dois cliques por segundo, no mesmo intervalo de tempo.')}
@@ -192,6 +226,7 @@ const t2 = tema(2, 'Ritmo, batida e BPM', IMG + 'batidas.webp',
   <p>Para tocar batidas, dividimos cada tempo em duas metades. A contagem fica <b>"1 e 2 e 3 e 4 e"</b>. O número é a metade de baixo; o "e" é a metade de cima.</p>
 
   <h2>2.4 Como ler uma batida</h2>
+  ${foto('batida', 'A mão direita desce e sobe sobre a boca do violão, como um pêndulo.')}
   <p>Nesta apostila as batidas aparecem em 8 espaços, um para cada parte da contagem:</p>
   ${fig(D.batida('BCBCBCBC'), 'Seta cheia para baixo = a mão desce tocando as cordas. Seta cheia para cima = a mão sobe tocando.')}
   ${pratica('<p>A regra de ouro: <b>a mão direita nunca para.</b> Ela desce em todo número e sobe em todo "e", como um pêndulo, o tempo todo. A batida muda só quando a mão <b>encosta ou não</b> nas cordas. Quando não deve tocar, ela passa no ar, sem encostar. Nos desenhos, esse movimento no ar aparece como seta pontilhada clarinha.</p>')}
@@ -215,14 +250,7 @@ const t2 = tema(2, 'Ritmo, batida e BPM', IMG + 'batidas.webp',
   </ol>
   ${app('<p>A tela <b>Batidas</b> mostra a batida como setas andando na tela, com contagem e metrônomo. Em <b>Ferramentas › Metrônomo</b> você escolhe o BPM ou descobre o BPM de uma música batendo no tempo.</p>')}
   `,
-  ['Pulso é a batida constante da música; cada batida é um tempo.', 'BPM = batidas por minuto. 60 BPM = 1 por segundo. Louvores lentos ficam entre 50 e 80 BPM.', 'Compasso de 4 tempos: conta-se "1 e 2 e 3 e 4 e".', 'A mão direita nunca para: desce nos números e sobe nos "e". A batida muda pelo que toca e pelo que passa no ar.', 'Estude devagar e suba de 5 em 5 BPM.'],
-  [
-    `<p>Responda: (a) O que significa BPM? (b) Uma música a 90 BPM é mais rápida ou mais lenta que uma a 120 BPM? (c) Quantos cliques por segundo tem um metrônomo a 120 BPM?</p>${linhas(3)}`,
-    `<p>Escreva a contagem e desenhe as setas da <b>batida 2</b> nos espaços abaixo.</p>${fig(D.batida('--------'), '')}`,
-    `<p>Escreva com palavras como se toca esta batida (o que desce, o que sobe e o que passa no ar):</p>${fig(D.batida('BcbCBcbC'), '')}${linhas(2)}`,
-    `<p><b>Diário do metrônomo.</b> Toque a batida 3 com o acorde Em. Comece em 60 BPM e anote o máximo em que tocou 4 compassos sem errar.</p>${tabela(['Dia', 'Batida', 'BPM inicial', 'BPM alcançado'], [['1', '3', '60', ''], ['2', '3', '', ''], ['3', '3', '', ''], ['4', '3', '', ''], ['5', '3', '', '']], 'vazia')}`,
-    `<p><b>Ouvido:</b> escolha um louvor que você conhece, bata o pé no tempo e conte "1, 2, 3, 4". Descubra no metrônomo (ou no app, batendo no tempo) o BPM aproximado dele.</p>${linhas(1)}`,
-  ]);
+  ['Pulso é a batida constante da música; cada batida é um tempo.', 'BPM = batidas por minuto. 60 BPM = 1 por segundo. Louvores lentos ficam entre 50 e 80 BPM.', 'Compasso de 4 tempos: conta-se "1 e 2 e 3 e 4 e".', 'A mão direita nunca para: desce nos números e sobe nos "e". A batida muda pelo que toca e pelo que passa no ar.', 'Estude devagar e suba de 5 em 5 BPM.']);
 
 // =====================================================================
 // TEMA 3
@@ -259,7 +287,7 @@ const t3 = tema(3, 'As notas musicais', IMG + 'cifras.webp',
   <h2>3.4 As 12 notas</h2>
   <p>Juntando as naturais com os sustenidos, a música tem <b>12 notas diferentes</b>. Depois delas, o ciclo recomeça:</p>
   <p class="destaque-linha doze">C · C# · D · D# · E · F · F# · G · G# · A · A# · B · <span>C…</span></p>
-  ${fig(D.teclado(), 'No teclado fica fácil ver: as teclas brancas são as notas naturais e as pretas são os sustenidos. Entre Mi e Fá, e entre Si e Dó, não há tecla preta.')}
+  ${fig(D.braco({ ate: 12, w: 680, marcas: Array.from({ length: 13 }, (_, c) => ({ corda: 5, casa: c, txt: D.nota(5, c), cor: D.nota(5, c).includes('#') ? 'claro' : 'tinta' })), notasSoltas: true }), 'As 12 notas na 5ª corda, da solta (Lá) até a casa 12 (Lá de novo). As escuras são as naturais; as brancas, os sustenidos. Repare que entre Si (casa 2) e Dó (casa 3) não sobra casa para um sustenido.')}
 
   <h2>3.5 A pegadinha: Mi–Fá e Si–Dó</h2>
   <p>Entre <b>Mi e Fá</b> e entre <b>Si e Dó</b> a distância já é de <b>meio tom</b>. Não sobra espaço para uma nota no meio. Por isso, na prática, <b>não se usa Mi# nem Si#</b> (seriam o próprio Fá e o próprio Dó).</p>
@@ -267,15 +295,7 @@ const t3 = tema(3, 'As notas musicais', IMG + 'cifras.webp',
   ${fig(D.braco({ ate: 12, w: 680, marcas: Array.from({ length: 13 }, (_, c) => ({ corda: 6, casa: c, txt: D.nota(6, c), cor: D.nota(6, c).includes('#') ? 'claro' : (['E', 'F', 'B', 'C'].includes(D.nota(6, c)) ? 'ouro' : 'tinta') })), notasSoltas: true }), 'As 12 notas na 6ª corda, da solta (Mi) até a casa 12 (Mi de novo). Em dourado, os pares grudados Mi–Fá e Si–Dó: uma casa só de distância.')}
   ${app('<p>Em <b>Exercícios › Notas no braço</b> o app sorteia uma nota e você acha a casa. É o melhor jeito de decorar onde fica cada nota.</p>')}
   `,
-  ['Notas naturais: Dó Ré Mi Fá Sol Lá Si (C D E F G A B na cifra; A = Lá).', 'Semitom = 1 casa. Tom = 2 casas.', 'Sustenido (#) sobe meio tom; bemol (b) desce meio tom. C# e Db são a mesma nota.', 'A música tem 12 notas: C C# D D# E F F# G G# A A# B.', 'Mi–Fá e Si–Dó são grudados: não existe nota entre eles.'],
-  [
-    `<p>Escreva a cifra (letra) de cada nota: Sol ___ · Si ___ · Ré ___ · Fá ___ · Lá ___ · Mi ___ · Dó ___</p>`,
-    `<p>Complete a sequência das 12 notas: C · ___ · D · ___ · ___ · F · ___ · G · ___ · ___ · ___ · B</p>`,
-    `<p>Diga se a distância é <b>tom</b> ou <b>semitom</b>: (a) C–D ___ (b) E–F ___ (c) G–A ___ (d) B–C ___ (e) F–F# ___ (f) A–B ___</p>`,
-    `<p>Escreva o outro nome de cada nota: C# = ___ · Eb = ___ · F# = ___ · Ab = ___ · A# = ___</p>`,
-    `<p>Por que não usamos Mi# nem Si#? Explique com suas palavras.</p>${linhas(2)}`,
-    `<p><b>Prática (5 min):</b> na 5ª corda, toque da solta (Lá) até a casa 12, falando o nome de cada nota em voz alta. Depois faça o mesmo na 6ª corda.</p>`,
-  ]);
+  ['Notas naturais: Dó Ré Mi Fá Sol Lá Si (C D E F G A B na cifra; A = Lá).', 'Semitom = 1 casa. Tom = 2 casas.', 'Sustenido (#) sobe meio tom; bemol (b) desce meio tom. C# e Db são a mesma nota.', 'A música tem 12 notas: C C# D D# E F F# G G# A A# B.', 'Mi–Fá e Si–Dó são grudados: não existe nota entre eles.']);
 
 // =====================================================================
 // TEMA 4
@@ -302,6 +322,7 @@ const t4 = tema(4, 'Escala cromática', IMG + 'exercicios.webp',
   <p>A casa <b>5</b> de uma corda tem a mesma nota da corda <b>solta de baixo</b> (a próxima mais fina). Exemplo: casa 5 da 6ª corda = Lá = 5ª corda solta. A única exceção é a <b>3ª corda</b>: a nota da 2ª corda solta (Si) está na <b>casa 4</b> dela. Esse é o mesmo truque usado para afinar o violão de ouvido.</p>
 
   <h2>4.3 O exercício 1-2-3-4 ("aranha")</h2>
+  ${foto('aranha', 'Um dedo em cada casa, todos arqueados, apertando com a ponta.')}
   <p>É o exercício cromático mais famoso. A regra é <b>um dedo para cada casa</b>: dedo 1 na casa 1, dedo 2 na casa 2, dedo 3 na casa 3, dedo 4 na casa 4.</p>
   ${fig(D.braco({ ate: 5, w: 520, marcas: aranha }), 'Toque 1-2-3-4 na 6ª corda, depois 1-2-3-4 na 5ª, e assim até a 1ª corda. Depois volte, 4-3-2-1, da 1ª até a 6ª.')}
   <ol class="passos">
@@ -316,14 +337,7 @@ const t4 = tema(4, 'Escala cromática', IMG + 'exercicios.webp',
   ${tabela(['Variação', 'Ordem dos dedos', 'O que treina'], [['A', '1-3-2-4', 'independência do 2 e do 3'], ['B', '1-2-4-3', 'controle do dedo 4'], ['C', '1-4-2-3', 'abertura da mão'], ['D', '4-3-2-1 na subida', 'mesma coisa ao contrário']])}
   ${app('<p>Em <b>Exercícios › Aranha</b> o app conduz o 1-2-3-4 com o metrônomo, marcando a casa e o dedo de cada nota.</p>')}
   `,
-  ['Escala cromática = as 12 notas em sequência, de meio em meio tom (casa por casa).', 'Serve para conhecer as notas no braço e para dar técnica aos dedos.', 'Casa 5 de uma corda = próxima corda solta (na 3ª corda, é a casa 4).', 'Aranha 1-2-3-4: um dedo por casa, devagar, com metrônomo.'],
-  [
-    `<p>Escreva a escala cromática começando em Sol: G · ___ · ___ · ___ · ___ · ___ · ___ · ___ · ___ · ___ · ___ · ___ · G</p>`,
-    `<p>Complete as notas da <b>6ª e da 5ª corda</b>, da casa 1 à 12, no mapa abaixo.</p>${fig(D.mapaNotas({ vazio: [6, 5, 4, 3, 2, 1] }), '', 'mapa')}`,
-    `<p>Que nota está em: (a) 6ª corda, casa 3 ___ (b) 5ª corda, casa 3 ___ (c) 4ª corda, casa 2 ___ (d) 1ª corda, casa 5 ___ (e) 2ª corda, casa 1 ___</p>`,
-    `<p>Encontre <b>todos os Sol (G)</b> entre a casa 0 e a 12 e escreva onde estão (corda e casa).</p>${linhas(3)}`,
-    `<p><b>Aranha com metrônomo.</b> Faça o 1-2-3-4 subindo e descendo e anote o BPM alcançado (uma nota por clique).</p>${tabela(['Dia', 'Casas', 'BPM'], [['1', '1 a 4', ''], ['2', '1 a 4', ''], ['3', '5 a 8', ''], ['4', '5 a 8', ''], ['5', 'variação A', '']], 'vazia')}`,
-  ]);
+  ['Escala cromática = as 12 notas em sequência, de meio em meio tom (casa por casa).', 'Serve para conhecer as notas no braço e para dar técnica aos dedos.', 'Casa 5 de uma corda = próxima corda solta (na 3ª corda, é a casa 4).', 'Aranha 1-2-3-4: um dedo por casa, devagar, com metrônomo.']);
 
 // =====================================================================
 // TEMA 5
@@ -338,6 +352,7 @@ const t5 = tema(5, 'Acordes', IMG + 'banda.webp',
   <p><b>Acorde</b> é um conjunto de <b>três ou mais notas tocadas ao mesmo tempo</b>. É o que fazemos no violão para acompanhar uma música. Na cifra, o acorde aparece escrito em cima da letra da música, no ponto em que deve ser tocado.</p>
   <p>O nome do acorde vem da sua nota principal, chamada <b>tônica</b> (ou fundamental): o acorde de <b>C</b> (Dó) é construído a partir da nota Dó.</p>
 
+  ${foto('acorde', 'Num acorde, os dedos ficam em pé (arqueados) para não abafar as cordas vizinhas.')}
   <h2>5.2 Como ler um diagrama de acorde</h2>
   <div class="duas">
     <div class="centro">${fig(D.acorde({ ...A.C, l: 170 }), 'Acorde de C (Dó maior)')}</div>
@@ -397,14 +412,7 @@ const t5 = tema(5, 'Acordes', IMG + 'banda.webp',
   <p class="legenda">Com só dois desenhos de pestana (e a versão menor de cada um: Fm e Bm), você toca os 24 acordes. É por isso que vale a pena saber as notas da 6ª e da 5ª corda.</p>
   ${app('<p>A tela <b>Acordes</b> mostra cada acorde no braço e toca o som. Em "Procurar qualquer acorde" você digita o nome (ex.: C#m) e o app calcula o desenho.</p>')}
   `,
-  ['Acorde = 3 ou mais notas juntas. O nome vem da tônica.', 'Maior: só a letra (C). Menor: letra + m (Cm). Diferença: uma nota meio tom abaixo.', 'Existem 24 acordes básicos: 12 maiores e 12 menores.', 'Sustenidos quase sempre usam pestana (dedo 1 deitado).', 'O mesmo acorde tem vários desenhos no braço; os moldes de E e A com pestana andam por todas as casas.'],
-  [
-    `<p>Desenhe nos diagramas abaixo os acordes pedidos (bolinhas, dedos, × e ○).</p>${grade(['G', 'D', 'Em', 'Am'].map((n) => `<figure class="acorde"><figcaption><b>${n}</b></figcaption>${D.acordeVazio()}</figure>`))}`,
-    `<p>Que acordes são estes?</p>${grade([['C'], ['E'], ['Dm'], ['A']].map(([n]) => `<figure class="acorde"><figcaption><b>___</b></figcaption>${D.acorde(A[n])}</figure>`))}`,
-    `<p>Escreva o nome de cada acorde com letras de cifra: (a) Lá menor ___ (b) Ré maior ___ (c) Fá sustenido menor ___ (d) Si menor ___ (e) Sol maior ___</p>`,
-    `<p>Usando a tabela dos moldes, diga em que casa fica a pestana para tocar: (a) G com molde de E ___ (b) C#m com molde de Am ___ (c) D com molde de A ___ (d) B com molde de E ___</p>`,
-    `<p><b>Troca de acordes (1 minuto cada par).</b> Conte quantas trocas limpas você faz em 1 minuto e anote. Repita na semana e veja o número subir.</p>${tabela(['Par', 'Dia 1', 'Dia 3', 'Dia 5', 'Dia 7'], [['Em ↔ C', '', '', '', ''], ['G ↔ D', '', '', '', ''], ['Am ↔ E', '', '', '', ''], ['C ↔ G', '', '', '', ''], ['D ↔ A', '', '', '', '']], 'vazia')}`,
-  ]);
+  ['Acorde = 3 ou mais notas juntas. O nome vem da tônica.', 'Maior: só a letra (C). Menor: letra + m (Cm). Diferença: uma nota meio tom abaixo.', 'Existem 24 acordes básicos: 12 maiores e 12 menores.', 'Sustenidos quase sempre usam pestana (dedo 1 deitado).', 'O mesmo acorde tem vários desenhos no braço; os moldes de E e A com pestana andam por todas as casas.']);
 
 // =====================================================================
 // TEMA 6
@@ -459,15 +467,7 @@ const t6 = tema(6, 'Graus', IMG + 'aulas.webp',
   ${dica('<p>Os graus também podem ser escritos em <b>algarismos romanos</b>: I, II, III, IV, V, VI, VII. Ex.: I – V – VIm – IV. É a mesma coisa que 1 – 5 – 6m – 4.</p>')}
   ${app('<p>Em <b>Tocar cifra</b>, os botões de tom (+ e −) trocam a música de tom na hora. E em <b>Acordes › Por tom</b> você vê os graus de cada tom e ouve a sequência I V vi IV.</p>')}
   `,
-  ['Tom (tonalidade) é o centro da música, onde ela repousa.', 'Escala maior = receita T T S T T T S a partir da tônica. Dó maior não tem sustenidos.', 'Grau = posição da nota no tom. O grau 1 é sempre a tônica. A mesma nota muda de grau quando muda o tom.', 'Em Dó, Sol é o grau 5. Em Sol, Sol é o grau 1 e Dó é o grau 4.', 'Para descobrir o tom: veja onde a música termina e confira se os acordes cabem no campo harmônico.'],
-  [
-    `<p>Monte a escala maior de <b>D</b> (Ré) usando a receita T T S T T T S:</p><p class="lacuna">D · ___ · ___ · ___ · ___ · ___ · ___ · D</p>`,
-    `<p>Monte a escala maior de <b>A</b> (Lá):</p><p class="lacuna">A · ___ · ___ · ___ · ___ · ___ · ___ · A</p>`,
-    `<p>Qual é o grau? (a) Sol no tom de C ___ (b) Dó no tom de G ___ (c) Ré no tom de G ___ (d) Lá no tom de D ___ (e) Mi no tom de A ___</p>`,
-    `<p>Passe a sequência <b>1 – 4 – 5 – 1</b> para os tons: C ___________ · G ___________ · D ___________ · E ___________</p>`,
-    `<p>Descubra o tom: (a) D – A – Bm – G, terminando em D ___ (b) A – E – F#m – D, terminando em A ___ (c) C – Am – F – G, terminando em C ___</p>`,
-    `<p>Explique com suas palavras por que a nota Sol pode ser grau 1 numa música e grau 5 em outra.</p>${linhas(3)}`,
-  ]);
+  ['Tom (tonalidade) é o centro da música, onde ela repousa.', 'Escala maior = receita T T S T T T S a partir da tônica. Dó maior não tem sustenidos.', 'Grau = posição da nota no tom. O grau 1 é sempre a tônica. A mesma nota muda de grau quando muda o tom.', 'Em Dó, Sol é o grau 5. Em Sol, Sol é o grau 1 e Dó é o grau 4.', 'Para descobrir o tom: veja onde a música termina e confira se os acordes cabem no campo harmônico.']);
 
 // =====================================================================
 // TEMA 7
@@ -497,7 +497,7 @@ const t7 = tema(7, 'Campo harmônico', IMG + 'ferramentas.webp',
 
   <h2>7.3 Os campos mais usados</h2>
   ${tabela(['Tom', '1', '2m', '3m', '4', '5', '6m', '7m7(b5)'], CAMPOS.map((c) => c.map((x, i) => (i === 0 ? `<b>${x}</b>` : x))), 'cifras graus campos')}
-  <p class="legenda">Tons que soam bem e são confortáveis no violão: C, D, E, G e A. F aparece porque é comum em músicas de teclado.</p>
+  <p class="legenda">Tons que soam bem e são confortáveis no violão: C, D, E, G e A. F também aparece bastante em louvores.</p>
   <h3>O campo de G no braço</h3>
   ${grade([ac('G', 'G · 1'), ac('Am', 'Am · 2m'), ac('Bm', 'Bm · 3m'), ac('C', 'C · 4'), ac('D', 'D · 5'), ac('Em', 'Em · 6m')], 'seis')}
   <p class="legenda">Os seis acordes mais usados do tom de Sol. Com eles se toca uma quantidade enorme de louvores.</p>
@@ -519,64 +519,7 @@ const t7 = tema(7, 'Campo harmônico', IMG + 'ferramentas.webp',
   ${atencao('<p>Às vezes aparece um acorde que <b>não está</b> no campo (ex.: um E maior numa música em C). São os acordes "de empréstimo" ou de passagem, que dão cor à música. Eles existem, mas são exceção; a base continua sendo o campo harmônico.</p>')}
   ${app('<p>Em <b>Exercícios › Sequências</b> você escolhe o tom (maior ou menor), monta uma sequência pelos graus e treina com batida e metrônomo.</p>')}
   `,
-  ['Campo harmônico = os 7 acordes formados com as notas de um tom.', 'Receita do tom maior: 1 Maior, 2m, 3m, 4 Maior, 5 Maior, 6m, 7m7(b5).', 'O 6m é a relativa menor: mesmas notas e acordes, centro diferente.', 'Os graus 1, 4, 5 e 6m são a base da maioria dos louvores.', 'Acordes de fora do campo existem, mas são exceção.'],
-  [
-    `<p>Complete o campo harmônico de <b>G</b>: G · ___ · ___ · ___ · ___ · ___ · F#m7(b5)</p>`,
-    `<p>Complete o campo harmônico de <b>E</b>: E · ___ · ___ · ___ · ___ · ___ · ___</p>`,
-    `<p>Qual acorde <b>não pertence</b> ao campo de D? (a) Em (b) G (c) F (d) Bm. Resposta: ___</p>`,
-    `<p>Qual é a relativa menor de: (a) C ___ (b) G ___ (c) D ___ (d) A ___ (e) E ___</p>`,
-    `<p>Escreva a sequência <b>6m – 4 – 1 – 5</b> nos tons de A ___________ e E ___________</p>`,
-    `<p><b>Prática:</b> escolha um louvor da biblioteca do app, descubra o tom dele e escreva embaixo de cada acorde o grau correspondente.</p>${linhas(3)}`,
-  ]);
-
-// =====================================================================
-// GABARITO
-// =====================================================================
-const gab = [
-  ['Tema 01', [
-    '1. Mão (cabeça); 2. Tarraxas; 3. Pestana (nut); 4. Trastes; 5. Casa; 6. Braço/escala; 7. Marcações; 8. Boca; 9. Tampo; 10. Cavalete; 11. Rastilho; 12. Cordas; 13. Corpo (caixa).',
-    '6ª Mi (E) · 5ª Lá (A) · 4ª Ré (D) · 3ª Sol (G) · 2ª Si (B) · 1ª Mi (E).',
-    '(a) a 1ª corda; (b) na casa 12; (c) o anelar; (d) logo atrás do traste.',
-  ]],
-  ['Tema 02', [
-    '(a) batidas por minuto; (b) mais lenta; (c) dois.',
-    '1 e 2 e 3 e 4 e: baixo (1), ar (e), baixo (2), cima (e), baixo (3), ar (e), baixo (4), cima (e).',
-    'Baixo no 1, sobe no ar, desce no ar no 2, sobe tocando no "e"; repete no 3 e 4. Ou seja: "baixo, (ar), (ar), cima, baixo, (ar), (ar), cima".',
-  ]],
-  ['Tema 03', [
-    'Sol G · Si B · Ré D · Fá F · Lá A · Mi E · Dó C.',
-    'C · C# · D · D# · E · F · F# · G · G# · A · A# · B.',
-    '(a) tom (b) semitom (c) tom (d) semitom (e) semitom (f) tom.',
-    'C# = Db · Eb = D# · F# = Gb · Ab = G# · A# = Bb.',
-    'Porque entre Mi e Fá (e entre Si e Dó) a distância já é de meio tom: Mi# soaria como Fá e Si# como Dó.',
-  ]],
-  ['Tema 04', [
-    'G · G# · A · A# · B · C · C# · D · D# · E · F · F# · G.',
-    '6ª corda (1 a 12): F F# G G# A A# B C C# D D# E · 5ª corda: A# B C C# D D# E F F# G G# A.',
-    '(a) G (b) C (c) E (d) A (e) C.',
-    'G: 6ª casa 3 · 5ª casa 10 · 4ª casa 5 · 3ª solta e casa 12 · 2ª casa 8 · 1ª casa 3.',
-  ]],
-  ['Tema 05', [
-    'Ver os diagramas das seções 5.3 e 5.4.',
-    'C · E · Dm · A.',
-    '(a) Am (b) D (c) F#m (d) Bm (e) G.',
-    '(a) casa 3 (b) casa 4 (c) casa 5 (d) casa 7.',
-  ]],
-  ['Tema 06', [
-    'D · E · F# · G · A · B · C# · D.',
-    'A · B · C# · D · E · F# · G# · A.',
-    '(a) 5 (b) 4 (c) 5 (d) 5 (e) 5.',
-    'C: C F G C · G: G C D G · D: D G A D · E: E A B E.',
-    '(a) Ré maior (b) Lá maior (c) Dó maior.',
-  ]],
-  ['Tema 07', [
-    'G · Am · Bm · C · D · Em · F#m7(b5).',
-    'E · F#m · G#m · A · B · C#m · D#m7(b5).',
-    '(c) F. No tom de D o Fá é sustenido (F#m).',
-    '(a) Am (b) Em (c) Bm (d) F#m (e) C#m.',
-    'Em A: F#m D A E · Em E: C#m A E B.',
-  ]],
-];
+  ['Campo harmônico = os 7 acordes formados com as notas de um tom.', 'Receita do tom maior: 1 Maior, 2m, 3m, 4 Maior, 5 Maior, 6m, 7m7(b5).', 'O 6m é a relativa menor: mesmas notas e acordes, centro diferente.', 'Os graus 1, 4, 5 e 6m são a base da maioria dos louvores.', 'Acordes de fora do campo existem, mas são exceção.']);
 
 // ---------- páginas fixas ----------
 const capa = `
@@ -587,7 +530,7 @@ const capa = `
     <p class="capa-rotulo">Apostila do Método Sonoridade</p>
     <h1 class="capa-tit">Fundamentos<br>do violão</h1>
     <div class="capa-fio"></div>
-    <p class="capa-vol">Volume 1 · 7 temas · teoria, exemplos e exercícios</p>
+    <p class="capa-vol">Volume 1 · 7 temas · teoria, exemplos e treinos</p>
   </div>
 </section>`;
 
@@ -598,14 +541,14 @@ const sumario = () => `
   <ol class="sum">
     <li class="sum-intro"><span class="sum-n"></span><span class="sum-t">Como usar esta apostila</span><i></i>${pg('como')}</li>
     ${TEMAS.map((t) => `<li><span class="sum-n">${String(t.num).padStart(2, '0')}</span><span class="sum-t">${t.titulo}<small>${t.aprender.slice(0, 4).join(' · ')}</small></span><i></i>${pg(t.num)}</li>`).join('')}
-    <li class="sum-intro"><span class="sum-n"></span><span class="sum-t">Gabarito dos exercícios</span><i></i>${pg('gabarito')}</li>
+    <li class="sum-intro"><span class="sum-n"></span><span class="sum-t">Meu progresso</span><i></i>${pg('progresso')}</li>
   </ol>
 </section>`;
 
 const comoUsar = `
 <section class="pagina como" id="como">
   <h2 class="pag-tit">Como usar esta apostila</h2>
-  <p>Esta apostila reúne os fundamentos do violão em <b>7 temas</b>. Cada tema traz a teoria explicada passo a passo, desenhos do braço e dos acordes, exemplos e, no final, <b>exercícios</b> (de escrever e de tocar). O gabarito está nas últimas páginas.</p>
+  <p>Esta apostila reúne os fundamentos do violão em <b>7 temas</b>. Cada tema traz a teoria explicada passo a passo, desenhos do braço e dos acordes, exemplos e, no final, <b>treinos para tocar</b>: cada um diz para que serve, como fazer, em que velocidade começar e aonde chegar. Na última página, a ficha <b>Meu progresso</b> junta todos os treinos.</p>
   <p>A ordem dos temas é a ordem de estudo sugerida: cada um usa o que foi visto antes.</p>
   <div class="trilha">
     ${TEMAS.map((t) => `<div><b>${String(t.num).padStart(2, '0')}</b><span>${t.titulo}</span></div>`).join('')}
@@ -622,17 +565,17 @@ const comoUsar = `
     <li><b>Pouco todo dia vale mais do que muito de vez em quando.</b> 20 minutos por dia rendem mais do que 2 horas no sábado.</li>
     <li>Divida o tempo: 5 min de afinação e aquecimento (aranha), 10 min do tema da semana, 5 min tocando uma música de que você gosta.</li>
     <li>Use sempre o <b>metrônomo</b>, começando devagar.</li>
-    <li>Faça os exercícios escritos a lápis. Volte a eles depois de alguns dias para ver se ficou.</li>
+    <li>Marque nos quadrinhos de cada treino os dias em que treinou ou o BPM que alcançou. Ver o número subir é o melhor incentivo.</li>
   </ul>
 </section>`;
 
-const gabarito = `
-<section class="pagina gabarito" id="gabarito">
-  <h2 class="pag-tit">Gabarito</h2>
-  <p class="centro apagado">Exercícios de prática (tocar, metrônomo, diário) não têm gabarito: o resultado é o seu progresso.</p>
-  <div class="gab">
-  ${gab.map(([t, itens]) => `<div class="gab-bloco"><h3>${t}</h3><ol>${itens.map((i) => `<li>${i}</li>`).join('')}</ol></div>`).join('')}
-  </div>
+const progresso = () => `
+<section class="pagina progresso" id="progresso">
+  <h2 class="pag-tit">Meu progresso</h2>
+  <p class="centro apagado">Marque cada treino quando chegar no "está certo quando". Os de metrônomo mostram a meta de BPM.</p>
+  <table class="tab prog"><thead><tr><th>Tema</th><th>Treino</th><th>Meta</th><th>Cheguei lá</th></tr></thead><tbody>
+  ${ficha.map((t) => `<tr><td>${String(t.tema).padStart(2, '0')}</td><td>${t.n}. ${t.titulo}</td><td>${t.bpm ? t.bpm[1] + ' BPM' : '—'}</td><td><i class="caixinha"></i></td></tr>`).join('')}
+  </tbody></table>
 </section>`;
 
 const contracapa = `
@@ -647,14 +590,14 @@ const html = `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8">
 <title>Apostila do Método Sonoridade · Volume 1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..700;1,8..60,400..600&display=block" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Atkinson+Hyperlegible+Next:ital,wght@0,400..800;1,400&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=block" rel="stylesheet">
 <style>${css}</style></head>
 <body>
 ${capa}
 ${sumario()}
 ${comoUsar}
 ${corpo}
-${gabarito}
+${progresso()}
 ${contracapa}
 </body></html>`;
 writeFileSync(join(AQUI, 'apostila.html'), html);

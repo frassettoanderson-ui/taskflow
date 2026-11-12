@@ -112,33 +112,6 @@ export function mapaNotas({ ate = 12, vazio = [], realce = null } = {}) {
   return braco({ ate, marcas, notasSoltas: true, rotuloCordas: 'num' });
 }
 
-// ---------- teclado de uma oitava (para ver tom e semitom) ----------
-export function teclado({ w = 560 } = {}) {
-  const brancas = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'];
-  const lb = w / brancas.length, H = 150;
-  let s = `<svg viewBox="0 0 ${w} ${H + 46}" width="100%" xmlns="http://www.w3.org/2000/svg">`;
-  brancas.forEach((n, i) => {
-    const sem = (n === 'E' || n === 'B');
-    s += `<rect x="${i * lb + 1}" y="1" width="${lb - 2}" height="${H}" rx="4" fill="#fff" stroke="${LINHA}" stroke-width="1.2"/>`;
-    s += t(i * lb + lb / 2, H - 30, n, { s: 15, w: 800 });
-    s += t(i * lb + lb / 2, H - 13, NOMES_PT[n], { s: 10, w: 600, c: APAGADO });
-  });
-  const pretas = { 0: 'C#', 1: 'D#', 3: 'F#', 4: 'G#', 5: 'A#' };
-  Object.entries(pretas).forEach(([i, n]) => {
-    const x = (+i + 1) * lb - lb * 0.3;
-    s += `<rect x="${x}" y="1" width="${lb * 0.6}" height="${H * 0.58}" rx="3" fill="${TINTA}"/>`;
-    s += t(x + lb * 0.3, H * 0.58 - 26, n, { s: 11, w: 800, c: OURO_CLARO });
-    s += t(x + lb * 0.3, H * 0.58 - 12, NOMES_PT[n], { s: 8, w: 600, c: '#cfc6b4' });
-  });
-  // marcação Mi–Fá e Si–Dó
-  [[2, 3], [6, 7]].forEach(([a]) => {
-    const x = (a + 1) * lb;
-    s += `<path d="M${x - lb * 0.42} ${H + 12} q${lb * 0.42} 14 ${lb * 0.84} 0" fill="none" stroke="${OURO}" stroke-width="2"/>`;
-    s += t(x, H + 36, 'meio tom', { s: 10, w: 700, c: OURO });
-  });
-  return s + '</svg>';
-}
-
 // ---------- batida: 8 espaços (1 e 2 e 3 e 4 e) ----------
 // padrao: 8 caracteres: B = bate para baixo, C = bate para cima, b/c = a mão passa no ar sem tocar
 export function batida(padrao, { w = 520 } = {}) {

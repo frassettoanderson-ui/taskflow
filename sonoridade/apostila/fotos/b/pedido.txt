@@ -1,0 +1,8 @@
+Gere 5 imagens com a ferramenta de geração de imagem, uma por vez, seguindo o arquivo ../estilo.txt.
+Depois de gerar cada uma, copie o PNG para esta pasta com o nome indicado. Não crie outros arquivos.
+
+1) metronomo.png — PAISAGEM (1536x1024). Um metrônomo mecânico de madeira em forma de pirâmide, com o pêndulo de metal no meio do movimento, sobre uma mesa de madeira clara, com um violão desfocado ao fundo. Sem texto nem números legíveis.
+2) batida.png — PAISAGEM (1536x1024). Mão direita tocando as cordas sobre a boca do violão com movimento para baixo, leve borrão de movimento só na mão, cordas e boca nítidas. Visto de frente/levemente de cima.
+3) aranha.png — PAISAGEM (1536x1024). Close do braço do violão visto de frente: a mão esquerda com os quatro dedos (indicador, médio, anelar, mínimo) apertando a corda mais grossa em quatro casas seguidas, um dedo em cada casa, dedos arqueados, polegar atrás do braço.
+4) pestana.png — PAISAGEM (1536x1024). Close do braço do violão: o dedo indicador da mão esquerda deitado reto atravessando todas as 6 cordas na mesma casa (pestana), logo atrás do traste, os outros dedos formando um acorde nas casas seguintes.
+5) acorde.png — PAISAGEM (1536x1024). Mão esquerda fazendo um acorde aberto na região das primeiras casas do violão, dedos arqueados apertando com as pontas, cordas soltas livres, visto de frente, foco na mão e no braço.

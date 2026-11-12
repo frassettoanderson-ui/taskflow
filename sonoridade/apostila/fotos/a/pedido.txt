@@ -1,0 +1,9 @@
+Gere 6 imagens com a ferramenta de geração de imagem, uma por vez, seguindo o arquivo ../estilo.txt.
+Depois de gerar cada uma, copie o PNG para esta pasta com o nome indicado. Não crie outros arquivos.
+
+1) violao.png — RETRATO (1024x1536). Um violão acústico inteiro, de frente, em pé, perfeitamente centralizado e reto (sem inclinação), mostrando cabeça com 6 tarraxas, braço com trastes e marcações, boca, cavalete. Sem pessoa. Fundo creme liso. Foto de catálogo, o violão ocupa quase toda a altura.
+2) postura.png — PAISAGEM (1536x1024). Pessoa sentada numa cadeira tocando violão com postura correta: costas retas, violão apoiado na perna direita, braço do violão levemente para cima, mão esquerda no braço com o polegar atrás, mão direita sobre a boca. Enquadrada da cabeça cortada (sem rosto) até os pés. Roupa neutra (camiseta lisa e calça jeans). Fundo creme liso.
+3) mao.png — PAISAGEM (1536x1024). Uma mão esquerda adulta, aberta, com a palma voltada para a câmera, dedos levemente afastados e retos para cima, fundo creme liso. Mão centralizada ocupando boa parte da altura.
+4) dedo-traste.png — PAISAGEM (1536x1024). Close de cima do braço de um violão: a ponta de um dedo apertando uma corda logo atrás do traste metálico (quase encostado no traste), o traste bem visível, foco nítido no ponto onde o dedo aperta.
+5) polegar.png — PAISAGEM (1536x1024). Vista por trás do braço do violão mostrando a mão esquerda: o polegar apoiado atrás do braço, mais ou menos no meio dele, relaxado, e as pontas dos outros dedos aparecendo do outro lado sobre as cordas.
+6) afinar.png — PAISAGEM (1536x1024). Close da cabeça do violão: dedos girando uma tarraxa para afinar, as 6 tarraxas e as cordas saindo da pestana bem visíveis.

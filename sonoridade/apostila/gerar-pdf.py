@@ -28,9 +28,8 @@ def paginas():
             achou[str(tema)] = i + 1
         elif "Como usar esta apostila" in txt and "Sumário" not in txt and "como" not in achou:
             achou["como"] = i + 1
-        elif txt.strip().startswith("Gabarito") or "\nGabarito\n" in txt or txt.lstrip().startswith("Gabarito"):
-            if "Sumário" not in txt:
-                achou["gabarito"] = i + 1
+        elif "Cheguei lá" in txt and "progresso" not in achou:
+            achou["progresso"] = i + 1
     return achou, len(doc)
 
 
