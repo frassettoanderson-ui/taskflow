@@ -70,7 +70,8 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - **número de peito e certificado com o nome digitado ao vivo** (o nome vai para o modal de pagamento e para a mensagem do WhatsApp).
   - GSAP 3.12.5 + ScrollTrigger; sem GSAP a página aparece parada.
   - Fotos em `img/` geradas pelo Codex (hero, grupo, tenis, relogio, forca), sem marcas. Trocar por fotos reais se a academia tiver.
-  - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão), `validar/` (confere o código do certificado) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=4).
+  - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão), `validar/` (confere o código do certificado) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=5).
+- **Patrocínio (15/11):** seção `#patrocinio` entre Investimento e Perguntas, com as logos dos patrocinadores em cartões claros (`img/patrocinadores/*.svg`, em vetor, tiradas dos PDFs mandados pelo usuário: **Melo Logística** e **Axiis Bank**) e o bloco "Seja um patrocinador" (`#seja-patrocinador`) com as 3 cotas da proposta da academia: Movimento R$ 500, Atleta R$ 1.000, Campeão R$ 1.500. Cada botão "Quero esta cota" abre o WhatsApp da academia com a cota escrita. A proposta completa fica em `corrida/patrocinio-dzimba-corrida.pdf`. As logos também aparecem no rodapé, e há uma pergunta no FAQ. **Novo patrocinador:** pegar a logo em vetor (PDF/SVG), recortar sem o fundo branco e colocar o `<li class="marca">` nas duas listas (seção e rodapé).
 - **API:** `corrida/api/` (Express + pdf-lib).
   - `PUBLIC_BASE=https://academiadzimba.com.br/corrida` no `.env` da VPS (links do certificado, validação e volta do Mercado Pago).
   - Na VPS fica em **`/opt/dzimba-corrida`** (fora da pasta pública), no pm2 `dzimba-corrida` na porta **8404**.

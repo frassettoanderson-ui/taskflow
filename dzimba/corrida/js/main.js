@@ -190,6 +190,9 @@
     gsap.fromTo('.trajetoria__pista', { '--prog': 0 }, { '--prog': 1, ease: 'none', scrollTrigger: { trigger: '.trajetoria__pista', start: 'top 80%', end: 'bottom 55%', scrub: .5 } });
     gsap.from('.trajetoria__pista li', { y: 30, autoAlpha: 0, stagger: .14, duration: .7, ease: 'power3.out', scrollTrigger: { trigger: '.trajetoria__pista', start: 'top 82%' } });
     gsap.from('.ingresso', { y: 80, autoAlpha: 0, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: '.ingresso', start: 'top 88%' } });
+    gsap.from('.marca', { y: 50, autoAlpha: 0, stagger: .15, duration: .9, ease: 'power3.out', clearProps: 'transform', scrollTrigger: { trigger: '.marcas', start: 'top 88%' } });
+    gsap.from('.cota', { y: 70, autoAlpha: 0, stagger: .14, duration: .9, ease: 'power4.out', clearProps: 'transform', scrollTrigger: { trigger: '.cotas__lista', start: 'top 85%' } });
+    gsap.from('.cotas__titulo', { y: 60, autoAlpha: 0, skewY: 3, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: '.cotas__titulo', start: 'top 88%' } });
 
     // número de peito chega girando, certificado sobe
     gsap.from('.peito', { y: 120, rotate: -18, autoAlpha: 0, duration: 1.2, ease: 'power4.out', scrollTrigger: { trigger: '.vaga__grade', start: 'top 80%' } });
