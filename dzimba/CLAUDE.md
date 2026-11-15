@@ -98,6 +98,6 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 1. **Access Token de produção do Mercado Pago da academia** (`APP_USR-...`, conta com chave PIX cadastrada). Vai em `MP_ACCESS_TOKEN` no `/opt/dzimba-corrida/.env`, depois `pm2 restart dzimba-corrida`.
 2. **Valor real** (hoje `VALOR=999.00`, provisório)
 3. **Parear o WhatsApp** (48) 99947-4500 pelo QR do painel e **criar o grupo** e escolher no painel
-4. **Fotos do Marcos Paulo Huber** (não há nenhuma pública): salvar como `corrida/img/marcos-1.jpg` e rodar o deploy
+4. ~~Fotos do Marcos~~ (15/11): `img/marcos-1.jpg` é a foto dele do Instagram @marcospaulohuber (post da Univinte, de camisa social) trocada no Codex para roupa de corrida na pista, com o rosto mantido. Alternativa na orla em `_dev/marcos-praia.jpg`. Se o Marcos mandar foto real de corrida, trocar.
 5. Confirmar com o Marcos os dados da trajetória usados na página
 6. Opcional: fotos reais de corrida da academia
