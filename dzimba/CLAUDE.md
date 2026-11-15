@@ -57,7 +57,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 - **Front (v3, 15/11):** depois da crítica à v2 (herói ruim no PC, arte do percurso fraca, palestrante sem valor, certificado amador, sem seção de preço e botões sem levar ao checkout):
   - herói no PC em duas colunas (texto centralizado na metade escura da foto, corredores à direita; cronômetro e botão lado a lado, tudo na primeira tela);
   - percurso com **mapa real** de Imbituba (`img/mapa.svg`, gerado do OpenStreetMap/Overpass + rota a pé do OSRM, 4,5 km); a rota se desenha com a rolagem, com marcos de km e contador;
-  - palestrante com texto, credenciais e **trajetória em linha do tempo** (fatos públicos: Unisul 2007, Gama Filho 2009, Unisul 2010–2016, mestrado 2012, livro Univinte 2024, coordenação na Univinte e escolinha da ADRA). **Foto:** basta colocar `img/marcos-1.jpg` (retrato 9:11); sem o arquivo o bloco some sozinho;
+  - palestrante com texto, credenciais e **trajetória em linha do tempo** (fatos públicos: Unisul 2007, Gama Filho 2009, Unisul 2010–2016, mestrado 2012, livro Univinte 2024, coordenação na Univinte e técnico do atletismo adulto de Tubarão; a escolinha da ADRA foi retirada a pedido do usuário). **Foto:** basta colocar `img/marcos-1.jpg` (retrato 9:11); sem o arquivo o bloco some sozinho;
   - seção **Investimento** (ingresso) com o preço vindo da API (`VALOR`);
   - **todo botão "Garantir" abre o checkout**. Sem `MP_ACCESS_TOKEN`, o checkout tem um botão só, "Enviar inscrição pelo WhatsApp", com nome/WhatsApp/e-mail/nível/valor preenchidos; com o token vira PIX + cartão sozinho.
 - **Front (v2, 15/11):** a v1 foi rejeitada ("só colou o post, preguiça"), então **o cartaz não é mais usado**. A ideia da v2 é "rolar = correr":
