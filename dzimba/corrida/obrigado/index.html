@@ -10,11 +10,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&family=Permanent+Marker&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/style.css?v=1">
+  <link rel="stylesheet" href="../css/style.css?v=3">
   <style>
     .obg { min-height: 100svh; display: grid; place-items: center; padding: 40px var(--gutter); }
     .obg__caixa { max-width: 520px; width: 100%; text-align: center; background: var(--grafite); border: 1px solid var(--linha); border-top: 4px solid var(--lime); border-radius: 8px; padding: 40px 28px; }
-    .obg__caixa img { width: 110px; margin: 0 auto 1.6rem; }
+    .obg__caixa img { width: 170px; margin: 0 auto 1.6rem; }
     .obg__caixa .pay__lista { margin-top: 1rem; }
     .obg__caixa .btn { margin-top: .6rem; }
     .obg__espera { display: flex; justify-content: center; align-items: center; gap: .6em; color: var(--suave); }
@@ -31,7 +31,7 @@
     </div>
 
     <div data-estado="ok" hidden>
-      <div class="pay__check">✓</div>
+      <div class="pay__check" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
       <h1 class="pay__titulo">Inscrição confirmada!</h1>
       <p class="pay__sub">Sua vaga no Curso Treinamento de Corrida de Rua está garantida.</p>
       <ul class="pay__lista">
@@ -39,7 +39,7 @@
         <li>Credenciamento: 12/12, das 7h30 às 11h, na Academia D'Zimba.</li>
         <li>Curso: 15h, no Auditório do Praia Hotel.</li>
       </ul>
-      <a class="btn btn--lime btn--bloco" id="grupo" target="_blank" rel="noopener" hidden>Entrar no grupo</a>
+      <a class="btn btn--lime btn--bloco" id="grupo" target="_blank" rel="noopener" hidden><span>Entrar no grupo</span></a>
     </div>
 
     <div data-estado="pendente" hidden>
@@ -47,7 +47,7 @@
       <p class="pay__sub">O Mercado Pago ainda está processando. Assim que aprovar, você recebe a confirmação no WhatsApp.</p>
     </div>
 
-    <a class="btn btn--linha btn--bloco" href="../">Voltar para a página do curso</a>
+    <a class="btn btn--linha btn--bloco" href="../"><span>Voltar para a página do curso</span></a>
   </div>
 </main>
 <script>

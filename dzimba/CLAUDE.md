@@ -53,7 +53,17 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - Palestrante Marcos Paulo Huber.
   - Programa de 6 tópicos; certificado de 5 horas.
   - O endereço exato do hotel não foi confirmado: o site usa uma busca no Maps.
-- **Front:** `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão) e `painel/` (arquivo único). Ao mudar, subir o `?v=`.
+- **Front (v2, 15/11):** a v1 foi rejeitada ("só colou o post, preguiça"), então **o cartaz não é mais usado**. A ideia da v2 é "rolar = correr":
+  - barra de ritmo no topo;
+  - herói com foto e cronômetro de largada;
+  - manifesto que acende palavra por palavra;
+  - percurso fixo, em que o corredor anda na rota da D'Zimba até o Praia Hotel;
+  - programa em 6 "parciais" com foto e visor trocando;
+  - palestrante tipográfico;
+  - **número de peito e certificado com o nome digitado ao vivo** (o nome vai para o modal de pagamento e para a mensagem do WhatsApp).
+  - GSAP 3.12.5 + ScrollTrigger; sem GSAP a página aparece parada.
+  - Fotos em `img/` geradas pelo Codex (hero, grupo, tenis, relogio, forca), sem marcas. Trocar por fotos reais se a academia tiver.
+  - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=3).
   - Sem token do MP, todos os botões levam para o WhatsApp da academia.
 - **API:** `corrida/api/` (Express + pdf-lib).
   - Na VPS fica em **`/opt/dzimba-corrida`** (fora da pasta pública), no pm2 `dzimba-corrida` na porta **8404**.
@@ -75,4 +85,4 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 1. **Access Token de produção do Mercado Pago da academia** (`APP_USR-...`, conta com chave PIX cadastrada). Vai em `MP_ACCESS_TOKEN` no `/opt/dzimba-corrida/.env`, depois `pm2 restart dzimba-corrida`.
 2. **Valor real** (hoje `VALOR=999.00`, provisório)
 3. **Parear o WhatsApp** (48) 99947-4500 pelo QR do painel e **criar o grupo** e escolher no painel
-4. Opcional: foto do palestrante e a arte original do certificado em alta
+4. Opcional: foto do palestrante, fotos reais de corrida da academia e a arte original do certificado em alta
