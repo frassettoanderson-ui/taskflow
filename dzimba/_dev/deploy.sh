@@ -8,7 +8,7 @@ set -euo pipefail
 VPS="root@89.117.79.163"
 DESTINO="/var/www/dzimba"
 API="/opt/dzimba-corrida"
-DOMINIO="dzimba.89-117-79-163.sslip.io"
+DOMINIO="academiadzimba.com.br"
 cd "$(dirname "$0")/.."
 
 echo "==> site → $VPS:$DESTINO"

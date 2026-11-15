@@ -18,7 +18,7 @@ try {
 } catch {}
 
 const TOKEN = process.env.MP_ACCESS_TOKEN || '';
-const PUBLIC_BASE = (process.env.PUBLIC_BASE || 'https://dzimba.89-117-79-163.sslip.io/corrida').replace(/\/$/, '');
+const PUBLIC_BASE = (process.env.PUBLIC_BASE || 'https://academiadzimba.com.br/corrida').replace(/\/$/, '');
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 const VALOR = Number(process.env.VALOR || '999.00');
 const MAX_PARCELAS = Number(process.env.MAX_PARCELAS || '1');

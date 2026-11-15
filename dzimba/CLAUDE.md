@@ -9,11 +9,12 @@ Site da **Academia D'Zimba** (Imbituba/SC), feito do zero em 09/11/2026 tendo co
 - Tem parceria com o Movimento Betel (`../betel/`), que aparece nos posts da academia
 
 ## No ar (15/11/2026)
-**https://dzimba.89-117-79-163.sslip.io/** (endereço provisório até ter domínio próprio)
+**https://academiadzimba.com.br/** (domínio próprio desde 15/11/2026, registrado no **Registro.br** com o DNS de lá: registros A de `@` e `www` → 89.117.79.163; quem edita a zona é o usuário, no painel do Registro.br)
+- `www` e o endereço antigo `dzimba.89-117-79-163.sslip.io` redirecionam (301) para o domínio. A API `/corrida/api/` continua respondendo também no endereço antigo, para links e webhooks antigos.
 - VPS antiga 89.117.79.163, nginx estático em `/var/www/dzimba`, config `/etc/nginx/sites-available/dzimba` (cópia em `_dev/nginx-dzimba.conf`)
-- Certificado Let's Encrypt via certbot (webroot), com renovação automática. HTTP redireciona para HTTPS.
+- Certificados Let's Encrypt via certbot (webroot), com renovação automática: `academiadzimba.com.br` (+www) e o antigo do sslip. HTTP redireciona para HTTPS. O HTML vai com `Cache-Control: no-cache` (o navegador sempre confere a versão nova).
+- `robots.txt` (bloqueia painel e API) e `sitemap.xml` na raiz.
 - **Atualizar o site:** `bash _dev/deploy.sh` de dentro da pasta `dzimba/` (envia por tar via ssh)
-- Quando houver domínio: apontar o registro A para 89.117.79.163, incluir o domínio no `server_name` e rodar certbot de novo
 
 ## Stack e como rodar
 HTML/CSS/JS puro, sem build. **v2 (15/11/2026)** refeita depois da crítica do usuário à v1 ("cara de site feito por IA", sem animação, seção de app inventada, comunidade sem foto).
@@ -42,10 +43,9 @@ Phive (fotos espalhadas que se juntam, marca gigante, anilha rolando, menu flutu
 3. **Curso de Corrida 12/12:** a landing já existe (ver a seção abaixo); falta o que está listado nela.
 4. **Planos e preços** (não existe seção ainda). Confirmar também se há aula experimental grátis; o site evita prometer isso.
 5. Confirmar se pode usar as **3 avaliações do Google** (Déborah, Leonardo Mello, Bruno Rist) com nome
-6. Domínio próprio (hoje está no endereço sslip). As meta tags OG ainda usam caminho relativo.
 
 ## Landing do Curso de Corrida de Rua (12/12/2026): `corrida/`
-**No ar:** https://dzimba.89-117-79-163.sslip.io/corrida/ · painel em `/corrida/painel/` (a chave está na VPS em `/root/segredos/dzimba-corrida-painel`)
+**No ar:** https://academiadzimba.com.br/corrida/ · painel em `/corrida/painel/` (a chave está na VPS em `/root/segredos/dzimba-corrida-painel`)
 Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 - **Dados do evento:** 12/12/2026.
   - Credenciamento na academia das 7h30 às 11h.
@@ -71,6 +71,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - Fotos em `img/` geradas pelo Codex (hero, grupo, tenis, relogio, forca), sem marcas. Trocar por fotos reais se a academia tiver.
   - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão), `validar/` (confere o código do certificado) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=4).
 - **API:** `corrida/api/` (Express + pdf-lib).
+  - `PUBLIC_BASE=https://academiadzimba.com.br/corrida` no `.env` da VPS (links do certificado, validação e volta do Mercado Pago).
   - Na VPS fica em **`/opt/dzimba-corrida`** (fora da pasta pública), no pm2 `dzimba-corrida` na porta **8404**.
   - O nginx usa `location ^~ /corrida/api/` → `127.0.0.1:8404/api/`.
   - O `.env` e o `data/` (inscritos.json, config.json) só existem na VPS; o deploy não sobrescreve.

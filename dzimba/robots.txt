@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /corrida/painel/
+Disallow: /corrida/api/
+
+Sitemap: https://academiadzimba.com.br/sitemap.xml
