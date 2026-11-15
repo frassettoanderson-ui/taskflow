@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel · Curso de Corrida de Rua · D'Zimba</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0b0d0a">
+<link rel="icon" href="../img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root { --preto:#0b0d0a; --g1:#141712; --g2:#1d211a; --linha:#2b3027; --lime:#b4e31e; --texto:#eef2e6; --suave:#9aa38e; --erro:#ff6b5b; --amarelo:#f2c94c;
+  --titulo:'Big Shoulders Display','Arial Narrow',sans-serif; --corpo:'Barlow',system-ui,sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--preto); color: var(--texto); font: 400 15px/1.45 var(--corpo); }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--lime); }
+img { max-width: 100%; height: auto; display: block; }
+[hidden] { display: none !important; }
+.btn { display: inline-flex; align-items: center; gap: .4em; padding: .6em 1em; border-radius: 4px; border: 1px solid var(--linha); background: var(--g2); cursor: pointer; font-weight: 600; text-decoration: none; color: var(--texto); white-space: nowrap; }
+.btn:hover { border-color: var(--lime); }
+.btn--lime { background: var(--lime); color: var(--preto); border-color: var(--lime); }
+.btn--lime:hover { background: #c7f53a; }
+.btn--mini { padding: .35em .6em; font-size: .82rem; }
+.btn[disabled] { opacity: .5; cursor: wait; }
+input, select { background: var(--preto); border: 1px solid var(--linha); border-radius: 4px; padding: .6em .7em; width: 100%; }
+input:focus, select:focus { outline: none; border-color: var(--lime); }
+
+/* login */
+.login { min-height: 100svh; display: grid; place-items: center; padding: 16px; }
+.login form { width: 100%; max-width: 360px; background: var(--g1); border: 1px solid var(--linha); border-top: 4px solid var(--lime); border-radius: 8px; padding: 32px 24px; text-align: center; display: grid; gap: .9rem; }
+.login img { width: 110px; margin: 0 auto; }
+.login h1 { margin: 0; font: 900 1.8rem/1 var(--titulo); text-transform: uppercase; }
+.login p { margin: 0; color: var(--erro); font-size: .9rem; }
+
+/* topo */
+.topo { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 16px; border-bottom: 1px solid var(--linha); background: var(--g1); position: sticky; top: 0; z-index: 5; }
+.topo img { width: 64px; }
+.topo h1 { margin: 0; font: 900 1.4rem/1 var(--titulo); text-transform: uppercase; flex: 1; min-width: 180px; }
+.topo h1 small { display: block; font: 500 .8rem var(--corpo); color: var(--suave); text-transform: none; margin-top: 3px; }
+.topo__acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+main { padding: 16px; max-width: 1400px; margin: 0 auto; }
+
+/* faixa do WhatsApp/grupo */
+.zap { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.zap > div { background: var(--g1); border: 1px solid var(--linha); border-radius: 8px; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.zap h2 { margin: 0; font: 800 1rem/1 var(--titulo); text-transform: uppercase; letter-spacing: .06em; color: var(--suave); width: 100%; }
+.estado { display: inline-flex; align-items: center; gap: .45em; font-weight: 600; }
+.estado::before { content: ''; width: 9px; height: 9px; border-radius: 50%; background: var(--erro); }
+.estado.on::before { background: var(--lime); box-shadow: 0 0 0 4px rgba(180,227,30,.18); }
+.zap .grupo-nome { flex: 1; min-width: 160px; font-weight: 600; }
+.zap .grupo-nome small { display: block; color: var(--suave); font-weight: 400; word-break: break-all; }
+
+/* cartões */
+.cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 16px; }
+.card { background: var(--g1); border: 1px solid var(--linha); border-radius: 8px; padding: 14px; }
+.card b { display: block; font: 900 2rem/1 var(--titulo); color: var(--lime); font-variant-numeric: tabular-nums; }
+.card span { font-size: .8rem; color: var(--suave); text-transform: uppercase; letter-spacing: .08em; }
+
+/* barra de filtro */
+.barra { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.abas { display: flex; gap: 4px; background: var(--g1); border: 1px solid var(--linha); border-radius: 6px; padding: 3px; }
+.abas button { background: none; border: 0; padding: .45em .8em; border-radius: 4px; cursor: pointer; color: var(--suave); font-weight: 600; }
+.abas button.ativo { background: var(--lime); color: var(--preto); }
+.barra input { max-width: 280px; }
+.barra .esp { flex: 1; }
+
+/* tabela */
+.tabela-wrap { overflow-x: auto; border: 1px solid var(--linha); border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; min-width: 980px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--linha); vertical-align: middle; }
+th { background: var(--g1); font: 700 .78rem var(--corpo); text-transform: uppercase; letter-spacing: .08em; color: var(--suave); position: sticky; top: 0; }
+tr:hover td { background: rgba(255,255,255,.02); }
+td.num { color: var(--suave); font-variant-numeric: tabular-nums; width: 40px; }
+td .nome { font-weight: 600; }
+td .sub { color: var(--suave); font-size: .82rem; }
+.tag { display: inline-block; padding: .15em .55em; border-radius: 3px; font-size: .78rem; font-weight: 600; background: var(--g2); color: var(--suave); }
+.tag.ok { background: rgba(180,227,30,.15); color: var(--lime); }
+.tag.pend { background: rgba(242,201,76,.12); color: var(--amarelo); }
+.tag.erro { background: rgba(255,107,91,.12); color: var(--erro); }
+.acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.presenca { position: relative; display: inline-flex; align-items: center; gap: .5em; cursor: pointer; user-select: none; }
+.presenca input { position: absolute; opacity: 0; width: 1px; }
+.presenca i { width: 40px; height: 22px; border-radius: 99px; background: var(--g2); border: 1px solid var(--linha); position: relative; transition: .15s; }
+.presenca i::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--suave); transition: .15s; }
+.presenca input:checked + i { background: var(--lime); border-color: var(--lime); }
+.presenca input:checked + i::after { left: 20px; background: var(--preto); }
+.presenca input:focus-visible + i { outline: 2px solid var(--lime); outline-offset: 2px; }
+.vazio { padding: 40px; text-align: center; color: var(--suave); }
+
+/* modais */
+.modal { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 16px; background: rgba(0,0,0,.75); }
+.modal__caixa { width: 100%; max-width: 440px; max-height: calc(100svh - 32px); overflow: auto; background: var(--g1); border: 1px solid var(--linha); border-top: 4px solid var(--lime); border-radius: 8px; padding: 24px; position: relative; }
+.modal__caixa--larga { max-width: 900px; }
+.modal h3 { margin: 0 0 1rem; font: 900 1.5rem/1 var(--titulo); text-transform: uppercase; }
+.modal__x { position: absolute; top: 6px; right: 8px; background: none; border: 0; font-size: 1.7rem; color: var(--suave); cursor: pointer; width: 36px; height: 36px; }
+.modal form { display: grid; gap: .8rem; }
+.modal label { display: grid; gap: .3rem; font-weight: 600; font-size: .9rem; }
+.modal .linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.modal .nota { color: var(--suave); font-size: .88rem; margin: 0; }
+.qr { width: 260px; height: 260px; margin: 0 auto 1rem; background: #fff; border-radius: 6px; padding: 8px; display: grid; place-items: center; color: #333; }
+.qr img { width: 100%; }
+.lista-grupos { display: grid; gap: 6px; max-height: 50vh; overflow: auto; margin-bottom: 1rem; }
+.lista-grupos button { text-align: left; background: var(--g2); border: 1px solid var(--linha); border-radius: 4px; padding: .7em .9em; cursor: pointer; }
+.lista-grupos button:hover, .lista-grupos button.atual { border-color: var(--lime); }
+.lista-grupos small { color: var(--suave); }
+iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; background: #fff; }
+
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--g2); border: 1px solid var(--lime); padding: .7em 1.2em; border-radius: 6px; z-index: 40; max-width: calc(100% - 32px); }
+.toast.erro { border-color: var(--erro); }
+
+@media (max-width: 1000px) { .cards { grid-template-columns: repeat(3, 1fr); } .zap { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .cards { grid-template-columns: repeat(2, 1fr); } .barra input { max-width: none; flex: 1 1 100%; } .topo h1 { min-width: 0; } .modal .linha2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section class="login" id="login" hidden>
+  <form id="login-form">
+    <img src="../img/logo.png" alt="D'Zimba Academia" width="272" height="168">
+    <h1>Painel do curso</h1>
+    <input type="password" name="key" placeholder="Chave de acesso" autocomplete="current-password" required>
+    <button class="btn btn--lime" style="justify-content:center">Entrar</button>
+    <p id="login-erro" hidden>Chave inválida.</p>
+  </form>
+</section>
+
+<!-- PAINEL -->
+<div id="app" hidden>
+  <header class="topo">
+    <img src="../img/logo.png" alt="" width="272" height="168">
+    <h1>Curso de Corrida de Rua <small id="sub-evento">12/12/2026 · Praia Hotel</small></h1>
+    <div class="topo__acoes">
+      <button class="btn btn--lime" data-abre="manual">+ Inscrição manual</button>
+      <button class="btn" data-abre="previa">Ver certificado</button>
+      <button class="btn" id="btn-csv">Planilha</button>
+      <button class="btn" id="btn-sair">Sair</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="zap">
+      <div>
+        <h2>WhatsApp da academia</h2>
+        <span class="estado" id="zap-estado">…</span>
+        <span class="esp" style="flex:1"></span>
+        <button class="btn btn--mini" id="btn-qr" hidden>Conectar (QR)</button>
+      </div>
+      <div>
+        <h2>Grupo dos inscritos</h2>
+        <span class="grupo-nome" id="grupo-nome">Nenhum grupo escolhido</span>
+        <button class="btn btn--mini" id="btn-grupos">Escolher grupo</button>
+        <button class="btn btn--mini" id="btn-link">Link</button>
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card"><b id="c-pagos">0</b><span>Inscritos pagos</span></div>
+      <div class="card"><b id="c-arrecadado">R$ 0</b><span>Arrecadado</span></div>
+      <div class="card"><b id="c-pend">0</b><span>Aguardando pagto.</span></div>
+      <div class="card"><b id="c-grupo">0</b><span>No grupo</span></div>
+      <div class="card"><b id="c-presentes">0</b><span>Credenciados</span></div>
+      <div class="card"><b id="c-cert">0</b><span>Certificados enviados</span></div>
+    </div>
+
+    <div class="barra">
+      <div class="abas" role="tablist">
+        <button class="ativo" data-aba="pagos">Pagos</button>
+        <button data-aba="pendentes">Pendentes</button>
+        <button data-aba="todos">Todos</button>
+      </div>
+      <input type="search" id="busca" placeholder="Buscar nome, WhatsApp ou e-mail">
+      <span class="esp"></span>
+      <button class="btn" id="btn-certs">Enviar certificados…</button>
+      <button class="btn" id="btn-atualizar">Atualizar</button>
+    </div>
+
+    <p class="nota" id="nota-cert" style="color:var(--suave);margin:0 0 10px;font-size:.88rem"></p>
+
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Inscrito</th><th>Nível</th><th>Pagamento</th><th>Grupo</th><th>Credenciado</th><th>Certificado</th><th></th></tr></thead>
+        <tbody id="linhas"></tbody>
+      </table>
+      <div class="vazio" id="vazio" hidden>Nenhuma inscrição por aqui ainda.</div>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL: inscrição manual -->
+<div class="modal" id="m-manual" hidden><div class="modal__caixa">
+  <button class="modal__x" data-fecha>&times;</button>
+  <h3>Inscrição manual</h3>
+  <form id="f-manual">
+    <label>Nome completo<input name="nome" required></label>
+    <div class="linha2">
+      <label>WhatsApp<input name="whatsapp" inputmode="tel" required></label>
+      <label>E-mail<input name="email" type="email"></label>
+    </div>
+    <div class="linha2">
+      <label>Forma<select name="metodo"><option value="dinheiro">Dinheiro</option><option value="pix">PIX direto</option><option value="cartao">Cartão (maquininha)</option><option value="transferencia">Transferência</option><option value="cortesia">Cortesia</option></select></label>
+      <label>Valor (R$)<input name="valor" inputmode="decimal"></label>
+    </div>
+    <label>Nível<select name="nivel"><option value="">—</option><option value="iniciante">Iniciante</option><option value="intermediario">Intermediário</option><option value="avancado">Avançado</option></select></label>
+    <p class="nota">Entra como pago. Depois de alguns minutos o sistema manda a confirmação e o grupo no WhatsApp da pessoa.</p>
+    <button class="btn btn--lime" style="justify-content:center">Salvar inscrição</button>
+  </form>
+</div></div>
+
+<!-- MODAL: editar -->
+<div class="modal" id="m-editar" hidden><div class="modal__caixa">
+  <button class="modal__x" data-fecha>&times;</button>
+  <h3>Editar inscrito</h3>
+  <form id="f-editar">
+    <input type="hidden" name="id">
+    <label>Nome (sai assim no certificado)<input name="nome" required></label>
+    <label>WhatsApp<input name="whatsapp" inputmode="tel" required></label>
+    <label>E-mail<input name="email" type="email"></label>
+    <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">
+      <button type="button" class="btn" id="btn-ocultar" style="color:var(--erro)">Remover da lista</button>
+      <button class="btn btn--lime">Salvar</button>
+    </div>
+  </form>
+</div></div>
+
+<!-- MODAL: QR -->
+<div class="modal" id="m-qr" hidden><div class="modal__caixa" style="text-align:center">
+  <button class="modal__x" data-fecha>&times;</button>
+  <h3>Conectar o WhatsApp</h3>
+  <div class="qr" id="qr-img">Gerando…</div>
+  <p class="nota">No celular da academia: WhatsApp › Aparelhos conectados › Conectar um aparelho, e aponte para o código. Ele se renova sozinho.</p>
+</div></div>
+
+<!-- MODAL: grupos -->
+<div class="modal" id="m-grupos" hidden><div class="modal__caixa">
+  <button class="modal__x" data-fecha>&times;</button>
+  <h3>Grupo dos inscritos</h3>
+  <p class="nota" style="margin-bottom:.8rem">Crie o grupo no celular da academia e escolha aqui. Quem pagar é colocado nele; se o WhatsApp não deixar, a pessoa recebe o link.</p>
+  <div class="lista-grupos" id="lista-grupos">Carregando…</div>
+</div></div>
+
+<!-- MODAL: link do grupo -->
+<div class="modal" id="m-link" hidden><div class="modal__caixa">
+  <button class="modal__x" data-fecha>&times;</button>
+  <h3>Link de convite</h3>
+  <form id="f-link">
+    <label>Link do grupo<input name="link" placeholder="https://chat.whatsapp.com/..."></label>
+    <p class="nota">Vai na mensagem de confirmação e na tela de pagamento aprovado. Normalmente é preenchido sozinho ao escolher o grupo.</p>
+    <button class="btn btn--lime" style="justify-content:center">Salvar link</button>
+  </form>
+</div></div>
+
+<!-- MODAL: enviar certificados -->
+<div class="modal" id="m-certs" hidden><div class="modal__caixa">
+  <button class="modal__x" data-fecha>&times;</button>
+  <h3>Enviar certificados</h3>
+  <p class="nota" id="certs-auto" style="margin-bottom:1rem"></p>
+  <div style="display:grid;gap:8px">
+    <button class="btn btn--lime" data-fila="presentes" style="justify-content:center">Enviar agora para os credenciados</button>
+    <button class="btn" data-fila="todos" style="justify-content:center">Enviar para todos os pagos</button>
+  </div>
+  <p class="nota" style="margin-top:1rem">O envio é feito aos poucos (até 6 por minuto) pelo WhatsApp da academia, para não ser bloqueado. Quem já recebeu não recebe de novo.</p>
+</div></div>
+
+<!-- MODAL: prévia do certificado -->
+<div class="modal" id="m-previa" hidden><div class="modal__caixa modal__caixa--larga">
+  <button class="modal__x" data-fecha>&times;</button>
+  <h3>Prévia do certificado</h3>
+  <form id="f-previa" style="display:flex;gap:8px;margin-bottom:12px;grid-template-columns:none">
+    <input name="nome" value="Nome do Participante" style="flex:1">
+    <button class="btn btn--lime">Ver</button>
+  </form>
+  <iframe class="previa" id="previa" title="Prévia do certificado"></iframe>
+</div></div>
+
+<script>
+(function () {
+  'use strict';
+  var API = '../api/';
+  var CHAVE = 'dz-corrida-key';
+  var key = '';
+  try { key = localStorage.getItem(CHAVE) || ''; } catch (e) {}
+  var dados = null, aba = 'pagos', busca = '', qrTimer = null;
+
+  var $ = function (s, el) { return (el || document).querySelector(s); };
+  var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var brl = function (v) { return 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var fone = function (w) { w = String(w || ''); return w.length >= 10 ? '(' + w.slice(0, 2) + ') ' + w.slice(2, -4) + '-' + w.slice(-4) : w; };
+  var dataBR = function (iso) { if (!iso) return ''; var d = new Date(iso); return d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' }) + ' ' + d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }); };
+  var NIVEL = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado' };
+  var METODO = { pix: 'PIX', cartao: 'Cartão', dinheiro: 'Dinheiro', transferencia: 'Transferência', cortesia: 'Cortesia' };
+
+  function api(rota, opt) {
+    opt = opt || {};
+    var url = API + rota + (rota.indexOf('?') > -1 ? '&' : '?') + 'key=' + encodeURIComponent(key);
+    return fetch(url, { method: opt.method || 'GET', headers: opt.body ? { 'Content-Type': 'application/json' } : {}, body: opt.body ? JSON.stringify(opt.body) : undefined })
+      .then(function (r) {
+        if (r.status === 401) { sair(true); throw new Error('nao_autorizado'); }
+        return r.json().then(function (j) { j._ok = r.ok; return j; });
+      });
+  }
+  function toast(t, erro) {
+    var el = document.createElement('div'); el.className = 'toast' + (erro ? ' erro' : ''); el.textContent = t;
+    document.body.appendChild(el); setTimeout(function () { el.remove(); }, 3800);
+  }
+  function abre(id) { $('#m-' + id).hidden = false; }
+  function fecha(m) { m.hidden = true; if (m.id === 'm-qr') { clearTimeout(qrTimer); carregar(); } }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-abre]'); if (a) { abre(a.dataset.abre); if (a.dataset.abre === 'previa') $('#f-previa').requestSubmit(); return; }
+    if (e.target.closest('[data-fecha]') || e.target.classList.contains('modal')) fecha(e.target.closest('.modal'));
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $$('.modal:not([hidden])').forEach(fecha); });
+
+  /* ---------- login ---------- */
+  function entrar() { $('#login').hidden = true; $('#app').hidden = false; carregar(); }
+  function sair(invalida) {
+    try { localStorage.removeItem(CHAVE); } catch (e) {}
+    key = ''; $('#app').hidden = true; $('#login').hidden = false; $('#login-erro').hidden = !invalida;
+  }
+  $('#login-form').addEventListener('submit', function (e) {
+    e.preventDefault(); key = this.key.value.trim();
+    api('painel').then(function (j) { if (!j._ok) throw 0; try { localStorage.setItem(CHAVE, key); } catch (e) {} dados = j; $('#login').hidden = true; $('#app').hidden = false; render(); })
+      .catch(function () { $('#login-erro').hidden = false; });
+  });
+  $('#btn-sair').onclick = function () { sair(false); };
+
+  /* ---------- carregar e desenhar ---------- */
+  function carregar(forcarGrupo) {
+    return api('painel' + (forcarGrupo ? '?atualizar=1' : '')).then(function (j) { if (j._ok) { dados = j; render(); } }).catch(function () {});
+  }
+  function render() {
+    var r = dados.resumo, ev = dados.evento;
+    $('#c-pagos').textContent = r.pagos + (ev.vagas ? ' / ' + ev.vagas : '');
+    $('#c-arrecadado').textContent = brl(r.arrecadado);
+    $('#c-pend').textContent = r.pendentes;
+    $('#c-grupo').textContent = r.noGrupo;
+    $('#c-presentes').textContent = r.presentes;
+    $('#c-cert').textContent = r.certificados;
+    $('#sub-evento').textContent = '12/12/2026 · Praia Hotel · inscrição ' + brl(ev.valor) + (ev.pagamento ? '' : ' · pagamento online DESLIGADO');
+
+    var on = dados.whatsapp.estado === 'open';
+    var est = $('#zap-estado');
+    est.className = 'estado' + (on ? ' on' : '');
+    est.textContent = on ? 'Conectado' : (dados.whatsapp.estado === 'nao_configurado' ? 'Não configurado' : 'Desconectado');
+    $('#btn-qr').hidden = on || dados.whatsapp.estado === 'nao_configurado';
+    var g = dados.grupo;
+    $('#grupo-nome').innerHTML = g ? esc(g.nome || 'Grupo') + (g.total != null ? ' · ' + g.total + ' membros' : '') + '<small>' + esc(g.link || 'sem link de convite') + '</small>' : 'Nenhum grupo escolhido';
+
+    var auto = new Date(ev.certAutoEm);
+    $('#nota-cert').textContent = Date.now() < auto ? 'Certificados vão sozinhos em ' + dataBR(ev.certAutoEm) + ' para quem estiver marcado como credenciado.' : 'Envio automático de certificados ativo para os credenciados.';
+    $('#certs-auto').textContent = 'Envio automático: ' + dataBR(ev.certAutoEm) + ', para quem estiver marcado como credenciado. Use os botões para mandar antes.';
+
+    var lista = dados.inscritos.filter(function (i) {
+      if (aba === 'pagos' && i.status !== 'approved') return false;
+      if (aba === 'pendentes' && i.status === 'approved') return false;
+      if (!busca) return true;
+      var b = busca.toLowerCase();
+      return (i.nome || '').toLowerCase().indexOf(b) > -1 || (i.email || '').toLowerCase().indexOf(b) > -1 || (i.whatsapp || '').indexOf(b.replace(/\D/g, '') || '§') > -1;
+    });
+    if (aba === 'pagos') lista.sort(function (a, b) { return (a.nome || '').localeCompare(b.nome || '', 'pt-BR'); });
+    $('#vazio').hidden = lista.length > 0;
+    $('#linhas').innerHTML = lista.map(linha).join('');
+  }
+  function linha(i) {
+    var pago = i.status === 'approved';
+    var pagto = pago ? '<span class="tag ok">' + esc(METODO[i.metodo] || i.metodo) + ' · ' + brl(i.valor) + '</span><div class="sub">' + dataBR(i.pago) + '</div>'
+      : '<span class="tag pend">' + (i.status === 'pending' ? 'Aguardando' : esc(i.status)) + '</span><div class="sub">' + dataBR(i.criado) + '</div>';
+    var grupo = '';
+    if (pago) {
+      if (i.noGrupo === true) grupo = '<span class="tag ok">No grupo</span>';
+      else {
+        var pos = i.pos || {};
+        grupo = (i.noGrupo === false ? '<span class="tag erro">Fora</span>' : '<span class="tag">—</span>') +
+          (pos.texto === 'enviado' ? ' <span class="sub">link enviado</span>' : '') +
+          '<div class="acoes" style="margin-top:4px"><button class="btn btn--mini" data-acao="adicionar" data-id="' + i.id + '">Adicionar</button><button class="btn btn--mini" data-acao="convite" data-id="' + i.id + '">Mandar link</button></div>';
+      }
+    }
+    var cert = '';
+    if (pago) {
+      var st = i.cert && i.cert.status;
+      cert = (st === 'enviado' ? '<span class="tag ok">Enviado</span>' : st ? '<span class="tag erro" title="' + esc(st) + '">Falhou</span>' : i.certFila ? '<span class="tag pend">Na fila</span>' : '') +
+        '<div class="acoes" style="margin-top:4px"><a class="btn btn--mini" href="' + esc(i.certUrl) + '" target="_blank" rel="noopener">Ver PDF</a><button class="btn btn--mini" data-acao="cert" data-id="' + i.id + '">' + (st === 'enviado' ? 'Reenviar' : 'Enviar') + '</button></div>';
+    }
+    return '<tr>' +
+      '<td class="num">' + (i.ordem || '') + '</td>' +
+      '<td><div class="nome">' + esc(i.nome) + '</div><div class="sub"><a href="https://wa.me/55' + esc(i.whatsapp) + '" target="_blank" rel="noopener">' + esc(fone(i.whatsapp)) + '</a> · ' + esc(i.email || 'sem e-mail') + '</div></td>' +
+      '<td>' + esc(NIVEL[i.nivel] || '—') + '</td>' +
+      '<td>' + pagto + '</td>' +
+      '<td>' + grupo + '</td>' +
+      '<td>' + (pago ? '<label class="presenca"><input type="checkbox" data-presente="' + i.id + '"' + (i.presente ? ' checked' : '') + '><i></i></label>' : '') + '</td>' +
+      '<td>' + cert + '</td>' +
+      '<td><button class="btn btn--mini" data-acao="editar" data-id="' + i.id + '">Editar</button></td>' +
+      '</tr>';
+  }
+
+  /* ---------- ações da tabela ---------- */
+  $('#linhas').addEventListener('change', function (e) {
+    var id = e.target.dataset.presente; if (!id) return;
+    var v = e.target.checked;
+    api('inscrito/' + id, { method: 'PATCH', body: { presente: v } }).then(function (j) {
+      if (!j._ok) throw 0;
+      var rec = dados.inscritos.find(function (x) { return x.id === id; }); rec.presente = v;
+      dados.resumo.presentes += v ? 1 : -1; $('#c-presentes').textContent = dados.resumo.presentes;
+    }).catch(function () { e.target.checked = !v; toast('Não salvou. Tente de novo.', true); });
+  });
+  $('#linhas').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-acao]'); if (!b) return;
+    var id = b.dataset.id, acao = b.dataset.acao;
+    if (acao === 'editar') {
+      var rec = dados.inscritos.find(function (x) { return x.id === id; }), f = $('#f-editar');
+      f.id.value = id; f.nome.value = rec.nome; f.whatsapp.value = rec.whatsapp; f.email.value = rec.email || '';
+      return abre('editar');
+    }
+    var rota = { adicionar: 'grupo/adicionar', convite: 'convite', cert: 'certificado/enviar' }[acao];
+    b.disabled = true;
+    api(rota, { method: 'POST', body: { id: id } }).then(function (j) {
+      var msg = { adicionado: 'Adicionado ao grupo.', ja_no_grupo: 'Já está no grupo.', enviado: 'Enviado.' }[j.resultado || j.detalhe];
+      toast(j.ok ? (msg || 'Feito.') : 'Não deu: ' + (j.resultado || j.detalhe || j.error || 'erro'), !j.ok);
+      carregar();
+    }).catch(function () { toast('Erro de conexão.', true); b.disabled = false; });
+  });
+
+  /* ---------- formulários ---------- */
+  $('#f-manual').addEventListener('submit', function (e) {
+    e.preventDefault(); var f = this;
+    var body = { nome: f.nome.value, whatsapp: f.whatsapp.value, email: f.email.value, metodo: f.metodo.value, nivel: f.nivel.value, valor: f.valor.value.replace(',', '.') };
+    api('manual', { method: 'POST', body: body }).then(function (j) {
+      if (!j._ok) return toast('Confira o nome e o WhatsApp.', true);
+      f.reset(); fecha($('#m-manual')); toast('Inscrição salva.'); carregar();
+    });
+  });
+  $('#f-manual').metodo.addEventListener('change', function () { if (this.value === 'cortesia') this.form.valor.value = '0'; });
+  $('#f-editar').addEventListener('submit', function (e) {
+    e.preventDefault(); var f = this;
+    api('inscrito/' + f.id.value, { method: 'PATCH', body: { nome: f.nome.value, whatsapp: f.whatsapp.value, email: f.email.value } }).then(function (j) {
+      if (!j._ok) return toast('Confira os dados.', true);
+      fecha($('#m-editar')); toast('Salvo.'); carregar();
+    });
+  });
+  $('#btn-ocultar').onclick = function () {
+    var f = $('#f-editar');
+    if (!confirm('Remover ' + f.nome.value + ' da lista? (some do painel e das contagens)')) return;
+    api('inscrito/' + f.id.value, { method: 'PATCH', body: { oculto: true } }).then(function () { fecha($('#m-editar')); carregar(); });
+  };
+  $('#f-previa').addEventListener('submit', function (e) {
+    e.preventDefault();
+    $('#previa').src = API + 'certificado-previa?key=' + encodeURIComponent(key) + '&nome=' + encodeURIComponent(this.nome.value);
+  });
+
+  /* ---------- certificados em lote ---------- */
+  $('#btn-certs').onclick = function () { abre('certs'); };
+  $$('[data-fila]').forEach(function (b) {
+    b.onclick = function () {
+      var alvo = b.dataset.fila;
+      if (alvo === 'todos' && !confirm('Mandar o certificado para TODOS os pagos, inclusive quem não foi marcado como credenciado?')) return;
+      api('certificados/fila', { method: 'POST', body: { alvo: alvo } }).then(function (j) {
+        fecha($('#m-certs'));
+        toast(j.naFila ? j.naFila + ' na fila. Vão saindo aos poucos.' : 'Ninguém para enviar' + (alvo === 'presentes' ? ' (marque os credenciados).' : '.'));
+        carregar();
+      });
+    };
+  });
+
+  /* ---------- WhatsApp ---------- */
+  $('#btn-qr').onclick = function () { abre('qr'); $('#qr-img').textContent = 'Gerando…'; pedirQr(); };
+  function pedirQr() {
+    if ($('#m-qr').hidden) return;
+    api('whatsapp/qr').then(function (j) {
+      if (j.estado === 'open') { fecha($('#m-qr')); toast('WhatsApp conectado!'); return; }
+      $('#qr-img').innerHTML = j.qr ? '<img src="' + esc(j.qr) + '" alt="QR code">' : esc(j.detalhe || 'Sem QR ainda, tentando de novo…');
+      qrTimer = setTimeout(pedirQr, 5000);
+    }).catch(function () { $('#qr-img').textContent = 'Falha ao gerar. Tentando de novo…'; qrTimer = setTimeout(pedirQr, 8000); });
+  }
+  $('#btn-grupos').onclick = function () {
+    abre('grupos'); var box = $('#lista-grupos'); box.textContent = 'Carregando…';
+    api('whatsapp/grupos').then(function (j) {
+      if (!j._ok) { box.textContent = 'Conecte o WhatsApp primeiro.'; return; }
+      if (!j.grupos.length) { box.textContent = 'Nenhum grupo nesse WhatsApp. Crie o grupo no celular e tente de novo.'; return; }
+      box.innerHTML = j.grupos.map(function (g) {
+        return '<button data-jid="' + esc(g.jid) + '" data-nome="' + esc(g.nome) + '"' + (g.jid === j.atual ? ' class="atual"' : '') + '>' + esc(g.nome) + ' <small>· ' + g.membros + ' membros' + (g.jid === j.atual ? ' · escolhido' : '') + '</small></button>';
+      }).join('');
+    }).catch(function () { box.textContent = 'Erro ao carregar.'; });
+  };
+  $('#lista-grupos').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-jid]'); if (!b) return;
+    api('whatsapp/grupo', { method: 'POST', body: { jid: b.dataset.jid, nome: b.dataset.nome } }).then(function (j) {
+      fecha($('#m-grupos'));
+      toast(j.link ? 'Grupo escolhido.' : 'Grupo escolhido, mas o link não veio. Cole o link em "Link".', !j.link);
+      carregar(true);
+    });
+  });
+  $('#btn-link').onclick = function () { $('#f-link').link.value = (dados.grupo && dados.grupo.link) || ''; abre('link'); };
+  $('#f-link').addEventListener('submit', function (e) {
+    e.preventDefault();
+    api('whatsapp/grupo-link', { method: 'POST', body: { link: this.link.value } }).then(function (j) {
+      if (!j._ok) return toast('Link inválido. Ele começa com https://chat.whatsapp.com/', true);
+      fecha($('#m-link')); toast('Link salvo.'); carregar();
+    });
+  });
+
+  /* ---------- barra ---------- */
+  $$('[data-aba]').forEach(function (b) {
+    b.onclick = function () { $$('[data-aba]').forEach(function (x) { x.classList.toggle('ativo', x === b); }); aba = b.dataset.aba; render(); };
+  });
+  $('#busca').addEventListener('input', function () { busca = this.value.trim(); render(); });
+  $('#btn-atualizar').onclick = function () { carregar(true).then(function () { toast('Atualizado.'); }); };
+  $('#btn-csv').onclick = function () { location.href = API + 'admin?csv=1&key=' + encodeURIComponent(key); };
+
+  if (key) entrar(); else $('#login').hidden = false;
+  setInterval(function () { if (key && document.visibilityState === 'visible' && $$('.modal:not([hidden])').length === 0) carregar(); }, 30000);
+})();
+</script>
+</body>
+</html>
