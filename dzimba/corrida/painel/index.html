@@ -99,6 +99,8 @@ td .sub { color: var(--suave); font-size: .82rem; }
 .modal form { display: grid; gap: .8rem; }
 .modal label { display: grid; gap: .3rem; font-weight: 600; font-size: .9rem; }
 .modal .linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.modal label.chk { display: flex; align-items: center; gap: .55rem; font-weight: 500; cursor: pointer; }
+.modal label.chk input { width: 18px; height: 18px; accent-color: var(--lime); flex: none; }
 .modal .nota { color: var(--suave); font-size: .88rem; margin: 0; }
 .qr { width: 260px; height: 260px; margin: 0 auto 1rem; background: #fff; border-radius: 6px; padding: 8px; display: grid; place-items: center; color: #333; }
 .qr img { width: 100%; }
@@ -137,6 +139,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
       <button class="btn btn--lime" data-abre="manual">+ Inscrição manual</button>
       <button class="btn" data-abre="previa">Ver certificado</button>
       <button class="btn" id="btn-csv">Planilha</button>
+      <button class="btn" id="btn-csv-patro" title="Só os pagos que autorizaram">Contatos p/ patrocinadores <span id="c-patro"></span></button>
       <button class="btn" id="btn-sair">Sair</button>
     </div>
   </header>
@@ -205,6 +208,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
       <label>Valor (R$)<input name="valor" inputmode="decimal"></label>
     </div>
     <label>Nível<select name="nivel"><option value="">—</option><option value="iniciante">Iniciante</option><option value="intermediario">Intermediário</option><option value="avancado">Avançado</option></select></label>
+    <label class="chk"><input type="checkbox" name="patrocinadores"> A pessoa autorizou compartilhar os contatos com os patrocinadores</label>
     <p class="nota">Entra como pago. Depois de alguns minutos o sistema manda a confirmação e o grupo no WhatsApp da pessoa.</p>
     <button class="btn btn--lime" style="justify-content:center">Salvar inscrição</button>
   </form>
@@ -219,6 +223,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
     <label>Nome (sai assim no certificado)<input name="nome" required></label>
     <label>WhatsApp<input name="whatsapp" inputmode="tel" required></label>
     <label>E-mail<input name="email" type="email"></label>
+    <label class="chk"><input type="checkbox" name="patrocinadores"> Autorizou compartilhar os contatos com os patrocinadores</label>
     <div style="display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap">
       <button type="button" class="btn" id="btn-ocultar" style="color:var(--erro)">Remover da lista</button>
       <button class="btn btn--lime">Salvar</button>
@@ -339,6 +344,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
     $('#c-pend').textContent = r.pendentes;
     $('#c-grupo').textContent = r.noGrupo;
     $('#c-presentes').textContent = r.presentes;
+    $('#c-patro').textContent = '(' + (r.patrocinadores || 0) + ')';
     $('#c-cert').textContent = r.certificados;
     $('#sub-evento').textContent = '12/12/2026 · Praia Hotel · inscrição ' + brl(ev.valor) + (ev.pagamento ? '' : ' · pagamento online DESLIGADO');
 
@@ -387,7 +393,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
     }
     return '<tr>' +
       '<td class="num">' + (i.ordem || '') + '</td>' +
-      '<td><div class="nome">' + esc(i.nome) + '</div><div class="sub"><a href="https://wa.me/55' + esc(i.whatsapp) + '" target="_blank" rel="noopener">' + esc(fone(i.whatsapp)) + '</a> · ' + esc(i.email || 'sem e-mail') + '</div></td>' +
+      '<td><div class="nome">' + esc(i.nome) + '</div><div class="sub"><a href="https://wa.me/55' + esc(i.whatsapp) + '" target="_blank" rel="noopener">' + esc(fone(i.whatsapp)) + '</a> · ' + esc(i.email || 'sem e-mail') + (i.patrocinadores ? ' · <span class="tag ok" title="Autorizou compartilhar os contatos com os patrocinadores">patrocinadores</span>' : '') + '</div></td>' +
       '<td>' + esc(NIVEL[i.nivel] || '—') + '</td>' +
       '<td>' + pagto + '</td>' +
       '<td>' + grupo + '</td>' +
@@ -412,7 +418,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
     var id = b.dataset.id, acao = b.dataset.acao;
     if (acao === 'editar') {
       var rec = dados.inscritos.find(function (x) { return x.id === id; }), f = $('#f-editar');
-      f.id.value = id; f.nome.value = rec.nome; f.whatsapp.value = rec.whatsapp; f.email.value = rec.email || '';
+      f.id.value = id; f.nome.value = rec.nome; f.whatsapp.value = rec.whatsapp; f.email.value = rec.email || ''; f.patrocinadores.checked = !!rec.patrocinadores;
       return abre('editar');
     }
     var rota = { adicionar: 'grupo/adicionar', convite: 'convite', cert: 'certificado/enviar' }[acao];
@@ -427,7 +433,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
   /* ---------- formulários ---------- */
   $('#f-manual').addEventListener('submit', function (e) {
     e.preventDefault(); var f = this;
-    var body = { nome: f.nome.value, whatsapp: f.whatsapp.value, email: f.email.value, metodo: f.metodo.value, nivel: f.nivel.value, valor: f.valor.value.replace(',', '.') };
+    var body = { nome: f.nome.value, whatsapp: f.whatsapp.value, email: f.email.value, metodo: f.metodo.value, nivel: f.nivel.value, valor: f.valor.value.replace(',', '.'), patrocinadores: f.patrocinadores.checked };
     api('manual', { method: 'POST', body: body }).then(function (j) {
       if (!j._ok) return toast('Confira o nome e o WhatsApp.', true);
       f.reset(); fecha($('#m-manual')); toast('Inscrição salva.'); carregar();
@@ -436,7 +442,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
   $('#f-manual').metodo.addEventListener('change', function () { if (this.value === 'cortesia') this.form.valor.value = '0'; });
   $('#f-editar').addEventListener('submit', function (e) {
     e.preventDefault(); var f = this;
-    api('inscrito/' + f.id.value, { method: 'PATCH', body: { nome: f.nome.value, whatsapp: f.whatsapp.value, email: f.email.value } }).then(function (j) {
+    api('inscrito/' + f.id.value, { method: 'PATCH', body: { nome: f.nome.value, whatsapp: f.whatsapp.value, email: f.email.value, patrocinadores: f.patrocinadores.checked } }).then(function (j) {
       if (!j._ok) return toast('Confira os dados.', true);
       fecha($('#m-editar')); toast('Salvo.'); carregar();
     });
@@ -509,6 +515,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
   $('#busca').addEventListener('input', function () { busca = this.value.trim(); render(); });
   $('#btn-atualizar').onclick = function () { carregar(true).then(function () { toast('Atualizado.'); }); };
   $('#btn-csv').onclick = function () { location.href = API + 'admin?csv=1&key=' + encodeURIComponent(key); };
+  $('#btn-csv-patro').onclick = function () { location.href = API + 'admin?csv=patrocinadores&key=' + encodeURIComponent(key); };
 
   if (key) entrar(); else $('#login').hidden = false;
   setInterval(function () { if (key && document.visibilityState === 'visible' && $$('.modal:not([hidden])').length === 0) carregar(); }, 30000);

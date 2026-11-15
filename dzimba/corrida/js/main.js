@@ -276,7 +276,7 @@
 
   function dados() {
     var nivel = $('input[name=nivel]:checked', form);
-    return { nome: form.nome.value.trim(), whatsapp: form.whatsapp.value, email: form.email.value.trim(), nivel: nivel ? nivel.value : '' };
+    return { nome: form.nome.value.trim(), whatsapp: form.whatsapp.value, email: form.email.value.trim(), nivel: nivel ? nivel.value : '', patrocinadores: form.patrocinadores.checked };
   }
   function mostraErro(t) { erro.textContent = t; erro.hidden = false; }
   function validar(d) {
@@ -305,6 +305,7 @@
     var d = dados(); if (!validar(d)) return;
     var txt = 'Olá! Quero garantir minha vaga no *Curso Treinamento de Corrida de Rua* (12/12).\n\n' +
       'Nome: ' + d.nome + '\nWhatsApp: ' + d.whatsapp + '\nE-mail: ' + d.email + (d.nivel ? '\nNível: ' + NIVEIS[d.nivel] : '') +
+      '\nAutorizo compartilhar meus contatos com os patrocinadores: ' + (d.patrocinadores ? 'SIM' : 'não') +
       (cfg.valor ? '\n\nValor: R$ ' + brl(cfg.valor) : '');
     window.open(ZAP + encodeURIComponent(txt), '_blank', 'noopener');
   }

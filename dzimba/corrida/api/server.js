@@ -66,7 +66,8 @@ function lerInscricao(body) {
   const whatsapp = digits(body.whatsapp);
   const nivel = NIVEIS.includes(body.nivel) ? body.nivel : '';
   if (!ok(nome) || nome.split(' ').length < 2 || !/.+@.+\..+/.test(email) || whatsapp.length < 10) return null;
-  return { nome, email, whatsapp, nivel };
+  const patrocinadores = body.patrocinadores === true;   // autorização expressa (LGPD): só vale marcada pela própria pessoa
+  return { nome, email, whatsapp, nivel, patrocinadores, ...(patrocinadores ? { patrocinadoresEm: new Date().toISOString() } : {}) };
 }
 
 // o front usa pra decidir se abre o formulário ou cai no WhatsApp
@@ -403,7 +404,7 @@ app.get('/api/painel', async (req, res) => {
       total: list.length, pagos: ps.length, pendentes: list.filter(r => r.status === 'pending').length,
       arrecadado: todos.filter(r => r.status === 'approved').reduce((s, r) => s + Number(r.valor || 0), 0),
       noGrupo: ps.filter(r => r.noGrupo === true).length, foraGrupo: ps.filter(r => r.noGrupo === false).length,
-      presentes: ps.filter(r => r.presente).length, certificados: ps.filter(r => r.cert && r.cert.status === 'enviado').length,
+      presentes: ps.filter(r => r.presente).length, patrocinadores: ps.filter(r => r.patrocinadores).length, certificados: ps.filter(r => r.cert && r.cert.status === 'enviado').length,
     },
     inscritos: list,
   });
@@ -417,6 +418,7 @@ app.post('/api/manual', (req, res) => {
   const metodo = ['dinheiro', 'pix', 'cartao', 'transferencia', 'cortesia'].includes(req.body.metodo) ? req.body.metodo : 'dinheiro';
   const id = crypto.randomUUID();
   const rec = { id, nome, email: String(req.body.email || '').trim(), whatsapp, nivel: NIVEIS.includes(req.body.nivel) ? req.body.nivel : '',
+    patrocinadores: req.body.patrocinadores === true, ...(req.body.patrocinadores === true ? { patrocinadoresEm: new Date().toISOString() } : {}),
     valor: metodo === 'cortesia' ? 0 : (Number(req.body.valor) || VALOR), metodo, mp_id: null, status: 'pending', criado: new Date().toISOString(), pago: null, manual: true };
   db[id] = rec;
   aprovar(rec);
@@ -432,6 +434,7 @@ app.patch('/api/inscrito/:id', (req, res) => {
   if (req.body.email && /.+@.+\..+/.test(req.body.email)) rec.email = String(req.body.email).trim();
   if (typeof req.body.presente === 'boolean') { rec.presente = req.body.presente; rec.presenteEm = req.body.presente ? new Date().toISOString() : null; }
   if (typeof req.body.oculto === 'boolean') rec.oculto = req.body.oculto;
+  if (typeof req.body.patrocinadores === 'boolean' && req.body.patrocinadores !== !!rec.patrocinadores) { rec.patrocinadores = req.body.patrocinadores; rec.patrocinadoresEm = req.body.patrocinadores ? new Date().toISOString() : null; }
   save();
   res.json({ ok: true, inscrito: rec });
 });
@@ -520,10 +523,18 @@ app.get('/api/admin', (req, res) => {
   if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) return res.status(401).send('nao autorizado');
   const list = Object.values(db).filter(r => !r.oculto).sort((a, b) => (a.criado || '').localeCompare(b.criado || ''));
   if (!req.query.csv) return res.redirect(PUBLIC_BASE + '/painel/');
+  // só pagos que marcaram a autorização: é esta planilha que vai para os patrocinadores
+  if (req.query.csv === 'patrocinadores') {
+    const rs = [['nome', 'whatsapp', 'email', 'nivel', 'autorizou em'],
+      ...list.filter(r => r.status === 'approved' && r.patrocinadores).map(r => [r.nome, r.whatsapp, r.email, NIVEL_TXT[r.nivel] || '', r.patrocinadoresEm ? new Date(r.patrocinadoresEm).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : ''])];
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=contatos-patrocinadores-corrida-dzimba.csv');
+    return res.send('\ufeff' + rs.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(';')).join('\n'));
+  }
   let nc = 0;
-  const rows = [['#', 'nome', 'whatsapp', 'email', 'nivel', 'status', 'metodo', 'valor', 'inscrito', 'pago', 'grupo', 'mensagem', 'presente', 'certificado'],
+  const rows = [['#', 'nome', 'whatsapp', 'email', 'nivel', 'status', 'metodo', 'valor', 'inscrito', 'pago', 'grupo', 'mensagem', 'presente', 'certificado', 'patrocinadores'],
     ...list.map(r => [r.status === 'approved' ? ++nc : '', r.nome, r.whatsapp, r.email, NIVEL_TXT[r.nivel] || '', r.status, r.metodo, r.valor, r.criado, r.pago || '',
-      r.pos?.grupo || '', r.pos?.texto || '', r.presente ? 'sim' : '', r.cert?.status || ''])];
+      r.pos?.grupo || '', r.pos?.texto || '', r.presente ? 'sim' : '', r.cert?.status || '', r.patrocinadores ? 'autorizou' : ''])];
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename=inscritos-corrida-dzimba.csv');
   res.send('﻿' + rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(';')).join('\n'));

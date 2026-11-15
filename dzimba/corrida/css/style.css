@@ -420,6 +420,13 @@ a { color: inherit; }
 .niveis input { position: absolute; opacity: 0; pointer-events: none; }
 .niveis span { display: block; padding: .75em .3em; text-align: center; border: 1px solid var(--linha); border-radius: 4px; cursor: pointer; font: 800 .95rem/1 var(--titulo); text-transform: uppercase; letter-spacing: .04em; color: var(--suave); transition: .15s; }
 .niveis input:checked + span { background: var(--lime); border-color: var(--lime); color: var(--preto); }
+.pay .consente { display: flex; align-items: flex-start; gap: .7rem; margin: .1rem 0 .3rem; padding: .8rem .9rem; border: 1px solid var(--linha); border-radius: 6px; cursor: pointer; font-weight: 400; font-size: .86rem; line-height: 1.45; color: var(--texto); text-align: left; position: relative; }
+.consente input { position: absolute; opacity: 0; pointer-events: none; }
+.consente i { flex: none; width: 20px; height: 20px; margin-top: .1rem; border: 2px solid var(--suave); border-radius: 4px; display: grid; place-items: center; transition: .15s; }
+.consente input:checked + i { background: var(--lime); border-color: var(--lime); }
+.consente input:checked + i::after { content: ''; width: 5px; height: 10px; border: solid var(--preto); border-width: 0 2.5px 2.5px 0; transform: translateY(-1px) rotate(45deg); }
+.consente input:focus-visible + i { outline: 2px solid var(--lime); outline-offset: 2px; }
+.consente small { display: block; margin-top: .2rem; color: var(--suave); }
 .niveis input:focus-visible + span { outline: 2px solid var(--lime); outline-offset: 2px; }
 .pay .btn > span { flex-direction: column; gap: .3em; }
 .pay__preco { opacity: .75; font: 600 .78em/1 var(--corpo); letter-spacing: .04em; text-transform: none; white-space: nowrap; }
