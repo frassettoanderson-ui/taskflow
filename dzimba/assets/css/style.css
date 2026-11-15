@@ -103,8 +103,8 @@ html.anima .acende.aceso { filter: none; }
   transition: background .3s, padding .3s;
 }
 .topo.rolou { background: rgba(11, 13, 10, .82); backdrop-filter: blur(10px); padding-top: 8px; padding-bottom: 8px; }
-.topo__logo img { height: 64px; width: auto; transition: height .3s; }
-.topo.rolou .topo__logo img { height: 48px; }
+.topo__logo img { height: 84px; width: auto; transition: height .3s; }
+.topo.rolou .topo__logo img { height: 60px; }
 .topo__status {
   font: 700 .82rem/1 var(--f-texto); letter-spacing: .08em; text-transform: uppercase; text-decoration: none;
   padding: 10px 14px 10px 30px; border-radius: 99px; border: 1px solid var(--linha); background: rgba(11,13,10,.6);
@@ -398,7 +398,7 @@ html.anima .hero__foto { opacity: 0; }
   body { font-size: 16px; }
   .trilho { width: 5px; }
   .topo { padding-left: 21px; padding-right: 16px; }
-  .topo__logo img { height: 50px; }
+  .topo__logo img { height: 62px; }
   .hero { padding: 96px 16px 0 21px; }
   .hero__fundo img { filter: blur(26px) saturate(1.3) brightness(.32); }
   .hero__titulo { font-size: clamp(3rem, 15vw, 4.4rem); }

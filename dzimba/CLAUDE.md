@@ -34,11 +34,12 @@ Phive (fotos espalhadas que se juntam, marca gigante, anilha rolando, menu flutu
 - **Modo campanha:** em `main.js`, `CAMPANHA = 'rosa' | 'azul'` troca a cor de destaque do site inteiro. Com `CAMPANHA_AUTO = true`, a troca é automática em outubro e novembro.
 
 ## Imagens
-- `assets/img/fotos/`: **fotos reais** capturadas das fotos públicas do Google Maps (espaço e equipe) e do Instagram (alunas, 60 anos de casados, Novembro Azul, Save the date 12/12). A resolução é de captura de tela (cerca de 1100 px), então **pedir os originais** para a academia.
-- `assets/img/logo-provisorio.png` e `mascote-hero.jpg`: recortes provisórios da arte do Novembro Azul (o mascote-hero não é mais usado na v2)
+- `assets/img/fotos/`: **fotos reais** capturadas das fotos públicas do Google Maps (espaço e equipe) e do Instagram (alunas, 60 anos de casados, Save the date 12/12). A resolução é de captura de tela (cerca de 1100 px), então **pedir os originais** para a academia.
+- **Logo oficial = o distintivo do rato mordendo a barra** (círculo verde, "D'ZIMBA ACADEMIA" prateado), enviado pelo usuário em 15/11. Recortada sem fundo em `assets/img/logo.png` (480px), `corrida/img/logo.png` (560px) e `favicon.png` (256px).
+- ⚠️ **NUNCA usar a logo "D'ZIMBA" com o bonequinho fisiculturista verde em cima e "ACADEMIA" espaçado embaixo: é de uma CONCORRENTE.** Ela veio da arte do Novembro Azul do Instagram; essa arte, o `logo-provisorio.png` e o `mascote-hero.jpg` foram apagados (local e VPS) em 15/11. O certificado e a foto do grupo foram refeitos com a logo certa.
 
 ## Falta (pedir para a academia)
-1. **Logo em vetor ou PNG em alta** e o **mascote em PNG sem fundo** (verde padrão)
+1. **Logo em vetor** (a de hoje é recorte de imagem 1280px) e o **mascote em PNG sem fundo**
 2. **Fotos originais** em alta e autorização de uso (principalmente as que mostram alunos)
 3. **Curso de Corrida 12/12:** a landing já existe (ver a seção abaixo); falta o que está listado nela.
 4. **Planos e preços** (não existe seção ainda). Confirmar também se há aula experimental grátis; o site evita prometer isso.
