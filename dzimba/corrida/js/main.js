@@ -74,20 +74,24 @@
     splits.forEach(function (s) { ioS.observe(s); });
   }
 
-  /* ---------- percurso: o corredor anda pela rota ---------- */
-  var rota = $('#rota'), corredor = $('#corredor'), mapa = $('.mapa'), svg = $('.mapa__svg');
-  var chegada = $('.ponto--chegada'), largada = $('.ponto--largada');
-  var compRota = rota.getTotalLength();
+  /* ---------- percurso: o corredor anda pela rota no mapa real ---------- */
+  var rota = $('#rota'), corredor = $('#corredor'), mapa = $('.mapa'), kmNum = $('#km-num');
+  var etapaA = $('.etapa--largada'), etapaB = $('.etapa--chegada');
+  var compRota = rota.getTotalLength(), DIST = 4.47;      // km reais (OSRM a pé)
+  var kms = $$('.km').map(function (g) { return { el: g, f: Number(g.dataset.km) / DIST }; });
   rota.style.strokeDasharray = compRota;
   function posicionar(p) {
+    p = Math.max(0, Math.min(1, p));
     rota.style.strokeDashoffset = compRota * (1 - p);
     var pt = rota.getPointAtLength(compRota * p);
-    var r = svg.getBoundingClientRect(), m = mapa.getBoundingClientRect();
-    corredor.style.transform = 'translate(' + (r.left - m.left + pt.x * r.width / 1000) + 'px,' + (r.top - m.top + pt.y * r.height / 420) + 'px)';
-    if (chegada) chegada.classList.toggle('chegou', p > .97);
+    corredor.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ')');
+    kms.forEach(function (k) { k.el.classList.toggle('on', p >= k.f - .005); });
+    kmNum.textContent = (DIST * p).toFixed(1).replace('.', ',');
+    mapa.classList.toggle('chegou', p > .985);
+    etapaA.classList.toggle('on', p < .985);
+    etapaB.classList.toggle('on', p > .985);
   }
   posicionar(anima ? 0 : 1);
-  window.addEventListener('resize', function () { if (!anima) posicionar(1); });
 
   /* ---------- nome ao vivo no número de peito e no certificado ---------- */
   var campoNome = $('#vaga-nome'), peitoNome = $('#peito-nome'), certNome = $('#cert-nome');
@@ -108,6 +112,16 @@
   }
   campoNome.addEventListener('input', nomeAoVivo);
   nomeAoVivo(); window.addEventListener('resize', ajustarCert);
+
+  /* ---------- foto do Marcos: some sozinha enquanto não houver o arquivo ---------- */
+  var fotoM = $('#marcos-foto'), imgM = fotoM && $('img', fotoM);
+  if (imgM) {
+    var semFoto = function () { fotoM.remove(); if (anima) ScrollTrigger.refresh(); };
+    var comFoto = function () { $('.palestrante').classList.add('tem-foto'); if (anima) ScrollTrigger.refresh(); };
+    imgM.loading = 'eager';
+    if (imgM.complete) { imgM.naturalWidth ? comFoto() : semFoto(); }
+    else { imgM.addEventListener('load', comFoto); imgM.addEventListener('error', semFoto); }
+  }
 
   // certificado inclina levemente com o mouse
   var cert = $('#cert');
@@ -150,27 +164,32 @@
       gsap.from(t, { y: 70, autoAlpha: 0, skewY: 3, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: t, start: 'top 88%' } });
     });
 
-    // percurso: fixa a seção e o corredor percorre a rota
-    var mm = gsap.matchMedia();
+    // percurso: no computador a seção fica fixa e o corredor percorre a rota; no celular desenha ao passar
+    var mm = gsap.matchMedia(), st = { v: 0 };
+    var andar = function () { posicionar(st.v); };
     mm.add('(min-width: 901px)', function () {
-      chegada.classList.remove('chegou');
-      var st = { v: 0 };
-      gsap.timeline({
-        scrollTrigger: { trigger: '.percurso', start: 'top top', end: '+=140%', pin: '.percurso__palco', scrub: .6, anticipatePin: 1 }
-      })
-        .from(largada, { x: -60, autoAlpha: 0, duration: .15 }, 0)
-        .to(st, { v: 1, duration: 1, ease: 'none', onUpdate: function () { posicionar(st.v); } }, .1)
-        .from(chegada, { x: 60, autoAlpha: .15, duration: .15 }, .95);
+      st.v = 0; posicionar(0);
+      gsap.timeline({ scrollTrigger: { trigger: '.percurso', start: 'top top', end: '+=150%', pin: '.percurso__palco', scrub: .6, anticipatePin: 1 } })
+        .from('.etapa', { y: 60, stagger: .05, duration: .12 }, 0)
+        .to(st, { v: 1, duration: 1, ease: 'none', onUpdate: andar }, .12)
+        .to({}, { duration: .12 });
       return function () { posicionar(1); };
     });
     mm.add('(max-width: 900px)', function () {
-      posicionar(1);
-      gsap.from('.ponto', { y: 50, autoAlpha: 0, stagger: .2, duration: .8, scrollTrigger: { trigger: '.mapa', start: 'top 80%' } });
+      st.v = 0; posicionar(0);
+      gsap.to(st, { v: 1, ease: 'none', onUpdate: andar, scrollTrigger: { trigger: '.mapa', start: 'top 80%', end: 'bottom 70%', scrub: .5 } });
+      gsap.from('.etapa', { y: 40, autoAlpha: 0, stagger: .15, duration: .7, clearProps: 'opacity,visibility,transform', scrollTrigger: { trigger: '.etapas', start: 'top 88%' } });
     });
 
     // palestrante
     gsap.from('.palestrante__pre', { y: 20, autoAlpha: 0, duration: .6, scrollTrigger: { trigger: '.palestrante', start: 'top 70%' } });
+    gsap.from('.palestrante__intro', { y: 30, autoAlpha: 0, duration: .8, scrollTrigger: { trigger: '.palestrante__intro', start: 'top 90%' } });
+    gsap.from('.palestrante__foto', { y: 80, rotate: -9, autoAlpha: 0, duration: 1.1, ease: 'power4.out', scrollTrigger: { trigger: '.palestrante__corpo', start: 'top 85%' } });
     gsap.from('.credenciais li', { y: 40, autoAlpha: 0, stagger: .12, duration: .8, ease: 'power3.out', scrollTrigger: { trigger: '.credenciais', start: 'top 88%' } });
+    // a pista da trajetória acende conforme rola, e cada marco entra na sua vez
+    gsap.fromTo('.trajetoria__pista', { '--prog': 0 }, { '--prog': 1, ease: 'none', scrollTrigger: { trigger: '.trajetoria__pista', start: 'top 80%', end: 'bottom 55%', scrub: .5 } });
+    gsap.from('.trajetoria__pista li', { y: 30, autoAlpha: 0, stagger: .14, duration: .7, ease: 'power3.out', scrollTrigger: { trigger: '.trajetoria__pista', start: 'top 82%' } });
+    gsap.from('.ingresso', { y: 80, autoAlpha: 0, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: '.ingresso', start: 'top 88%' } });
 
     // número de peito chega girando, certificado sobe
     gsap.from('.peito', { y: 120, rotate: -18, autoAlpha: 0, duration: 1.2, ease: 'power4.out', scrollTrigger: { trigger: '.vaga__grade', start: 'top 80%' } });
@@ -189,21 +208,31 @@
   /* =========================================================
      INSCRIÇÃO / PAGAMENTO
      ========================================================= */
+  var pay = $('#pay'), form = $('#pay-form'), erro = $('.pay__erro', pay), poll = null, ultimoFoco = null;
   function aplicarConfig() {
+    // preço: sempre visível (vem do servidor)
+    if (cfg.valor) {
+      var v = brl(cfg.valor).split(',');
+      $('#valor-num').textContent = v[0]; $('#valor-cent').textContent = ',' + v[1];
+    }
     if (!cfg.enabled) {
-      // pagamento ainda não ligado: os botões levam para o WhatsApp (com o nome, se já escreveu)
-      $$('[data-cta]').forEach(function (a) { a.target = '_blank'; a.rel = 'noopener'; });
-      $('#cta-principal span').textContent = 'Quero me inscrever pelo WhatsApp';
+      // pagamento online ainda não ligado: o checkout envia a inscrição pelo WhatsApp da academia
+      $('#valor-forma').textContent = 'no PIX ou no cartão';
+      $('#ingresso-seg').textContent = 'A inscrição vai direto para o WhatsApp da academia';
+      $('[data-pix]', form).hidden = true; $('[data-cartao]', form).hidden = true;
+      $('[data-zap]', form).hidden = false; $('#pay-aviso').hidden = false;
+      if (cfg.valor) $('#preco-zap').textContent = 'R$ ' + brl(cfg.valor);
       return;
     }
-    $('#valor-num').textContent = brl(cfg.valor);
-    $('#vaga-preco').hidden = false; $('#vaga-nota').hidden = false;
     $('#preco-pix').textContent = 'R$ ' + brl(cfg.valor);
     $('#preco-cartao').textContent = 'R$ ' + brl(cfg.valorCartao) + (cfg.maxParcelas > 1 ? ' · até ' + cfg.maxParcelas + 'x' : '');
+    var c = $('#valor-cartao');
+    c.textContent = 'ou R$ ' + brl(cfg.valorCartao) + ' no cartão' + (cfg.maxParcelas > 1 ? ', em até ' + cfg.maxParcelas + 'x' : '') + ' (com a taxa da operadora)';
+    c.hidden = false;
     if (cfg.esgotado) {
       $$('[data-cta]').forEach(function (a) { a.querySelector('span').textContent = 'Vagas esgotadas'; a.removeAttribute('href'); a.style.pointerEvents = 'none'; a.style.opacity = '.5'; });
     } else if (cfg.restantes != null && cfg.restantes <= 20) {
-      var v = $('#vagas'); v.textContent = cfg.restantes === 1 ? 'resta 1 vaga!' : 'restam ' + cfg.restantes + ' vagas'; v.hidden = false;
+      var r = $('#vagas'); r.textContent = cfg.restantes === 1 ? 'resta 1 vaga!' : 'restam ' + cfg.restantes + ' vagas'; r.hidden = false;
     }
   }
   fetch(API + 'config').then(function (r) { return r.ok ? r.json() : { enabled: false }; })
@@ -213,11 +242,10 @@
       if (voltouFalha && cfg.enabled) { abrir(); mostraErro('O pagamento no cartão não foi aprovado. Tente de novo ou pague no PIX.'); }
     });
 
-  var pay = $('#pay'), form = $('#pay-form'), erro = $('.pay__erro', pay), poll = null, ultimoFoco = null;
   function passo(nome) { $$('.pay__passo', pay).forEach(function (p) { p.hidden = p.dataset.step !== nome; }); }
   function abrir() {
     ultimoFoco = document.activeElement;
-    if (campoNome.value.trim() && !form.nome.value) form.nome.value = campoNome.value.trim();
+    if (campoNome.value.trim() && !form.nome.value) form.nome.value = titulo(campoNome.value.replace(/\s+/g, ' ').trim());
     passo('form'); erro.hidden = true; pay.hidden = false; document.body.style.overflow = 'hidden';
     setTimeout(function () { (form.nome.value ? form.whatsapp : form.nome).focus(); }, 60);
   }
@@ -226,22 +254,14 @@
   document.addEventListener('click', function (e) {
     var cta = e.target.closest('[data-cta]');
     if (cta) {
-      if (cfg.esgotado) { e.preventDefault(); return; }
-      if (cfg.enabled) {
-        e.preventDefault();
-        // botões de cima levam até o número de peito; o do próprio número abre o pagamento
-        if (cta.id === 'cta-principal' || $('#vaga').getBoundingClientRect().top < innerHeight * .5) abrir();
-        else { $('#vaga').scrollIntoView({ behavior: anima ? 'smooth' : 'auto' }); setTimeout(function () { campoNome.focus({ preventScroll: true }); }, 900); }
-      } else {
-        var n = campoNome.value.trim();
-        cta.href = ZAP + encodeURIComponent('Olá! Quero me inscrever no Curso Treinamento de Corrida de Rua do dia 12/12.' + (n ? ' Meu nome: ' + n + '.' : ''));
-      }
+      e.preventDefault();
+      if (!cfg.esgotado) abrir();   // todo botão "Garantir" abre o checkout
       return;
     }
     if (e.target.closest('[data-close]')) fechar();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pay.hidden) fechar(); });
-  campoNome.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('#cta-principal').click(); } });
+  campoNome.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); abrir(); } });
 
   form.whatsapp.addEventListener('input', function () {
     var d = this.value.replace(/\D/g, '').slice(0, 11), r = d;
@@ -276,8 +296,20 @@
     return 'Não deu para gerar o pagamento agora. Tente de novo em instantes.';
   }
 
+  var NIVEIS = { iniciante: 'Iniciante', intermediario: 'Intermediário', avancado: 'Avançado' };
+  function enviarZap() {
+    erro.hidden = true;
+    var d = dados(); if (!validar(d)) return;
+    var txt = 'Olá! Quero garantir minha vaga no *Curso Treinamento de Corrida de Rua* (12/12).\n\n' +
+      'Nome: ' + d.nome + '\nWhatsApp: ' + d.whatsapp + '\nE-mail: ' + d.email + (d.nivel ? '\nNível: ' + NIVEIS[d.nivel] : '') +
+      (cfg.valor ? '\n\nValor: R$ ' + brl(cfg.valor) : '');
+    window.open(ZAP + encodeURIComponent(txt), '_blank', 'noopener');
+  }
+  $('[data-zap]', form).addEventListener('click', enviarZap);
+
   form.addEventListener('submit', function (e) {
     e.preventDefault(); erro.hidden = true;
+    if (!cfg.enabled) { enviarZap(); return; }
     var d = dados(); if (!validar(d)) return;
     ocupado(true);
     post('inscrever', d).then(function (j) {

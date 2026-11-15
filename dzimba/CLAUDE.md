@@ -52,7 +52,13 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - Curso às 15h no Auditório do Praia Hotel.
   - Palestrante Marcos Paulo Huber.
   - Programa de 6 tópicos; certificado de 5 horas.
-  - O endereço exato do hotel não foi confirmado: o site usa uma busca no Maps.
+  - Praia Hotel: coordenadas -28.2464727, -48.6672617 (Centro). O link "Ver no mapa" usa essas coordenadas.
+- **Front (v3, 15/11):** depois da crítica à v2 (herói ruim no PC, arte do percurso fraca, palestrante sem valor, certificado amador, sem seção de preço e botões sem levar ao checkout):
+  - herói no PC em duas colunas (texto centralizado na metade escura da foto, corredores à direita; cronômetro e botão lado a lado, tudo na primeira tela);
+  - percurso com **mapa real** de Imbituba (`img/mapa.svg`, gerado do OpenStreetMap/Overpass + rota a pé do OSRM, 4,5 km); a rota se desenha com a rolagem, com marcos de km e contador;
+  - palestrante com texto, credenciais e **trajetória em linha do tempo** (fatos públicos: Unisul 2007, Gama Filho 2009, Unisul 2010–2016, mestrado 2012, livro Univinte 2024, coordenação na Univinte e escolinha da ADRA). **Foto:** basta colocar `img/marcos-1.jpg` (retrato 9:11); sem o arquivo o bloco some sozinho;
+  - seção **Investimento** (ingresso) com o preço vindo da API (`VALOR`);
+  - **todo botão "Garantir" abre o checkout**. Sem `MP_ACCESS_TOKEN`, o checkout tem um botão só, "Enviar inscrição pelo WhatsApp", com nome/WhatsApp/e-mail/nível/valor preenchidos; com o token vira PIX + cartão sozinho.
 - **Front (v2, 15/11):** a v1 foi rejeitada ("só colou o post, preguiça"), então **o cartaz não é mais usado**. A ideia da v2 é "rolar = correr":
   - barra de ritmo no topo;
   - herói com foto e cronômetro de largada;
@@ -63,8 +69,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - **número de peito e certificado com o nome digitado ao vivo** (o nome vai para o modal de pagamento e para a mensagem do WhatsApp).
   - GSAP 3.12.5 + ScrollTrigger; sem GSAP a página aparece parada.
   - Fotos em `img/` geradas pelo Codex (hero, grupo, tenis, relogio, forca), sem marcas. Trocar por fotos reais se a academia tiver.
-  - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=3).
-  - Sem token do MP, todos os botões levam para o WhatsApp da academia.
+  - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão), `validar/` (confere o código do certificado) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=4).
 - **API:** `corrida/api/` (Express + pdf-lib).
   - Na VPS fica em **`/opt/dzimba-corrida`** (fora da pasta pública), no pm2 `dzimba-corrida` na porta **8404**.
   - O nginx usa `location ^~ /corrida/api/` → `127.0.0.1:8404/api/`.
@@ -76,7 +81,10 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - A imagem foi trocada para `ox/evolution-go:0.7.2-ox405` para corrigir o "Client outdated 405"; o backup do compose está em /root/backups.
   - Pareia pelo QR do painel.
   - 5 min depois do pagamento, a pessoa é colocada no grupo escolhido no painel; se o WhatsApp não deixar, ela recebe o link.
-- **Certificado:** a arte foi limpa (`api/assets/certificado-fundo.jpg`), com o nome em Courgette e o rodapé "Imbituba" corrigido (a arte original dizia "Ibitituba").
+- **Certificado (refeito 15/11):** arte própria em `api/assets/certificado.html` (A4 deitado: faixa preta com logo e selo 5h + papel marfim com moldura guilhochê, texto, conteúdo programático, assinaturas).
+  - Gerar o fundo: Chrome headless `--force-device-scale-factor=2.5 --window-size=1123,794 --screenshot` → `certificado-fundo.jpg` (e cópia 1400px em `img/certificado-limpo.jpg` para a prévia da página). As posições do nome/código ficam em `CERT_POS` no server.js (o HTML calcula e grava em `data-pos`).
+  - Nome em Cormorant Garamond SemiBold Italic (instância estática gerada com fontTools do arquivo variável do google/fonts; o TTF baixado do CSS do Google vinha quebrado). **Não usar `subset: true`** nessa fonte no pdf-lib: perde letras.
+  - Código de verificação `XXXX-XXXX` (HMAC do id) no canto; `/api/validar/:codigo` só confirma quem teve presença marcada ou certificado enviado. A legenda do WhatsApp manda o código e o link de `/corrida/validar/`.
   - No painel se marca quem foi credenciado. Às **19h30 de 12/12** (`CERT_AUTO_EM`) o PDF vai sozinho no WhatsApp, até 6 por minuto.
   - O painel também manda antes, em lote ou um a um.
 - **Testar local:** `ADMIN_KEY=x PORT=8499 node server.js` em `corrida/api`, mais o servidor `dzimba-corrida` do launch.json (porta 8171, faz proxy de `/corrida/api/` para 8499).
@@ -85,4 +93,6 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 1. **Access Token de produção do Mercado Pago da academia** (`APP_USR-...`, conta com chave PIX cadastrada). Vai em `MP_ACCESS_TOKEN` no `/opt/dzimba-corrida/.env`, depois `pm2 restart dzimba-corrida`.
 2. **Valor real** (hoje `VALOR=999.00`, provisório)
 3. **Parear o WhatsApp** (48) 99947-4500 pelo QR do painel e **criar o grupo** e escolher no painel
-4. Opcional: foto do palestrante, fotos reais de corrida da academia e a arte original do certificado em alta
+4. **Fotos do Marcos Paulo Huber** (não há nenhuma pública): salvar como `corrida/img/marcos-1.jpg` e rodar o deploy
+5. Confirmar com o Marcos os dados da trajetória usados na página
+6. Opcional: fotos reais de corrida da academia

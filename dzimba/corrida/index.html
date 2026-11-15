@@ -12,8 +12,8 @@
   <link rel="icon" href="img/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Big+Shoulders+Display:wght@600;800;900&family=Courgette&family=Permanent+Marker&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Big+Shoulders+Display:wght@600;800;900&family=Cormorant+Garamond:ital,wght@1,600&family=Permanent+Marker&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=4">
   <script>
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('anima');
   </script>
@@ -39,7 +39,7 @@
 
 <header class="topo">
   <a href="../" class="topo__logo" aria-label="Site da Academia D'Zimba"><img src="img/logo.png" alt="D'Zimba Academia" width="272" height="168"></a>
-  <a href="#vaga" class="btn btn--lime btn--sm" data-cta><span>Garantir minha vaga</span></a>
+  <a href="#investimento" class="btn btn--lime btn--sm" data-cta><span>Garantir minha vaga</span></a>
 </header>
 
 <main>
@@ -58,12 +58,13 @@
     </h1>
     <p class="hero__mao">do iniciante ao avançado</p>
 
-    <div class="cronometro" id="cronometro" aria-label="Tempo até o curso">
-      <p class="cronometro__rotulo">Largada em</p>
-      <p class="cronometro__tempo"><b data-c="d">--</b><i>d</i><b data-c="h">--</b><i>:</i><b data-c="m">--</b><i>:</i><b data-c="s">--</b></p>
+    <div class="hero__acao">
+      <div class="cronometro" id="cronometro" aria-label="Tempo até o curso">
+        <p class="cronometro__rotulo">Largada em</p>
+        <p class="cronometro__tempo"><b data-c="d">--</b><i>d</i><b data-c="h">--</b><i>:</i><b data-c="m">--</b><i>:</i><b data-c="s">--</b></p>
+      </div>
+      <a href="#investimento" class="btn btn--lime btn--xl" data-cta><span>Garantir minha participação</span></a>
     </div>
-
-    <a href="#vaga" class="btn btn--lime btn--xl" data-cta><span>Garantir minha participação</span></a>
   </div>
 
   <ul class="hero__faixa">
@@ -84,33 +85,48 @@
 <section class="percurso" id="dia">
   <div class="percurso__palco">
     <div class="percurso__cab">
+      <p class="percurso__data">sábado, 12 de dezembro de 2026</p>
       <h2 class="titulo">O percurso<br><em>do seu sábado</em></h2>
-      <p class="percurso__data">12 de dezembro de 2026</p>
     </div>
 
-    <div class="mapa">
-      <svg class="mapa__svg" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
-        <path class="mapa__base" d="M310 95 C 430 30, 450 330, 560 265 S 640 110, 700 330"/>
-        <path class="mapa__rota" id="rota" d="M310 95 C 430 30, 450 330, 560 265 S 640 110, 700 330"/>
+    <figure class="mapa">
+      <img class="mapa__fundo" src="img/mapa.svg" alt="" width="1400" height="1081" loading="lazy">
+      <svg class="mapa__svg" viewBox="0 0 1400 1081" role="img" aria-label="Mapa de Imbituba com o caminho da Academia D'Zimba, na Vila Nova, até o Praia Hotel, no Centro: cerca de 4,5 km">
+        <g class="mapa__rotulos" aria-hidden="true">
+          <text x="500" y="990">VILA NOVA</text>
+          <text x="1010" y="110">CENTRO</text>
+          <text x="1080" y="740" transform="rotate(-40 1080 740)" class="mapa__mar">OCEANO ATLÂNTICO</text>
+          <text x="112" y="430" transform="rotate(-73 112 430)" class="mapa__estrada">BR-101</text>
+        </g>
+        <path class="mapa__base" d="M269.8 861.4L293.0 849.5L308.1 842.0L310.0 841.1L331.5 830.5L348.6 822.3L367.5 813.2L388.2 803.2L397.2 798.4L402.2 795.6L401.4 794.5L399.5 791.8L402.7 790.3L405.1 789.0L411.2 785.0L414.7 782.7L417.9 780.3L421.5 777.5L422.5 777.1L424.5 776.5L430.1 775.3L433.2 772.1L436.6 768.7L439.6 765.5L443.5 761.2L448.0 759.8L450.1 759.3L452.6 759.2L453.1 759.7L454.9 761.3L457.0 763.4L457.9 764.5L463.8 756.5L465.4 754.3L468.5 750.8L469.8 749.7L472.6 747.4L475.4 745.3L477.7 743.7L482.9 740.6L498.5 731.8L502.6 729.4L507.4 726.4L510.5 724.2L513.0 722.3L516.7 719.2L522.2 715.0L543.2 695.7L534.7 685.9L559.7 660.5L554.1 653.4L552.9 650.9L552.6 648.5L552.7 646.0L553.5 641.4L556.2 625.4L557.7 618.8L559.6 612.7L561.0 608.8L562.1 605.6L563.7 599.8L564.3 598.8L564.5 597.7L564.1 596.6L563.4 595.6L565.2 593.4L588.2 563.1L623.9 516.3L660.8 468.9L670.1 456.6L679.6 445.1L687.2 435.2L691.8 429.6L695.8 425.1L699.3 421.9L703.5 417.7L708.4 413.6L721.9 402.4L729.5 395.9L735.8 390.5L739.7 387.0L745.2 381.3L749.3 376.7L753.0 371.5L756.1 366.9L758.3 363.7L760.5 359.4L762.8 354.4L765.7 348.3L768.2 341.5L770.2 336.2L781.2 312.3L791.1 291.4L813.1 298.8L841.4 249.8L855.0 260.3L873.3 238.8L874.7 240.7L876.1 242.0L877.3 242.7L878.8 243.6L881.7 245.3L884.6 246.5L886.4 247.1L888.8 247.7L891.8 248.0L894.9 248.1L897.5 248.2L900.4 248.2L902.6 248.0L905.1 247.9L907.5 247.8L920.6 245.6L926.6 244.4L931.0 243.2L934.9 242.0L938.8 240.6L941.5 239.8L945.1 239.5L947.3 239.6L949.4 240.3L951.6 241.2L954.9 242.9L965.5 248.9L969.0 250.7L970.4 251.7L972.2 253.2L975.0 255.2L977.7 257.6L980.9 260.4L983.8 263.4L985.7 261.1L993.1 249.1L995.0 246.9L996.4 245.6L998.3 244.7L999.8 244.4L1002.4 244.2L1004.2 243.7L1005.8 242.8L1007.1 241.6L1010.9 236.9L1012.5 234.4L1015.0 229.9L1016.7 227.3L1018.6 224.8L1021.1 222.6L1024.4 220.3L1030.0 216.9L1047.3 206.8L1056.2 201.3L1058.8 199.9L1061.3 198.8L1063.7 198.3L1071.2 197.7L1074.9 197.4L1089.7 215.4L1104.4 203.5L1107.1 206.9L1117.5 219.8L1115.4 221.5L1105.2 229.7"/>
+        <path class="mapa__rota" id="rota" d="M269.8 861.4L293.0 849.5L308.1 842.0L310.0 841.1L331.5 830.5L348.6 822.3L367.5 813.2L388.2 803.2L397.2 798.4L402.2 795.6L401.4 794.5L399.5 791.8L402.7 790.3L405.1 789.0L411.2 785.0L414.7 782.7L417.9 780.3L421.5 777.5L422.5 777.1L424.5 776.5L430.1 775.3L433.2 772.1L436.6 768.7L439.6 765.5L443.5 761.2L448.0 759.8L450.1 759.3L452.6 759.2L453.1 759.7L454.9 761.3L457.0 763.4L457.9 764.5L463.8 756.5L465.4 754.3L468.5 750.8L469.8 749.7L472.6 747.4L475.4 745.3L477.7 743.7L482.9 740.6L498.5 731.8L502.6 729.4L507.4 726.4L510.5 724.2L513.0 722.3L516.7 719.2L522.2 715.0L543.2 695.7L534.7 685.9L559.7 660.5L554.1 653.4L552.9 650.9L552.6 648.5L552.7 646.0L553.5 641.4L556.2 625.4L557.7 618.8L559.6 612.7L561.0 608.8L562.1 605.6L563.7 599.8L564.3 598.8L564.5 597.7L564.1 596.6L563.4 595.6L565.2 593.4L588.2 563.1L623.9 516.3L660.8 468.9L670.1 456.6L679.6 445.1L687.2 435.2L691.8 429.6L695.8 425.1L699.3 421.9L703.5 417.7L708.4 413.6L721.9 402.4L729.5 395.9L735.8 390.5L739.7 387.0L745.2 381.3L749.3 376.7L753.0 371.5L756.1 366.9L758.3 363.7L760.5 359.4L762.8 354.4L765.7 348.3L768.2 341.5L770.2 336.2L781.2 312.3L791.1 291.4L813.1 298.8L841.4 249.8L855.0 260.3L873.3 238.8L874.7 240.7L876.1 242.0L877.3 242.7L878.8 243.6L881.7 245.3L884.6 246.5L886.4 247.1L888.8 247.7L891.8 248.0L894.9 248.1L897.5 248.2L900.4 248.2L902.6 248.0L905.1 247.9L907.5 247.8L920.6 245.6L926.6 244.4L931.0 243.2L934.9 242.0L938.8 240.6L941.5 239.8L945.1 239.5L947.3 239.6L949.4 240.3L951.6 241.2L954.9 242.9L965.5 248.9L969.0 250.7L970.4 251.7L972.2 253.2L975.0 255.2L977.7 257.6L980.9 260.4L983.8 263.4L985.7 261.1L993.1 249.1L995.0 246.9L996.4 245.6L998.3 244.7L999.8 244.4L1002.4 244.2L1004.2 243.7L1005.8 242.8L1007.1 241.6L1010.9 236.9L1012.5 234.4L1015.0 229.9L1016.7 227.3L1018.6 224.8L1021.1 222.6L1024.4 220.3L1030.0 216.9L1047.3 206.8L1056.2 201.3L1058.8 199.9L1061.3 198.8L1063.7 198.3L1071.2 197.7L1074.9 197.4L1089.7 215.4L1104.4 203.5L1107.1 206.9L1117.5 219.8L1115.4 221.5L1105.2 229.7"/>
+        <g class="mapa__kms" aria-hidden="true"><g class="km" data-km="1" transform="translate(506.2 727.2)"><circle r="17"/><text y="6">1</text></g><g class="km" data-km="2" transform="translate(636.3 500.4)"><circle r="17"/><text y="6">2</text></g><g class="km" data-km="3" transform="translate(812.5 298.6)"><circle r="17"/><text y="6">3</text></g><g class="km" data-km="4" transform="translate(1024.6 220.2)"><circle r="17"/><text y="6">4</text></g></g>
+        <g class="pino pino--largada" transform="translate(269.8 861.4)" aria-hidden="true"><circle class="pino__aura" r="36"/><circle r="22"/><text y="8">A</text><text class="pino__nome" y="-48">D'ZIMBA</text></g>
+        <g class="pino pino--chegada" transform="translate(1105.2 229.7)" aria-hidden="true"><circle class="pino__aura" r="36"/><circle r="22"/><text y="8">B</text><text class="pino__nome" y="72">PRAIA HOTEL</text></g>
+        <g class="mapa__corredor" id="corredor" aria-hidden="true"><circle class="mapa__corredor-aura" r="28"/><circle r="13"/></g>
       </svg>
-      <span class="mapa__corredor" id="corredor" aria-hidden="true"></span>
+      <p class="mapa__dist" aria-hidden="true"><b id="km-num">4,5</b><span>km</span></p>
+      <figcaption class="mapa__fonte">Mapa © colaboradores do OpenStreetMap</figcaption>
+    </figure>
 
-      <article class="ponto ponto--largada">
-        <p class="ponto__tag">Largada</p>
-        <p class="ponto__hora">7h30 <small>às</small> 11h</p>
+    <ol class="etapas">
+      <li class="etapa etapa--largada">
+        <span class="etapa__letra" aria-hidden="true">A</span>
+        <p class="etapa__tag">Largada</p>
+        <p class="etapa__hora">7h30 <small>às</small> 11h</p>
         <h3>Credenciamento</h3>
         <p>Academia D'Zimba<br><span>Av. Renato Ramos da Silva, 3724, Vila Nova</span></p>
-        <a class="seta" href="https://www.google.com/maps/dir/?api=1&destination=-28.2663531,-48.6970028" target="_blank" rel="noopener">Como chegar</a>
-      </article>
-
-      <article class="ponto ponto--chegada">
-        <p class="ponto__tag">Chegada</p>
-        <p class="ponto__hora">15h</p>
+        <a class="seta" href="https://www.google.com/maps/dir/?api=1&amp;destination=-28.2663531,-48.6970028" target="_blank" rel="noopener">Como chegar</a>
+      </li>
+      <li class="etapa etapa--chegada">
+        <span class="etapa__letra" aria-hidden="true">B</span>
+        <p class="etapa__tag">Chegada</p>
+        <p class="etapa__hora">15h</p>
         <h3>Curso</h3>
-        <p>Auditório do Praia Hotel<br><span>Imbituba/SC</span></p>
-        <a class="seta" href="https://www.google.com/maps/search/?api=1&query=Praia+Hotel+Imbituba+SC" target="_blank" rel="noopener">Ver no mapa</a>
-      </article>
-    </div>
+        <p>Auditório do Praia Hotel<br><span>Centro, Imbituba/SC</span></p>
+        <a class="seta" href="https://www.google.com/maps/search/?api=1&amp;query=-28.2464727,-48.6672617" target="_blank" rel="noopener">Ver no mapa</a>
+      </li>
+    </ol>
   </div>
 </section>
 
@@ -174,11 +190,30 @@
   </div>
   <p class="palestrante__pre">Quem conduz o curso</p>
   <h2 class="palestrante__nome">Marcos Paulo<br><em>Huber</em></h2>
-  <ul class="credenciais">
-    <li><b>Mestre</b><span>em Ciências da Saúde</span></li>
-    <li><b>Especialista</b><span>em Treinamento Desportivo</span></li>
-    <li><b>Treinador WA</b><span>nível I</span></li>
-  </ul>
+  <p class="palestrante__intro">Profissional de Educação Física desde 2007, mestre em Ciências da Saúde e treinador de atletismo certificado pela World Athletics. Forma professores na universidade e corredores na pista.</p>
+
+  <div class="palestrante__corpo">
+    <figure class="palestrante__foto" id="marcos-foto">
+      <img src="img/marcos-1.jpg" alt="Marcos Paulo Huber" width="900" height="1100" loading="lazy">
+    </figure>
+    <ul class="credenciais">
+      <li><b>Mestre</b><span>em Ciências da Saúde</span></li>
+      <li><b>Especialista</b><span>em Treinamento Desportivo</span></li>
+      <li><b>Treinador WA</b><span>World Athletics, nível I</span></li>
+    </ul>
+  </div>
+
+  <div class="trajetoria">
+    <p class="trajetoria__rot">A trajetória dele, em parciais</p>
+    <ol class="trajetoria__pista">
+      <li><b>2007</b><span>Formado em Educação Física e Esporte pela Unisul</span></li>
+      <li><b>2009</b><span>Especialista em Treinamento Desportivo pela Universidade Gama Filho</span></li>
+      <li><b>2010</b><span>Começa a dar aula e orientar alunos na Unisul, onde fica até 2016</span></li>
+      <li><b>2012</b><span>Mestre em Ciências da Saúde pela Unisul</span></li>
+      <li><b>2024</b><span>Organiza livro publicado pela Editora Univinte</span></li>
+      <li class="hoje"><b>Hoje</b><span>Coordena o curso de Educação Física da Univinte e orienta a escolinha de atletismo da ADRA, em Tubarão</span></li>
+    </ol>
+  </div>
 </section>
 
 <!-- ================= SUA VAGA (número de peito ao vivo) ================= -->
@@ -204,25 +239,48 @@
         <span>Nome completo</span>
         <input id="vaga-nome" autocomplete="name" placeholder="Ex.: Maria Clara Souza" maxlength="70">
       </label>
-      <p class="vaga__preco" id="vaga-preco" hidden><small>R$</small><b id="valor-num"></b></p>
-      <p class="vaga__nota" id="vaga-nota" hidden>no PIX, aprovado na hora · ou no cartão</p>
-      <p class="vaga__restam" id="vagas" hidden></p>
-      <a href="#vaga" class="btn btn--lime btn--xl btn--bloco" data-cta id="cta-principal"><span>Quero me inscrever</span></a>
-      <ul class="inclui">
-        <li>Curso completo com Marcos Paulo Huber</li>
-        <li>Certificado de 5 horas no seu WhatsApp</li>
-        <li>Grupo dos inscritos com todos os avisos</li>
-      </ul>
+      <a href="#investimento" class="btn btn--lime btn--xl btn--bloco" data-cta id="cta-principal"><span>Garantir minha participação</span></a>
+      <p class="vaga__dica">O nome que você escrever aqui já vai preenchido na inscrição.</p>
     </div>
   </div>
 
   <figure class="cert">
     <div class="cert__papel" id="cert">
-      <img src="img/certificado-limpo.jpg" alt="Modelo do certificado de participação do curso" width="1491" height="1055" loading="lazy">
+      <img src="img/certificado-limpo.jpg" alt="Modelo do certificado de participação do curso" width="1400" height="990" loading="lazy">
       <span class="cert__nome" id="cert-nome">Seu nome</span>
     </div>
-    <figcaption>Seu certificado de 5 horas chega em PDF no WhatsApp depois do curso, para quem fizer o credenciamento.</figcaption>
+    <figcaption>Seu certificado de 5 horas chega em PDF no WhatsApp depois do curso, para quem fizer o credenciamento. Cada um sai com um código de verificação.</figcaption>
   </figure>
+</section>
+
+<!-- ================= INVESTIMENTO ================= -->
+<section class="investimento" id="investimento">
+  <div class="investimento__cab">
+    <p class="investimento__mao">sua inscrição</p>
+    <h2 class="titulo">Investi<em>mento</em></h2>
+  </div>
+
+  <div class="ingresso">
+    <div class="ingresso__preco">
+      <p class="ingresso__rot">Curso completo · 12.12</p>
+      <p class="ingresso__valor"><small>R$</small><b id="valor-num">999</b><span id="valor-cent">,00</span></p>
+      <p class="ingresso__forma" id="valor-forma">no PIX, aprovado na hora</p>
+      <p class="ingresso__cartao" id="valor-cartao" hidden></p>
+      <p class="vaga__restam" id="vagas" hidden></p>
+    </div>
+    <div class="ingresso__corte" aria-hidden="true"></div>
+    <div class="ingresso__inclui">
+      <p class="ingresso__rot">O que está incluído</p>
+      <ul class="inclui">
+        <li>5 horas de curso com Marcos Paulo Huber</li>
+        <li>Os 6 temas, do iniciante ao avançado</li>
+        <li>Certificado de 5 horas em PDF no WhatsApp</li>
+        <li>Grupo dos inscritos com todos os avisos</li>
+      </ul>
+      <a href="#investimento" class="btn btn--lime btn--xl btn--bloco" data-cta><span>Garantir minha participação</span></a>
+      <p class="ingresso__seg" id="ingresso-seg">Pagamento pelo Mercado Pago da Academia D'Zimba</p>
+    </div>
+  </div>
 </section>
 
 <!-- ================= PERGUNTAS ================= -->
@@ -243,7 +301,7 @@
   <div class="final__conteudo">
     <p class="final__mao">a largada é sua</p>
     <h2 class="final__titulo">Garanta sua<br><em>participação</em></h2>
-    <a href="#vaga" class="btn btn--lime btn--xl" data-cta><span>Quero me inscrever</span></a>
+    <a href="#investimento" class="btn btn--lime btn--xl" data-cta><span>Garantir minha participação</span></a>
   </div>
 </section>
 
@@ -277,6 +335,8 @@
         </fieldset>
         <button class="btn btn--lime btn--bloco" type="submit" data-pix><span>Pagar com PIX <small class="pay__preco" id="preco-pix"></small></span></button>
         <button class="btn btn--linha btn--bloco" type="button" data-cartao><span>Pagar com cartão <small class="pay__preco" id="preco-cartao"></small></span></button>
+        <button class="btn btn--lime btn--bloco" type="button" data-zap hidden><span>Enviar inscrição pelo WhatsApp <small class="pay__preco" id="preco-zap"></small></span></button>
+        <p class="pay__aviso" id="pay-aviso" hidden>A academia confirma sua vaga e manda o pagamento pelo WhatsApp (48) 99947-4500.</p>
         <p class="pay__erro" role="alert" hidden></p>
       </form>
     </div>
@@ -305,6 +365,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<script src="js/main.js?v=3" defer></script>
+<script src="js/main.js?v=4" defer></script>
 </body>
 </html>

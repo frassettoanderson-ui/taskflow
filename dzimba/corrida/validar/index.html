@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Validar certificado | Curso de Corrida de Rua · D'Zimba</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0b0d0a">
+  <link rel="icon" href="../img/logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@700;800;900&family=Cormorant+Garamond:ital,wght@1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/style.css?v=4">
+  <style>
+    .val { min-height: 100svh; display: grid; grid-template-columns: minmax(0, 520px); justify-content: center; align-content: center; padding: 40px var(--gutter); }
+    .val__caixa { max-width: 520px; width: 100%; text-align: center; background: var(--grafite); border: 1px solid var(--linha); border-top: 4px solid var(--lime); border-radius: 8px; padding: 40px 28px; }
+    .val__caixa > a img { width: 170px; margin: 0 auto 1.6rem; }
+    .val form { display: flex; gap: .5rem; margin-top: 1.2rem; }
+    .val input { flex: 1; min-width: 0; background: var(--preto); border: 1px solid var(--linha); border-radius: 6px; color: #fff; padding: .9rem 1rem; font: 600 1.15rem/1 'Barlow', sans-serif; letter-spacing: .14em; text-align: center; text-transform: uppercase; }
+    .val input:focus { outline: 2px solid var(--lime); outline-offset: 1px; }
+    .val__res { margin-top: 1.4rem; padding: 1.2rem; border-radius: 6px; }
+    .val__res.ok { background: rgba(180,227,30,.08); border: 1px solid rgba(180,227,30,.4); }
+    .val__res.nao { background: rgba(255,90,70,.08); border: 1px solid rgba(255,90,70,.4); color: #ffb3a8; }
+    .val__nome { font: italic 600 1.9rem/1.15 'Cormorant Garamond', serif; color: #fff; margin: .4rem 0 .5rem; }
+    .val__res small { display: block; color: var(--suave); line-height: 1.5; }
+  </style>
+</head>
+<body>
+<main class="val">
+  <div class="val__caixa">
+    <a href="../"><img src="../img/logo.png" alt="D'Zimba Academia" width="272" height="168"></a>
+    <h1 class="pay__titulo">Validar certificado</h1>
+    <p class="pay__sub">Digite o código de verificação impresso no canto do certificado.</p>
+    <form id="f">
+      <input id="c" maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" aria-label="Código de verificação">
+      <button class="btn btn--lime" type="submit"><span>Validar</span></button>
+    </form>
+    <div class="val__res" id="r" hidden></div>
+  </div>
+</main>
+<script>
+(function () {
+  var f = document.getElementById('f'), c = document.getElementById('c'), r = document.getElementById('r');
+  c.addEventListener('input', function () {
+    var v = c.value.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 8);
+    c.value = v.length > 4 ? v.slice(0, 4) + '-' + v.slice(4) : v;
+  });
+  function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  function validar() {
+    var v = c.value.replace('-', '');
+    if (v.length !== 8) { c.focus(); return; }
+    r.hidden = false; r.className = 'val__res'; r.textContent = 'Conferindo…';
+    fetch('../api/validar/' + v).then(function (x) { return x.json(); }).then(function (d) {
+      if (d.ok) {
+        r.className = 'val__res ok';
+        r.innerHTML = '<small>Certificado válido, emitido para</small><p class="val__nome">' + esc(d.nome) + '</p><small>' + esc(d.curso) + '<br>' + esc(d.data) + ' · Imbituba/SC · ' + esc(d.carga) + '<br>Academia D\'Zimba</small>';
+      } else {
+        r.className = 'val__res nao';
+        r.textContent = 'Nenhum certificado encontrado com esse código. Confira se digitou certo.';
+      }
+    }).catch(function () { r.className = 'val__res nao'; r.textContent = 'Não foi possível conferir agora. Tente de novo em instantes.'; });
+  }
+  f.addEventListener('submit', function (e) { e.preventDefault(); validar(); });
+  var q = new URLSearchParams(location.search).get('c');
+  if (q) { c.value = q; c.dispatchEvent(new Event('input')); validar(); }
+})();
+</script>
+</body>
+</html>

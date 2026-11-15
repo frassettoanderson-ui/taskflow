@@ -280,36 +280,36 @@ async function processarPos(rec) {
 }
 
 // ── certificado em PDF ──────────────────────────────────────────────────────
-// Arte: assets/certificado-fundo.jpg (1491×1055 px, já sem o nome de exemplo e com o rodapé limpo).
+// Arte: assets/certificado-fundo.jpg, gerada de assets/certificado.html (1123×794 px CSS, Chrome headless ×2,5).
+// O nome e o código são escritos aqui; as posições abaixo saem do data-pos que o próprio HTML calcula.
 const assinatura = id => crypto.createHmac('sha256', SEGREDO).update(String(id)).digest('hex').slice(0, 20);
 const urlCertificado = rec => `${PUBLIC_BASE}/api/certificado/${rec.id}.pdf?t=${assinatura(rec.id)}`;
+// código de verificação impresso no certificado (XXXX-XXXX), conferido em /corrida/validar/
+const codigoCert = id => crypto.createHmac('sha256', SEGREDO).update('cert:' + id).digest('hex').slice(0, 8).toUpperCase().replace(/^(.{4})/, '$1-');
+const CERT_POS = { larg: 1123, nomeCx: 711.5, nomeBase: 288, nomeLarg: 600, codDir: 1023, codMeio: 720.75 };
 let fontes = null;
-async function gerarCertificado(nome) {
+async function gerarCertificado(nome, codigo) {
   if (!fontes) fontes = {
     fundo: fs.readFileSync(path.join(ASSETS, 'certificado-fundo.jpg')),
-    nome: fs.readFileSync(path.join(ASSETS, 'Courgette-Regular.ttf')),
-    rodape: fs.readFileSync(path.join(ASSETS, 'Barlow-Italic.ttf')),
+    nome: fs.readFileSync(path.join(ASSETS, 'CormorantGaramond-SemiBoldItalic.ttf')),
+    cod: fs.readFileSync(path.join(ASSETS, 'Barlow-Medium.ttf')),
   };
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   pdf.setTitle('Certificado - ' + nome); pdf.setAuthor("Academia D'Zimba");
   const img = await pdf.embedJpg(fontes.fundo);
-  const W = 842, s = W / img.width, H = img.height * s;           // A4 deitado
+  const W = 842, H = W * img.height / img.width, s = W / CERT_POS.larg;   // A4 deitado
   const page = pdf.addPage([W, H]);
   page.drawImage(img, { x: 0, y: 0, width: W, height: H });
-  const px = (x, y) => ({ x: x * s, y: H - y * s });               // coordenadas da arte (px) → PDF
-  // nome, centralizado na caixa branca (x 158–1330, y 519–584)
-  const fNome = await pdf.embedFont(fontes.nome, { subset: true });
-  const larguraMax = (1330 - 158 - 70) * s;
-  let tam = 30;
-  while (tam > 12 && fNome.widthOfTextAtSize(nome, tam) > larguraMax) tam -= 0.5;
-  const c = px(744, 551.5);
-  page.drawText(nome, { x: c.x - fNome.widthOfTextAtSize(nome, tam) / 2, y: c.y - tam * 0.33, size: tam, font: fNome, color: rgb(0.07, 0.07, 0.07) });
-  // rodapé com a cidade certa
-  const fRod = await pdf.embedFont(fontes.rodape, { subset: true });
-  const rod = 'Imbituba, 12 de dezembro de 2026';
-  const tr = 14.2, r0 = px(741, 1000);
-  page.drawText(rod, { x: r0.x - fRod.widthOfTextAtSize(rod, tr) / 2, y: r0.y - tr * 0.33, size: tr, font: fRod, color: rgb(0.93, 0.93, 0.93) });
+  const fNome = await pdf.embedFont(fontes.nome);   // sem subset: o subset do pdf-lib perde glifos do Cormorant
+  let tam = 40;
+  while (tam > 16 && fNome.widthOfTextAtSize(nome, tam) > (CERT_POS.nomeLarg - 30) * s) tam -= 0.5;
+  page.drawText(nome, { x: CERT_POS.nomeCx * s - fNome.widthOfTextAtSize(nome, tam) / 2, y: H - CERT_POS.nomeBase * s, size: tam, font: fNome, color: rgb(0.08, 0.094, 0.067) });
+  if (codigo) {
+    const fCod = await pdf.embedFont(fontes.cod, { subset: true });
+    const txt = 'CÓDIGO DE VERIFICAÇÃO  ' + codigo, tc = 7.6;
+    page.drawText(txt, { x: CERT_POS.codDir * s - fCod.widthOfTextAtSize(txt, tc), y: H - CERT_POS.codMeio * s - tc * 0.35, size: tc, font: fCod, color: rgb(0.365, 0.392, 0.333) });
+  }
   return Buffer.from(await pdf.save());
 }
 const nomeArquivo = rec => 'Certificado Corrida de Rua - ' + String(rec.nome).replace(/[^\p{L}\p{N} ]/gu, '').trim() + '.pdf';
@@ -320,17 +320,27 @@ app.get('/api/certificado/:id.pdf', async (req, res) => {
   const okAdmin = ADMIN_KEY && req.query.key === ADMIN_KEY;
   if (!rec || rec.status !== 'approved' || (!okAdmin && req.query.t !== assinatura(rec.id))) return res.status(404).send('não encontrado');
   try {
-    const buf = await gerarCertificado(rec.nome);
+    const buf = await gerarCertificado(rec.nome, codigoCert(rec.id));
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `${req.query.baixar ? 'attachment' : 'inline'}; filename*=UTF-8''${encodeURIComponent(nomeArquivo(rec))}`);
     res.send(buf);
   } catch (e) { console.error('certificado', e); res.status(500).send('erro ao gerar'); }
 });
+// validação pública do código impresso no certificado
+app.get('/api/validar/:codigo', (req, res) => {
+  const cod = String(req.params.codigo || '').toUpperCase().replace(/[^0-9A-F]/g, '');
+  if (cod.length !== 8) return res.json({ ok: false });
+  const rec = Object.values(db).find(r => r && r.status === 'approved' && (r.presente || (r.cert && r.cert.status === 'enviado')) && codigoCert(r.id).replace('-', '') === cod);
+  if (!rec) return res.json({ ok: false });
+  res.json({ ok: true, nome: rec.nome, curso: 'Treinamento de Corrida de Rua: do iniciante ao avançado', data: '12/12/2026', carga: '5 horas' });
+});
 // prévia com um nome qualquer (só no painel)
 app.get('/api/certificado-previa', async (req, res) => {
   if (!admin(req, res)) return;
-  const buf = await gerarCertificado(String(req.query.nome || 'Nome do Participante').slice(0, 80));
-  res.setHeader('Content-Type', 'application/pdf'); res.send(buf);
+  try {
+    const buf = await gerarCertificado(String(req.query.nome || 'Nome do Participante').slice(0, 80), 'A1B2-C3D4');
+    res.setHeader('Content-Type', 'application/pdf'); res.send(buf);
+  } catch (e) { console.error('previa', e); res.status(500).send('erro ao gerar'); }
 });
 
 async function enviarCertificado(rec) {
@@ -339,7 +349,9 @@ async function enviarCertificado(rec) {
     method: 'POST', timeout: 60000,
     body: {
       number: numeroZap(rec), type: 'document', url: urlCertificado(rec), filename: nomeArquivo(rec),
-      caption: `${primeiroNome(rec)}, obrigado por participar do *Curso Treinamento de Corrida de Rua*! 🏃\nAqui está o seu certificado (5 horas). Bons treinos!`,
+      caption: `${primeiroNome(rec)}, obrigado por participar do *Curso Treinamento de Corrida de Rua*! 🏃\nAqui está o seu certificado (5 horas). Bons treinos!
+
+Código de verificação: ${codigoCert(rec.id)} (confira em ${PUBLIC_BASE}/validar/)`,
       delay: 1500,
     },
   });

@@ -1,0 +1,149 @@
+<!doctype html>
+<!-- Fonte da arte do certificado (A4 paisagem, 1123x794 px CSS).
+     Gerar o fundo: node ../tools/render-certificado.js  (Chrome headless, escala 3 → certificado-fundo.png)
+     O NOME e o CÓDIGO não estão aqui: o server.js escreve por cima (posições em CERT_POS no server.js). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Big+Shoulders+Display:wght@800;900&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1123px; height: 794px; overflow: hidden; }
+  body { position: relative; background: #fbf9f2; font-family: 'Cormorant Garamond', serif; color: #1b2016; }
+
+  /* papel: leve textura + vinheta */
+  .papel { position: absolute; inset: 0; background:
+      radial-gradient(120% 90% at 65% 50%, rgba(255,255,255,.0), rgba(120,110,80,.08)),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.012) 0 1px, transparent 1px 3px); }
+
+  /* faixa lateral */
+  .faixa { position: absolute; left: 0; top: 0; bottom: 0; width: 300px; background: #0c0e0b; overflow: hidden; color: #f1f4ea;
+           display: flex; flex-direction: column; align-items: center; padding: 62px 30px 46px; }
+  .faixa::before { content: ''; position: absolute; inset: 0;
+           background: repeating-linear-gradient(-55deg, rgba(180,227,30,.07) 0 2px, transparent 2px 22px); }
+  .faixa::after { content: ''; position: absolute; top: 0; bottom: 0; right: 0; width: 6px; background: #b4e31e; }
+  .faixa > * { position: relative; }
+  .faixa img { width: 210px; }
+  .selo { margin-top: 64px; width: 168px; height: 168px; border-radius: 50%; border: 3px solid #b4e31e; display: grid; place-items: center; text-align: center;
+          box-shadow: 0 0 0 8px #0c0e0b, 0 0 0 9px rgba(180,227,30,.45); }
+  .selo b { display: block; font: 900 74px/0.8 'Big Shoulders Display', sans-serif; color: #b4e31e; }
+  .selo span { display: block; margin-top: 6px; font: 600 11px/1.2 'Barlow', sans-serif; letter-spacing: .26em; text-transform: uppercase; }
+  .curso { margin-top: auto; text-align: center; }
+  .curso p:first-child { font: 600 11px/1 'Barlow', sans-serif; letter-spacing: .32em; text-transform: uppercase; color: #b4e31e; }
+  .curso h2 { margin-top: 10px; font: 900 34px/.92 'Big Shoulders Display', sans-serif; text-transform: uppercase; font-style: italic; }
+  .curso h2 em { color: #b4e31e; }
+  .curso p:last-child { margin-top: 10px; font: 500 11px/1 'Barlow', sans-serif; letter-spacing: .2em; text-transform: uppercase; color: #a0a894; }
+
+  /* moldura guilhochê na área clara */
+  .moldura { position: absolute; left: 326px; top: 26px; right: 26px; bottom: 26px; }
+  .moldura svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .corpo { position: absolute; left: 300px; right: 0; top: 0; bottom: 0; padding: 80px 92px 0; text-align: center; }
+  .titulo { font: 600 70px/1 'Cormorant Garamond', serif; letter-spacing: .2em; padding-left: .2em; color: #141811; }
+  .sub { margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 16px;
+         font: 600 12.5px/1 'Barlow', sans-serif; letter-spacing: .52em; padding-left: .52em; text-transform: uppercase; color: #5f7a12; }
+  .sub::before, .sub::after { content: ''; width: 70px; height: 1px; background: #8aa23a; }
+  .cert-que { margin-top: 36px; font: italic 500 22px/1 'Cormorant Garamond', serif; color: #4d5446; }
+  /* espaço do nome (o server escreve aqui) */
+  .nome { height: 84px; margin: 0 auto; width: 600px; border-bottom: 1.4px solid #1b2016; position: relative; }
+  .nome::after { content: ''; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px; margin-left: -4px; background: #b4e31e; transform: rotate(45deg); }
+  .texto { margin: 28px auto 0; width: 640px; font: 500 18.5px/1.5 'Cormorant Garamond', serif; color: #2a3024; }
+  .texto b { font-weight: 700; color: #141811; }
+
+  .programa { margin: 34px auto 0; width: 560px; padding-top: 22px; border-top: 1px solid rgba(95,122,18,.3); }
+  .programa h3 { font: 600 10px/1 'Barlow', sans-serif; letter-spacing: .34em; text-transform: uppercase; color: #5f7a12; margin-bottom: 9px; }
+  .programa ol { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 26px; text-align: left; counter-reset: t; }
+  .programa li { font: 500 11.4px/1.35 'Barlow', sans-serif; color: #3a4133; display: flex; gap: 7px; }
+  .programa li::before { counter-increment: t; content: counter(t, decimal-leading-zero); font-weight: 700; color: #6d8a16; }
+
+  .assinaturas { position: absolute; left: 92px; right: 92px; bottom: 118px; display: grid; grid-template-columns: 1fr 1fr; gap: 90px; }
+  .assinaturas div { border-top: 1.2px solid #1b2016; padding-top: 9px; }
+  .assinaturas b { display: block; font: 700 17px/1.1 'Cormorant Garamond', serif; color: #141811; }
+  .assinaturas span { display: block; margin-top: 3px; font: 500 10.5px/1.3 'Barlow', sans-serif; letter-spacing: .08em; color: #5d6455; text-transform: uppercase; }
+
+  .rodape { position: absolute; left: 100px; right: 100px; bottom: 68px; display: flex; justify-content: space-between; align-items: center;
+            font: 500 10.5px/1 'Barlow', sans-serif; letter-spacing: .1em; text-transform: uppercase; color: #5d6455; }
+  .rodape .cod { text-align: right; } /* o código e o link são escritos pelo server */
+</style>
+</head>
+<body>
+  <div class="papel"></div>
+
+  <aside class="faixa">
+    <img src="../../img/logo.png" alt="">
+    <div class="selo"><div><b>5h</b><span>Carga<br>horária</span></div></div>
+    <div class="curso">
+      <p>Curso treinamento</p>
+      <h2>Corrida<br><em>de rua</em></h2>
+      <p>Do iniciante ao avançado</p>
+    </div>
+  </aside>
+
+  <div class="moldura"><svg id="guilhoche" viewBox="0 0 771 742" preserveAspectRatio="none"></svg></div>
+
+  <main class="corpo">
+    <h1 class="titulo">CERTIFICADO</h1>
+    <p class="sub">de participação</p>
+    <p class="cert-que">Certificamos que</p>
+    <div class="nome"></div>
+    <p class="texto">participou do curso <b>Treinamento de Corrida de Rua: do iniciante ao avançado</b>, ministrado por <b>Marcos Paulo Huber</b> e realizado pela <b>Academia D'Zimba</b> em Imbituba/SC, no dia 12 de dezembro de 2026, com carga horária total de <b>5 horas</b>.</p>
+
+    <div class="programa">
+      <h3>Conteúdo programático</h3>
+      <ol>
+        <li>O fenômeno corrida de rua</li>
+        <li>Métodos de treinamento</li>
+        <li>Perfil do corredor</li>
+        <li>Cálculo do volume de treino</li>
+        <li>Volume teórico de acordo com a prova</li>
+        <li>Treinamento de força para corrida de fundo</li>
+      </ol>
+    </div>
+
+    <div class="assinaturas">
+      <div><b>Marcos Paulo Huber</b><span>Palestrante · Mestre em Ciências da Saúde</span></div>
+      <div><b>Academia D'Zimba</b><span>Realização</span></div>
+    </div>
+    <div class="rodape">
+      <span>Imbituba/SC, 12 de dezembro de 2026</span>
+      <span class="cod"></span>
+    </div>
+  </main>
+
+<script>
+  // moldura guilhochê: duas faixas de ondas cruzadas, como em diplomas
+  (function () {
+    var svg = document.getElementById('guilhoche'), W = 771, H = 742, ns = 'http://www.w3.org/2000/svg';
+    function linha(d, cor, w) { var p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); p.setAttribute('fill', 'none'); p.setAttribute('stroke', cor); p.setAttribute('stroke-width', w); svg.appendChild(p); }
+    function contorno(m) { // retângulo com inset m
+      return [[m, m], [W - m, m], [W - m, H - m], [m, H - m]];
+    }
+    // ondas ao longo do perímetro
+    function onda(m, amp, per, fase, cor, w) {
+      var pts = contorno(m), d = '';
+      for (var lado = 0; lado < 4; lado++) {
+        var a = pts[lado], b = pts[(lado + 1) % 4], L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        var nx = -(b[1] - a[1]) / L, ny = (b[0] - a[0]) / L, n = Math.ceil(L / 2);
+        for (var i = 0; i <= n; i++) {
+          var t = i / n, s = t * L, off = amp * Math.sin(s / per * Math.PI * 2 + fase) * Math.sin(s / (per * 3.7) * Math.PI * 2 + fase / 2);
+          var x = a[0] + (b[0] - a[0]) * t + nx * off, y = a[1] + (b[1] - a[1]) * t + ny * off;
+          d += (d ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2);
+        }
+      }
+      linha(d + 'Z', cor, w);
+    }
+    for (var k = 0; k < 7; k++) onda(11, 6, 15, k * 0.9, k % 2 ? 'rgba(95,122,18,.55)' : 'rgba(27,32,22,.35)', 0.55);
+    linha('M1 1H770V741H1Z', '#1b2016', 1.6);
+    linha('M22 22H749V720H22Z', '#1b2016', 0.8);
+    linha('M26 26H745V716H26Z', 'rgba(95,122,18,.7)', 0.6);
+    // cantos
+    [[22, 22, 1, 1], [749, 22, -1, 1], [749, 720, -1, -1], [22, 720, 1, -1]].forEach(function (c) {
+      linha('M' + (c[0] + c[2] * 26) + ' ' + c[1] + 'L' + c[0] + ' ' + c[1] + 'L' + c[0] + ' ' + (c[1] + c[3] * 26), '#5f7a12', 2.2);
+    });
+  })();
+  // posições (px CSS, origem no canto superior esquerdo) p/ o server escrever o nome e o código
+  var n = document.querySelector('.nome').getBoundingClientRect(), c = document.querySelector('.rodape').getBoundingClientRect();
+  document.body.setAttribute('data-pos', JSON.stringify({ nomeCx: n.left + n.width / 2, nomeBase: n.bottom - 18, nomeLarg: n.width, codDir: c.right, codMeio: c.top + c.height / 2 }));
+</script>
+</body>
+</html>
