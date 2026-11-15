@@ -360,37 +360,19 @@ a { color: inherit; }
   background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(180,227,30,.08), transparent 70%), var(--preto); }
 .patrocinio__cab, .cotas__cab { text-align: center; }
 .patrocinio__mao { margin: 0 0 .6rem; font: 400 1.3rem/1 var(--mao); color: var(--lime); transform: rotate(-2deg); }
-.marcas { list-style: none; margin: clamp(36px, 5vw, 60px) auto 0; padding: 0; max-width: 980px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: clamp(14px, 2vw, 24px); }
+.marcas { list-style: none; margin: clamp(36px, 5vw, 60px) auto 0; padding: 0; max-width: 980px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 440px)); justify-content: center; gap: clamp(14px, 2vw, 24px); }
 .marca { position: relative; background: var(--papel); border-radius: 14px; min-height: clamp(150px, 16vw, 200px); display: grid; place-items: center; padding: clamp(26px, 4vw, 44px);
   box-shadow: 0 24px 50px -30px rgba(0,0,0,.8); transition: transform .3s cubic-bezier(.2,.9,.3,1.3); }
 .marca::after { content: ''; position: absolute; left: 22px; right: 22px; bottom: 0; height: 5px; background: var(--lime); transform: skewX(-20deg); }
 .marca:hover { transform: translateY(-4px); }
 .marca img { width: auto; max-width: 100%; max-height: 74px; }
 
-.cotas { max-width: 1160px; margin: clamp(90px, 11vw, 140px) auto 0; }
-.cotas__titulo { margin: 0; font: 900 clamp(2.4rem, 5.6vw, 4.6rem)/.88 var(--titulo); text-transform: uppercase; letter-spacing: -.01em; }
+.cotas { max-width: 760px; margin: clamp(70px, 9vw, 110px) auto 0; text-align: center; }
+.cotas__titulo { display: inline-block; margin: 0; font: 900 clamp(2.4rem, 5.6vw, 4.6rem)/.88 var(--titulo); text-transform: uppercase; letter-spacing: -.01em; text-decoration: none; color: var(--texto); transition: transform .25s; }
 .cotas__titulo em { font-style: italic; color: var(--lime); }
-.cotas__txt { margin: 1.2rem auto 0; max-width: 600px; color: var(--suave); font-size: 1.1rem; }
-.cotas__lista { list-style: none; margin: clamp(36px, 5vw, 56px) 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(14px, 2vw, 24px); align-items: stretch; }
-.cota { position: relative; background: var(--grafite); border: 1px solid var(--linha); border-radius: 14px; padding: clamp(28px, 3vw, 40px) clamp(22px, 2.6vw, 34px);
-  display: flex; flex-direction: column; align-items: center; text-align: center; }
-.cota--top { border: 2px solid var(--lime); background: linear-gradient(180deg, rgba(180,227,30,.1), var(--grafite) 45%); }
-.cota__selo { position: absolute; top: 0; left: 50%; margin: 0; transform: translate(-50%, -50%) rotate(-2deg); padding: .35em .9em; background: var(--lime); color: var(--preto);
-  font: 400 1rem/1 var(--mao); white-space: nowrap; }
-.cota__nome { margin: 0; font: 900 clamp(2rem, 3.2vw, 2.7rem)/.9 var(--titulo); text-transform: uppercase; font-style: italic; }
-.cota__nome small { display: block; margin-bottom: .45rem; font: 700 .75rem/1 var(--corpo); font-style: normal; letter-spacing: .32em; color: var(--suave); }
-.cota__valor { margin: 1.1rem 0 1.4rem; display: flex; align-items: flex-start; justify-content: center; font: 900 clamp(3.4rem, 5.4vw, 4.6rem)/.85 var(--titulo); color: var(--lime); letter-spacing: -.02em; }
-.cota__valor small { font: 800 1.3rem/1 var(--titulo); color: var(--texto); margin: .3em .25em 0 0; }
-.cota__beneficios { list-style: none; margin: 0 0 1.8rem; padding: 1.4rem 0 0; border-top: 2px dashed var(--linha); display: grid; gap: .8rem; font-size: .98rem; line-height: 1.45; flex: 1; align-content: start; }
-.cota__beneficios li::before { content: ''; display: block; width: 14px; height: 4px; margin: 0 auto .45rem; background: var(--lime); transform: skewX(-20deg); }
-.cota .btn { margin-top: auto; }
-.cotas__rodape { margin-top: clamp(32px, 4vw, 48px); text-align: center; }
-.cotas__rodape p { margin: 1rem 0 0; color: var(--suave); }
-.cotas__rodape p a { color: var(--lime); }
-@media (max-width: 900px) {
-  .cotas__lista { grid-template-columns: 1fr; max-width: 520px; margin-left: auto; margin-right: auto; gap: 30px; }
-  .cota--top { order: -1; }
-}
+.cotas__titulo:hover { transform: translateY(-3px); }
+.cotas__txt { margin: 1.2rem auto 2rem; max-width: 600px; color: var(--suave); font-size: 1.1rem; }
+.cotas .zap { width: 1.25em; height: 1.25em; }
 
 /* =========================================================
    MODAL DE PAGAMENTO
