@@ -45,7 +45,7 @@ Phive (fotos espalhadas que se juntam, marca gigante, anilha rolando, menu flutu
 5. Confirmar se pode usar as **3 avaliações do Google** (Déborah, Leonardo Mello, Bruno Rist) com nome
 
 ## Landing do Curso de Corrida de Rua (12/12/2026): `corrida/`
-**No ar:** https://academiadzimba.com.br/corrida/ · painel em `/corrida/painel/` (a chave está na VPS em `/root/segredos/dzimba-corrida-painel`)
+**No ar:** https://academiadzimba.com.br/corrida/ · painel em `/corrida/painel/` (senha simples escolhida pelo usuário em 15/11; fica em `ADMIN_KEY` no `.env` e em `/root/segredos/dzimba-corrida-painel`; a assinatura dos certificados usa `SEGREDO`, separado)
 Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 - **Dados do evento:** 12/12/2026.
   - Credenciamento na academia das 7h30 às 11h.
@@ -81,6 +81,8 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 - **WhatsApp:** Evolution Go da VPS antiga (127.0.0.1:8081), instância `dzimba-corrida`; o token está em `/root/segredos/dzimba-corrida-evo-token`.
   - A imagem foi trocada para `ox/evolution-go:0.7.2-ox405` para corrigir o "Client outdated 405"; o backup do compose está em /root/backups.
   - Pareia pelo QR do painel.
+  - **Se o QR não aparecer** ("no QR code available"): olhar `docker logs evolution-go-evogo-1`. Em 15/11 o Postgres da Evolution lotou ("too many clients already", 100/100) por tentativas repetidas de gerar QR; `docker restart evolution-go-evogo-1` liberou (só existe a instância `dzimba-corrida` nesse serviço, não derruba outro WhatsApp).
+  - Foto e descrição do grupo: `_dev/grupo-whatsapp/` (`foto-grupo.html` gera `foto-grupo.jpg` 1080×1080 no Chrome headless; `descricao-grupo.txt`).
   - 5 min depois do pagamento, a pessoa é colocada no grupo escolhido no painel; se o WhatsApp não deixar, ela recebe o link.
 - **Certificado (refeito 15/11):** arte própria em `api/assets/certificado.html` (A4 deitado: faixa preta com logo e selo 5h + papel marfim com moldura guilhochê, texto, conteúdo programático, assinaturas).
   - Gerar o fundo: Chrome headless `--force-device-scale-factor=2.5 --window-size=1123,794 --screenshot` → `certificado-fundo.jpg` (e cópia 1400px em `img/certificado-limpo.jpg` para a prévia da página). As posições do nome/código ficam em `CERT_POS` no server.js (o HTML calcula e grava em `data-pos`).

@@ -1,0 +1,44 @@
+<!doctype html>
+<!-- Foto do grupo de WhatsApp dos inscritos (1080x1080). O WhatsApp recorta em círculo: tudo que importa fica dentro do círculo central.
+     Gerar: chrome --headless=new --hide-scrollbars --window-size=1080,1080 --screenshot=foto-grupo.png foto-grupo.html -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@600;700&family=Big+Shoulders+Display:wght@800;900&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1080px; overflow: hidden; }
+  body { position: relative; background: #0a0c09; font-family: 'Barlow', sans-serif; color: #f1f4ea; }
+  /* faixas de pista ao fundo */
+  .fundo { position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(180,227,30,.16), transparent 58%),
+      repeating-linear-gradient(-55deg, rgba(180,227,30,.07) 0 3px, transparent 3px 34px); }
+  .raia { position: absolute; left: -10%; right: -10%; height: 26px; background: repeating-linear-gradient(90deg, #b4e31e 0 70px, transparent 70px 120px); transform: rotate(-12deg); opacity: .9; }
+  .r1 { top: 120px; } .r2 { bottom: 120px; }
+  /* círculo seguro */
+  .anel { position: absolute; left: 50%; top: 50%; width: 930px; height: 930px; margin: -465px 0 0 -465px; border-radius: 50%;
+    background: #0d100c; border: 10px solid #b4e31e; box-shadow: 0 0 0 18px #0a0c09, 0 0 0 22px rgba(180,227,30,.45), 0 0 80px rgba(180,227,30,.35);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+  .anel::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(-55deg, rgba(255,255,255,.025) 0 2px, transparent 2px 24px); }
+  .anel > * { position: relative; }
+  .logo { width: 400px; margin: -20px 0 14px; }
+  .pre { font: 700 34px/1 'Barlow'; letter-spacing: .34em; padding-left: .34em; text-transform: uppercase; color: #b4e31e; }
+  h1 { margin-top: 10px; font: 900 184px/.8 'Big Shoulders Display'; text-transform: uppercase; font-style: italic; letter-spacing: -.02em; }
+  h1 em { display: block; color: #b4e31e; }
+  .data { margin-top: 30px; display: inline-flex; align-items: center; gap: 18px; padding: 14px 34px; background: #b4e31e; color: #0a0c09; transform: rotate(-2.5deg);
+    font: 900 64px/1 'Big Shoulders Display'; letter-spacing: .02em; }
+  .data span { font: 400 40px/1 'Permanent Marker'; }
+</style>
+</head>
+<body>
+  <div class="fundo"></div>
+  <div class="raia r1"></div><div class="raia r2"></div>
+  <div class="anel">
+    <img class="logo" src="../../corrida/img/logo.png" alt="">
+    <p class="pre">Curso treinamento</p>
+    <h1>Corrida<em>de rua</em></h1>
+    <p class="data">12.12 <span>Imbituba</span></p>
+  </div>
+</body>
+</html>
