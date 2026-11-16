@@ -105,13 +105,16 @@
     p = Math.max(0, Math.min(1, p));
     rota.style.strokeDashoffset = compRota * (1 - p);
     var pt = rota.getPointAtLength(compRota * p);
-    corredor.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ')');
+    // o carro aponta para onde a rua vai (média de ±18 unidades para não tremer nos zigue-zagues)
+    var L = compRota * p, ant = rota.getPointAtLength(Math.max(0, L - 18)), dep = rota.getPointAtLength(Math.min(compRota, L + 18));
+    var ang = Math.atan2(dep.y - ant.y, dep.x - ant.x) * 180 / Math.PI;
+    corredor.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ') rotate(' + ang.toFixed(1) + ')');
     kmNum.textContent = (DIST * p).toFixed(1).replace('.', ',');
     mapa.classList.toggle('chegou', p > .985);
     etapaA.classList.toggle('on', p < .985);
     etapaB.classList.toggle('on', p > .985);
   }
-  // câmera: aproxima e segue o corredor (s = zoom; 1 = mapa inteiro)
+  // câmera: aproxima e segue o carro (s = zoom; 1 = mapa inteiro)
   var cam = $('.mapa__cam');
   function camera(p, s) {
     var W = mapa.clientWidth, H = mapa.clientHeight;
