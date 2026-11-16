@@ -246,18 +246,31 @@ $admin = static fn (): EmitenteAdminService => new EmitenteAdminService(dirname(
 
 $router->add('POST', '/v1/admin/emitentes', function (Request $req) use ($exigirAdmin, $admin) {
     $exigirAdmin($req);
+    // seguranca: so cadastra/atualiza empresa da propria chave admin (empresa nova passa a ser dela)
+    $cnpjAdm = preg_replace('/\D/', '', (string) ($req->body['cnpj'] ?? ''));
+    $existia = $admin()->existe($cnpjAdm);
+    if (!ApiKeys::podeAdministrar($req->caller, $cnpjAdm, $existia)) {
+        Response::erro('Esta chave não administra este emitente.', 403);
+    }
     $cert = $req->body['certificado_base64'] ?? null;
     $r = $admin()->registrar($req->body, is_string($cert) ? $cert : null);
+    if (!$existia) {
+        $admin()->liberarChave($cnpjAdm, (string) $req->caller['nome']);
+    }
     Response::ok(['emitente' => $r]);
 });
 
 $router->add('GET', '/v1/admin/emitentes', function (Request $req) use ($exigirAdmin, $admin) {
     $exigirAdmin($req);
-    Response::ok(['emitentes' => $admin()->listar()]);
+    $doCaller = array_values(array_filter($admin()->listar(), fn ($e) => ApiKeys::podeEmitir($req->caller, (string) $e['cnpj'])));
+    Response::ok(['emitentes' => $doCaller]);
 });
 
 $router->add('POST', '/v1/admin/emitentes/remover', function (Request $req) use ($exigirAdmin, $admin) {
     $exigirAdmin($req);
+    if (!ApiKeys::podeEmitir($req->caller, (string) ($req->body['cnpj'] ?? ''))) {
+        Response::erro('Esta chave não administra este emitente.', 403);
+    }
     $admin()->remover((string) ($req->body['cnpj'] ?? ''));
     Response::ok();
 });

@@ -158,6 +158,7 @@ final class DistribuicaoService
     private function arquivo(string $chave): string
     {
         $cnpj = preg_replace('/\D/', '', $this->emitente->cnpj);
+        $chave = \App\Support\XmlStore::nomeSeguro($chave); // seguranca: nada de "../" no caminho
         return "{$this->root}/storage/xml/{$cnpj}/recebidas/{$chave}.xml";
     }
 }

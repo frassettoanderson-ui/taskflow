@@ -64,4 +64,13 @@ final class ApiKeys
         $permitidos = $caller['emitentes'] ?? [];
         return in_array('*', $permitidos, true) || in_array($cnpj, $permitidos, true);
     }
+
+    /**
+     * Seguranca: a chave admin so mexe nas empresas DELA (a lista "emitentes" da propria chave admin).
+     * Empresa que ainda nao existe no motor pode ser cadastrada e passa a ser dela.
+     */
+    public static function podeAdministrar(array $caller, string $cnpj, bool $existe): bool
+    {
+        return !$existe || self::podeEmitir($caller, $cnpj);
+    }
 }

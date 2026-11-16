@@ -99,6 +99,11 @@ final class EmitenteAdminService
         return ['cnpj' => $cnpj] + $this->semSegredos($registro);
     }
 
+    public function existe(string $cnpj): bool
+    {
+        return isset($this->lerJson($this->emitentesPath())[preg_replace('/\D/', '', $cnpj)]);
+    }
+
     public function listar(): array
     {
         $json = $this->lerJson($this->emitentesPath());
@@ -131,7 +136,7 @@ final class EmitenteAdminService
         });
     }
 
-    private function liberarChave(string $cnpj, string $nomeChave): void
+    public function liberarChave(string $cnpj, string $nomeChave): void
     {
         $this->mutarJson($this->apiKeysPath(), function (array $chaves) use ($cnpj, $nomeChave): array {
             foreach ($chaves as &$conf) {
