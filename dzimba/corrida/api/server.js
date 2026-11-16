@@ -20,11 +20,14 @@ try {
 const TOKEN = process.env.MP_ACCESS_TOKEN || '';
 const PUBLIC_BASE = (process.env.PUBLIC_BASE || 'https://academiadzimba.com.br/corrida').replace(/\/$/, '');
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
-const VALOR = Number(process.env.VALOR || '999.00');
+// Venda por LOTES: "vagas:valor" separados por vírgula. Quando as vagas pagas de um lote acabam, o próximo entra sozinho.
+// Cortesias não ocupam vaga de lote. Quem gerou o PIX/cartão paga o valor do lote em que gerou.
+const LOTES = String(process.env.LOTES || '30:99,30:119,30:139').split(',').map(s => s.trim()).filter(Boolean)
+  .map((s, i) => { const [v, p] = s.split(':'); return { numero: i + 1, vagas: Number(v), valor: Number(p) }; })
+  .filter(l => l.vagas > 0 && l.valor > 0);
 const MAX_PARCELAS = Number(process.env.MAX_PARCELAS || '1');
 const TAXA_CARTAO = Number(process.env.TAXA_CARTAO || '0.0498');   // repassada inteira a quem paga no cartão
-const VALOR_CARTAO = Number((VALOR / (1 - TAXA_CARTAO)).toFixed(2));
-const VAGAS = Number(process.env.VAGAS || '0');                     // 0 = sem limite
+const VAGAS = LOTES.reduce((s, l) => s + l.vagas, 0);
 const PORT = Number(process.env.PORT || '8404');
 const SEGREDO = process.env.SEGREDO || ADMIN_KEY || 'dzimba';        // assina os links públicos dos certificados
 const CERT_AUTO_EM = process.env.CERT_AUTO_EM || '2026-12-12T19:30:00-03:00'; // envio automático dos certificados
@@ -58,7 +61,15 @@ const ok = v => typeof v === 'string' && v.trim().length > 1;
 const admin = (req, res) => { if (!ADMIN_KEY || req.query.key !== ADMIN_KEY) { res.status(401).json({ error: 'nao_autorizado' }); return false; } return true; };
 const NIVEIS = ['iniciante', 'intermediario', 'avancado'];
 const pagos = () => Object.values(db).filter(r => r.status === 'approved' && !r.oculto);
-const esgotado = () => VAGAS > 0 && pagos().length >= VAGAS;
+const vendidos = () => pagos().filter(r => r.metodo !== 'cortesia').length;
+const esgotado = () => vendidos() >= VAGAS;
+function loteAtual() {   // { numero, vagas, valor, restantes } ou null se acabou
+  let n = vendidos();
+  for (const l of LOTES) { if (n < l.vagas) return { ...l, restantes: l.vagas - n }; n -= l.vagas; }
+  return null;
+}
+const valorAtual = () => (loteAtual() || LOTES[LOTES.length - 1]).valor;
+const valorCartao = v => Number((v / (1 - TAXA_CARTAO)).toFixed(2));
 
 function lerInscricao(body) {
   const nome = String(body.nome || '').trim().replace(/\s+/g, ' ');
@@ -71,10 +82,14 @@ function lerInscricao(body) {
 }
 
 // o front usa pra decidir se abre o formulário ou cai no WhatsApp
-app.get('/api/config', (_req, res) => res.json({
-  enabled: !!TOKEN, valor: VALOR, valorCartao: VALOR_CARTAO, maxParcelas: MAX_PARCELAS,
-  vagas: VAGAS || null, restantes: VAGAS ? Math.max(0, VAGAS - pagos().length) : null, esgotado: esgotado(),
-}));
+// só o valor do lote ATUAL é público; os próximos aparecem só como "valor maior"
+app.get('/api/config', (_req, res) => {
+  const l = loteAtual(), v = valorAtual();
+  res.json({
+    enabled: !!TOKEN, valor: v, valorCartao: valorCartao(v), maxParcelas: MAX_PARCELAS,
+    lote: l ? { numero: l.numero, restantes: l.restantes, vagas: l.vagas } : null, totalLotes: LOTES.length, esgotado: esgotado(),
+  });
+});
 
 // cria a inscrição + cobrança PIX
 app.post('/api/inscrever', async (req, res) => {
@@ -83,6 +98,7 @@ app.post('/api/inscrever', async (req, res) => {
   const d = lerInscricao(req.body);
   if (!d) return res.status(400).json({ error: 'dados_invalidos' });
   const id = crypto.randomUUID();
+  const VALOR = valorAtual(), LOTE = loteAtual()?.numero || null;
   const [primeiro, ...resto] = d.nome.split(' ');
   const r = await mp('/v1/payments', {
     method: 'POST',
@@ -98,7 +114,7 @@ app.post('/api/inscrever', async (req, res) => {
   });
   if (!r.ok) { console.error('MP pix erro', r.status, r.body); return res.status(502).json({ error: 'falha_pix', detalhe: r.body.message }); }
   const tx = r.body.point_of_interaction?.transaction_data || {};
-  db[id] = { id, ...d, valor: VALOR, metodo: 'pix', mp_id: r.body.id, status: 'pending', criado: new Date().toISOString(), pago: null };
+  db[id] = { id, ...d, valor: VALOR, lote: LOTE, metodo: 'pix', mp_id: r.body.id, status: 'pending', criado: new Date().toISOString(), pago: null };
   save();
   res.json({ id, qr_code: tx.qr_code, qr_code_base64: tx.qr_code_base64, expira: tx.expiration_date });
 });
@@ -110,6 +126,7 @@ app.post('/api/cartao', async (req, res) => {
   const d = lerInscricao(req.body);
   if (!d) return res.status(400).json({ error: 'dados_invalidos' });
   const id = crypto.randomUUID();
+  const VALOR_CARTAO = valorCartao(valorAtual()), LOTE = loteAtual()?.numero || null;
   const [pnome, ...psobre] = d.nome.split(' ');
   const sobrenome = psobre.join(' ') || pnome;
   const ddd = d.whatsapp.slice(0, 2), fone = d.whatsapp.slice(2);
@@ -129,7 +146,7 @@ app.post('/api/cartao', async (req, res) => {
     }),
   });
   if (!r.ok) { console.error('MP pref erro', r.status, r.body); return res.status(502).json({ error: 'falha_cartao' }); }
-  db[id] = { id, ...d, valor: VALOR_CARTAO, metodo: 'cartao', mp_id: null, status: 'pending', criado: new Date().toISOString(), pago: null };
+  db[id] = { id, ...d, valor: VALOR_CARTAO, lote: LOTE, metodo: 'cartao', mp_id: null, status: 'pending', criado: new Date().toISOString(), pago: null };
   save();
   res.json({ id, init_point: r.body.init_point });
 });
@@ -397,7 +414,7 @@ app.get('/api/painel', async (req, res) => {
       certUrl: r.status === 'approved' ? urlCertificado(r) : null }));
   const ps = list.filter(r => r.status === 'approved');
   res.json({
-    evento: { valor: VALOR, vagas: VAGAS || null, certAutoEm: CERT_AUTO_EM, pagamento: !!TOKEN },
+    evento: { valor: valorAtual(), lote: loteAtual(), lotes: LOTES, vendidos: vendidos(), vagas: VAGAS || null, certAutoEm: CERT_AUTO_EM, pagamento: !!TOKEN },
     grupo: cfg.grupoJid ? { nome: g?.nome || cfg.grupoNome, total: g?.total ?? null, link: cfg.grupoLink || '' } : null,
     whatsapp: { estado: await estadoZap(), instancia: EVO_INSTANCE },
     resumo: {
@@ -419,7 +436,8 @@ app.post('/api/manual', (req, res) => {
   const id = crypto.randomUUID();
   const rec = { id, nome, email: String(req.body.email || '').trim(), whatsapp, nivel: NIVEIS.includes(req.body.nivel) ? req.body.nivel : '',
     patrocinadores: req.body.patrocinadores === true, ...(req.body.patrocinadores === true ? { patrocinadoresEm: new Date().toISOString() } : {}),
-    valor: metodo === 'cortesia' ? 0 : (Number(req.body.valor) || VALOR), metodo, mp_id: null, status: 'pending', criado: new Date().toISOString(), pago: null, manual: true };
+    lote: metodo === 'cortesia' ? null : (loteAtual()?.numero || null),
+    valor: metodo === 'cortesia' ? 0 : (Number(req.body.valor) || valorAtual()), metodo, mp_id: null, status: 'pending', criado: new Date().toISOString(), pago: null, manual: true };
   db[id] = rec;
   aprovar(rec);
   res.json({ ok: true, inscrito: rec });

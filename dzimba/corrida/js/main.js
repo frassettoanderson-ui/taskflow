@@ -218,6 +218,21 @@
       var v = brl(cfg.valor).split(',');
       $('#valor-num').textContent = v[0]; $('#valor-cent').textContent = ',' + v[1];
     }
+    // lotes: só o valor do lote atual aparece; os próximos, "valor maior"
+    var tot = cfg.totalLotes || 3, la = cfg.lote ? cfg.lote.numero : tot, lis = '';
+    for (var n = 1; n <= tot; n++) {
+      lis += '<li class="' + (n < la ? 'fechado' : n === la ? 'atual' : '') + '"><b>' + n + 'º lote</b><span>' +
+        (n < la ? 'esgotado' : n === la ? 'R$ ' + brl(cfg.valor).replace(',00', '') : 'valor maior') + '</span></li>';
+    }
+    $('#lotes').innerHTML = lis;
+    $('#lote-rot').textContent = la + 'º lote' + (la === tot ? ' · último' : '');
+    if (la === tot) $('#lotes-aviso').innerHTML = 'Este é o <b>último lote</b>. Quando ele acabar, as inscrições se encerram.';
+    if (cfg.lote && cfg.lote.restantes <= 10 && !cfg.esgotado) {
+      var rv = $('#vagas'); rv.textContent = cfg.lote.restantes === 1 ? 'resta 1 vaga neste lote!' : 'restam ' + cfg.lote.restantes + ' vagas neste lote'; rv.hidden = false;
+    }
+    if (cfg.esgotado) {
+      $$('[data-cta]').forEach(function (a) { a.querySelector('span').textContent = 'Vagas esgotadas'; a.removeAttribute('href'); a.style.pointerEvents = 'none'; a.style.opacity = '.5'; });
+    }
     if (!cfg.enabled) {
       // pagamento online ainda não ligado: o checkout envia a inscrição pelo WhatsApp da academia
       $('#valor-forma').textContent = 'no PIX ou no cartão';
@@ -232,11 +247,6 @@
     var c = $('#valor-cartao');
     c.textContent = 'ou R$ ' + brl(cfg.valorCartao) + ' no cartão' + (cfg.maxParcelas > 1 ? ', em até ' + cfg.maxParcelas + 'x' : '') + ' (com a taxa da operadora)';
     c.hidden = false;
-    if (cfg.esgotado) {
-      $$('[data-cta]').forEach(function (a) { a.querySelector('span').textContent = 'Vagas esgotadas'; a.removeAttribute('href'); a.style.pointerEvents = 'none'; a.style.opacity = '.5'; });
-    } else if (cfg.restantes != null && cfg.restantes <= 20) {
-      var r = $('#vagas'); r.textContent = cfg.restantes === 1 ? 'resta 1 vaga!' : 'restam ' + cfg.restantes + ' vagas'; r.hidden = false;
-    }
   }
   fetch(API + 'config').then(function (r) { return r.ok ? r.json() : { enabled: false }; })
     .catch(function () { return { enabled: false }; })
@@ -306,7 +316,7 @@
     var txt = 'Olá! Quero garantir minha vaga no *Curso Treinamento de Corrida de Rua* (12/12).\n\n' +
       'Nome: ' + d.nome + '\nWhatsApp: ' + d.whatsapp + '\nE-mail: ' + d.email + (d.nivel ? '\nNível: ' + NIVEIS[d.nivel] : '') +
       '\nAutorizo compartilhar meus contatos com os patrocinadores: ' + (d.patrocinadores ? 'SIM' : 'não') +
-      (cfg.valor ? '\n\nValor: R$ ' + brl(cfg.valor) : '');
+      (cfg.valor ? '\n\nValor: R$ ' + brl(cfg.valor) + (cfg.lote ? ' (' + cfg.lote.numero + 'º lote)' : '') : '');
     window.open(ZAP + encodeURIComponent(txt), '_blank', 'noopener');
   }
   $('[data-zap]', form).addEventListener('click', enviarZap);

@@ -58,7 +58,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - herói no PC em duas colunas (texto centralizado na metade escura da foto, corredores à direita; cronômetro e botão lado a lado, tudo na primeira tela);
   - percurso com **mapa real** de Imbituba (`img/mapa.svg`, gerado do OpenStreetMap/Overpass + rota a pé do OSRM, 4,5 km); a rota se desenha com a rolagem, com marcos de km e contador;
   - palestrante com texto, credenciais e **trajetória em linha do tempo** (fatos públicos: Unisul 2007, Gama Filho 2009, Unisul 2010–2016, mestrado 2012, livro Univinte 2024, coordenação na Univinte e técnico do atletismo adulto de Tubarão; a escolinha da ADRA foi retirada a pedido do usuário). **Foto:** basta colocar `img/marcos-1.jpg` (retrato 9:11); sem o arquivo o bloco some sozinho;
-  - seção **Investimento** (ingresso) com o preço vindo da API (`VALOR`);
+  - seção **Investimento** (ingresso) com o preço do lote atual vindo da API, etiqueta do lote e a régua 1º/2º/3º lote;
   - **todo botão "Garantir" abre o checkout**. Sem `MP_ACCESS_TOKEN`, o checkout tem um botão só, "Enviar inscrição pelo WhatsApp", com nome/WhatsApp/e-mail/nível/valor preenchidos; com o token vira PIX + cartão sozinho.
 - **Front (v2, 15/11):** a v1 foi rejeitada ("só colou o post, preguiça"), então **o cartaz não é mais usado**. A ideia da v2 é "rolar = correr":
   - barra de ritmo no topo;
@@ -70,7 +70,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - **número de peito e certificado com o nome digitado ao vivo** (o nome vai para o modal de pagamento e para a mensagem do WhatsApp).
   - GSAP 3.12.5 + ScrollTrigger; sem GSAP a página aparece parada.
   - Fotos em `img/` geradas pelo Codex (hero, grupo, tenis, relogio, forca), sem marcas. Trocar por fotos reais se a academia tiver.
-  - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão), `validar/` (confere o código do certificado) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=7).
+  - `corrida/index.html` + `css/style.css` + `js/main.js`, mais `obrigado/` (volta do cartão), `validar/` (confere o código do certificado) e `painel/` (arquivo único). Ao mudar, subir o `?v=` (hoje v=8).
 - **Patrocínio (15/11):** seção `#patrocinio` **logo depois do herói** (pedido do usuário), com as logos dos patrocinadores em cartões claros (`img/patrocinadores/*.svg`, em vetor, tiradas dos PDFs do usuário: **Melo Logística** e **Axiis Bank**) e o chamado "Seja um patrocinador" (`#seja-patrocinador`). O título e o botão "Quero ser patrocinador" abrem o WhatsApp do **Patrick, (48) 9600-1619** (`wa.me/554896001619`), com a mensagem "Olá, gostaria de mais informações sobre como patrocinar o evento!". O FAQ e o link do rodapé vão para o mesmo lugar. ⚠️ **Não mostrar valores nem cotas na página** (decisão do usuário): a proposta em PDF com as cotas (Movimento/Atleta/Campeão) foi tirada do site; quem negocia é o Patrick. **Autorização dos contatos (cota Atleta):** a inscrição tem uma caixa opcional, desmarcada, "Autorizo compartilhar nome, WhatsApp e e-mail com os patrocinadores"; grava `patrocinadores` + `patrocinadoresEm` (também vai na mensagem do WhatsApp quando o pagamento é por lá). No painel: etiqueta "patrocinadores" no inscrito, caixa na inscrição manual e na edição, e o botão **Contatos p/ patrocinadores** baixa a planilha só dos pagos que autorizaram. **Novo patrocinador:** pegar a logo em vetor (PDF/SVG), recortar sem o fundo branco e colocar o `<li class="marca">` nas duas listas (seção e rodapé).
 - **API:** `corrida/api/` (Express + pdf-lib).
   - `PUBLIC_BASE=https://academiadzimba.com.br/corrida` no `.env` da VPS (links do certificado, validação e volta do Mercado Pago).
@@ -96,7 +96,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 
 ### Falta (corrida)
 1. **Access Token de produção do Mercado Pago da academia** (`APP_USR-...`, conta com chave PIX cadastrada). Vai em `MP_ACCESS_TOKEN` no `/opt/dzimba-corrida/.env`, depois `pm2 restart dzimba-corrida`.
-2. **Valor real** (hoje `VALOR=999.00`, provisório)
+2. ~~Valor~~ (16/11): **venda por lotes**, `LOTES=30:99,30:119,30:139` no `.env` da VPS (vagas:valor). O lote muda sozinho quando as vagas pagas do lote acabam (cortesia não conta); total 90 vagas, depois esgota. A página e o `/api/config` só revelam o valor do lote ATUAL; os próximos aparecem como "valor maior" (pedido do usuário). Quem gerou o PIX/cartão paga o valor do lote em que gerou. O painel mostra o lote e as vendidas.
 3. **Parear o WhatsApp** (48) 99947-4500 pelo QR do painel e **criar o grupo** e escolher no painel
 4. ~~Fotos do Marcos~~ (15/11): `img/marcos-1.jpg` é a foto dele do Instagram @marcospaulohuber (post da Univinte, de camisa social) trocada no Codex para roupa de corrida na pista, com o rosto mantido. Alternativa na orla em `_dev/marcos-praia.jpg`. Se o Marcos mandar foto real de corrida, trocar.
 5. Confirmar com o Marcos os dados da trajetória usados na página

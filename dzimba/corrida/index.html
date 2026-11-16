@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Big+Shoulders+Display:wght@600;800;900&family=Cormorant+Garamond:ital,wght@1,600&family=Permanent+Marker&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=8">
   <script>
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('anima');
   </script>
@@ -284,11 +284,18 @@
 
   <div class="ingresso">
     <div class="ingresso__preco">
+      <p class="ingresso__lote" id="lote-rot">1º lote</p>
       <p class="ingresso__rot">Curso completo · 12.12</p>
-      <p class="ingresso__valor"><small>R$</small><b id="valor-num">999</b><span id="valor-cent">,00</span></p>
+      <p class="ingresso__valor"><small>R$</small><b id="valor-num">99</b><span id="valor-cent">,00</span></p>
       <p class="ingresso__forma" id="valor-forma">no PIX, aprovado na hora</p>
       <p class="ingresso__cartao" id="valor-cartao" hidden></p>
       <p class="vaga__restam" id="vagas" hidden></p>
+      <ol class="lotes" id="lotes" aria-label="Lotes de inscrição">
+        <li class="atual"><b>1º lote</b><span>R$ 99</span></li>
+        <li><b>2º lote</b><span>valor maior</span></li>
+        <li><b>3º lote</b><span>valor maior</span></li>
+      </ol>
+      <p class="lotes__aviso" id="lotes-aviso">São 3 lotes de 30 vagas. Quando as vagas de um lote acabam, entra o próximo, e <b>a cada lote o valor aumenta</b>.</p>
     </div>
     <div class="ingresso__corte" aria-hidden="true"></div>
     <div class="ingresso__inclui">
@@ -312,6 +319,7 @@
     <details><summary>Preciso já correr para fazer o curso?</summary><p>Não. O curso vai do iniciante ao avançado: serve para quem quer começar e para quem já corre e quer treinar melhor.</p></details>
     <details><summary>Onde é o credenciamento?</summary><p>Na Academia D'Zimba (Av. Renato Ramos da Silva, 3724, Vila Nova), no sábado 12/12, das 7h30 às 11h. O curso começa às 15h no Auditório do Praia Hotel.</p></details>
     <details><summary>Como recebo o certificado?</summary><p>No seu WhatsApp, em PDF, depois do curso, para quem fez o credenciamento. O nome sai igual ao que você escreveu na inscrição.</p></details>
+    <details><summary>Como funcionam os lotes?</summary><p>A inscrição é vendida em 3 lotes de 30 vagas. Quando as 30 vagas de um lote são preenchidas, abre o lote seguinte, com valor maior. Quanto antes você garante a vaga, menos paga.</p></details>
     <details><summary>Quais as formas de pagamento?</summary><p>PIX, aprovado na hora, ou cartão de crédito pelo Mercado Pago. No cartão, a taxa da operadora é somada ao valor.</p></details>
     <details><summary>Minha empresa pode patrocinar?</summary><p>Pode. Fale com o Patrick no <a href="https://wa.me/554896001619?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20como%20patrocinar%20o%20evento!" target="_blank" rel="noopener">WhatsApp (48) 9600-1619</a> e ele explica como funciona.</p></details>
     <details><summary>Paguei. E agora?</summary><p>Você recebe uma mensagem no WhatsApp com a confirmação e o grupo dos inscritos. É por lá que vão todos os avisos do curso.</p></details>
@@ -397,6 +405,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<script src="js/main.js?v=7" defer></script>
+<script src="js/main.js?v=8" defer></script>
 </body>
 </html>

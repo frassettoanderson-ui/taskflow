@@ -306,6 +306,18 @@ a { color: inherit; }
 .ingresso__valor b { font: 900 clamp(5.5rem, 12vw, 9.5rem)/.85 var(--titulo); letter-spacing: -.02em; }
 .ingresso__valor span { font: 900 clamp(1.6rem, 3vw, 2.6rem)/1 var(--titulo); margin-top: .2em; }
 .ingresso__forma { margin: 1rem 0 0; font-weight: 600; }
+.ingresso__lote { margin: 0 0 .9rem; padding: .3em .9em; background: var(--lime); color: var(--preto); font: 400 1.15rem/1 var(--mao); transform: rotate(-2deg); }
+.lotes { list-style: none; margin: 1.6rem 0 0; padding: 0; width: 100%; max-width: 360px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; counter-reset: l; }
+.lotes li { padding: .6em .3em; border: 1px solid var(--linha); border-radius: 4px; display: grid; gap: .2rem; transform: skewX(-8deg); }
+.lotes li > * { transform: skewX(8deg); }
+.lotes b { font: 800 1rem/1 var(--titulo); text-transform: uppercase; letter-spacing: .04em; color: var(--suave); }
+.lotes span { font-size: .78rem; color: var(--suave); }
+.lotes li.atual { border-color: var(--lime); background: rgba(180,227,30,.12); }
+.lotes li.atual b, .lotes li.atual span { color: var(--lime); }
+.lotes li.fechado { opacity: .45; }
+.lotes li.fechado span { text-decoration: line-through; }
+.lotes__aviso { margin: .9rem 0 0; max-width: 360px; font-size: .88rem; line-height: 1.45; color: var(--suave); }
+.lotes__aviso b { color: var(--texto); }
 .ingresso__cartao { margin: .3rem 0 0; color: var(--suave); font-size: .95rem; }
 .ingresso .vaga__restam { margin: 1rem 0 0; }
 .ingresso__corte { position: relative; width: 0; border-left: 2px dashed var(--linha); margin: 26px 0; }
