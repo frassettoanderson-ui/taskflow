@@ -110,6 +110,16 @@ a { color: inherit; }
 /* =========================================================
    MANIFESTO
    ========================================================= */
+.hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s ease; }
+.hero__video.on { opacity: 1; }
+.hero__video { transform: scale(1.04); }
+.filme { padding: 0 var(--gutter) clamp(70px, 10vw, 130px); }
+.filme__tela { position: relative; max-width: 1280px; margin: 0 auto; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 6px; background: #000; box-shadow: 0 30px 80px rgba(0,0,0,.5); }
+.filme__video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.filme__selo { margin: clamp(18px, 3vw, 30px) auto 0; display: grid; justify-items: center; gap: .35rem; text-align: center; }
+.filme__selo b { font: 900 italic clamp(2rem, 6vw, 4.4rem)/.9 var(--titulo); color: var(--lime); }
+.filme__selo span { font-size: clamp(.7rem, 1.4vw, .9rem); letter-spacing: .3em; text-transform: uppercase; }
+@media (max-width: 700px) { .filme { padding-left: 0; padding-right: 0; } .filme__tela { border-radius: 0; aspect-ratio: 4 / 5; } }
 .manifesto { padding: clamp(90px, 14vw, 180px) var(--gutter); text-align: center; max-width: 1180px; margin: 0 auto; }
 .manifesto__txt { margin: 0 0 2rem; font: 900 clamp(2.5rem, 7vw, 6.2rem)/.95 var(--titulo); text-transform: uppercase; letter-spacing: -.01em; }
 .manifesto__txt em { font-style: italic; color: var(--lime); }

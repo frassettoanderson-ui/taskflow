@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#0a0c09">
   <meta property="og:title" content="Curso Treinamento de Corrida de Rua · 12/12 · Imbituba">
   <meta property="og:description" content="Do iniciante ao avançado, com Marcos Paulo Huber. Garanta sua participação.">
-  <meta property="og:image" content="https://academiadzimba.com.br/corrida/img/og.jpg">
+  <meta property="og:image" content="https://academiadzimba.com.br/corrida/img/og.jpg?v=2">
   <meta property="og:url" content="https://academiadzimba.com.br/corrida/">
   <meta property="og:type" content="website">
   <link rel="canonical" href="https://academiadzimba.com.br/corrida/">
@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Big+Shoulders+Display:wght@600;800;900&family=Cormorant+Garamond:ital,wght@1,600&family=Permanent+Marker&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=10">
+  <link rel="stylesheet" href="css/style.css?v=11">
   <script>
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('anima');
   </script>
@@ -49,7 +49,7 @@
 
 <!-- ================= LARGADA (herói) ================= -->
 <section class="hero" id="topo">
-  <div class="hero__foto" aria-hidden="true"><img src="img/hero.jpg" alt="" width="1536" height="1024" fetchpriority="high"></div>
+  <div class="hero__foto" aria-hidden="true"><picture><source media="(max-width: 700px)" srcset="img/hero-m.jpg?v=1" width="1024" height="1536"><img src="img/hero.jpg?v=2" alt="" width="1536" height="1024" fetchpriority="high"></picture><video class="hero__video" muted loop playsinline preload="none" data-src="video/hero.mp4?v=1"></video></div>
   <div class="hero__veu" aria-hidden="true"></div>
 
   <div class="hero__conteudo">
@@ -102,6 +102,16 @@
 <section class="manifesto" aria-label="Correr é mais do que movimento. É qualidade de vida.">
   <p class="manifesto__txt" id="manifesto" aria-hidden="true">Correr é mais do que movimento. É <em>qualidade de vida.</em></p>
   <p class="manifesto__sub">Um curso para quem quer começar do jeito certo e para quem já corre e quer treinar com método.</p>
+</section>
+
+<!-- ================= FILME ================= -->
+<section class="filme" aria-label="Vídeo do curso">
+  <div class="filme__tela">
+    <video class="filme__video" muted loop playsinline preload="none" poster="img/filme-capa.jpg?v=1" aria-hidden="true">
+      <source src="video/filme.mp4?v=1" type="video/mp4">
+    </video>
+  </div>
+  <p class="filme__selo"><b>12.12</b><span>Imbituba · SC · Praia Hotel</span></p>
 </section>
 
 <!-- ================= PERCURSO DO DIA ================= -->
@@ -162,12 +172,12 @@
 
   <div class="parciais__corpo">
     <div class="parciais__fotos" aria-hidden="true">
-      <img src="img/grupo.jpg" alt="" data-foto="0" class="ativa" width="1536" height="1024" loading="lazy">
-      <img src="img/hero.jpg" alt="" data-foto="1" width="1536" height="1024" loading="lazy">
-      <img src="img/relogio.jpg" alt="" data-foto="2" width="1536" height="1024" loading="lazy">
-      <img src="img/tenis.jpg" alt="" data-foto="3" width="1536" height="1024" loading="lazy">
-      <img src="img/relogio.jpg" alt="" data-foto="4" width="1536" height="1024" loading="lazy">
-      <img src="img/forca.jpg" alt="" data-foto="5" width="1536" height="1024" loading="lazy">
+      <img src="img/p1-fenomeno.jpg?v=1" alt="" data-foto="0" class="ativa" width="1536" height="1024" loading="lazy">
+      <img src="img/p2-perfil.jpg?v=1" alt="" data-foto="1" width="1536" height="1024" loading="lazy">
+      <img src="img/p3-volume.jpg?v=1" alt="" data-foto="2" width="1536" height="1024" loading="lazy">
+      <img src="img/p4-metodos.jpg?v=1" alt="" data-foto="3" width="1536" height="1024" loading="lazy">
+      <img src="img/p5-calculo.jpg?v=1" alt="" data-foto="4" width="1536" height="1024" loading="lazy">
+      <img src="img/p6-forca.jpg?v=1" alt="" data-foto="5" width="1536" height="1024" loading="lazy">
       <p class="parciais__visor"><span id="visor-n">01</span><small>/06</small></p>
     </div>
 
@@ -329,7 +339,7 @@
 
 <!-- ================= CHEGADA ================= -->
 <section class="final">
-  <div class="final__foto" aria-hidden="true"><img src="img/grupo.jpg" alt="" width="1536" height="1024" loading="lazy"></div>
+  <div class="final__foto" aria-hidden="true"><img src="img/grupo.jpg?v=2" alt="" width="1536" height="1024" loading="lazy"></div>
   <div class="final__conteudo">
     <p class="final__mao">a largada é sua</p>
     <h2 class="final__titulo">Garanta sua<br><em>participação</em></h2>
@@ -407,6 +417,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<script src="js/main.js?v=8" defer></script>
+<script src="js/main.js?v=9" defer></script>
 </body>
 </html>

@@ -18,6 +18,24 @@
   var brl = function (v) { return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
   var desktop = function () { return matchMedia('(min-width: 901px)').matches; };
 
+  /* ---------- vídeos: herói (só no computador) e filme (toca quando aparece) ---------- */
+  var poupa = (navigator.connection && navigator.connection.saveData) || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var hv = $('.hero__video');
+  if (hv && desktop() && !poupa) {
+    hv.addEventListener('playing', function () { hv.classList.add('on'); }, { once: true });
+    hv.src = hv.getAttribute('data-src');
+    var p = hv.play(); if (p && p.catch) p.catch(function () {});
+  }
+  var fv = $('.filme__video');
+  if (fv && 'IntersectionObserver' in window && !poupa) {
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (e.isIntersecting) { fv.preload = 'auto'; var q = fv.play(); if (q && q.catch) q.catch(function () {}); }
+        else fv.pause();
+      });
+    }, { threshold: .35 }).observe(fv);
+  } else if (fv) { fv.controls = true; }
+
   /* ---------- topo + barra de ritmo ---------- */
   var topo = $('.topo'), barra = $('#ritmo-barra'), ultimoY = 0;
   function aoRolar() {
@@ -151,7 +169,7 @@
       .from('.hero__faixa li', { y: 24, autoAlpha: 0, duration: .6, stagger: .08 }, 1.25);
 
     // herói sai devagar (parallax)
-    gsap.to('.hero__foto img', { yPercent: 14, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('.hero__foto img, .hero__video', { yPercent: 14, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
     gsap.to('.hero__conteudo', { yPercent: -18, autoAlpha: .2, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
 
     // manifesto: as palavras acendem conforme rola
