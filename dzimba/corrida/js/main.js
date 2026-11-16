@@ -18,24 +18,32 @@
   var brl = function (v) { return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
   var desktop = function () { return matchMedia('(min-width: 901px)').matches; };
 
-  /* ---------- vídeos: herói (só no computador) e fundo do manifesto (toca quando aparece) ---------- */
-  var poupa = (navigator.connection && navigator.connection.saveData) || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* ---------- vídeos: herói (só no computador) e fundo do manifesto (toca quando aparece) ----------
+     Toca mesmo com "reduzir movimento"/economia de dados (pedido do dono: o vídeo faz parte da página).
+     Se o aparelho bloquear o autoplay (iPhone em economia de bateria), começa no primeiro toque/rolagem. */
+  var celular = matchMedia('(max-width: 700px)').matches;
+  function tocar(v) {
+    v.muted = true; v.defaultMuted = true; v.playsInline = true;
+    var q = v.play();
+    if (q && q.catch) q.catch(function () {
+      var tenta = function () { v.play().catch(function () {}); ['touchstart', 'click', 'scroll', 'keydown'].forEach(function (ev) { removeEventListener(ev, tenta, true); }); };
+      ['touchstart', 'click', 'scroll', 'keydown'].forEach(function (ev) { addEventListener(ev, tenta, { capture: true, passive: true }); });
+    });
+  }
   var hv = $('.hero__video');
-  if (hv && desktop() && !poupa) {
+  if (hv && desktop()) {
     hv.addEventListener('playing', function () { hv.classList.add('on'); }, { once: true });
     hv.src = hv.getAttribute('data-src');
-    var p = hv.play(); if (p && p.catch) p.catch(function () {});
+    tocar(hv);
   }
   var fv = $('.manifesto__video');
-  if (fv && 'IntersectionObserver' in window && !poupa) {
-    new IntersectionObserver(function (es) {
-      es.forEach(function (e) {
-        if (e.isIntersecting) {
-          if (!fv.src) fv.src = fv.getAttribute(matchMedia('(max-width: 700px)').matches ? 'data-src-m' : 'data-src');
-          var q = fv.play(); if (q && q.catch) q.catch(function () {});
-        } else fv.pause();
-      });
-    }, { rootMargin: '200px 0px', threshold: 0 }).observe(fv);
+  if (fv) {
+    var carregar = function () { if (!fv.getAttribute('src')) fv.src = fv.getAttribute(celular ? 'data-src-m' : 'data-src'); };
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) { carregar(); tocar(fv); } else fv.pause(); });
+      }, { rootMargin: '300px 0px', threshold: 0 }).observe(fv);
+    } else { carregar(); tocar(fv); }
   }
 
   /* ---------- topo + barra de ritmo ---------- */
