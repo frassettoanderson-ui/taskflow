@@ -189,16 +189,6 @@
       scrollTrigger: { trigger: '.manifesto', start: 'top 75%', end: 'bottom 60%', scrub: true } });
     gsap.from('.manifesto__sub', { y: 30, autoAlpha: 0, duration: .8, scrollTrigger: { trigger: '.manifesto__sub', start: 'top 90%' } });
 
-    // fade in ao rolar em tudo que ainda não tinha entrada própria
-    ['.patrocinio__mao', '.cotas__txt', '.percurso__data', '.mapa', '.parciais__sub', '.parciais__fotos', '.splits',
-     '.trajetoria__rot', '.vaga__sub', '.vaga__dica', '.investimento p', '.perguntas p', '.rodape__logo', '.rodape p', '.rodape__patro']
-      .forEach(function (sel) {
-        $$(sel).forEach(function (el) {
-          if (el.closest('.hero, .pay, .ingresso, .faq, .final')) return;
-          gsap.from(el, { y: 40, autoAlpha: 0, duration: .9, ease: 'power3.out', clearProps: 'transform,opacity,visibility', scrollTrigger: { trigger: el, start: 'top 90%' } });
-        });
-      });
-
     // títulos entram de baixo
     $$('.titulo, .palestrante__nome, .final__titulo').forEach(function (t) {
       gsap.from(t, { y: 70, autoAlpha: 0, skewY: 3, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: t, start: 'top 88%' } });
@@ -240,6 +230,16 @@
     gsap.from('.faq details', { y: 24, autoAlpha: 0, stagger: .07, duration: .6, scrollTrigger: { trigger: '.faq', start: 'top 85%' } });
     gsap.fromTo('.final__foto', { yPercent: -8 }, { yPercent: 8, ease: 'none', scrollTrigger: { trigger: '.final', start: 'top bottom', end: 'bottom top', scrub: true } });
     gsap.from('.final__mao, .final .btn', { y: 30, autoAlpha: 0, stagger: .15, duration: .8, scrollTrigger: { trigger: '.final', start: 'top 60%' } });
+
+    // fade in ao rolar em tudo que ainda não tinha entrada própria
+    ['.patrocinio__mao', '.cotas__txt', '.percurso__data', '.mapa', '.parciais__sub', '.parciais__fotos', '.splits',
+     '.trajetoria__rot', '.vaga__sub', '.investimento p', '.perguntas p', '.rodape__logo', '.rodape p', '.rodape__patro']
+      .forEach(function (sel) {
+        $$(sel).forEach(function (el) {
+          if (el.closest('.hero, .pay, .ingresso, .faq, .final') || gsap.getTweensOf(el).length) return;   // nunca animar 2x o mesmo item (fica deslocado)
+          gsap.from(el, { y: 40, autoAlpha: 0, duration: .9, ease: 'power3.out', clearProps: 'transform,opacity,visibility', scrollTrigger: { trigger: el, start: 'top 90%' } });
+        });
+      });
 
     window.addEventListener('load', function () { ScrollTrigger.refresh(); });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { ScrollTrigger.refresh(); });
