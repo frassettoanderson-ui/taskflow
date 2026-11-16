@@ -282,7 +282,7 @@ a { color: inherit; }
 }
 .vaga__campo input::placeholder { color: #4a5044; }
 .vaga__campo input:focus { outline: none; border-color: var(--lime); }
-.vaga__dica { margin: 1rem 0 0; color: var(--suave); font-size: .95rem; }
+.vaga__dica { margin: 1.4rem 0 0; color: var(--suave); font-size: .95rem; }
 .vaga__preco { margin: 0; font: 900 clamp(4.2rem, 9vw, 6.6rem)/1 var(--titulo); color: var(--lime); }
 .vaga__preco small { font-size: .32em; vertical-align: top; margin-right: .12em; color: var(--texto); }
 .vaga__nota { margin: .2rem 0 1.4rem; color: var(--suave); }

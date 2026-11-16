@@ -224,8 +224,9 @@
     gsap.from('.cotas .btn', { y: 30, autoAlpha: 0, duration: .8, scrollTrigger: { trigger: '.cotas .btn', start: 'top 95%' } });
 
     // certificado chega girando de leve
-    gsap.from('.cert', { y: 110, rotate: -8, autoAlpha: 0, duration: 1.2, ease: 'power4.out', scrollTrigger: { trigger: '.vaga__grade', start: 'top 80%' } });
-    gsap.from('.vaga__form > *', { y: 30, autoAlpha: 0, stagger: .08, duration: .7, scrollTrigger: { trigger: '.vaga__grade', start: 'top 75%' } });
+    gsap.from('.cert', { y: 110, rotate: -8, autoAlpha: 0, duration: 1.2, ease: 'power4.out', clearProps: 'transform,opacity,visibility', scrollTrigger: { trigger: '.vaga__grade', start: 'top 80%' } });
+    // o formulário entra como um bloco só: animar o botão direto briga com a transição de transform do CSS e ele fica parado em cima do texto
+    gsap.from('.vaga__form', { y: 30, autoAlpha: 0, duration: .8, clearProps: 'transform,opacity,visibility', scrollTrigger: { trigger: '.vaga__grade', start: 'top 75%' } });
 
     // perguntas e chegada
     gsap.from('.faq details', { y: 24, autoAlpha: 0, stagger: .07, duration: .6, scrollTrigger: { trigger: '.faq', start: 'top 85%' } });
