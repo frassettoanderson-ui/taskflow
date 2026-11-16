@@ -372,8 +372,8 @@ a { color: inherit; }
   background: radial-gradient(ellipse 70% 40% at 50% 0%, rgba(180,227,30,.08), transparent 70%), var(--preto); }
 .patrocinio__cab, .cotas__cab { text-align: center; }
 .patrocinio__mao { margin: 0 0 .6rem; font: 400 1.3rem/1 var(--mao); color: var(--lime); transform: rotate(-2deg); }
-.marcas { list-style: none; margin: clamp(36px, 5vw, 60px) auto 0; padding: 0; max-width: 980px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 440px)); justify-content: center; gap: clamp(14px, 2vw, 24px); }
-.marca { position: relative; background: var(--papel); border-radius: 14px; min-height: clamp(150px, 16vw, 200px); display: grid; place-items: center; padding: clamp(26px, 4vw, 44px);
+.marcas { list-style: none; margin: clamp(36px, 5vw, 60px) auto 0; padding: 0; max-width: 1120px; display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(14px, 2vw, 24px); }
+.marca { flex: 1 1 260px; max-width: 360px; position: relative; background: var(--papel); border-radius: 14px; min-height: clamp(150px, 16vw, 200px); display: grid; place-items: center; padding: clamp(26px, 4vw, 44px);
   box-shadow: 0 24px 50px -30px rgba(0,0,0,.8); transition: transform .3s cubic-bezier(.2,.9,.3,1.3); }
 .marca::after { content: ''; position: absolute; left: 22px; right: 22px; bottom: 0; height: 5px; background: var(--lime); transform: skewX(-20deg); }
 .marca:hover { transform: translateY(-4px); }
