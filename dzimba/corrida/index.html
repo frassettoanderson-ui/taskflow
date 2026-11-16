@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Big+Shoulders+Display:wght@600;800;900&family=Cormorant+Garamond:ital,wght@1,600&family=Permanent+Marker&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=11">
+  <link rel="stylesheet" href="css/style.css?v=12">
   <script>
     if (!matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('anima');
   </script>
@@ -88,6 +88,7 @@
     <li class="marca"><img src="img/patrocinadores/melo-logistica.svg" alt="Melo Logística" width="662" height="160" loading="lazy"></li>
     <li class="marca"><img src="img/patrocinadores/axiis-bank.svg" alt="Axiis Bank" width="889" height="181" loading="lazy"></li>
     <li class="marca"><img src="img/patrocinadores/cref3-sc.png" alt="CREF3/SC" width="900" height="175" loading="lazy"></li>
+    <li class="marca marca--alta"><img src="img/patrocinadores/souza.png" alt="Souza Construtora &amp; Incorporadora" width="554" height="700" loading="lazy"></li>
   </ul>
 
   <div class="cotas" id="seja-patrocinador">
@@ -100,18 +101,11 @@
 
 <!-- ================= MANIFESTO ================= -->
 <section class="manifesto" aria-label="Correr é mais do que movimento. É qualidade de vida.">
+  <div class="manifesto__fundo" aria-hidden="true">
+    <video class="manifesto__video" muted loop playsinline preload="none" poster="img/filme-capa.jpg?v=1" data-src="video/filme.mp4?v=1" data-src-m="video/filme-m.mp4?v=1"></video>
+  </div>
   <p class="manifesto__txt" id="manifesto" aria-hidden="true">Correr é mais do que movimento. É <em>qualidade de vida.</em></p>
   <p class="manifesto__sub">Um curso para quem quer começar do jeito certo e para quem já corre e quer treinar com método.</p>
-</section>
-
-<!-- ================= FILME ================= -->
-<section class="filme" aria-label="Vídeo do curso">
-  <div class="filme__tela">
-    <video class="filme__video" muted loop playsinline preload="none" poster="img/filme-capa.jpg?v=1" aria-hidden="true">
-      <source src="video/filme.mp4?v=1" type="video/mp4">
-    </video>
-  </div>
-  <p class="filme__selo"><b>12.12</b><span>Imbituba · SC · Praia Hotel</span></p>
 </section>
 
 <!-- ================= PERCURSO DO DIA ================= -->
@@ -360,6 +354,7 @@
       <li><img src="img/patrocinadores/melo-logistica.svg" alt="Melo Logística" width="662" height="160" loading="lazy"></li>
       <li><img src="img/patrocinadores/axiis-bank.svg" alt="Axiis Bank" width="889" height="181" loading="lazy"></li>
       <li><img src="img/patrocinadores/cref3-sc.png" alt="CREF3/SC" width="900" height="175" loading="lazy"></li>
+      <li class="alta"><img src="img/patrocinadores/souza.png" alt="Souza Construtora &amp; Incorporadora" width="554" height="700" loading="lazy"></li>
     </ul>
     <a href="https://wa.me/554896001619?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es%20sobre%20como%20patrocinar%20o%20evento!" target="_blank" rel="noopener">Quero patrocinar o evento</a>
   </div>
@@ -417,6 +412,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<script src="js/main.js?v=9" defer></script>
+<script src="js/main.js?v=10" defer></script>
 </body>
 </html>

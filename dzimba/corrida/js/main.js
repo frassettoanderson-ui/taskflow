@@ -18,7 +18,7 @@
   var brl = function (v) { return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
   var desktop = function () { return matchMedia('(min-width: 901px)').matches; };
 
-  /* ---------- vídeos: herói (só no computador) e filme (toca quando aparece) ---------- */
+  /* ---------- vídeos: herói (só no computador) e fundo do manifesto (toca quando aparece) ---------- */
   var poupa = (navigator.connection && navigator.connection.saveData) || matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hv = $('.hero__video');
   if (hv && desktop() && !poupa) {
@@ -26,15 +26,17 @@
     hv.src = hv.getAttribute('data-src');
     var p = hv.play(); if (p && p.catch) p.catch(function () {});
   }
-  var fv = $('.filme__video');
+  var fv = $('.manifesto__video');
   if (fv && 'IntersectionObserver' in window && !poupa) {
     new IntersectionObserver(function (es) {
       es.forEach(function (e) {
-        if (e.isIntersecting) { fv.preload = 'auto'; var q = fv.play(); if (q && q.catch) q.catch(function () {}); }
-        else fv.pause();
+        if (e.isIntersecting) {
+          if (!fv.src) fv.src = fv.getAttribute(matchMedia('(max-width: 700px)').matches ? 'data-src-m' : 'data-src');
+          var q = fv.play(); if (q && q.catch) q.catch(function () {});
+        } else fv.pause();
       });
-    }, { threshold: .35 }).observe(fv);
-  } else if (fv) { fv.controls = true; }
+    }, { rootMargin: '200px 0px', threshold: 0 }).observe(fv);
+  }
 
   /* ---------- topo + barra de ritmo ---------- */
   var topo = $('.topo'), barra = $('#ritmo-barra'), ultimoY = 0;
