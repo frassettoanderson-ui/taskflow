@@ -126,8 +126,8 @@
   }
   posicionar(anima ? 0 : 1);
 
-  /* ---------- nome ao vivo no número de peito e no certificado ---------- */
-  var campoNome = $('#vaga-nome'), peitoNome = $('#peito-nome'), certNome = $('#cert-nome');
+  /* ---------- nome ao vivo no certificado ---------- */
+  var campoNome = $('#vaga-nome'), certNome = $('#cert-nome');
   function titulo(s) {
     return s.toLowerCase().replace(/(^|\s)(\S)/g, function (m, a, b) { return a + b.toUpperCase(); })
       .replace(/\s(D[aeo]s?|E)\s/g, function (m) { return m.toLowerCase(); });
@@ -139,7 +139,6 @@
   }
   function nomeAoVivo() {
     var n = campoNome.value.replace(/\s+/g, ' ').trim();
-    peitoNome.textContent = n || 'Seu nome'; peitoNome.classList.toggle('vazio', !n);
     certNome.textContent = n ? titulo(n) : 'Seu nome'; certNome.classList.toggle('vazio', !n);
     ajustarCert();
   }
@@ -224,10 +223,9 @@
     gsap.from('.cotas__titulo', { y: 60, autoAlpha: 0, skewY: 3, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: '.cotas__titulo', start: 'top 92%' } });
     gsap.from('.cotas .btn', { y: 30, autoAlpha: 0, duration: .8, scrollTrigger: { trigger: '.cotas .btn', start: 'top 95%' } });
 
-    // número de peito chega girando, certificado sobe
-    gsap.from('.peito', { y: 120, rotate: -18, autoAlpha: 0, duration: 1.2, ease: 'power4.out', scrollTrigger: { trigger: '.vaga__grade', start: 'top 80%' } });
+    // certificado chega girando de leve
+    gsap.from('.cert', { y: 110, rotate: -8, autoAlpha: 0, duration: 1.2, ease: 'power4.out', scrollTrigger: { trigger: '.vaga__grade', start: 'top 80%' } });
     gsap.from('.vaga__form > *', { y: 30, autoAlpha: 0, stagger: .08, duration: .7, scrollTrigger: { trigger: '.vaga__grade', start: 'top 75%' } });
-    gsap.from('.cert', { y: 90, autoAlpha: 0, duration: 1.1, ease: 'power3.out', scrollTrigger: { trigger: '.cert', start: 'top 90%' } });
 
     // perguntas e chegada
     gsap.from('.faq details', { y: 24, autoAlpha: 0, stagger: .07, duration: .6, scrollTrigger: { trigger: '.faq', start: 'top 85%' } });

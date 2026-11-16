@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Big+Shoulders+Display:wght@600;800;900&family=Cormorant+Garamond:ital,wght@1,600&family=Permanent+Marker&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=17">
+  <link rel="stylesheet" href="css/style.css?v=18">
   <script>
     document.documentElement.classList.add('anima');   // sempre animado (pedido do dono), mesmo com "reduzir movimento"
   </script>
@@ -260,7 +260,7 @@
   </div>
 </section>
 
-<!-- ================= SUA VAGA (número de peito ao vivo) ================= -->
+<!-- ================= SUA VAGA (certificado com o nome ao vivo) ================= -->
 <section class="vaga" id="vaga">
   <div class="vaga__cab">
     <h2 class="titulo">Seu número<br><em>está esperando</em></h2>
@@ -268,15 +268,13 @@
   </div>
 
   <div class="vaga__grade">
-    <div class="peito-wrap">
-      <div class="peito" id="peito" aria-hidden="true">
-        <i class="furo f1"></i><i class="furo f2"></i><i class="furo f3"></i><i class="furo f4"></i>
-        <p class="peito__topo"><span>Corrida de Rua</span><span>D'Zimba</span></p>
-        <p class="peito__num">1212</p>
-        <p class="peito__nome" id="peito-nome">Seu nome</p>
-        <p class="peito__pe"><span>12.12.2026</span><span>Imbituba/SC</span></p>
+    <figure class="cert">
+      <div class="cert__papel" id="cert">
+        <img src="img/certificado-limpo.jpg?v=5" alt="Modelo do certificado de participação do curso" width="1400" height="990" loading="lazy">
+        <span class="cert__nome" id="cert-nome">Seu nome</span>
       </div>
-    </div>
+      <figcaption>Seu certificado de 5 horas chega em PDF no WhatsApp depois do curso, para quem fizer o credenciamento. Cada um sai com um código de verificação.</figcaption>
+    </figure>
 
     <div class="vaga__form">
       <label class="vaga__campo">
@@ -284,17 +282,10 @@
         <input id="vaga-nome" autocomplete="name" placeholder="Ex.: Maria Clara Souza" maxlength="70">
       </label>
       <a href="#investimento" class="btn btn--lime btn--xl btn--bloco" data-cta id="cta-principal"><span>Garantir minha participação</span></a>
-      <p class="vaga__dica">O nome que você escrever aqui já vai preenchido na inscrição.</p>
+      <p class="vaga__dica">O nome que você escrever aqui já entra preenchido na inscrição.</p>
     </div>
   </div>
 
-  <figure class="cert">
-    <div class="cert__papel" id="cert">
-      <img src="img/certificado-limpo.jpg?v=5" alt="Modelo do certificado de participação do curso" width="1400" height="990" loading="lazy">
-      <span class="cert__nome" id="cert-nome">Seu nome</span>
-    </div>
-    <figcaption>Seu certificado de 5 horas chega em PDF no WhatsApp depois do curso, para quem fizer o credenciamento. Cada um sai com um código de verificação.</figcaption>
-  </figure>
 </section>
 
 <!-- ================= INVESTIMENTO ================= -->
@@ -432,6 +423,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<script src="js/main.js?v=16" defer></script>
+<script src="js/main.js?v=17" defer></script>
 </body>
 </html>

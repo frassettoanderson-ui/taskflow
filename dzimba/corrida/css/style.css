@@ -291,14 +291,14 @@ a { color: inherit; }
 .inclui li { display: flex; align-items: center; justify-content: center; gap: .6em; }
 .inclui li::before { content: ''; width: 14px; height: 4px; background: var(--lime); transform: skewX(-20deg); flex: none; }
 
-.cert { margin: clamp(70px, 10vw, 130px) auto 0; max-width: 900px; text-align: center; }
+.cert { margin: 0; width: 100%; text-align: center; }
 .cert__papel { position: relative; container-type: inline-size; border-radius: 4px; overflow: hidden; box-shadow: 0 40px 90px -25px rgba(0,0,0,.85); transform-style: preserve-3d; transition: transform .3s ease; }
 .cert__nome {
   position: absolute; left: 63.36%; top: 36.27%; transform: translate(-50%, -80%); width: 50.8%; text-align: center;
   font: italic 600 4.75cqw/1.15 'Cormorant Garamond', Georgia, serif; color: #141811; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .cert__nome.vazio { color: #a3a596; }
-.cert figcaption { margin: 1.4rem auto 0; max-width: 560px; color: var(--suave); }
+.cert figcaption { margin: 1.1rem auto 0; max-width: 480px; color: var(--suave); font-size: .92rem; }
 
 /* =========================================================
    INVESTIMENTO (ingresso)
@@ -385,16 +385,16 @@ a { color: inherit; }
 .patrocinio__cab, .cotas__cab { text-align: center; }
 .patrocinio__mao { margin: 0 0 .6rem; font: 400 1.3rem/1 var(--mao); color: var(--lime); transform: rotate(-2deg); }
 /* flex com quebra centralizada: a última linha incompleta fica no meio, não encostada à esquerda */
-.marcas { --g: clamp(14px, 2vw, 24px); list-style: none; margin: clamp(36px, 5vw, 60px) auto 0; padding: 0; max-width: 1240px; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--g); }
+.marcas { --g: clamp(10px, 1.4vw, 18px); list-style: none; margin: clamp(30px, 4vw, 48px) auto 0; padding: 0; max-width: 780px; display: flex; flex-wrap: wrap; justify-content: center; gap: var(--g); }
 .marcas > .marca { flex: 0 0 calc((100% - 3 * var(--g)) / 4); }
-@media (max-width: 1100px) { .marcas { max-width: 760px; } .marcas > .marca { flex-basis: calc((100% - var(--g)) / 2); } }
-@media (max-width: 520px) { .marcas { max-width: 360px; } .marcas > .marca { flex-basis: 100%; } }
-.marca { position: relative; background: var(--papel); border-radius: 14px; min-height: clamp(150px, 16vw, 200px); display: grid; place-items: center; padding: clamp(26px, 4vw, 44px);
+@media (max-width: 700px) { .marcas { max-width: 480px; } .marcas > .marca { flex-basis: calc((100% - 2 * var(--g)) / 3); min-height: 0; height: 84px; padding: 10px; border-radius: 10px; }
+  .marca::after { left: 10px; right: 10px; height: 3px; } .marca img { max-height: 30px; } .marca--alta img { max-height: 50px; } }
+.marca { position: relative; background: var(--papel); border-radius: 12px; min-height: clamp(96px, 10vw, 120px); display: grid; place-items: center; padding: clamp(16px, 2.4vw, 26px);
   box-shadow: 0 24px 50px -30px rgba(0,0,0,.8); transition: transform .3s cubic-bezier(.2,.9,.3,1.3); }
-.marca::after { content: ''; position: absolute; left: 22px; right: 22px; bottom: 0; height: 5px; background: var(--lime); transform: skewX(-20deg); }
+.marca::after { content: ''; position: absolute; left: 16px; right: 16px; bottom: 0; height: 4px; background: var(--lime); transform: skewX(-20deg); }
 .marca:hover { transform: translateY(-4px); }
-.marca img { width: auto; max-width: 100%; max-height: 74px; }
-.marca--alta img { max-height: 118px; }
+.marca img { width: auto; max-width: 100%; max-height: 44px; }
+.marca--alta img { max-height: 72px; }
 
 .cotas { max-width: 760px; margin: clamp(70px, 9vw, 110px) auto 0; text-align: center; }
 .cotas__titulo { display: inline-block; margin: 0; font: 900 clamp(2.4rem, 5.6vw, 4.6rem)/.88 var(--titulo); text-transform: uppercase; letter-spacing: -.01em; text-decoration: none; color: var(--texto); transition: transform .25s; }
