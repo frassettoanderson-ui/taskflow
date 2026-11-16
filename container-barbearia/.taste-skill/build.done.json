@@ -1,0 +1,11 @@
+{
+ "page": "index.html",
+ "url": null,
+ "root": null,
+ "kind": "place",
+ "category": "barbearia em Imbituba",
+ "primary": "Agendar horário",
+ "rounds": 3,
+ "start": "2026-11-16T16:43:45.884Z",
+ "by": "gate.mjs --start"
+}

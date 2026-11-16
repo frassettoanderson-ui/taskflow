@@ -1,0 +1,226 @@
+{
+ "url": "http://127.0.0.1:5300/index.html",
+ "views": {
+  "desktop": {
+   "width": 1440,
+   "height": 900,
+   "navH": 72,
+   "scrollHeight": 5400,
+   "screens": 6,
+   "sections": [
+    {
+     "n": 1,
+     "tag": "section",
+     "id": "",
+     "cls": "hero hero--place is-still is-entered",
+     "top": 0,
+     "h": 900,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "desktop-sec-01-a.jpg",
+       "scrollY": 0
+      }
+     ]
+    },
+    {
+     "n": 2,
+     "tag": "section",
+     "id": "unidades",
+     "cls": "section",
+     "top": 900,
+     "h": 900,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "desktop-sec-02-a.jpg",
+       "scrollY": 900
+      }
+     ]
+    },
+    {
+     "n": 3,
+     "tag": "section",
+     "id": "servicos",
+     "cls": "section",
+     "top": 1800,
+     "h": 900,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "desktop-sec-03-a.jpg",
+       "scrollY": 1800
+      }
+     ]
+    },
+    {
+     "n": 4,
+     "tag": "section",
+     "id": "barbeiros",
+     "cls": "section",
+     "top": 2700,
+     "h": 900,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "desktop-sec-04-a.jpg",
+       "scrollY": 2700
+      }
+     ]
+    },
+    {
+     "n": 5,
+     "tag": "section",
+     "id": "trabalhos",
+     "cls": "section",
+     "top": 3600,
+     "h": 900,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "desktop-sec-05-a.jpg",
+       "scrollY": 3600
+      }
+     ]
+    },
+    {
+     "n": 6,
+     "tag": "footer",
+     "id": "contato",
+     "cls": "footer closing footer--visit",
+     "top": 4500,
+     "h": 900,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "desktop-sec-06-a.jpg",
+       "scrollY": 4500
+      }
+     ]
+    }
+   ],
+   "consoleErrors": []
+  },
+  "mobile": {
+   "width": 390,
+   "height": 844,
+   "navH": 56,
+   "scrollHeight": 5922,
+   "screens": 7.02,
+   "sections": [
+    {
+     "n": 1,
+     "tag": "section",
+     "id": "",
+     "cls": "hero hero--place is-still is-entered",
+     "top": 0,
+     "h": 844,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "mobile-sec-01-a.jpg",
+       "scrollY": 0
+      }
+     ]
+    },
+    {
+     "n": 2,
+     "tag": "section",
+     "id": "unidades",
+     "cls": "section",
+     "top": 844,
+     "h": 845,
+     "hScreens": 1,
+     "offGrid": 1,
+     "tiles": [
+      {
+       "file": "mobile-sec-02-a.jpg",
+       "scrollY": 844
+      }
+     ]
+    },
+    {
+     "n": 3,
+     "tag": "section",
+     "id": "servicos",
+     "cls": "section",
+     "top": 1689,
+     "h": 1688,
+     "hScreens": 2,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "mobile-sec-03-a.jpg",
+       "scrollY": 1689
+      },
+      {
+       "file": "mobile-sec-03-b.jpg",
+       "scrollY": 2533
+      }
+     ]
+    },
+    {
+     "n": 4,
+     "tag": "section",
+     "id": "barbeiros",
+     "cls": "section",
+     "top": 3377,
+     "h": 844,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "mobile-sec-04-a.jpg",
+       "scrollY": 3377
+      }
+     ]
+    },
+    {
+     "n": 5,
+     "tag": "section",
+     "id": "trabalhos",
+     "cls": "section",
+     "top": 4221,
+     "h": 844,
+     "hScreens": 1,
+     "offGrid": 0,
+     "tiles": [
+      {
+       "file": "mobile-sec-05-a.jpg",
+       "scrollY": 4221
+      }
+     ]
+    },
+    {
+     "n": 6,
+     "tag": "footer",
+     "id": "contato",
+     "cls": "footer closing footer--visit",
+     "top": 5065,
+     "h": 858,
+     "hScreens": 1.02,
+     "offGrid": 14,
+     "tiles": [
+      {
+       "file": "mobile-sec-06-a.jpg",
+       "scrollY": 5065
+      },
+      {
+       "file": "mobile-sec-06-b.jpg",
+       "scrollY": 5078
+      }
+     ]
+    }
+   ],
+   "consoleErrors": []
+  }
+ },
+ "at": "2026-11-16T15:07:10.838Z"
+}

@@ -1,0 +1,9 @@
+Use your image generation tool. This is a real barber (Erison) of "Barbearia Container" in Imbituba, Brazil; the photo is for the shop's own website booking section.
+
+Attached:
+- ref-erison.jpg = his approved studio portrait. KEEP HIS FACE EXACTLY (face shape, eyes, nose, mouth, beard, hairline, haircut, skin tone, tattoos). Same uniform: plain black short-sleeve button-up barber shirt with the small round "Barbearia Container" logo patch on the left chest.
+- ref-salao.jpg = the real shop interior (honeycomb hexagon LED ceiling, black walls, barber chairs).
+
+Create ONE photo: he stands inside this barbershop, arms crossed over the chest, holding a pair of silver barber scissors in his right hand (scissors clearly visible, blades pointing up/out over the crossed arm). Confident, relaxed, light smile, looking at the camera. Framing: from mid-thigh up, he occupies the center, head top at about 10% from the top edge. Background: the shop interior softly out of focus, honeycomb LED ceiling glowing warm white above, barber chairs blurred behind. Light: soft white key from front-left, warm orange (#E8772E) rim light from the right. Photorealistic, 85mm, shallow depth of field, natural skin texture, no text, no watermark.
+
+Portrait format 1024x1280 (or 1024x1536). Save as out-barbeiro-tesoura.png in the current folder.

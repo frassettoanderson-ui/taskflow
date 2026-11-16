@@ -1,0 +1,210 @@
+{
+ "start": "2026-11-16T16:43:45.884Z",
+ "round": 0,
+ "idle": 0,
+ "errors": 0,
+ "status": "pass",
+ "history": [
+  {
+   "at": "2026-11-16T16:45:26.199Z",
+   "mode": "manual",
+   "status": "pass",
+   "fails": 0,
+   "round": 0,
+   "reused": false,
+   "stopHookActive": false
+  },
+  {
+   "at": "2026-11-16T16:50:58.505Z",
+   "mode": "hook",
+   "host": "claude",
+   "decision": "allow",
+   "reason": "no build is active here",
+   "stopHookActive": false
+  },
+  {
+   "at": "2026-11-16T16:55:59.433Z",
+   "mode": "hook",
+   "host": "claude",
+   "decision": "allow",
+   "reason": "no build is active here",
+   "stopHookActive": false
+  }
+ ],
+ "max": 3,
+ "marker": {
+  "page": "index.html",
+  "url": null,
+  "root": null,
+  "kind": "place",
+  "category": "barbearia em Imbituba",
+  "primary": "Agendar horário",
+  "rounds": 3,
+  "start": "2026-11-16T16:43:45.884Z",
+  "by": "gate.mjs --start"
+ },
+ "manual": true,
+ "fp": "4a7fbc8359f023af",
+ "page": "index.html",
+ "found": {
+  "fails": [
+   {
+    "check": "street-number",
+    "where": "div.span-6 > ul.unit-list > li:nth-of-type(1) > p:nth-of-type(1) \"Avenida Santa Catarina, 452\"",
+    "msg": "a street with its house number: \"Avenida Santa Catarina, 452\"; a real door, which the brief does not give",
+    "fix": "print the street and the district only (\"Weserstraße, Berlin-Neukölln\"): no house number, unless the brief gives the address",
+    "widths": [
+     1440
+    ],
+    "from": "consistency",
+    "ids": [
+     "street-number"
+    ],
+    "wheres": [
+     "div.span-6 > ul.unit-list > li:nth-of-type(1) > p:nth-of-type(1) \"Avenida Santa Catarina, 452\""
+    ]
+   }
+  ],
+  "warns": [
+   {
+    "check": "scroll-reveal",
+    "where": "section#unidades > div.wrap > div.grid.grid--top > figure.develop.span-6",
+    "msg": "starts an animation (1.6 s) the moment it is scrolled into view (an IntersectionObserver) on img (inside a dealt moment's section, [data-moment]: an enter moment is expected on every kind; its still is judged under reduced motion)",
+    "fix": "show it at rest: no fade, rise or unmask when it is scrolled into view",
+    "widths": [
+     1440,
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "copy-buttons",
+    "where": "header.nav.nav--split > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"Agendar horário\"",
+    "msg": "\"Agendar horário\" does not start with a verb (book, buy, try, start, get, see...)",
+    "fix": "label buttons with a verb and what the visitor gets (\"Book a room\", \"Start free trial\")",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "section#trabalhos / footer#contato",
+    "msg": "316px between these sections, +25% against the median 252px",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-labels",
+    "where": "div.wrap.nav__bar > nav.nav__links > div.nav__item:nth-of-type(1) > a.nav__link \"Unidades\"",
+    "msg": "\"Unidades\" opens a section headed \"Centro, Vila Nova e Nova Brasília\"",
+    "fix": "name each nav link after the heading of the section it opens",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav-current",
+    "where": "header.nav.nav--split",
+    "msg": "the nav stays on screen with 4 links to the page's sections, but never marks the one you are in (no link changes as the page scrolls)",
+    "fix": "mark the link of the section on screen (a colour, a weight or a line under it) as the visitor scrolls",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "skip-link",
+    "where": "header.nav.nav--split > div.wrap.nav__bar > a.skip-link:nth-of-type(1) \"Pular para o conteúdo\"",
+    "msg": "the first Tab stop is \"Pular para o conteúdo\", not a skip link: a keyboard user tabs through the whole nav on every visit",
+    "fix": "add the starter's skip link as the header's first child: <a class=\"skip-link\" href=\"#top\">Skip to content</a>",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "action-repeat",
+    "where": "header.nav.nav--split > div.wrap.nav__bar > div.nav__actions > a.btn.btn--primary \"agendar horário\"",
+    "msg": "\"agendar horário\" shows 2 times on the first screen at 1440px (nav, hero): the nav's button and the hero's; nothing else on the screen may repeat it",
+    "fix": "show the action once a screen besides the nav's button: the hero's, the close's or the phone bar's, never all at once",
+    "widths": [
+     1440
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "nav",
+    "where": "header.nav.nav--split > div.wrap.nav__bar > button.nav__toggle",
+    "msg": "the nav is lopsided: its last item ends 13px inside the content's edge (366px), while its first starts on the other edge",
+    "fix": "start the nav's first item and end its last on the content's two edges",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "tap-size",
+    "where": "div.grid > div.span-4.stack-4:nth-of-type(1) > address > a \"Avenida Santa Catarina, Centro\"",
+    "msg": "a 243x19px tap target: under the 44px a phone needs",
+    "fix": "make every link and control outside running text 44px tall on a phone: display: inline-flex; align-items: center; min-height: 44px (a footer list then needs no gap), a 44px small button, or a transparent ::before laid past the box",
+    "widths": [
+     390,
+     320
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "main#top > section.hero.hero--place / section#unidades",
+    "msg": "121px between these sections, -46% against the median 223px",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   },
+   {
+    "check": "section-gaps",
+    "where": "section#servicos / section#barbeiros",
+    "msg": "316px between these sections, +42% against the median 223px",
+    "fix": "use one gap between sections (all within 25% of each other)",
+    "widths": [
+     390
+    ],
+    "from": "consistency"
+   }
+  ],
+  "crashed": [],
+  "seconds": {
+   "consistency": 95,
+   "layout": 4
+  }
+ },
+ "open": [],
+ "waived": [
+  {
+   "check": "street-number",
+   "where": "div.span-6 > ul.unit-list > li:nth-of-type(1) > p:nth-of-type(1) \"Avenida Santa Catarina, 452\"",
+   "msg": "a street with its house number: \"Avenida Santa Catarina, 452\"; a real door, which the brief does not give",
+   "fix": "print the street and the district only (\"Weserstraße, Berlin-Neukölln\"): no house number, unless the brief gives the address",
+   "widths": [
+    1440
+   ],
+   "from": "consistency",
+   "ids": [
+    "street-number"
+   ],
+   "wheres": [
+    "div.span-6 > ul.unit-list > li:nth-of-type(1) > p:nth-of-type(1) \"Avenida Santa Catarina, 452\""
+   ],
+   "reason": "site real da Container Barbearia: o endereço com número (Av. Santa Catarina, 452) é público, está no Instagram e na página de agendamento do próprio cliente, e o cliente precisa achar a porta"
+  }
+ ],
+ "warnCount": 11,
+ "at": "2026-11-16T16:45:26.202Z"
+}

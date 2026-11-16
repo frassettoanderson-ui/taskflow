@@ -1,0 +1,10 @@
+Use your image generation tool to edit the attached real photographs of a barbershop (Container Barbearia, Imbituba, Brazil). They are the client's own photos for its website. Be faithful: keep every person, face, haircut, clothing, room, wood walls, windows and light exactly as they are. Do not beautify faces, do not add text, logos or watermarks. Output photorealistic images, no illustration look.
+
+Make these files in the current folder:
+1. out-vn-hero.png (1536x1024 landscape): from vn-a.jpg. Remove the round orange "Barbearia Container Vila Nova" logo sticker in the lower right corner and rebuild what was behind it (the black barber cape and chair). Extend the frame sideways so it becomes a wide landscape: continue the same barbershop room (light wood walls, window, coat hooks) naturally to the left and right. The man and his haircut stay unchanged.
+2. out-vn-b.png (1024x1024): from vn-b.jpg. Remove the round logo sticker lower right and rebuild the cape and background behind it. Sharpen and clean the photo; nothing else changes.
+3. out-vn-c.png (1024x1280): from vn-c.jpg. Sharpen and clean the photo to a higher resolution; nothing changes.
+4. out-vn-d.png (1024x1360): from vn-d.jpg. Sharpen and clean the photo to a higher resolution; nothing changes.
+5. out-nb-hero.png (1536x1024 landscape): from nb-a.png. Extend the frame sideways into a wide landscape, continuing the same barbershop background naturally; the client's head and the shaved line design stay exactly as they are. Remove any text or logo if present.
+
+Save each result with exactly those file names in the current folder.

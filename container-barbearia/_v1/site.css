@@ -1,0 +1,155 @@
+/* Container Barbearia: page CSS only for what the kit lacks (logo, unit list, the offer's tall-small, the trio). */
+:root[data-type="place"] { --r-lg: 0; --r-md: 0; --r-sm: 2px; --r-btn: 2px; }
+
+/* the client's logo, large beside the name (memory rule: the logo is never small) */
+.nav__logo { display: inline-flex; align-items: center; gap: var(--s-3); font: var(--display-weight) 20px/1 var(--font-display); }
+.nav__logo .brand-logo { width: 56px; height: 56px; flex: none; }
+@media (max-width: 639px) { .nav__logo .brand-logo { width: 44px; height: 44px; } }
+
+/* units on the visit panel */
+.unit-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.unit-list > li { display: grid; gap: var(--s-2); padding: var(--s-5) 0; border-top: 1px solid var(--line, color-mix(in srgb, var(--p-ink) 14%, transparent)); }
+.unit-list > li:first-child { border-top: 0; padding-top: 0; }
+.unit-list p { margin: 0; font-size: var(--t-body); line-height: 1.6; }
+.unit-list h3 a { color: inherit; text-decoration: none; background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; transition: background-size 300ms var(--ease, ease); }
+.unit-list h3 a:hover, .unit-list h3 a:focus-visible { background-size: 100% 1px; }
+
+/* picture-develops on the visit photo */
+.develop { margin: 0; overflow: hidden; height: min(560px, var(--ly-fit, 560px)); }
+.develop > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+@media (max-width: 1023px) { .develop { height: auto; aspect-ratio: 4 / 3; margin-top: var(--s-7); } }
+
+/* links on photographs: the frame clips the 1.03 zoom */
+.photo-link { display: block; overflow: hidden; }
+.photo-link > img { transition: transform 600ms var(--ease, ease); }
+@media (hover: hover) and (pointer: fine) { .photo-link:hover > img { transform: scale(1.03); } }
+
+/* the offer: two groups on the left half, one photograph on the right half (one height per row) */
+.offer .t-label { margin-bottom: var(--s-3); }
+.offer__photo { --pl-r: .8; }
+
+/* the place: three widths at one height, tops and feet on one line */
+@media (min-width: 640px) { .trio > .pl-photo > img { width: 100%; height: min(480px, var(--pl-room) - 160px); aspect-ratio: auto; } }
+
+.section-head--split > p { max-width: 46ch; }
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  #trabalhos .trio > :nth-child(1) { grid-column: span 5; }
+  #trabalhos .trio > :nth-child(2) { grid-column: span 4; }
+  #trabalhos .trio > :nth-child(3) { grid-column: span 3; }
+  #trabalhos .trio > .pl-photo > img { height: 600px; }
+}
+@media (max-width: 639px) {
+  #trabalhos .trio > :nth-child(1) { grid-column: 1 / -1; }
+  #trabalhos .trio > :nth-child(2), #trabalhos .trio > :nth-child(3) { grid-column: span 6; }
+}
+@media (max-width: 639px) {
+  .offer > .offer__group { grid-column: 1 / -1; }
+}
+
+/* head row to content: 56px (sections.md, the offer's head row) */
+.section .wrap > .section-head--split { margin-bottom: var(--s-8, 56px); align-items: baseline; }
+@media (max-width: 639px) { .section .wrap > .section-head--split { margin-bottom: var(--s-6); } }
+address { font-style: normal; }
+/* people: name and handle centred under the portrait (the client's rule for cards) */
+.people .tile { text-align: center; }
+.people .tile > h3 { margin-top: var(--s-2); }
+
+.unit-list h3 a { display: inline-flex; align-items: center; min-height: 44px; }
+.unit-list > li { gap: 0; }
+.unit-list > li > p + p { margin-top: var(--s-1); }
+
+/* ---- tablet (640 to 1023): every section stays on its screens ---- */
+@media (min-width: 640px) and (max-width: 1023px) {
+  #unidades .grid > .visit { grid-column: span 6; }
+  #unidades .grid > .develop { grid-column: 7 / -1; margin-top: 0; aspect-ratio: auto; height: 100%; min-height: 360px; }
+  #servicos .wrap > .span-6 { grid-column: 1 / -1; }
+  #servicos .offer > .offer__group { grid-column: span 6; }
+  #servicos .offer__photo { grid-column: 1 / -1; margin-top: var(--s-6); }
+  #servicos .offer__photo > img { aspect-ratio: 16 / 9; height: auto; width: 100%; }
+  #barbeiros .people > .tile { grid-column: span 4; }
+}
+/* ---- phone ---- */
+@media (max-width: 639px) {
+  #unidades .develop { aspect-ratio: 10 / 3; margin-top: var(--s-2); }
+  .unit-list > li { padding: var(--s-1) 0; }
+  .footer--visit .closing__links .grid { row-gap: var(--s-2); }
+  .footer--visit .closing__links .stack-4 { gap: 0; }
+  .footer--visit .footer__legal { margin-top: var(--s-3); }
+  .footer.closing .closing__links { margin-top: var(--s-4); }
+  #servicos { --hm: 2; }
+  #servicos .offer__photo { order: 1; margin-top: var(--s-5); }
+  #servicos .offer__photo > img { aspect-ratio: 4 / 5; }
+  #servicos .offer__phone { display: block; order: 2; margin-top: var(--s-4); grid-column: 1 / -1; }
+  #servicos .offer__phone > img { aspect-ratio: 4 / 3; }
+  #barbeiros .people > .tile { grid-column: span 6; }
+  #barbeiros .people > .tile:last-child { grid-column: 1 / -1; }
+  #barbeiros .people > .tile:last-child .tile__media { aspect-ratio: 2 / 1; }
+  #barbeiros .section-head--split > p { display: none; }
+  .close--word .close__word { font-size: 64px; }
+  .footer--visit .closing__links .grid { row-gap: var(--s-5); }
+}
+/* 1024 to 1279: the split nav keeps three words and the logo alone in the middle */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .nav--split .brand-name { display: none; }
+  .nav--split .nav__links > .nav__item:nth-child(4) { display: none; }
+}
+
+.offer__phone { display: none; }
+.footer--visit .closing__links h3 a { display: inline-flex; align-items: center; min-height: 44px; color: inherit; }
+.footer--visit .closing__links address a { color: inherit; }
+@media (min-width: 640px) and (max-width: 1023px) { #barbeiros .people .tile__media { aspect-ratio: 1 / 2; } }
+
+.units__lead { margin: 0 0 var(--s-5); }
+@media (max-width: 1023px) { .units__lead { display: none; } }
+@media (max-width: 1023px) { .unit-list > li { padding: var(--s-3) 0; } }
+@media (min-width: 640px) and (max-width: 1023px) {
+  .footer--visit .closing__links .grid > .span-4 { grid-column: span 4; }
+  #unidades .section-head h2 { font-size: var(--t-h2); }
+}
+/* head row on the grid: the h2 on the left line, its line on the split line (x 732), bottoms on one baseline */
+.section .wrap > .head-row { align-items: end; margin-bottom: var(--s-8, 56px); }
+.head-row > p { margin: 0; }
+@media (max-width: 1023px) { .head-row > p { grid-column: 1 / -1; } .section .wrap > .head-row { row-gap: var(--s-3); } }
+@media (max-width: 639px) { .section .wrap > .head-row { margin-bottom: var(--s-6); } #barbeiros .head-row > p { display: none; } #trabalhos .head-row > p { display: none; } #trabalhos .trio > :nth-child(1) { --pl-r: 1; } #trabalhos .trio > :nth-child(n+2) { --pl-r: .8; } }
+/* visit block of a unit page: lead, address and hours side by side, then the short rows */
+.visit-plain .t-lead { margin: 0 0 var(--s-6); max-width: 46ch; }
+.visit-cols { display: grid; grid-template-columns: 1fr; gap: var(--s-4); }
+.visit-plain p { margin: 0; }
+.visit-plain .tel { color: inherit; display: inline-flex; min-height: 44px; align-items: center; }
+.visit__address a { color: inherit; }
+.hours { display: grid; grid-template-columns: auto auto; gap: var(--s-1) var(--s-4); margin: var(--s-2) 0 0; }
+.hours dd { margin: 0; }
+.visit__rows { list-style: none; padding: 0; margin: var(--s-6) 0 0; }
+.visit__rows > li { display: flex; justify-content: space-between; gap: var(--s-4); padding: var(--s-3) 0; border-top: 1px solid color-mix(in srgb, var(--p-ink) 14%, transparent); }
+@media (max-width: 639px) {
+  .visit-cols { grid-template-columns: 1fr; gap: var(--s-3); }
+  .visit-plain .t-lead { margin-bottom: var(--s-4); }
+  .visit__rows { margin-top: var(--s-3); }
+  #visita .develop { aspect-ratio: 3 / 1; margin-top: var(--s-3); }
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+  #visita .grid > .visit-plain { grid-column: span 6; }
+  #visita .grid > .develop { grid-column: 7 / -1; margin-top: 0; aspect-ratio: auto; height: 100%; min-height: 360px; }
+  #visita .visit-cols { grid-template-columns: 1fr; }
+}
+/* text links in the ink (the orange reads 3.6:1 on the ground; it stays on the underline) */
+.link { color: var(--p-ink); text-decoration-color: var(--p-action); }
+
+/* a long unit name leaves only the logo on the narrowest phones */
+@media (max-width: 399px) { .nav__logo .brand-name { display: none; } }
+/* the unit pages list fewer prices: on the tablet the photo takes the room the rows leave */
+@media (min-width: 640px) and (max-width: 1023px) { .servicos--curto .offer__photo > img { aspect-ratio: 1 / 1; } }
+@media (min-width: 640px) and (max-width: 1023px) { #visita .grid > .develop { min-height: 560px; } [data-unit="ordem"] #visita .grid > .develop { min-height: 680px; } }
+/* the Centro lists twelve prices: on the phone one photograph is enough */
+@media (max-width: 639px) { [data-unit="agenda"] #servicos .offer__photo > img { aspect-ratio: 3 / 2; } }
+@media (max-width: 639px) { [data-unit="agenda"] #visita .visit__rows { display: none; } }
+/* phone footer: the close word and the unit columns fit one screen */
+@media (max-width: 639px) {
+  .close--word .close__word { font-size: 44px; line-height: 1.2; }
+  .footer--visit .closing__links .grid { row-gap: var(--s-3); }
+  .footer.closing .closing__links { margin-top: var(--s-3); }
+}
+@media (max-width: 639px) { .footer--visit .closing__links .grid { row-gap: var(--s-2); } .footer--visit .footer__legal { margin-top: var(--s-2); } .footer.closing .closing__links { margin-top: var(--s-2); } }
+/* phone: the unit visit keeps the rule, the address, the hours and the barbers on one screen */
+@media (max-width: 639px) { [data-unit="ordem"] .lead-extra { display: none; } [data-unit="ordem"] #visita .visit__rows > li + li { display: none; } }

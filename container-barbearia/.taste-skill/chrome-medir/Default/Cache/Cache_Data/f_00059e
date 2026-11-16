@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barbearia Container | 3 unidades em Imbituba, agende seu horário</title>
+<meta name="description" content="Barbearia Container em Imbituba, SC: Centro com hora marcada, Vila Nova e Nova Brasília por ordem de chegada. Corte R$ 50, barba R$ 45. Agende pelo app.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Barbearia Container | 3 unidades em Imbituba, agende seu horário">
+<meta property="og:description" content="Barbearia Container em Imbituba, SC: Centro com hora marcada, Vila Nova e Nova Brasília por ordem de chegada. Corte R$ 50, barba R$ 45. Agende pelo app.">
+<meta property="og:image" content="share.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0a0a0b">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Stardos+Stencil:wght@400;700&family=Pacifico&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/container.css">
+</head>
+<body>
+<div class="portas" aria-hidden="true"><div class="porta porta--e chapa"></div><div class="porta porta--d chapa"></div><div class="portas__marca"><img src="img/logo-centro.png" alt="" width="240" height="240"></div></div>
+<header class="topo">
+  <div class="wrap">
+    <a class="marca" href="index.html" aria-label="Container Barbearia, início"><img src="img/logo-centro-192.png" alt="" width="64" height="64"><span><b>Barbearia</b><small>Container</small></span></a>
+    <nav class="menu" id="menu" aria-label="Principal">
+      <a href="centro.html">Centro</a>
+      <a href="vila-nova.html">Vila Nova</a>
+      <a href="nova-brasilia.html">Nova Brasília</a>
+      <a href="index.html#equipe">Barbeiros</a>
+      <a class="btn" href="https://sites.appbarber.com.br/barbeariacontainercentro">Agendar horário <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </nav>
+    <button class="abre-menu" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu"><i></i><i></i></button>
+  </div>
+</header>
+<main>
+<section class="heroi" aria-labelledby="heroi-h">
+  <div class="heroi__foto"><img src="img/interior-centro.jpg" srcset="img/interior-centro-800.jpg 800w, img/interior-centro.jpg 1536w" sizes="100vw" alt="Salão da Barbearia Container Centro, com cadeiras pretas e o teto de colmeia de LED" fetchpriority="high"></div>
+  <div class="colmeia" data-liga="portas" data-r="38" data-cx=".6" data-cy=".3" data-alcance=".3" data-seed="11"></div>
+  <a class="heroi__selo" href="#unidades" aria-label="Ver as 3 unidades">
+    <svg viewBox="0 0 132 132" aria-hidden="true"><defs><path id="circ" d="M66 66m-54 0a54 54 0 1 1 108 0a54 54 0 1 1-108 0"/></defs><text><textPath href="#circ" textLength="336" lengthAdjust="spacing">3 unidades · Imbituba · SC ·</textPath></text></svg>
+    <img src="img/logo-centro-192.png" alt="" width="72" height="72">
+  </a>
+  <div class="wrap heroi__txt">
+    <h1 id="heroi-h"><span class="script">Barbearia</span><span class="estencil inteira" data-pal>Contai<em>ner</em></span></h1>
+    <div class="heroi__base">
+      <p><strong>3 unidades em Imbituba.</strong> No Centro você marca a hora pelo app e escolhe o barbeiro; na Vila Nova e na Nova Brasília é por ordem de chegada.</p>
+      <div class="heroi__acoes"><a class="btn btn--grande btn--pulsa" href="https://sites.appbarber.com.br/barbeariacontainercentro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Agendar horário</a><a class="btn btn--fantasma" href="#unidades">Ver unidades</a></div>
+    </div>
+  </div>
+  <span class="rola" aria-hidden="true"></span>
+</section>
+<div class="corrida" aria-hidden="true"><div class="corrida__trilho"><span>Corte</span><span>Barba</span><span>Degradê</span><span>Risco</span><span>Pigmentação</span><span>Platinado</span><span>Infantil</span><span>Sobrancelha</span><span>Corte</span><span>Barba</span><span>Degradê</span><span>Risco</span><span>Pigmentação</span><span>Platinado</span><span>Infantil</span><span>Sobrancelha</span></div></div>
+
+<section class="secao chapa ruido secao--chapa" id="unidades" aria-labelledby="unidades-h">
+  <div class="wrap">
+    <div class="secao-cab">
+      <div><span class="rotulo">Unidades</span><h2 class="titulo estencil" id="unidades-h" data-pal><span class="script">Três contêineres,</span>um jeito de cortar</h2></div>
+      <p class="lead sobe">Cada unidade atende de um jeito. Veja qual é a sua antes de sair de casa.</p>
+    </div>
+    <div class="conteineres">
+      <a class="ctn chapa" href="centro.html">
+        <div class="ctn__foto"><img src="img/interior-centro-800.jpg" alt="Salão do Centro com cadeiras pretas e o teto de colmeia de LED" loading="lazy"></div>
+        <div class="ctn__porta" aria-hidden="true"><i class="chapa"></i><i class="chapa"></i></div>
+        <div class="ctn__cod"><span class="ctn__num">01</span><span class="ctn__placa">CTNR 01<br>Imbituba · SC</span></div>
+        <div class="ctn__corpo">
+          <h3>Centro</h3>
+          <span class="ctn__tipo ctn__tipo--agenda">Hora marcada</span>
+          <p class="ctn__end">Av. Santa Catarina, 452</p>
+          <span class="ctn__vai">Ver a unidade <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </div>
+      </a>
+      <a class="ctn chapa" href="vila-nova.html">
+        <div class="ctn__foto"><img src="img/vn-hero-800.jpg" alt="Corte degradê feito na Vila Nova" loading="lazy"></div>
+        <div class="ctn__porta" aria-hidden="true"><i class="chapa"></i><i class="chapa"></i></div>
+        <div class="ctn__cod"><span class="ctn__num">02</span><span class="ctn__placa">CTNR 02<br>Imbituba · SC</span></div>
+        <div class="ctn__corpo">
+          <h3>Vila Nova</h3>
+          <span class="ctn__tipo">Ordem de chegada</span>
+          <p class="ctn__end">Anexo ao Posto Benedetta</p>
+          <span class="ctn__vai">Ver a unidade <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </div>
+      </a>
+      <a class="ctn chapa" href="nova-brasilia.html">
+        <div class="ctn__foto"><img src="img/nb-hero-800.jpg" alt="Degradê com risco feito na Nova Brasília" loading="lazy"></div>
+        <div class="ctn__porta" aria-hidden="true"><i class="chapa"></i><i class="chapa"></i></div>
+        <div class="ctn__cod"><span class="ctn__num">03</span><span class="ctn__placa">CTNR 03<br>Imbituba · SC</span></div>
+        <div class="ctn__corpo">
+          <h3>Nova Brasília</h3>
+          <span class="ctn__tipo">Ordem de chegada</span>
+          <p class="ctn__end">Anexo ao Posto Sim</p>
+          <span class="ctn__vai">Ver a unidade <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        </div>
+      </a>
+      
+    </div>
+  </div>
+</section>
+<section class="secao" id="agendar" aria-labelledby="agendar-h" data-horas='[null, [9, 19], [9, 19], [9, 19], [9, 19], [9, 19], [9, 17]]'>
+  <div class="wrap agendar">
+    <div>
+      <span class="rotulo">Hora marcada no Centro</span>
+      <h2 class="titulo estencil" id="agendar-h" data-pal><span class="script">Sem fila,</span>em três toques</h2>
+      <ol class="passos"><li class="sobe"><b>01</b><div><strong>Escolha o serviço</strong><span>Corte, barba, combo, pigmentação ou platinado.</span></div></li><li class="sobe"><b>02</b><div><strong>Escolha o barbeiro</strong><span>Erison, Marllon ou Rogher: veja quem está livre.</span></div></li><li class="sobe"><b>03</b><div><strong>Escolha o horário</strong><span>Confirmou, a cadeira é sua. Sem fila e sem espera.</span></div></li></ol>
+      <div class="agendar__acoes sobe"><a class="btn btn--grande btn--pulsa" href="https://sites.appbarber.com.br/barbeariacontainercentro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Agendar horário</a><a class="btn btn--fantasma" href="https://wa.me/5548998540282"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3Z"/></svg> WhatsApp</a></div>
+    </div>
+    <div class="agendar__foto revela">
+      <img src="img/marllon-trabalhando.jpg" alt="Barbeiro de camisa preta finalizando um corte no Centro" loading="lazy" data-paralaxe>
+      <div class="agendar__hora"><div><small>Centro · hoje</small><strong data-status>Seg a sex 9h às 19h</strong></div><span class="ponto"></span></div>
+    </div>
+  </div>
+</section>
+<section class="secao" id="precos" aria-labelledby="precos-h">
+  <div class="wrap">
+    <div class="secao-cab">
+      <div><span class="rotulo">Serviços</span><h2 class="titulo estencil" id="precos-h" data-pal><span class="script">Tabela do Centro</span>Serviços e preços</h2></div>
+      <p class="lead sobe">Preço fechado, sem surpresa no fim. A hora marcada vale para todos os serviços.</p>
+    </div>
+    <div class="precos">
+<div><h3>Cabelo</h3><ul class="preco-lista">
+<li class="destaque"><span class="nome">Corte</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>50</span></li>
+<li><span class="nome">Cabelo e barba</span> <span class="tempo">1 h</span><span class="valor"><small>R$</small>90</span></li>
+<li><span class="nome">Corte infantil</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>50</span></li>
+<li><span class="nome">Pigmentação</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>50</span></li>
+<li><span class="nome">Hidratação</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>20</span></li>
+<li><span class="nome">Pintura + corte</span> <span class="tempo">2 h</span><span class="valor"><small>R$</small>250</span></li>
+<li><span class="nome">Platinado + corte</span> <span class="tempo">3 h</span><span class="valor"><small>R$</small>250</span></li>
+</ul></div>
+<div><h3>Barba e rosto</h3><ul class="preco-lista">
+<li class="destaque"><span class="nome">Barba</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>45</span></li>
+<li><span class="nome">Barba com esfoliante</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>55</span></li>
+<li><span class="nome">Sobrancelha</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>15</span></li>
+<li><span class="nome">Limpeza de pele</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>25</span></li>
+<li><span class="nome">Esfoliação facial</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>10</span></li>
+<li><span class="nome">Pelos do nariz</span> <span class="tempo">30 min</span><span class="valor"><small>R$</small>35</span></li>
+</ul></div>
+<div class="precos__pe"><a class="btn btn--grande" href="https://sites.appbarber.com.br/barbeariacontainercentro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Agendar horário</a></div>
+    </div>
+  </div>
+</section>
+<section class="secao" id="equipe" aria-labelledby="equipe-h">
+  <div class="wrap">
+    <div class="secao-cab">
+      <div><span class="rotulo">Barbeiros</span><h2 class="titulo estencil" id="equipe-h" data-pal><span class="script">Quem corta</span>Os barbeiros</h2></div>
+      <p class="lead sobe">No Centro você escolhe com quem marcar. Toque no retrato para ver os trabalhos de cada um.</p>
+    </div>
+    <div class="equipe" style="--n:5" data-grupo>
+      <a class="barbeiro" href="https://www.instagram.com/erison_barbeiro/" target="_blank" rel="noopener">
+        <div class="barbeiro__foto"><img src="img/equipe/erison.jpg" srcset="img/equipe/erison-600.jpg 600w, img/equipe/erison.jpg 1024w" sizes="(max-width: 900px) 50vw, 30vw" alt="Retrato do barbeiro Erison, de camisa preta da Container" width="1024" height="1280" loading="lazy"></div>
+        <div class="colmeia" data-liga="hover" data-r="26" data-cy=".1" data-seed="78"></div>
+        <span class="barbeiro__unid">Centro</span>
+        <div class="barbeiro__nome"><b>Erison</b><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg> @erison_barbeiro</span></div>
+      </a>
+      <a class="barbeiro" href="https://www.instagram.com/marllon.sabino/" target="_blank" rel="noopener">
+        <div class="barbeiro__foto"><img src="img/equipe/marllon.jpg" srcset="img/equipe/marllon-600.jpg 600w, img/equipe/marllon.jpg 1024w" sizes="(max-width: 900px) 50vw, 30vw" alt="Retrato do barbeiro Marllon, de camisa preta da Container" width="1024" height="1280" loading="lazy"></div>
+        <div class="colmeia" data-liga="hover" data-r="26" data-cy=".1" data-seed="91"></div>
+        <span class="barbeiro__unid">Centro</span>
+        <div class="barbeiro__nome"><b>Marllon</b><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg> @marllon.sabino</span></div>
+      </a>
+      <a class="barbeiro" href="https://www.instagram.com/barbeiro_rogher01/" target="_blank" rel="noopener">
+        <div class="barbeiro__foto"><img src="img/equipe/rogher.jpg" srcset="img/equipe/rogher-600.jpg 600w, img/equipe/rogher.jpg 1024w" sizes="(max-width: 900px) 50vw, 30vw" alt="Retrato do barbeiro Rogher, de camisa preta da Container" width="1024" height="1280" loading="lazy"></div>
+        <div class="colmeia" data-liga="hover" data-r="26" data-cy=".1" data-seed="78"></div>
+        <span class="barbeiro__unid">Centro</span>
+        <div class="barbeiro__nome"><b>Rogher</b><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg> @barbeiro_rogher01</span></div>
+      </a>
+      <a class="barbeiro" href="https://www.instagram.com/willvaargas_/" target="_blank" rel="noopener">
+        <div class="barbeiro__foto"><img src="img/equipe/will.jpg" srcset="img/equipe/will-600.jpg 600w, img/equipe/will.jpg 1024w" sizes="(max-width: 900px) 50vw, 30vw" alt="Retrato do barbeiro Will, de camisa preta da Container" width="1024" height="1280" loading="lazy"></div>
+        <div class="colmeia" data-liga="hover" data-r="26" data-cy=".1" data-seed="52"></div>
+        <span class="barbeiro__unid">Nova Brasília</span>
+        <div class="barbeiro__nome"><b>Will</b><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg> @willvaargas_</span></div>
+      </a>
+      <a class="barbeiro" href="https://www.instagram.com/08m4rco/" target="_blank" rel="noopener">
+        <div class="barbeiro__foto"><img src="img/equipe/marco.jpg" srcset="img/equipe/marco-600.jpg 600w, img/equipe/marco.jpg 1024w" sizes="(max-width: 900px) 50vw, 30vw" alt="Retrato do barbeiro Marco, de camisa preta da Container" width="1024" height="1280" loading="lazy"></div>
+        <div class="colmeia" data-liga="hover" data-r="26" data-cy=".1" data-seed="65"></div>
+        <span class="barbeiro__unid">Nova Brasília</span>
+        <div class="barbeiro__nome"><b>Marco</b><span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg> @08m4rco</span></div>
+      </a>
+      
+    </div>
+  </div>
+</section>
+<section class="secao secao--galeria" id="cortes" aria-labelledby="cortes-h" style="padding-bottom:0">
+  <div class="wrap"><div class="secao-cab" style="margin-bottom:40px"><div><span class="rotulo">Cortes</span><h2 class="titulo estencil" id="cortes-h" data-pal><span class="script">Feitos na casa</span>Os cortes</h2></div><p class="lead sobe">Deslize para ver. Cada foto é de um cliente da casa.</p></div></div>
+  <div class="galeria"><div class="galeria__trilho"><figure><img src="img/degrade-centro.jpg" alt="Degradê feito na unidade Centro" loading="lazy"><figcaption>Degradê · Centro</figcaption></figure><figure><img src="img/nb-risco.jpg" alt="Risco feito na unidade Nova Brasília" loading="lazy"><figcaption>Risco · Nova Brasília</figcaption></figure><figure><img src="img/vn-infantil.jpg" alt="Infantil colorido feito na unidade Vila Nova" loading="lazy"><figcaption>Infantil colorido · Vila Nova</figcaption></figure><figure><img src="img/corte-centro.jpg" alt="Corte feito na unidade Centro" loading="lazy"><figcaption>Corte · Centro</figcaption></figure><figure><img src="img/nb-degrade.jpg" alt="Degradê alto feito na unidade Nova Brasília" loading="lazy"><figcaption>Degradê alto · Nova Brasília</figcaption></figure><figure><img src="img/vn-cinza.jpg" alt="Social feito na unidade Vila Nova" loading="lazy"><figcaption>Social · Vila Nova</figcaption></figure><figure><img src="img/barba-centro.jpg" alt="Barba feito na unidade Centro" loading="lazy"><figcaption>Barba · Centro</figcaption></figure><figure><img src="img/nb-infantil.jpg" alt="Infantil feito na unidade Nova Brasília" loading="lazy"><figcaption>Infantil · Nova Brasília</figcaption></figure><figure><img src="img/vn-salao.jpg" alt="Na cadeira feito na unidade Vila Nova" loading="lazy"><figcaption>Na cadeira · Vila Nova</figcaption></figure></div></div>
+  <div style="height:clamp(96px,12vw,160px)"></div>
+</section>
+<section class="espaco" aria-labelledby="espaco-h">
+  <div class="espaco__foto"><img src="img/fachada-centro.jpg" alt="Fachada da Barbearia Container Centro" loading="lazy" data-paralaxe></div>
+  <div class="wrap espaco__txt">
+    <span class="rotulo">O espaço</span>
+    <h2 class="titulo estencil" id="espaco-h" data-pal><span class="script">Chegou,</span>é aqui</h2>
+    <p class="lead sobe" style="margin-inline:auto">Chapa preta, faixa vermelha e a colmeia de LED no teto. Ar-condicionado, café e a cadeirinha de carro para os pequenos.</p>
+    <ul class="mimos sobe"><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 9a15 15 0 0 1 20 0M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0"/><circle cx="12" cy="19.5" r="1" fill="currentColor"/></svg> Wi-fi</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 16V11l2-5h10l2 5v5M3 16h18v3H3zM5 11h14"/><circle cx="7.5" cy="13.5" r=".5"/><circle cx="16.5" cy="13.5" r=".5"/></svg> Estacionamento</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="4" r="2"/><path d="M12 7v6h5l2 6M7 10a6 6 0 1 0 7 9"/></svg> Acessível</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="6" r="3"/><path d="M12 9v7M8 12h8M9 21l3-5 3 5"/></svg> Cadeirinha kids</li><li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></svg> Pix, cartão e dinheiro</li></ul>
+  </div>
+</section>
+<section class="final chapa ruido" aria-labelledby="final-h">
+  <div class="colmeia" data-r="40" data-cx=".92" data-cy=".5" data-alcance=".26" data-seed="31"></div>
+  <div class="wrap">
+    <h2 id="final-h"><span class="script">Seu horário</span><span class="estencil" data-pal>te espera</span></h2>
+    <p class="lead sobe">Corte R$ 50, barba R$ 45, cabelo e barba R$ 90. Marque agora e chegue na hora certa.</p>
+    <div class="sobe" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap"><a class="btn btn--grande btn--pulsa" href="https://sites.appbarber.com.br/barbeariacontainercentro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Agendar horário</a><a class="btn btn--fantasma" href="#unidades">Ver as 3 unidades</a></div>
+  </div>
+</section>
+</main>
+<footer class="rodape">
+  <div class="faixa" style="position:absolute;inset:0 0 auto"></div>
+  <div class="wrap">
+    <div class="rodape__grid">
+      <div class="rodape__marca"><img src="img/logo-centro.png" alt="Logo da Barbearia Container" width="120" height="120" loading="lazy"><p>Três contêineres de barbearia em Imbituba, SC. Corte, barba e acabamento de quem faz isso todo dia.</p></div>
+      <div><h4><a href="centro.html">Centro</a></h4><p>Av. Santa Catarina, 452</p><p>Hora marcada</p><p><a href="https://wa.me/5548998540282">(48) 99854-0282</a></p><p><a href="https://wa.me/5548999173444">(48) 99917-3444</a></p><p><a href="https://www.instagram.com/barbeariacontainer_centro/" target="_blank" rel="noopener">Instagram</a></p></div><div><h4><a href="vila-nova.html">Vila Nova</a></h4><p>Anexo ao Posto Benedetta</p><p>Ordem de chegada</p><p><a href="https://wa.me/5548999955894">(48) 99995-5894</a></p><p><a href="https://www.instagram.com/containerbarbeariavilanova/" target="_blank" rel="noopener">Instagram</a></p></div><div><h4><a href="nova-brasilia.html">Nova Brasília</a></h4><p>Anexo ao Posto Sim</p><p>Ordem de chegada</p><p><a href="https://www.instagram.com/barberia_containernb/" target="_blank" rel="noopener">Instagram</a></p></div>
+    </div>
+    <div class="rodape__fim"><span>© 2026 Barbearia Container · Imbituba, SC</span><span><a href="https://sites.appbarber.com.br/barbeariacontainercentro">Agendar no Centro</a></span></div>
+  </div>
+</footer>
+<div class="barra-cta"><a class="btn" href="https://sites.appbarber.com.br/barbeariacontainercentro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="1.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg> Agendar horário</a><a class="btn btn--fantasma" href="https://wa.me/5548998540282" aria-label="WhatsApp do Centro"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3Z"/></svg></a></div>
+<script src="js/vendor/gsap.min.js" defer></script>
+<script src="js/vendor/ScrollTrigger.min.js" defer></script>
+<script src="js/vendor/lenis.min.js" defer></script>
+<script src="js/container.js" defer></script>
+</body>
+</html>

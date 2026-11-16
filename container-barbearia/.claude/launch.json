@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "container-barbearia",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8470", "--bind", "127.0.0.1"],
+      "port": 8470
+    }
+  ]
+}

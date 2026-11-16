@@ -1,0 +1,20 @@
+Use your image generation tool. These are real barbers of "Barbearia Container" (Imbituba, Brazil) and the photos are for the shop's own website team section. Create a matching set of 5 studio portraits, one per barber, as if shot the same day in the same studio.
+
+IDENTITY IS THE TOP PRIORITY: keep each man's real face exactly — face shape, eyes, nose, mouth, beard/moustache, hairline, haircut, skin tone, tattoos on neck/arms, earrings, glasses where present. Do not beautify, do not change age or ethnicity. If a source is small or from the side, reconstruct the frontal face faithfully from it.
+
+SAME FOR ALL FIVE (consistency matters):
+- Uniform: plain black short-sleeve button-up barber shirt, collar open one button, with the round "Barbearia Container" logo (attached logo.png: black circle, orange ring, white script) as a small embroidered patch on the left chest. Nothing else written on the clothes.
+- Pose: standing, body turned slightly (about 15 degrees) to his left, face toward the camera, arms crossed over the chest, confident relaxed expression, neutral to light smile.
+- Framing: waist-up, head top at about 12% from the top edge, eyes on the upper third, centered.
+- Background: dark charcoal/near-black barbershop ceiling with a honeycomb of hexagon LED tube lights glowing warm white, softly out of focus behind and above the head (like the real shop ceiling).
+- Light: soft white key light from the front-left, a subtle warm orange (#E8772E) rim light from the right on shoulder and hair edge. Photorealistic, 85mm, shallow depth of field, natural skin texture, no text, no watermark.
+- Size: 1024x1280 portrait.
+
+Sources:
+1. erison.jpg  -> out-erison.png
+2. marllon.jpg (he is cutting hair, face in 3/4 view; keep his face and hair) -> out-marllon.png
+3. rogher.jpg (keep his rimless glasses, earring and smile) -> out-rogher.png
+4. will.jpg plus will-perfil.jpg (same man, William; tattooed arms and neck, beard; ignore the phone) -> out-will.png
+5. marco.jpg (young man in a white cap and black jacket, face is small; keep his face; no cap in the portrait, show his real short hair if visible, otherwise a short clean haircut) -> out-marco.png
+
+Save each result in the current folder with exactly those file names.

@@ -1,0 +1,27 @@
+[
+ {
+  "check": "street-number",
+  "target": "ul.unit-list",
+  "reason": "site real da Container Barbearia: o endereço com número (Av. Santa Catarina, 452) é público, está no Instagram e na página de agendamento do próprio cliente, e o cliente precisa achar a porta"
+ },
+ {
+  "check": "street-number",
+  "target": "address.visit__address",
+  "reason": "mesmo endereço público do cliente, no bloco de visita da unidade Centro"
+ },
+ {
+  "check": "phone-number",
+  "target": "a.tel",
+  "reason": "WhatsApp real das unidades, publicado pelo próprio cliente no Instagram e no AppBarber; é o canal de contato das unidades por ordem de chegada"
+ },
+ {
+  "check": "hero-lines",
+  "target": "section.hero h1",
+  "reason": "h1 final das páginas de unidade (tipo de atendimento + bairro), cabe em duas linhas em todas as larguras; o teste preenche até o máximo do hero, não o texto real"
+ },
+ {
+  "check": "hover-move",
+  "target": "a.pl-photo.photo-link",
+  "reason": "só na largura 390 (toque): o zoom de hover do kit fica sob (hover: hover) and (pointer: fine) de propósito; no desktop as mesmas fotos e retratos dão zoom 1.03"
+ }
+]

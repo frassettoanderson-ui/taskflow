@@ -1,0 +1,6 @@
+Use your image generation tool to upscale the attached real photographs of a barbershop (the client's own photos for its website). Be faithful: keep every person, face, haircut, clothing, background and light exactly as they are; do not beautify, do not add text, logos or watermarks; photorealistic.
+Make in the current folder:
+1. out-a.png (1024x1280) from a.jpg: sharper, cleaner, higher resolution; nothing changes.
+2. out-b.png (1024x1365) from b.jpg: sharper, cleaner, higher resolution; nothing changes.
+3. out-c.png (1024x1365) from c.jpg: sharper, cleaner, higher resolution; nothing changes.
+Save each with exactly those names.

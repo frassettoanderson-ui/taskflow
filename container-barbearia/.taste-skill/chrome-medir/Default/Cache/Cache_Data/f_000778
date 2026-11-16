@@ -1,0 +1,301 @@
+/* Container Barbearia v2 — movimento do site.
+   Portas do contêiner abrindo, colmeia de LED que acende como lâmpada tubular e puxa o laranja
+   para perto do cursor, títulos que sobem palavra a palavra, galeria em mosaico. */
+(() => {
+  const html = document.documentElement;
+  const calmo = false; // animações sempre ligadas (o cliente usa Windows com 'reduzir animações' ligado e quer ver tudo)
+  const toque = matchMedia('(hover: none), (pointer: coarse)').matches;
+  const temGsap = !!(window.gsap && window.ScrollTrigger);
+  if (temGsap) gsap.registerPlugin(ScrollTrigger);
+
+  /* ---------- status aberto/fechado (hora de Brasília) ---------- */
+  const agoraBR = () => {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Sao_Paulo', weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false }).formatToParts(new Date());
+    const g = t => p.find(x => x.type === t).value;
+    const dia = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(g('weekday'));
+    return { dia, min: (+g('hour') % 24) * 60 + +g('minute') };
+  };
+  document.querySelectorAll('[data-horas]').forEach(el => {
+    let h; try { h = JSON.parse(el.dataset.horas); } catch { return; }
+    const { dia, min } = agoraBR();
+    const hoje = h[dia];
+    const aberto = hoje && min >= hoje[0] * 60 && min < hoje[1] * 60;
+    const txt = aberto ? `Aberto agora · até ${hoje[1]}h` : 'Fechado agora';
+    el.querySelectorAll('[data-status]').forEach(s => { s.textContent = txt; });
+    el.querySelectorAll('.ponto').forEach(p => p.classList.toggle('fechado', !aberto));
+    el.querySelectorAll(`[data-dia~="${dia}"]`).forEach(d => d.classList.add('hoje'));
+  });
+
+  /* ---------- menu e topo ---------- */
+  const topo = document.querySelector('.topo');
+  const abre = document.querySelector('.abre-menu');
+  abre && abre.addEventListener('click', () => {
+    const on = html.classList.toggle('menu-aberto');
+    abre.setAttribute('aria-expanded', on);
+  });
+  document.querySelectorAll('.menu a').forEach(a => a.addEventListener('click', () => html.classList.remove('menu-aberto')));
+  const barra = document.querySelector('.barra-cta');
+  let ultimo = 0;
+  const aoRolar = y => {
+    if (topo) {
+      topo.classList.toggle('solido', y > 40);
+      topo.classList.toggle('some', y > 600 && y > ultimo + 2 && !html.classList.contains('menu-aberto'));
+      if (y < ultimo - 2) topo.classList.remove('some');
+    }
+    if (barra) barra.classList.toggle('mostra', y > innerHeight * .6);
+    ultimo = y;
+  };
+  addEventListener('scroll', () => aoRolar(scrollY), { passive: true });
+  aoRolar(scrollY);
+
+  /* ---------- colmeia de LED ---------- */
+  // hexágonos de ponta para cima, como o teto da barbearia; um "cacho" irregular, não uma grade cheia
+  const semente = s => () => (s = (s * 16807) % 2147483647) / 2147483647;
+  function montaColmeia(box) {
+    const r = +box.dataset.r || 46;              // raio do hexágono
+    const rnd = semente(+box.dataset.seed || 7);
+    const W = box.clientWidth || innerWidth, H = box.clientHeight || 400;
+    const w = Math.sqrt(3) * r, h = 1.5 * r;
+    const cols = Math.ceil(W / w) + 2, rows = Math.ceil(H / h) + 2;
+    const cx = W * (+box.dataset.cx || .5), cy = H * (+box.dataset.cy || .2);
+    const alcance = Math.max(W, H) * (+box.dataset.alcance || .55);
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+    svg.setAttribute('aria-hidden', 'true');
+    const g = document.createElementNS(ns, 'g'); g.setAttribute('class', 'brilho'); svg.appendChild(g);
+    const celulas = [];
+    for (let j = -1; j < rows; j++) for (let i = -1; i < cols; i++) {
+      const x = i * w + (j & 1 ? w / 2 : 0), y = j * h;
+      const d = Math.hypot(x - cx, (y - cy) * 1.25);
+      if (d > alcance * (.55 + rnd() * .55)) continue;          // borda irregular do cacho
+      if (rnd() < .12) continue;                                  // alguns buracos, como no teto
+      const pts = [];
+      for (let k = 0; k < 6; k++) { const a = Math.PI / 180 * (60 * k - 90); pts.push([x + r * .9 * Math.cos(a), y + r * .9 * Math.sin(a)]); }
+      const p = document.createElementNS(ns, 'path');
+      p.setAttribute('d', 'M' + pts.map(q => q.map(n => n.toFixed(1)).join(' ')).join('L') + 'Z');
+      p._x = x; p._y = y; p._d = d;
+      g.appendChild(p); celulas.push(p);
+    }
+    box.appendChild(svg);
+    box._celulas = celulas.sort((a, b) => a._d - b._d);
+    box._svg = svg; box._W = W; box._H = H;
+    return box;
+  }
+  // liga como lâmpada tubular: pisca e firma, do centro para fora
+  function liga(box) {
+    if (box._ligada) return; box._ligada = true;
+    box._celulas.forEach((p, n) => {
+      const t = calmo ? 0 : 120 + n * 28 + Math.random() * 180;
+      if (calmo) { p.classList.add('on'); return; }
+      setTimeout(() => {
+        p.style.transition = 'none';
+        const seq = [1, .15, .9, .3, 1];
+        seq.forEach((o, k) => setTimeout(() => { p.style.opacity = o; }, k * (40 + Math.random() * 50)));
+        setTimeout(() => { p.style.removeProperty('opacity'); p.style.removeProperty('transition'); p.classList.add('on'); }, 320);
+      }, t);
+    });
+    if (!calmo) setInterval(() => { // de vez em quando uma lâmpada falha
+      const p = box._celulas[(Math.random() * box._celulas.length) | 0];
+      if (!p) return;
+      p.style.transition = 'none'; p.style.opacity = .2;
+      setTimeout(() => { p.style.opacity = 1; }, 70);
+      setTimeout(() => { p.style.opacity = .35; }, 130);
+      setTimeout(() => { p.style.removeProperty('opacity'); p.style.removeProperty('transition'); }, 220);
+    }, 2600);
+  }
+  // o cursor puxa o laranja
+  function segueCursor(box, alvo) {
+    if (toque || calmo) return;
+    let raf = 0, mx = -9999, my = -9999;
+    (alvo || box.parentElement).addEventListener('pointermove', e => {
+      const b = box.getBoundingClientRect();
+      const sx = box._W / b.width, sy = box._H / b.height, s = Math.max(sx, sy);
+      mx = (e.clientX - b.left) * s - (b.width * s - box._W) / 2; my = (e.clientY - b.top) * s - (b.height * s - box._H) / 2;
+      if (!raf) raf = requestAnimationFrame(() => {
+        raf = 0;
+        box._celulas.forEach(p => {
+          const d = Math.hypot(p._x - mx, p._y - my);
+          p.style.stroke = d < 150 ? 'var(--laranja-2)' : '';
+        });
+      });
+    });
+    (alvo || box.parentElement).addEventListener('pointerleave', () => box._celulas.forEach(p => { p.style.stroke = ''; }));
+  }
+  const colmeias = [...document.querySelectorAll('.colmeia')].map(montaColmeia);
+  // a seção muda de tamanho depois das fontes/fotos: remonta para o cacho não sair da tela
+  const refaz = new ResizeObserver(es => es.forEach(e => {
+    const box = e.target, W = box.clientWidth, H = box.clientHeight;
+    if (!W || !H || (Math.abs(W - box._W) / box._W < .06 && Math.abs(H - box._H) / box._H < .06)) return;
+    box._svg.remove(); montaColmeia(box);
+    if (box._ligada) box._celulas.forEach(p => p.classList.add('on'));
+  }));
+  colmeias.forEach(b => refaz.observe(b));
+  const vigia = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { liga(e.target); vigia.unobserve(e.target); } }), { threshold: .15 });
+  colmeias.forEach(b => {
+    if (b.dataset.liga === 'hover') {
+      const card = b.closest('.barbeiro');
+      card && card.addEventListener('pointerenter', () => liga(b), { once: true });
+      card && card.addEventListener('focus', () => liga(b), { once: true });
+    } else if (b.dataset.liga !== 'portas') vigia.observe(b);
+    segueCursor(b, b.closest('section, footer, .barbeiro'));
+  });
+
+  /* ---------- palavras ---------- */
+  document.querySelectorAll('[data-pal]').forEach(el => {
+    const walk = n => {
+      [...n.childNodes].forEach(c => {
+        if (c.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          c.textContent.split(/(\s+)/).forEach(t => {
+            if (!t) return;
+            if (/^\s+$/.test(t)) { frag.appendChild(document.createTextNode(t)); return; }
+            const o = document.createElement('span'); o.className = 'pal';
+            const i = document.createElement('span'); i.textContent = t; o.appendChild(i); frag.appendChild(o);
+          });
+          c.replaceWith(frag);
+        } else if (c.nodeType === 1 && !c.classList.contains('pal')) walk(c);
+      });
+    };
+    walk(el);
+  });
+
+  if (!temGsap || calmo) {
+    document.querySelectorAll('.portas').forEach(p => p.remove());
+    colmeias.forEach(b => b.dataset.liga === 'portas' && liga(b));
+    return;
+  }
+
+  /* ---------- Lenis (rolagem macia no computador) ---------- */
+  if (window.Lenis && !toque) {
+    const lenis = new Lenis({ duration: 1.15, easing: t => 1 - Math.pow(1 - t, 4) });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add(t => lenis.raf(t * 1000));
+    gsap.ticker.lagSmoothing(0);
+    document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+      const alvo = document.querySelector(a.getAttribute('href'));
+      if (alvo) { e.preventDefault(); lenis.scrollTo(alvo, { offset: -70 }); }
+    }));
+  }
+
+  html.classList.add('anima');
+
+  /* ---------- herói ---------- */
+  const heroi = document.querySelector('.heroi');
+  document.querySelectorAll('.portas').forEach(p => p.remove());
+  const tl = gsap.timeline({ defaults: { ease: 'expo.out' } });
+  const guincho = document.querySelector('.heroi--guincho');
+  if (guincho) {
+    /* a lança entra com o contêiner pendurado, para no meio, baixa, solta e vai embora; aí o nome aparece */
+    const lanca = guincho.querySelector('.guincho__lanca'), carro = guincho.querySelector('.guincho__carro');
+    const carga = guincho.querySelector('.carga'), gancho = guincho.querySelector('.gancho'), cabo = guincho.querySelector('.gancho__cabo');
+    const palco = guincho.querySelector('.heroi__palco');
+    const st = { y: 0, g: 0 };
+    let base = 0;
+    const mede = () => {
+      const pr = palco.getBoundingClientRect(), lr = lanca.getBoundingClientRect();
+      carro.style.left = (pr.left + pr.width / 2 - lr.left - gsap.getProperty(lanca, 'x') - carro.offsetWidth / 2) + 'px';
+      const cr = carro.getBoundingClientRect();
+      cabo.style.height = '0px';
+      base = cabo.getBoundingClientRect().bottom - st.y - st.g - cr.bottom;
+    };
+    const aplica = () => {
+      gsap.set(carga, { y: st.y }); gsap.set(gancho, { y: st.g });
+      cabo.style.height = Math.max(0, base + st.y + st.g) + 'px';
+    };
+    mede();
+    st.y = -Math.max(0, base - 26);
+    aplica();
+    const fora = innerWidth * 1.15;
+    gsap.set([lanca, carga], { x: fora });
+    gsap.set('.heroi--guincho h1 .script', { opacity: 0, y: 30 });
+    gsap.set('.heroi--guincho h1 .estencil .pal > span', { yPercent: 110 });
+    gsap.set(['.heroi--guincho .heroi__base > *', '.topo'], { opacity: 0, y: 24 });
+    const W = palco.offsetWidth;
+    tl.to([lanca, carga], { x: 0, duration: 1.25, ease: 'power3.out' })
+      .fromTo(carga, { rotate: -3.2 }, { rotate: 0, transformOrigin: '50% -' + (base * .6) + 'px', duration: 1.7, ease: 'elastic.out(1, .32)' }, '-=.5')
+      .to(st, { y: 0, duration: 1.25, ease: 'power2.inOut', onUpdate: aplica }, '-=1.35')
+      // encosta no chão: quica de leve e levanta poeira
+      .to(st, { y: -6, duration: .1, ease: 'power1.out', onUpdate: aplica })
+      .to(st, { y: 0, duration: .35, ease: 'bounce.out', onUpdate: aplica })
+      .fromTo('.poeira i', { opacity: .95, scale: .35, x: 0, y: 0 },
+        { opacity: 0, scale: () => 1.8 + Math.random(), x: (i, el) => (el.parentElement.classList.contains('poeira--e') ? -1 : 1) * (30 + (i % 3) * W * .05),
+          y: (i) => -10 - (i % 3) * 14, duration: 1.3, ease: 'power2.out', stagger: .04 }, '<')
+      // solta as lingas e o gancho sobe
+      .to('.gancho__lingas', { opacity: 0, duration: .25 }, '+=.05')
+      .to(st, { g: () => -base, duration: .9, ease: 'power2.in', onUpdate: aplica }, '<.1')
+      .set(gancho, { opacity: 0 })
+      .to(lanca, { x: fora, duration: 1.1, ease: 'power3.in' }, '-=.2')
+      // o nome
+      .to('.heroi--guincho h1 .script', { opacity: 1, y: 0, duration: 1.1 }, 2.75)
+      .to('.heroi--guincho h1 .estencil .pal > span', { yPercent: 0, duration: 1.2, stagger: .08 }, 2.85)
+      .to('.heroi--guincho .heroi__base > *', { opacity: 1, y: 0, duration: 1, stagger: .12, clearProps: 'transform' }, 3.25)
+      .to('.topo', { opacity: 1, y: 0, duration: 1, clearProps: 'transform,opacity' }, 3.3)
+      .add(() => guincho.classList.add('pousou'));
+    addEventListener('resize', () => { if (tl.progress() === 1) return; mede(); aplica(); });
+    gsap.to('.heroi--guincho .heroi__txt', { yPercent: -10, opacity: .25, ease: 'none', scrollTrigger: { trigger: guincho, start: '35% top', end: 'bottom top', scrub: true } });
+  } else if (heroi) {
+    tl.fromTo('.heroi__foto img', { scale: 1.25 }, { scale: 1.08, duration: 2.4, ease: 'power3.out' }, 0)
+      .from('.heroi h1 .script', { y: 40, opacity: 0, duration: 1.2 }, '-=1.9')
+      .from('.heroi h1 .estencil .pal > span', { yPercent: 110, duration: 1.3, stagger: .08 }, '-=1.05')
+      .from('.heroi__base > *', { y: 26, opacity: 0, duration: 1, stagger: .12 }, '-=.9')
+      .from('.topo', { y: -30, opacity: 0, duration: 1 }, '-=1');
+    gsap.to('.heroi__foto img', { yPercent: 12, ease: 'none', scrollTrigger: { trigger: heroi, start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('.heroi__txt', { yPercent: -18, opacity: .2, ease: 'none', scrollTrigger: { trigger: heroi, start: '30% top', end: 'bottom top', scrub: true } });
+  }
+
+  /* ---------- títulos e blocos ---------- */
+  document.querySelectorAll('[data-pal]').forEach(el => {
+    if (el.closest('.heroi')) return;
+    gsap.from(el.querySelectorAll('.pal > span'), { yPercent: 110, duration: 1.1, ease: 'expo.out', stagger: .06, scrollTrigger: { trigger: el, start: 'top 85%' } });
+  });
+  gsap.utils.toArray('.sobe').forEach(el => {
+    gsap.to(el, { opacity: 1, y: 0, duration: 1.1, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 88%' } });
+  });
+  gsap.utils.toArray('[data-grupo]').forEach(g => {
+    const itens = g.children;
+    gsap.from(itens, { y: 60, opacity: 0, duration: 1.1, ease: 'expo.out', stagger: .12, clearProps: 'transform,opacity', scrollTrigger: { trigger: g, start: 'top 82%' } });
+  });
+  gsap.utils.toArray('.revela').forEach(el => {
+    gsap.to(el, { clipPath: 'inset(0% 0 0 0)', duration: 1.4, ease: 'expo.inOut', scrollTrigger: { trigger: el, start: 'top 82%' } });
+    const img = el.querySelector('img');
+    img && gsap.fromTo(img, { scale: 1.25 }, { scale: 1, duration: 1.8, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 82%' } });
+  });
+  gsap.utils.toArray('[data-paralaxe]').forEach(el => {
+    gsap.fromTo(el, { yPercent: -8 }, { yPercent: 8, ease: 'none', scrollTrigger: { trigger: el.parentElement, start: 'top bottom', end: 'bottom top', scrub: true } });
+  });
+  /* ---------- lousa: escrita a giz, linha por linha ---------- */
+  gsap.utils.toArray('.lousa').forEach(l => {
+    const escreve = { clipPath: 'inset(-60% 100% -40% -6%)' }, pronto = { clipPath: 'inset(-60% -25% -40% -6%)', ease: 'power1.inOut' };
+    const tracos = l.querySelectorAll('.risco path, .circulo path');
+    tracos.forEach(p => { const n = p.getTotalLength(); p.style.strokeDasharray = n; p.style.strokeDashoffset = n; });
+    const tl2 = gsap.timeline({ scrollTrigger: { trigger: l, start: 'top 70%' } });
+    tl2.from(l, { y: 60, opacity: 0, duration: 1.1, ease: 'expo.out' })
+      .fromTo(l.querySelector('.lousa__rotulo'), escreve, { ...pronto, duration: .5 }, '-=.5')
+      .fromTo(l.querySelector('.lousa__titulo'), escreve, { ...pronto, duration: .9 })
+      .to(l.querySelectorAll('.risco path'), { strokeDashoffset: 0, duration: .5, ease: 'power2.out' })
+      .fromTo(l.querySelector('.lousa__lead'), escreve, { ...pronto, duration: .8 }, '-=.2');
+    l.querySelectorAll('.lousa__col').forEach((c, i) => {
+      tl2.fromTo(c.querySelector('h3'), escreve, { ...pronto, duration: .45 }, i ? '<' : '>-.1')
+        .fromTo(c.querySelectorAll('li'), escreve, { ...pronto, duration: .38, stagger: .12 }, '<.25');
+    });
+    tl2.to(l.querySelectorAll('.circulo path'), { strokeDashoffset: 0, duration: .7, ease: 'power2.inOut', stagger: .2 }, '-=.3');
+  });
+
+  /* ---------- toda seção entra suave ---------- */
+  gsap.utils.toArray('main > section:not(.heroi):not(.secao--lousa), .rodape').forEach(s => {
+    gsap.from(s, { opacity: 0, y: 70, duration: 1.4, ease: 'power3.out', clearProps: 'transform,opacity',
+      scrollTrigger: { trigger: s, start: 'top 92%', once: true } });
+  });
+
+  /* ---------- galeria: as fotos entram em cascata ---------- */
+  gsap.utils.toArray('.galeria').forEach(g => gsap.from(g.children, { y: 60, opacity: 0, scale: .96, duration: 1.2, ease: 'expo.out', stagger: { each: .08, from: 'center' }, clearProps: 'transform,opacity',
+    scrollTrigger: { trigger: g, start: 'top 80%', once: true } }));
+
+  /* ---------- contêineres: entram de baixo, um depois do outro ---------- */
+  ScrollTrigger.batch('.ctn', { start: 'top 75%', once: true, onEnter: els => els.forEach((el, n) => setTimeout(() => el.classList.add('aberto'), 500 + n * 220)) });
+  gsap.from('.ctn', { y: 120, rotateX: -8, opacity: 0, transformOrigin: '50% 100%', duration: 1.4, ease: 'expo.out', stagger: .15, clearProps: 'transform,opacity', scrollTrigger: { trigger: '.conteineres', start: 'top 80%' } });
+
+  addEventListener('load', () => ScrollTrigger.refresh());
+})();

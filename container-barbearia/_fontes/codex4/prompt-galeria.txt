@@ -1,0 +1,10 @@
+Use your image generation tool. These are real photos of haircuts done at "Barbearia Container" (Imbituba, Brazil), taken from the shop's Instagram; they are small and low quality. They will be shown in the shop's website gallery.
+
+For EACH attached photo, make a high-quality restored version: same person, same haircut (keep the exact fade, lines, design, length and beard shape), same pose, angle and framing, same background. Only improve quality: sharp detail, clean natural skin and hair texture, remove blur, compression artefacts and noise, balanced exposure, slightly warmer and contrastier color like a professional barbershop photo. Do NOT change the face, the cut or add anything; no text, no watermark. Square-ish output is fine (1024x1024 or 1024x1280 portrait, keep the original orientation).
+
+Files -> outputs (save in the current folder with exactly these names):
+1. degrade-centro.jpg -> out-degrade-centro.png
+2. corte-centro.jpg -> out-corte-centro.png
+3. barba-centro.jpg -> out-barba-centro.png
+4. nb-risco.jpg -> out-nb-risco.png
+5. vn-cinza.jpg -> out-vn-cinza.png
