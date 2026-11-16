@@ -195,23 +195,32 @@
       scrollTrigger: { trigger: '.manifesto', start: 'top 75%', end: 'bottom 60%', scrub: true } });
     gsap.from('.manifesto__sub', { y: 30, autoAlpha: 0, duration: .8, scrollTrigger: { trigger: '.manifesto__sub', start: 'top 90%' } });
 
+    // fade in ao rolar em tudo que ainda não tinha entrada própria
+    ['.patrocinio__mao', '.cotas__txt', '.percurso__data', '.mapa', '.parciais__sub', '.parciais__fotos', '.splits',
+     '.trajetoria__rot', '.vaga__sub', '.vaga__dica', '.investimento p', '.perguntas p', '.rodape__logo', '.rodape p', '.rodape__patro']
+      .forEach(function (sel) {
+        $$(sel).forEach(function (el) {
+          if (el.closest('.hero, .pay, .ingresso, .faq, .final')) return;
+          gsap.from(el, { y: 40, autoAlpha: 0, duration: .9, ease: 'power3.out', clearProps: 'transform,opacity,visibility', scrollTrigger: { trigger: el, start: 'top 90%' } });
+        });
+      });
+
     // títulos entram de baixo
     $$('.titulo, .palestrante__nome, .final__titulo').forEach(function (t) {
       gsap.from(t, { y: 70, autoAlpha: 0, skewY: 3, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: t, start: 'top 88%' } });
     });
 
-    // percurso: roda sozinho quando o mapa aparece (aproxima na largada, segue o corredor, abre na chegada, repete)
+    // percurso: quando a rolagem chega no mapa, o corredor sai do A e vai até o B (câmera aproxima, segue e abre na chegada)
     var cs = { p: 0, s: 1 };
     var render = function () { posicionar(cs.p); camera(cs.p, cs.s); };
-    var corrida = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 2.6, defaults: { lazy: false }, onUpdate: render })
+    var corrida = gsap.timeline({ paused: true, defaults: { lazy: false }, onUpdate: render })
       .set(cs, { p: 0, s: 1 })
       .to(cs, { s: 2.1, duration: 1.1, ease: 'power2.inOut' })
       .to(cs, { p: 1, duration: 6.5, ease: 'sine.inOut' }, '+=.15')
       .to(cs, { s: 1, duration: 1.3, ease: 'power2.inOut' }, '-=.9');
     render();
-    new IntersectionObserver(function (es) {
-      es.forEach(function (e) { if (e.isIntersecting) corrida.play(); else corrida.pause(); });
-    }, { threshold: .4 }).observe(mapa);
+    ScrollTrigger.create({ trigger: mapa, start: 'top 72%', onEnter: function () { corrida.restart(); },
+      onLeaveBack: function () { corrida.pause(0); render(); } });
     addEventListener('resize', render);
     gsap.from('.etapa', { y: 40, autoAlpha: 0, stagger: .15, duration: .7, clearProps: 'opacity,visibility,transform', scrollTrigger: { trigger: '.etapas', start: 'top 88%' } });
 

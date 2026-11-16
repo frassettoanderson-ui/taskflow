@@ -514,7 +514,4 @@ a { color: inherit; }
   .mapa__fonte { font-size: .58rem; }
   .furo { width: 12px; height: 12px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .hero__pista span, .corre-txt, .giro, .pino__aura { animation: none !important; }
-  .parciais__fotos img { transition: none; }
-}
+
