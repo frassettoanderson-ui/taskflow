@@ -18,7 +18,7 @@
   var brl = function (v) { return Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
   var desktop = function () { return matchMedia('(min-width: 901px)').matches; };
 
-  /* ---------- vídeos: herói (só no computador) e fundo do manifesto (toca quando aparece) ----------
+  /* ---------- vídeo de fundo do manifesto (toca quando aparece) ----------
      Toca mesmo com "reduzir movimento"/economia de dados (pedido do dono: o vídeo faz parte da página).
      Se o aparelho bloquear o autoplay (iPhone em economia de bateria), começa no primeiro toque/rolagem. */
   var celular = matchMedia('(max-width: 700px)').matches;
@@ -29,12 +29,6 @@
       var tenta = function () { v.play().catch(function () {}); ['touchstart', 'click', 'scroll', 'keydown'].forEach(function (ev) { removeEventListener(ev, tenta, true); }); };
       ['touchstart', 'click', 'scroll', 'keydown'].forEach(function (ev) { addEventListener(ev, tenta, { capture: true, passive: true }); });
     });
-  }
-  var hv = $('.hero__video');
-  if (hv && desktop()) {
-    hv.addEventListener('playing', function () { hv.classList.add('on'); }, { once: true });
-    hv.src = hv.getAttribute('data-src');
-    tocar(hv);
   }
   var fv = $('.manifesto__video');
   if (fv) {
@@ -187,7 +181,7 @@
       .from('.hero__faixa li', { y: 24, autoAlpha: 0, duration: .6, stagger: .08 }, 1.25);
 
     // herói sai devagar (parallax)
-    gsap.to('.hero__foto img, .hero__video', { yPercent: 14, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
+    gsap.to('.hero__foto img', { yPercent: 14, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
     gsap.to('.hero__conteudo', { yPercent: -18, autoAlpha: .2, ease: 'none', scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true } });
 
     // manifesto: as palavras acendem conforme rola

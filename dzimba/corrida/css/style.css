@@ -110,9 +110,6 @@ a { color: inherit; }
 /* =========================================================
    MANIFESTO
    ========================================================= */
-.hero__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.2s ease; }
-.hero__video.on { opacity: 1; }
-.hero__video { transform: scale(1.04); }
 .manifesto { position: relative; isolation: isolate; overflow: hidden; min-height: 100svh; display: grid; place-content: center; padding: clamp(90px, 14vw, 180px) var(--gutter); text-align: center; }
 .manifesto > p { max-width: 1180px; margin-left: auto; margin-right: auto; }
 .manifesto__fundo { position: absolute; inset: 0; z-index: -1; background: #0b0d0a url(../img/filme-capa.jpg?v=1) center / cover no-repeat; }
