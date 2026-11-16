@@ -260,7 +260,7 @@ const corpoConfirmacao = rec =>
   `Oi, ${primeiroNome(rec)}! Sua inscrição no *Curso Treinamento de Corrida de Rua* está confirmada. 🏃\n\n` +
   `📅 Sábado, 12/12/2026\n` +
   `🎫 Credenciamento: 7h30 às 11h na Academia D'Zimba (Av. Renato Ramos da Silva, 3724, Vila Nova)\n` +
-  `🎤 Curso: 15h no Auditório do Praia Hotel, Imbituba\n` +
+  `🎤 Curso: 14h30 no Auditório do Praia Hotel, Imbituba\n` +
   `👤 Palestrante: Marcos Paulo Huber\n\n`;
 const textoConvite = rec => corpoConfirmacao(rec) +
   (cfg.grupoLink ? `Entre no *grupo dos inscritos* pelo link abaixo. É por lá que vão todos os avisos do curso:\n${cfg.grupoLink}`

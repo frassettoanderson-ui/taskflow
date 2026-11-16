@@ -142,6 +142,7 @@ a { color: inherit; }
 .mapa { grid-area: mapa; position: relative; margin: 0; justify-self: center; width: min(100%, calc((100svh - 130px) * 1.295));
   aspect-ratio: 1400 / 1081; border-radius: 10px; overflow: hidden; border: 1px solid var(--linha); background: #0e110d;
   box-shadow: 0 50px 100px -40px rgba(0,0,0,.9); }
+.mapa__cam { position: absolute; inset: 0; transform-origin: 0 0; }
 .mapa__fundo, .mapa__svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mapa::after { content: ''; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 90px 10px rgba(10,12,9,.75); }
 .mapa__rotulos text { font: 700 25px var(--corpo); letter-spacing: .32em; fill: rgba(241,244,234,.34); text-anchor: middle; }
@@ -149,10 +150,6 @@ a { color: inherit; }
 .mapa__rotulos .mapa__estrada { font-size: 19px; letter-spacing: .2em; fill: rgba(180,200,150,.4); }
 .mapa__base { fill: none; stroke: rgba(241,244,234,.28); stroke-width: 5; stroke-dasharray: 2 13; stroke-linecap: round; }
 .mapa__rota { fill: none; stroke: var(--lime); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 14px rgba(180,227,30,.65)); }
-.km circle { fill: var(--preto); stroke: var(--lime); stroke-width: 3; }
-.km text { font: 800 17px var(--corpo); fill: var(--lime); text-anchor: middle; }
-.anima .km { opacity: 0; transition: opacity .3s; }
-.anima .km.on { opacity: 1; }
 .pino circle { fill: var(--lime); }
 .pino .pino__aura { fill: rgba(180,227,30,.18); stroke: rgba(180,227,30,.5); stroke-width: 2; }
 .pino text { font: 900 24px var(--titulo); fill: var(--preto); text-anchor: middle; }
@@ -161,7 +158,8 @@ a { color: inherit; }
 .mapa.chegou .pino--chegada .pino__aura { animation: aura 1.3s ease-out infinite; }
 @keyframes aura { to { transform: scale(1.9); opacity: 0; } }
 .mapa__corredor circle { fill: #fff; }
-.mapa__corredor .mapa__corredor-aura { fill: rgba(255,255,255,.18); }
+.mapa__corredor .mapa__corredor-aura { fill: rgba(255,255,255,.22); transform-box: fill-box; transform-origin: center; animation: passo .55s ease-in-out infinite alternate; }
+@keyframes passo { from { transform: scale(.75); } to { transform: scale(1.25); } }
 .mapa.chegou .mapa__corredor { opacity: 0; }
 .mapa__dist { position: absolute; left: 18px; bottom: 12px; margin: 0; display: flex; align-items: baseline; gap: .25em; z-index: 1; }
 .mapa__dist b { font: 900 clamp(2.8rem, 5vw, 4.4rem)/1 var(--titulo); color: var(--lime); font-variant-numeric: tabular-nums; }

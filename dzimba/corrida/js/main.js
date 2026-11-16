@@ -10,7 +10,7 @@
 
   var API = 'api/';
   var ZAP = 'https://wa.me/5548999474500?text=';
-  var CURSO = new Date('2026-12-12T15:00:00-03:00').getTime();
+  var CURSO = new Date('2026-12-12T14:30:00-03:00').getTime();
   var cfg = { enabled: false }, voltouFalha = /[?&]pagamento=falhou/.test(location.search);
 
   var $ = function (s, el) { return (el || document).querySelector(s); };
@@ -98,18 +98,26 @@
   var rota = $('#rota'), corredor = $('#corredor'), mapa = $('.mapa'), kmNum = $('#km-num');
   var etapaA = $('.etapa--largada'), etapaB = $('.etapa--chegada');
   var compRota = rota.getTotalLength(), DIST = 4.47;      // km reais (OSRM a pé)
-  var kms = $$('.km').map(function (g) { return { el: g, f: Number(g.dataset.km) / DIST }; });
   rota.style.strokeDasharray = compRota;
   function posicionar(p) {
     p = Math.max(0, Math.min(1, p));
     rota.style.strokeDashoffset = compRota * (1 - p);
     var pt = rota.getPointAtLength(compRota * p);
     corredor.setAttribute('transform', 'translate(' + pt.x.toFixed(1) + ' ' + pt.y.toFixed(1) + ')');
-    kms.forEach(function (k) { k.el.classList.toggle('on', p >= k.f - .005); });
     kmNum.textContent = (DIST * p).toFixed(1).replace('.', ',');
     mapa.classList.toggle('chegou', p > .985);
     etapaA.classList.toggle('on', p < .985);
     etapaB.classList.toggle('on', p > .985);
+  }
+  // câmera: aproxima e segue o corredor (s = zoom; 1 = mapa inteiro)
+  var cam = $('.mapa__cam');
+  function camera(p, s) {
+    var W = mapa.clientWidth, H = mapa.clientHeight;
+    if (!W || s <= 1.001) { cam.style.transform = ''; return; }
+    var pt = rota.getPointAtLength(compRota * Math.max(0, Math.min(1, p)));
+    var x = pt.x / 1400 * W, y = pt.y / 1081 * H;
+    var tx = Math.min(0, Math.max(W - s * W, W / 2 - s * x)), ty = Math.min(0, Math.max(H - s * H, H / 2 - s * y));
+    cam.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + s.toFixed(3) + ')';
   }
   posicionar(anima ? 0 : 1);
 
@@ -184,22 +192,20 @@
       gsap.from(t, { y: 70, autoAlpha: 0, skewY: 3, duration: 1, ease: 'power4.out', scrollTrigger: { trigger: t, start: 'top 88%' } });
     });
 
-    // percurso: no computador a seção fica fixa e o corredor percorre a rota; no celular desenha ao passar
-    var mm = gsap.matchMedia(), st = { v: 0 };
-    var andar = function () { posicionar(st.v); };
-    mm.add('(min-width: 901px)', function () {
-      st.v = 0; posicionar(0);
-      gsap.timeline({ scrollTrigger: { trigger: '.percurso', start: 'top top', end: '+=150%', pin: '.percurso__palco', scrub: .6, anticipatePin: 1 } })
-        .from('.etapa', { y: 60, stagger: .05, duration: .12 }, 0)
-        .to(st, { v: 1, duration: 1, ease: 'none', onUpdate: andar }, .12)
-        .to({}, { duration: .12 });
-      return function () { posicionar(1); };
-    });
-    mm.add('(max-width: 900px)', function () {
-      st.v = 0; posicionar(0);
-      gsap.to(st, { v: 1, ease: 'none', onUpdate: andar, scrollTrigger: { trigger: '.mapa', start: 'top 80%', end: 'bottom 70%', scrub: .5 } });
-      gsap.from('.etapa', { y: 40, autoAlpha: 0, stagger: .15, duration: .7, clearProps: 'opacity,visibility,transform', scrollTrigger: { trigger: '.etapas', start: 'top 88%' } });
-    });
+    // percurso: roda sozinho quando o mapa aparece (aproxima na largada, segue o corredor, abre na chegada, repete)
+    var cs = { p: 0, s: 1 };
+    var render = function () { posicionar(cs.p); camera(cs.p, cs.s); };
+    var corrida = gsap.timeline({ paused: true, repeat: -1, repeatDelay: 2.6, defaults: { lazy: false }, onUpdate: render })
+      .set(cs, { p: 0, s: 1 })
+      .to(cs, { s: 2.1, duration: 1.1, ease: 'power2.inOut' })
+      .to(cs, { p: 1, duration: 6.5, ease: 'sine.inOut' }, '+=.15')
+      .to(cs, { s: 1, duration: 1.3, ease: 'power2.inOut' }, '-=.9');
+    render();
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) corrida.play(); else corrida.pause(); });
+    }, { threshold: .4 }).observe(mapa);
+    addEventListener('resize', render);
+    gsap.from('.etapa', { y: 40, autoAlpha: 0, stagger: .15, duration: .7, clearProps: 'opacity,visibility,transform', scrollTrigger: { trigger: '.etapas', start: 'top 88%' } });
 
     // palestrante
     gsap.from('.palestrante__pre', { y: 20, autoAlpha: 0, duration: .6, scrollTrigger: { trigger: '.palestrante', start: 'top 70%' } });
