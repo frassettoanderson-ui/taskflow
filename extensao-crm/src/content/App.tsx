@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FUNIL_ETIQUETAS, gravar } from '../shared/dados';
 import type { FiltroNativo } from '../shared/protocolo';
 import { useColecao } from '../ui/hooks';
-import { IconEngrenagem, IconFaisca, IconFicha, IconFunil, IconMais, IconOlho, IconQuadro, IconRaio, IconRelogio, IconSeta, IconSino } from '../ui/icones';
+import { IconEngrenagem, IconFaisca, IconFicha, IconFunil, IconMais, IconOlho, IconQuadro, IconRaio, IconRelogio, IconRobo, IconSeta, IconSino } from '../ui/icones';
 import { Assistente } from './Assistente';
 import { NovaConversa } from './NovaConversa';
 import { Notificacoes, useNotificacoes } from './Notificacoes';
@@ -10,8 +10,9 @@ import { aplicarPrivacidade } from './privacidade';
 import { Agendamentos } from './Agendamentos';
 import { iniciarAgendador } from './agendador';
 import { iniciarAssinador } from './assinador';
+import { iniciarAtendimento } from './atendimento';
 import { BotoesRapidos } from './BotoesRapidos';
-import { Config } from './Config';
+import { Config, type AbaConfig } from './Config';
 import { ProvedorCRM, useCRM, useFunilAtivo } from './contexto';
 import { Ficha } from './Ficha';
 import { Kanban } from './Kanban';
@@ -40,6 +41,9 @@ function Interface() {
   const { contatos, chats, avisar, funis, config, business, etiquetasWA, ativo } = useCRM();
   const funil = useFunilAtivo();
   const agendamentos = useColecao('agendamentos') ?? [];
+  const atendimento = useColecao('atendimento');
+  const ia = useColecao('ia');
+  const [abaConfig, setAbaConfig] = useState<AbaConfig>('funis');
   const [filtro, setFiltro] = useState<Filtro>({ tipo: 'todas' });
   const [painel, setPainel] = useState<Painel>(null);
   const [fichaAberta, setFichaAberta] = useState(true);
@@ -50,6 +54,27 @@ function Interface() {
 
   useEffect(() => iniciarAgendador(avisar), [avisar]);
   useEffect(() => iniciarAssinador(), []);
+  useEffect(() => iniciarAtendimento(avisar), [avisar]);
+
+  const alternarIA = () => {
+    if (!atendimento || !ia) return;
+    if (!atendimento.iaAtiva) {
+      if (!ia.chaves[ia.provedor]?.trim()) {
+        avisar('Cadastre a chave da IA antes de ligar o atendimento', true);
+        setAbaConfig('ia');
+        setPainel('config');
+        return;
+      }
+      if (!atendimento.instrucoes.trim() && !ia.sobreNegocio.trim()) {
+        avisar('Conte para a IA sobre o seu negócio antes de ligar', true);
+        setAbaConfig('atendimento');
+        setPainel('config');
+        return;
+      }
+    }
+    gravar('atendimento', { ...atendimento, iaAtiva: !atendimento.iaAtiva });
+    avisar(atendimento.iaAtiva ? 'IA desligada: ninguém responde sozinho' : 'IA ligada: responde quem chamar, até alguém da equipe assumir');
+  };
 
   useEffect(() => {
     if (config) aplicarPrivacidade(config.privacidade);
@@ -232,6 +257,14 @@ function Interface() {
           <span className="acoes__divisa" />
           <button
             className="acao"
+            aria-pressed={!!atendimento?.iaAtiva}
+            onClick={alternarIA}
+            title={atendimento?.iaAtiva ? 'IA atendendo: ligada (clique para desligar)' : 'IA atendendo: desligada (clique para ligar)'}
+          >
+            <IconRobo />
+          </button>
+          <button
+            className="acao"
             aria-pressed={!!config?.privacidade.ativa}
             onClick={() => config && gravar('config', { ...config, privacidade: { ...config.privacidade, ativa: !config.privacidade.ativa } })}
             title="Modo privacidade (desfoca nomes, fotos e mensagens)"
@@ -245,7 +278,15 @@ function Interface() {
             </button>
             {notifAberta && <Notificacoes fechar={() => setNotifAberta(false)} />}
           </div>
-          <button className="acao" aria-pressed={painel === 'config'} onClick={() => alternar('config')} title="Configurações">
+          <button
+            className="acao"
+            aria-pressed={painel === 'config'}
+            onClick={() => {
+              setAbaConfig('funis');
+              alternar('config');
+            }}
+            title="Configurações"
+          >
             <IconEngrenagem />
           </button>
         </div>
@@ -255,7 +296,7 @@ function Interface() {
       {painel === 'kanban' && <Kanban fechar={() => setPainel(null)} />}
       {painel === 'respostas' && <Respostas fechar={() => setPainel(null)} />}
       {painel === 'agendamentos' && <Agendamentos fechar={() => setPainel(null)} />}
-      {painel === 'config' && <Config fechar={() => setPainel(null)} />}
+      {painel === 'config' && <Config abaInicial={abaConfig} fechar={() => setPainel(null)} />}
       {painel === 'nova' && <NovaConversa fechar={() => setPainel(null)} />}
       {painel === 'assistente' && <Assistente fechar={() => setPainel(null)} />}
       <SugestoesBarra />

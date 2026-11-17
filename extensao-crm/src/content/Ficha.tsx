@@ -4,6 +4,7 @@ import { alterar, novoId, ORIGENS, totalNegocios, type Contato, type Nota } from
 import { dataCurta, dataHora, iniciais, lerArquivoComoDataUrl, mascaraMoeda, moeda, paraCampoDataHora, telefone, UFS } from '../ui/formato';
 import { useColecao } from '../ui/hooks';
 import { IconCheck, IconFechar, IconLixo, IconMais, IconRelogio, IconSino } from '../ui/icones';
+import { conversaIndividual, mudarEstado } from './atendimento';
 import { useCRM, useFunilAtivo } from './contexto';
 import { wa } from './wa';
 
@@ -129,6 +130,7 @@ export function Ficha() {
       </div>
 
       <div className="ficha__corpo">
+        {conversaIndividual(ativo.id) && <BlocoAtendimento chatId={ativo.id} />}
         {principal && (
           <section className="bloco">
             <div className="bloco__titulo">{principal.nome}</div>
@@ -392,5 +394,71 @@ export function Ficha() {
         </section>
       </div>
     </aside>
+  );
+}
+
+/** Situação do atendimento automático nesta conversa + botões para assumir / devolver. */
+function BlocoAtendimento({ chatId }: { chatId: string }) {
+  const cfg = useColecao('atendimento');
+  const estados = useColecao('atendimentoChats');
+  if (!cfg || !estados || (!cfg.iaAtiva && !cfg.saudacaoAtiva)) return null;
+  const e = estados[chatId];
+  const mudar = (fn: Parameters<typeof mudarEstado>[1]) => mudarEstado(chatId, fn);
+  const devolver = () =>
+    mudar((x) => {
+      x.humanoEm = undefined;
+      x.motivoHumano = undefined;
+      x.iaDesligada = false;
+      x.saiu = false;
+      x.seguidas = 0;
+    });
+
+  let situacao: string;
+  let botoes: JSX.Element;
+  if (e?.saiu) {
+    situacao = 'O cliente pediu para não receber mensagens automáticas';
+    botoes = (
+      <button className="btn" onClick={devolver}>
+        Reativar
+      </button>
+    );
+  } else if (e?.humanoEm) {
+    situacao = `Com a equipe desde ${dataHora(e.humanoEm)}${e.motivoHumano === 'ia' ? ' (a IA pediu ajuda)' : e.motivoHumano === 'limite' ? ' (limite de respostas da IA)' : ''}`;
+    botoes = (
+      <button className="btn" onClick={devolver} disabled={!cfg.iaAtiva}>
+        Devolver para a IA
+      </button>
+    );
+  } else if (e?.iaDesligada || !cfg.iaAtiva) {
+    situacao = !cfg.iaAtiva ? 'IA desligada para todos (só saudação)' : 'IA desligada nesta conversa';
+    botoes = cfg.iaAtiva ? (
+      <button className="btn" onClick={() => mudar((x) => void (x.iaDesligada = false))}>
+        Ligar IA nesta conversa
+      </button>
+    ) : (
+      <></>
+    );
+  } else {
+    situacao = 'A IA está atendendo esta conversa';
+    botoes = (
+      <>
+        <button className="btn btn--primario" onClick={() => mudar((x) => void ((x.humanoEm = Date.now()), (x.motivoHumano = 'botao'), (x.seguidas = 0)))}>
+          Assumir
+        </button>
+        <button className="btn" onClick={() => mudar((x) => void (x.iaDesligada = true))}>
+          Desligar IA aqui
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <section className="bloco">
+      <div className="bloco__titulo">Atendimento automático</div>
+      <div className="atend-situacao">{situacao}</div>
+      <div className="linha-botoes" style={{ marginTop: 8 }}>
+        {botoes}
+      </div>
+    </section>
   );
 }

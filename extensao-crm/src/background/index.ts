@@ -82,6 +82,11 @@ async function lembreteDaNotificacao(notifId: string) {
 }
 
 chrome.notifications.onClicked.addListener(async (n) => {
+  if (n.startsWith('atend:')) {
+    abrirWhatsApp(n.slice('atend:'.length));
+    chrome.notifications.clear(n);
+    return;
+  }
   const l = await lembreteDaNotificacao(n);
   if (l) abrirWhatsApp(l.chatId);
 });
@@ -142,5 +147,7 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg?.tipo === 'webhook') enviarWebhooks(msg as PedidoWebhook).catch(() => {});
   if (msg?.tipo === 'webhook-teste') enviarWebhooks({ tipo: 'webhook', evento: 'ficha', dados: { teste: true, mensagem: 'Teste do CRM WhatsApp' } }, msg.id).catch(() => {});
   if (msg?.tipo === 'abrir-whatsapp') abrirWhatsApp(msg.chatId);
+  if (msg?.tipo === 'notificar-atendimento')
+    chrome.notifications.create(`atend:${msg.chatId}`, { type: 'basic', iconUrl: 'icone.png', title: String(msg.titulo), message: String(msg.texto), priority: 2 });
   if (msg?.tipo === 'backup-agora') baixarBackup().catch(() => {});
 });

@@ -63,8 +63,11 @@ function resumoMsg(m: any): MsgResumo {
     texto: (m.body ?? m.caption ?? '').toString(),
     tipo: m.type ?? 'chat',
     t: m.t ?? 0,
+    sistema: !!m.isNotification || SISTEMA.has(m.type),
   };
 }
+
+const SISTEMA = new Set(['e2e_notification', 'notification', 'notification_template', 'gp2', 'call_log', 'protocol', 'broadcast_notification', 'revoked']);
 
 async function dataUrlParaBlob(dataUrl: string) {
   return (await fetch(dataUrl)).blob();
@@ -183,6 +186,19 @@ const metodos: { [K in keyof Metodos]: (...a: Parameters<Metodos[K]>) => ReturnT
   existeNumero: async (numero) => {
     const r = await WPP.contact.queryExists(`${numero.replace(/\D/g, '')}@c.us`);
     return r?.wid?._serialized ?? null;
+  },
+  historico: async (chatId, qtd) => {
+    const msgs = await WPP.chat.getMessages(chatId, { count: Math.min(80, Math.max(1, qtd)) });
+    return msgs.map(resumoMsg).filter((m: MsgResumo) => !m.sistema);
+  },
+  infoChat: async (chatId) => {
+    const c = WPP.whatsapp.ChatStore.get(chatId) ?? (await WPP.chat.find(chatId).catch(() => null));
+    const contato = c?.contact ?? WPP.whatsapp.ContactStore.get(chatId);
+    return {
+      salvo: !!contato?.isMyContact,
+      nome: contato?.name || contato?.pushname || contato?.verifiedName || c?.formattedTitle || '',
+      numero: numeroDe(contato?.phoneNumber?._serialized ?? chatId),
+    };
   },
   participantes: async (grupoId) => {
     const lista = await WPP.group.getParticipants(grupoId);

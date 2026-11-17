@@ -34,6 +34,15 @@ export interface MsgResumo {
   texto: string;
   tipo: string;
   t: number;
+  /** aviso do sistema (criptografia, mudança de número etc.), não é mensagem de gente */
+  sistema?: boolean;
+}
+
+export interface InfoChat {
+  /** contato salvo na agenda do celular */
+  salvo: boolean;
+  nome: string;
+  numero: string;
 }
 
 export interface Participante {
@@ -72,6 +81,9 @@ export interface Metodos {
   foto(chatId: string): string | null;
   existeNumero(numero: string): string | null;
   participantes(grupoId: string): Participante[];
+  /** histórico com mídia (mais antigas primeiro), sem avisos do sistema */
+  historico(chatId: string, qtd: number): MsgResumo[];
+  infoChat(chatId: string): InfoChat;
 }
 
 export type NomeMetodo = keyof Metodos;

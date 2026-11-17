@@ -58,7 +58,10 @@ Escopo original:
 - Backup automático diário.
 
 ## IA (feita 22/10/2026, v0.4.0)
-Corrigir ortografia, Melhorar texto e Criar com IA nos editores de resposta e agendamento; Assistente da conversa (botão IA ou Ctrl+Shift+I) sugere a próxima resposta lendo as últimas 20 mensagens + ficha. Sempre rascunho: vai para o campo, a pessoa revisa e envia. Chave própria (Groq/Gemini/OpenAI) chamada pelo service worker. Não há agente respondendo sozinho.
+Corrigir ortografia, Melhorar texto e Criar com IA nos editores de resposta e agendamento; Assistente da conversa (botão IA ou Ctrl+Shift+I) sugere a próxima resposta lendo as últimas 20 mensagens + ficha. Sempre rascunho: vai para o campo, a pessoa revisa e envia. Chave própria (Groq/Gemini/OpenAI) chamada pelo service worker. O agente que responde sozinho entrou na v0.6.0 (abaixo).
+
+## Atendimento automático (feito 17/11/2026, v0.6.0)
+Só responde quem chamou primeiro, em conversa individual. Saudação em dois jeitos (primeiro contato / cliente que volta depois de N horas), montada com etapas iguais às do Fluxo. IA atendendo com liga/desliga na barra (robô) e por conversa na ficha; para sozinha quando alguém da equipe manda mensagem, quando ela mesma pede ajuda ([ATENDENTE]) ou no limite de respostas seguidas, com notificação. Cliente que manda "sair"/"parar" sai do automático. Depende da aba do WhatsApp Web aberta.
 
 Referência original:
 Novo na 7.4.3.91: menu de IA no editor de mensagens com **Corrigir ortografia**, **Melhorar texto** e **Criar texto com IA** (a partir de um pedido). O "Melhorar" usa um prompt de copy de vendas com uma regra boa de copiar: só usar escassez/urgência se o texto original já tiver ("últimas vagas", "só hoje" nunca inventados). Com chave própria (Groq/Gemini) roda sem servidor.

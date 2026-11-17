@@ -1,4 +1,4 @@
-import { alterar, aplicarVariaveis, assinar, contatoVazio, ler, type Contato, type PassoFluxo, type RespostaRapida } from '../shared/dados';
+import { alterar, aplicarVariaveis, assinar, contatoVazio, ler, type Assinatura, type Contato, type PassoFluxo, type RespostaRapida } from '../shared/dados';
 import { emitirWebhook } from '../shared/webhook';
 import { wa } from './wa';
 
@@ -9,9 +9,9 @@ const espera = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 const MARCA_TODOS = /\{\{\s*mencionar_todos\s*\}\}/gi;
 
 /** Texto final + menções. {{mencionar_todos}} vira "@numero @numero..." em grupos e some fora deles. */
-async function prepararTexto(destino: Destino, texto: string) {
+async function prepararTexto(destino: Destino, texto: string, assinatura?: Assinatura) {
   let final = aplicarVariaveis(texto, destino);
-  final = assinar(final, (await ler('config')).assinatura);
+  final = assinar(final, assinatura ?? (await ler('config')).assinatura);
   let mencoes: string[] | undefined;
   if (MARCA_TODOS.test(final)) {
     MARCA_TODOS.lastIndex = 0;
@@ -29,14 +29,14 @@ async function prepararTexto(destino: Destino, texto: string) {
 
 type Envio = Pick<PassoFluxo, 'tipo' | 'texto' | 'arquivo' | 'nomeArquivo' | 'ptt' | 'simular' | 'simularSeg'>;
 
-async function enviarUma(destino: Destino, r: Envio) {
+/** Envia uma mensagem e devolve o id dela ('' se não mandou nada). */
+async function enviarUma(destino: Destino, r: Envio, assinatura?: Assinatura): Promise<string> {
   if (r.simular !== 'nenhuma' && r.simularSeg > 0) await wa('simular', destino.id, r.simular, r.simularSeg);
-  const { texto, mencoes } = await prepararTexto(destino, r.texto);
+  const { texto, mencoes } = await prepararTexto(destino, r.texto, assinatura);
   if (r.tipo === 'texto' || !r.arquivo) {
-    if (texto) await wa('enviarTexto', destino.id, texto, mencoes);
-    return;
+    return texto ? wa('enviarTexto', destino.id, texto, mencoes) : '';
   }
-  await wa('enviarArquivo', destino.id, r.arquivo, {
+  return wa('enviarArquivo', destino.id, r.arquivo, {
     tipo: r.tipo,
     legenda: r.tipo === 'audio' ? undefined : texto || undefined,
     nomeArquivo: r.nomeArquivo,
@@ -76,6 +76,18 @@ export async function enviarResposta(destino: Destino, r: RespostaRapida) {
   await aplicarAcoes(destino, r);
   emitirWebhook('resposta_enviada', { chatId: destino.id, numero: destino.numero, nome: destino.nome, resposta: { id: r.id, titulo: r.titulo, atalho: r.atalho, tipo: r.tipo } });
   await alterar('respostas', (lista) => lista.map((x) => (x.id === r.id ? { ...x, usos: (x.usos ?? 0) + 1 } : x)));
+}
+
+/**
+ * Etapas do atendimento automático. `aoEnviar` recebe o id de cada mensagem assim que sai,
+ * para o atendimento saber que foi o robô (e não alguém da equipe) quem mandou.
+ */
+export async function enviarPassos(destino: Destino, passos: PassoFluxo[], assinatura: Assinatura, aoEnviar: (id: string) => void) {
+  for (let i = 0; i < passos.length; i++) {
+    if (i > 0 && passos[i].esperaSeg > 0) await espera(passos[i].esperaSeg * 1000);
+    const id = await enviarUma(destino, passos[i], assinatura);
+    if (id) aoEnviar(id);
+  }
 }
 
 /** Texto livre (agendamentos): variáveis e {{mencionar_todos}} valem igual. */

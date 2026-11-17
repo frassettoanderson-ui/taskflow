@@ -140,6 +140,12 @@ export const IconFaisca = (p: P) => (
     <path d="M10 2.8 11.6 8.4 17.2 10l-5.6 1.6L10 17.2l-1.6-5.6L2.8 10l5.6-1.6z" />
   </Base>
 );
+export const IconRobo = (p: P) => (
+  <Base {...p}>
+    <rect x="4" y="6.5" width="12" height="9" rx="2.5" />
+    <path d="M10 6.5V3.8M8.2 3.5h3.6M7.6 10.4v.6M12.4 10.4v.6M8.3 13.2h3.4M2.5 10v2.5M17.5 10v2.5" />
+  </Base>
+);
 export const IconOlho =({ fechado, ...p }: P & { fechado?: boolean }) => (
   <Base {...p}>
     <path d="M2.5 10s2.8-5 7.5-5 7.5 5 7.5 5-2.8 5-7.5 5-7.5-5-7.5-5z" />

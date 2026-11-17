@@ -66,7 +66,7 @@ export function AbaIA() {
         </button>
       </div>
       <div className="ajuda campo--largo">
-        A IA só escreve rascunhos. O texto vai para o campo de mensagem e você revisa antes de enviar. A chave fica salva só neste navegador.
+        Nos botões de IA ela só escreve rascunhos: o texto vai para o campo e você revisa antes de enviar. Para ela responder os clientes sozinha, use a aba Atendimento automático. A chave fica salva só neste navegador.
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 Extensão MV3 com **código próprio**, inspirada na WaSpeed (que é usada hoje, modificada, em `../waspeed-7.4.3.80/`).
 Mesma ideia da migração Doma → HolyTech: reescrever os recursos, não remendar o build de terceiro.
-Sem IA por enquanto (a Bia segue na WaSpeed modificada).
+IA com chave própria (Groq/Gemini/OpenAI): rascunhos nos editores e, desde a v0.6.0, atendimento automático (ver abaixo).
 
 ## Stack
 - TypeScript + React 18, empacotado com **esbuild** (`build.mjs`) em `dist/`.
@@ -47,6 +47,14 @@ Status programado (`StatusProgramados.tsx`, aba em Agendadas; motor em `agendado
 
 ## v0.5.0 (23/10/2026)
 Assinatura em TODAS as mensagens de texto, inclusive as digitadas no WhatsApp (src/content/assinador.ts intercepta Enter/botão enviar; assinar() em dados.ts; topo/rodapé, negrito/itálico). Respostas: tipo Fluxo com etapas próprias (PassoFluxo: texto/imagem/vídeo/áudio/arquivo, cada uma com digitando/gravando e espera); gravar áudio na extensão (MediaRecorder, onda sonora via waveform no wa-js); respostas marcadas como botão aparecem acima do campo (src/content/BotoesRapidos.tsx). Editor de conteúdo reusável: src/content/ConteudoPasso.tsx.
+
+## v0.6.0 (17/11/2026): atendimento automático
+`src/content/atendimento.ts` (motor) + `AbaAtendimento.tsx` (Configurações > Atendimento automático) + bloco na ficha + botão do robô na barra.
+- Só reage a mensagem recebida em conversa individual, com menos de 15 min (não responde o atraso de quando o WhatsApp estava fechado). Junta mensagens picadas (espera aleatória esperaMin–esperaMax).
+- Saudação: `atendimento.primeiroContato` ou `.retorno` (PassoFluxo[]); "conhecido" = mensagens antigas na conversa, ficha no CRM, estado salvo ou contato da agenda (`infoChat.salvo`). Conversa nova = N horas sem mensagem.
+- IA: `pedirIA('atender', ...)` com as últimas 30 mensagens; `[SEM_RESPOSTA]` = não manda nada, `[ATENDENTE]` = manda o texto e passa para humano + notificação.
+- Equipe assume: qualquer mensagem `deMim` cujo id não está em `doRobo` (ids que o próprio atendimento mandou) marca `atendimentoChats[chatId].humanoEm`. Respostas rápidas, agendamentos e texto digitado contam como equipe.
+- Estado por conversa em `atendimentoChats`, gravado em fila (`mudarEstado`).
 
 ## Próximas fases
 Ver `ROADMAP.md` (inventário da WaSpeed → o que falta reescrever).

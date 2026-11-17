@@ -1,6 +1,7 @@
 // Configurações: funis e etapas, etiquetas do WhatsApp Business, backup e planilhas.
 import { useEffect, useState } from 'react';
 import { alterar, exportarTudo, gravar, importarTudo, novoId, type Config, type Etapa, type Funil } from '../shared/dados';
+import { AbaAtendimento } from './AbaAtendimento';
 import { AbaIA } from './AbaIA';
 import { AbaWebhooks } from './AbaWebhooks';
 import { NOMES_PRIVACIDADE } from './privacidade';
@@ -19,9 +20,12 @@ function troca<T>(l: T[], i: number, j: number) {
   return c;
 }
 
-export function Config({ fechar }: { fechar: () => void }) {
+export type AbaConfig = 'funis' | 'etiquetas' | 'preferencias' | 'atendimento' | 'ia' | 'integracoes' | 'dados';
+
+export function Config({ fechar, abaInicial = 'funis' }: { fechar: () => void; abaInicial?: AbaConfig }) {
   const { business } = useCRM();
-  const [aba, setAba] = useState<'funis' | 'etiquetas' | 'preferencias' | 'ia' | 'integracoes' | 'dados'>('funis');
+  const [aba, setAba] = useState<AbaConfig>(abaInicial);
+  useEffect(() => setAba(abaInicial), [abaInicial]);
   useEsc(fechar);
 
   return (
@@ -45,6 +49,9 @@ export function Config({ fechar }: { fechar: () => void }) {
             <button className="aba" aria-pressed={aba === 'preferencias'} onClick={() => setAba('preferencias')}>
               Preferências
             </button>
+            <button className="aba" aria-pressed={aba === 'atendimento'} onClick={() => setAba('atendimento')}>
+              Atendimento automático
+            </button>
             <button className="aba" aria-pressed={aba === 'ia'} onClick={() => setAba('ia')}>
               IA
             </button>
@@ -60,6 +67,7 @@ export function Config({ fechar }: { fechar: () => void }) {
           {aba === 'funis' && <AbaFunis />}
           {aba === 'etiquetas' && business && <AbaEtiquetas />}
           {aba === 'preferencias' && <AbaPreferencias />}
+          {aba === 'atendimento' && <AbaAtendimento />}
           {aba === 'ia' && <AbaIA />}
           {aba === 'integracoes' && <AbaWebhooks />}
           {aba === 'dados' && <AbaDados />}

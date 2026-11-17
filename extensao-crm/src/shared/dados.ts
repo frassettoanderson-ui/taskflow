@@ -288,6 +288,45 @@ export interface Privacidade {
   midia: boolean;
 }
 
+/** Atendimento automático: saudação de quem chama + IA respondendo até alguém assumir. */
+export interface ConfigAtendimento {
+  saudacaoAtiva: boolean;
+  /** número que nunca falou com a gente */
+  primeiroContato: PassoFluxo[];
+  /** quem já conversou antes e voltou depois do intervalo */
+  retorno: PassoFluxo[];
+  /** horas sem mensagem para contar como conversa nova (saudação de novo) */
+  novaConversaHoras: number;
+  iaAtiva: boolean;
+  /** o que a IA pode e não pode fazer, como se apresenta */
+  instrucoes: string;
+  /** assinatura das mensagens automáticas (vazio = sem assinatura) */
+  nomeAssinatura: string;
+  /** quando alguém assume: a IA volta na próxima conversa do cliente ou só quando devolverem */
+  voltaIA: 'novaConversa' | 'manual';
+  /** máximo de respostas da IA em sequência sem ninguém da equipe; depois passa para humano */
+  limiteSeguidas: number;
+  /** espera antes de responder (junta mensagens picadas do cliente) */
+  esperaMin: number;
+  esperaMax: number;
+}
+
+export interface EstadoAtendimento {
+  /** quando alguém da equipe assumiu (0/undefined = ninguém) */
+  humanoEm?: number;
+  /** por que foi para humano: equipe respondeu, a IA pediu ajuda, limite, botão */
+  motivoHumano?: 'equipe' | 'ia' | 'limite' | 'botao';
+  /** IA desligada só nesta conversa */
+  iaDesligada?: boolean;
+  /** cliente pediu para parar */
+  saiu?: boolean;
+  ultimaSaudacao?: number;
+  /** respostas da IA desde a última mensagem da equipe */
+  seguidas: number;
+  /** já passou pelo atendimento automático (conta como cliente que volta) */
+  visto: number;
+}
+
 export interface Banco {
   funis: Funil[];
   contatos: Record<string, Contato>;
@@ -304,6 +343,9 @@ export interface Banco {
   /** número → quem pediu para não receber mais */
   descadastros: Record<string, Descadastro>;
   config: Config;
+  atendimento: ConfigAtendimento;
+  /** chatId → situação do atendimento automático */
+  atendimentoChats: Record<string, EstadoAtendimento>;
 }
 
 export const ETAPAS_PADRAO: Etapa[] = [
@@ -327,6 +369,20 @@ const PADRAO: Banco = {
   registrosWebhook: [],
   ia: { provedor: 'groq', chaves: {}, modelo: {}, sobreNegocio: '', tom: 'cordial e direto, em português do Brasil' },
   descadastros: {},
+  atendimento: {
+    saudacaoAtiva: false,
+    primeiroContato: [],
+    retorno: [],
+    novaConversaHoras: 12,
+    iaAtiva: false,
+    instrucoes: '',
+    nomeAssinatura: '',
+    voltaIA: 'novaConversa',
+    limiteSeguidas: 8,
+    esperaMin: 5,
+    esperaMax: 12,
+  },
+  atendimentoChats: {},
   config: {
     mostrarFaixa: true,
     funilAtivo: 'principal',
@@ -419,6 +475,7 @@ function normalizar<K extends Chave>(chave: K, v: any): Banco[K] {
       assinatura: { ...PADRAO.config.assinatura, ...v.assinatura },
       backupAuto: { ...PADRAO.config.backupAuto, ...v.backupAuto },
     } as Banco[K];
+  if (chave === 'atendimento') return { ...PADRAO.atendimento, ...v } as Banco[K];
   if (chave === 'ia') return { ...PADRAO.ia, ...v, chaves: { ...(v.chaves ?? {}) }, modelo: { ...(v.modelo ?? {}) } } as Banco[K];
   if (chave === 'campanhas') return (v as any[]).map((c) => ({ intervaloSeg: 20, rodapeSair: true, texto: '', ...c })) as Banco[K];
   return v;

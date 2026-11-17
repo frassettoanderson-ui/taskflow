@@ -189,7 +189,6 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
   const setAcoes = (p: Partial<RespostaRapida['acoes']>) => setR((x) => ({ ...x, acoes: { ...x.acoes, ...p } }));
   const fluxo = r.tipo === 'script';
   const passos = r.passos ?? [];
-  const setPasso = (i: number, p: Partial<PassoFluxo>) => set({ passos: passos.map((x, k) => (k === i ? { ...x, ...p } : x)) });
 
   const salvar = async () => {
     const atalho = r.atalho.trim().replace(/^\//, '').replace(/\s+/g, '-').toLowerCase();
@@ -275,22 +274,7 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
             {fluxo ? (
               <div className="campo campo--largo">
                 <span>Etapas do fluxo (enviadas em sequência)</span>
-                {passos.map((p, i) => (
-                  <PassoEditor
-                    key={p.id}
-                    passo={p}
-                    indice={i}
-                    total={passos.length}
-                    aoMudar={(d) => setPasso(i, d)}
-                    aoSubir={() => set({ passos: troca(passos, i, i - 1) })}
-                    aoDescer={() => set({ passos: troca(passos, i, i + 1) })}
-                    aoApagar={() => set({ passos: passos.filter((_, k) => k !== i) })}
-                  />
-                ))}
-                <button type="button" className="btn" style={{ marginTop: 8 }} onClick={() => set({ passos: [...passos, passoVazio('texto')] })}>
-                  <IconMais tam={16} />
-                  Adicionar etapa
-                </button>
+                <EditorEtapas passos={passos} aoMudar={(p) => set({ passos: p })} />
               </div>
             ) : (
               <div className="campo campo--largo">
@@ -365,6 +349,30 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
 }
 
 const NOME_PASSO: Record<PassoFluxo['tipo'], string> = { texto: 'Texto', image: 'Imagem', video: 'Vídeo', audio: 'Áudio', document: 'Arquivo' };
+
+/** Lista de etapas editável (usada no Fluxo das respostas e nas saudações automáticas). */
+export function EditorEtapas({ passos, aoMudar }: { passos: PassoFluxo[]; aoMudar: (p: PassoFluxo[]) => void }) {
+  return (
+    <>
+      {passos.map((p, i) => (
+        <PassoEditor
+          key={p.id}
+          passo={p}
+          indice={i}
+          total={passos.length}
+          aoMudar={(d) => aoMudar(passos.map((x, k) => (k === i ? { ...x, ...d } : x)))}
+          aoSubir={() => aoMudar(troca(passos, i, i - 1))}
+          aoDescer={() => aoMudar(troca(passos, i, i + 1))}
+          aoApagar={() => aoMudar(passos.filter((_, k) => k !== i))}
+        />
+      ))}
+      <button type="button" className="btn" style={{ marginTop: 8 }} onClick={() => aoMudar([...passos, passoVazio('texto')])}>
+        <IconMais tam={16} />
+        Adicionar etapa
+      </button>
+    </>
+  );
+}
 
 function PassoEditor({ passo, indice, total, aoMudar, aoSubir, aoDescer, aoApagar }: { passo: PassoFluxo; indice: number; total: number; aoMudar: (p: Partial<PassoFluxo>) => void; aoSubir: () => void; aoDescer: () => void; aoApagar: () => void }) {
   const [aberto, setAberto] = useState(true);
