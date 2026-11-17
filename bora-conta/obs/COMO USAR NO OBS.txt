@@ -1,0 +1,40 @@
+BORA CONTÁ · ARTES ANIMADAS PARA O OBS
+======================================
+
+O QUE TEM AQUI
+  patrocinador  -> faixa da marca (logo, nome, até 3 informações, QR). Depois de 12 s ela
+                   vira sozinha para "SE INSCREVE NO CANAL" (com QR do canal) e sai.
+  nome          -> lower third com o nome de quem está falando (apresentador / convidado).
+  inscreva-se   -> chamada curta no canto direito: "Se inscreve no canal" + clique + sininho.
+
+1) EDITAR OS TEXTOS (uma vez por episódio)
+  - Abra o arquivo  config.js  com o Bloco de Notas.
+  - Troque os textos entre aspas: patrocinadores, pessoas, tempos. Salve.
+  - Logo do patrocinador: coloque o arquivo (PNG com fundo transparente) na pasta "logos"
+    e escreva o nome do arquivo em  logo: "nome-do-arquivo.png".
+  - A ORDEM da lista é o número do atalho: o 1º patrocinador = "patrocinador 1",
+    a 3ª pessoa = "nome 3", e assim por diante.
+
+2) COLOCAR NO OBS (uma vez só)
+  - Na cena:  +  >  Navegador  >  dê um nome (ex.: "Patrocinador 1").
+  - Marque "Arquivo local" e escolha o atalho dentro da pasta  "OBS - atalhos"
+    (ex.: "patrocinador 1.html", "nome 1.html", "nome 3.html", "inscreva-se.html").
+  - Largura 1920 · Altura 1080 · deixe o "CSS personalizado" vazio.
+  - MARQUE as duas opções:
+        [x] Desligar a fonte quando não estiver visível
+        [x] Atualizar o navegador quando a cena se tornar ativa
+    Assim, cada vez que vocês ligarem o olhinho da fonte, a animação começa do zero.
+
+3) USAR AO VIVO
+  - Ligou o olhinho -> a arte entra, fica o tempo do config.js e sai sozinha.
+  - Para repetir, desligue e ligue o olhinho de novo (dá para pôr atalho de teclado:
+    Configurações > Atalhos > "Mostrar/Ocultar" da fonte).
+  - Mudou o config.js com o OBS aberto? Botão direito na fonte > "Atualizar".
+
+DICAS
+  - "nome 3" já está preparado para o CONVIDADO: a cada episódio, troque só o nome dele no config.js.
+  - Tempo do nome na tela = tempoLowerThird (0 = fica até vocês desligarem).
+  - O QR do patrocinador abre o link que estiver em  qr: "..."  (site, WhatsApp, Instagram).
+    Para WhatsApp use  https://wa.me/5548999999999
+  - Para conferir no navegador sem o OBS:  patrocinador.html?previa=1  mostra o estúdio atrás.
+    (precisa abrir por um servidor local; dentro do OBS funciona direto)

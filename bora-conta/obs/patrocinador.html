@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Bora Contá · Patrocinador</title>
+<link rel="stylesheet" href="base.css">
+<style>
+  .faixa { position: absolute; left: 80px; right: 80px; bottom: 56px; height: 180px; }
+
+  /* corpo da faixa (tudo que entra na "cortina") */
+  .corpo {
+    position: absolute; inset: 0; border-radius: 20px; overflow: hidden;
+    background:
+      radial-gradient(120% 160% at 18% 0%, rgba(253, 61, 105, .22), transparent 55%),
+      linear-gradient(100deg, var(--roxo-2) 0%, var(--roxo) 45%, var(--roxo-3) 100%);
+    box-shadow: 0 18px 50px rgba(10, 0, 22, .55), inset 0 0 0 1px rgba(226, 208, 245, .12);
+    clip-path: inset(0 100% 0 0 round 20px);
+  }
+  .corpo::after { /* textura de listras finas, bem leve */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 14px);
+  }
+  .topo { position: absolute; left: 0; right: 0; top: 0; height: 6px; background: var(--laranja); transform: scaleX(0); transform-origin: left; z-index: 2; }
+  .progresso { position: absolute; left: 0; bottom: 0; height: 4px; width: 100%; background: rgba(255, 161, 4, .75); transform: scaleX(0); transform-origin: left; z-index: 2; }
+
+  /* logo: cartão branco que vira (marca -> Bora Contá) */
+  .logo { position: absolute; left: 26px; bottom: 22px; width: 196px; height: 196px; perspective: 900px; z-index: 5; opacity: 0; }
+  .logo__giro { position: absolute; inset: 0; transform-style: preserve-3d; }
+  .logo__face {
+    position: absolute; inset: 0; border-radius: 24px; backface-visibility: hidden;
+    background: #fff; box-shadow: 0 0 0 6px var(--laranja), 0 16px 34px rgba(10, 0, 22, .5);
+    display: grid; place-items: center; overflow: hidden;
+  }
+  .logo__face img { width: 82%; height: 82%; object-fit: contain; }
+  .logo__face--bora { transform: rotateY(180deg); background: var(--roxo-3); }
+  .logo__face--bora img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* meio: duas cenas empilhadas */
+  .meio { position: absolute; left: 252px; right: 392px; top: 6px; bottom: 4px; }
+  .faixa.sem-qr .meio { right: 34px; }
+  .cena { position: absolute; inset: 0; display: flex; align-items: center; gap: 30px; }
+  .cena--inscreva { visibility: hidden; }
+
+  .nome { flex: 0 1 auto; max-width: 560px; min-width: 0; }
+  .kicker { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 19px; letter-spacing: .24em; color: var(--laranja); text-transform: uppercase; }
+  .kicker::before { content: ""; width: 26px; height: 3px; background: currentColor; border-radius: 2px; }
+  .nome strong { display: block; font-family: "Anton"; font-weight: 400; font-size: 66px; line-height: 1.06; text-transform: uppercase; white-space: nowrap; letter-spacing: .01em; position: relative; }
+  .nome em { display: block; font-style: normal; font-weight: 600; font-size: 22px; color: var(--lilas); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brilho { position: relative; overflow: hidden; display: inline-block; vertical-align: top; }
+  .brilho::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .55), transparent);
+    transform: skewX(-18deg);
+  }
+  .brilho.passa::after { animation: passa 1.1s .1s var(--entra) forwards; }
+  @keyframes passa { to { left: 130%; } }
+
+  .infos { flex: 1 1 0; display: flex; align-items: stretch; height: 112px; min-width: 0; }
+  .info { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 16px; position: relative; }
+  .info + .info::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 2px; background: rgba(226, 208, 245, .22); transform-origin: top; }
+  .info span { font-weight: 700; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: rgba(226, 208, 245, .78); line-height: 1.25; }
+  .info b { font-weight: 900; font-size: 32px; line-height: 1.15; white-space: nowrap; margin-top: 4px; }
+  .info:last-child b { color: var(--laranja); }
+
+  /* cena 2: se inscreve */
+  .cena--inscreva .nome strong { font-size: 64px; }
+  .cta { display: flex; align-items: center; gap: 18px; margin-left: auto; padding-right: 8px; }
+
+  /* QR */
+  .qr { position: absolute; right: 0; top: 0; bottom: 0; width: 360px; background: var(--rosa); display: flex; align-items: center; gap: 16px; padding: 0 20px 0 16px; z-index: 1; }
+  .qr::before { content: ""; position: absolute; left: -26px; top: 0; bottom: 0; width: 52px; background: var(--rosa); transform: skewX(-12deg); }
+  .faixa.sem-qr .qr { display: none; }
+  .qr__carta { position: relative; width: 136px; height: 136px; flex: none; perspective: 700px; }
+  .qr__giro { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateY(-90deg); }
+  .qr__face { position: absolute; inset: 0; background: #fff; border-radius: 12px; padding: 7px; backface-visibility: hidden; box-shadow: 0 8px 18px rgba(80, 0, 30, .35); }
+  .qr__face svg { width: 100%; height: 100%; display: block; }
+  .qr__face--canal { transform: rotateY(180deg); }
+  .qr__txt { position: relative; flex: 1 1 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .qr__txt span { font-weight: 900; font-size: 17px; line-height: 1.15; text-transform: uppercase; letter-spacing: .04em; }
+  .qr__txt b { font-weight: 700; font-size: 17px; line-height: 1.2; color: #fff; opacity: .92; white-space: nowrap; }
+  .qr__seta { width: 30px; height: 18px; }
+</style>
+</head>
+<body>
+<div class="palco">
+  <div class="faixa" id="faixa">
+    <div class="corpo" id="corpo">
+      <div class="topo" id="topo"></div>
+      <div class="meio">
+        <div class="cena cena--patro" id="cenaPatro">
+          <div class="nome">
+            <div class="kicker a" id="pKicker"></div>
+            <strong class="a"><span class="brilho" id="pNome"></span></strong>
+            <em class="a" id="pSlogan"></em>
+          </div>
+          <div class="infos" id="pInfos"></div>
+        </div>
+        <div class="cena cena--inscreva" id="cenaInsc">
+          <div class="nome">
+            <div class="kicker b">Gostando da conversa?</div>
+            <strong class="b">Se inscreve no canal</strong>
+            <em class="b">e ativa o sininho pra não perder nenhum episódio</em>
+          </div>
+          <div class="cta b">
+            <div class="botao" id="botao"><i class="botao__play"></i><span class="t1">Inscrever-se</span><span class="t2">Inscrito</span></div>
+            <div class="sino" id="sino"><svg viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg></div>
+          </div>
+        </div>
+      </div>
+      <div class="qr" id="qr">
+        <div class="qr__carta"><div class="qr__giro" id="qrGiro">
+          <div class="qr__face" id="qrPatro"></div>
+          <div class="qr__face qr__face--canal" id="qrCanal"></div>
+        </div></div>
+        <div class="qr__txt">
+          <span id="qrTitulo">Aponta a câmera</span>
+          <b id="qrTexto"></b>
+        </div>
+      </div>
+      <div class="progresso" id="progresso"></div>
+    </div>
+    <div class="logo" id="logo"><div class="logo__giro" id="logoGiro">
+      <div class="logo__face"><img id="pLogo" alt=""></div>
+      <div class="logo__face logo__face--bora"><img src="img/logo_bora_conta.webp" alt=""></div>
+    </div></div>
+    <svg class="cursor" id="cursor" viewBox="0 0 24 24"><path d="M4 2l15 10.5-6.6 1.2 3.9 7.3-3 1.6-3.9-7.4L4 20z" fill="#fff" stroke="#160029" stroke-width="1.4" stroke-linejoin="round"/></svg>
+  </div>
+</div>
+
+<script src="qrcode.js"></script>
+<script src="config.js"></script>
+<script src="obs.js"></script>
+<script>
+(async function () {
+  const C = window.BORA, Q = OBS.q, $ = (id) => document.getElementById(id);
+  const p = OBS.escolhe(C.patrocinadores);
+  const tPatro = +(Q.get("tempo") || C.tempoPatrocinador || 12);
+  const tInsc = +(Q.get("tempoInscreva") || C.tempoInscreva || 8);
+  const comInscreva = Q.get("inscreva") !== "0";
+  const repete = +(Q.get("repete") || 0);      // ?repete=300 -> volta sozinha a cada 5 min
+
+  // ---- preenche
+  $("pKicker").textContent = p.chamada || "Oferecimento";
+  $("pNome").textContent = p.nome;
+  $("pSlogan").textContent = p.slogan || "";
+  $("pLogo").src = "logos/" + p.logo;
+  $("pInfos").innerHTML = (p.infos || []).slice(0, 3).map((i) => `<div class="info a"><span>${i.titulo}</span><b>${i.valor}</b></div>`).join("");
+  if (p.qr) OBS.qr($("qrPatro"), p.qr); else $("faixa").classList.add("sem-qr");
+  OBS.qr($("qrCanal"), C.linkCanal);
+  $("qrTexto").textContent = p.qrTexto || "";
+
+  // encolhe textos que não cabem
+  await document.fonts.ready;
+  $("botao").style.width = $("botao").offsetWidth + "px";   // trava a largura: o "Inscrito" não faz a faixa pular
+  const cabe = (el, min, larg) => { let f = parseFloat(getComputedStyle(el).fontSize); while (el.scrollWidth > larg && f > min) el.style.fontSize = (f -= 1) + "px"; };
+  document.querySelectorAll(".info b, .info span").forEach((el) => cabe(el, 12, el.parentElement.clientWidth - 32));
+  const qrLarg = document.querySelector(".qr__txt").clientWidth;
+  [$("qrTexto")].forEach((el) => { el.style.display = "inline-block"; cabe(el, 12, qrLarg); });
+  const qrFonte = $("qrTexto").style.fontSize;
+  const nomeBox = document.querySelector("#cenaPatro .nome");
+  let fn = 66; const st = $("pNome").parentElement;
+  while (nomeBox.scrollWidth > 560 && fn > 36) st.style.fontSize = (fn -= 2) + "px";
+
+  const A = (el, k, o) => el.animate(k, Object.assign({ fill: "both", easing: "cubic-bezier(.16,1,.3,1)" }, o));
+  const sobe = (els, ini, passo, dur = 650) => [...els].map((el, i) => A(el, [{ opacity: 0, transform: "translateY(34px)" }, { opacity: 1, transform: "none" }], { duration: dur, delay: ini + i * passo }));
+  const somePraCima = (els, passo = 45) => Promise.all([...els].map((el, i) => A(el, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(-26px)" }], { duration: 380, delay: i * passo, easing: "cubic-bezier(.7,0,.84,0)" }).finished));
+
+  async function rodada() {
+    // estado inicial
+    $("cenaPatro").style.visibility = "visible"; $("cenaInsc").style.visibility = "hidden";
+    $("botao").classList.remove("feito"); $("sino").classList.remove("ativo");
+    $("qrTitulo").textContent = "Aponta a câmera"; $("qrTexto").style.fontSize = qrFonte; $("qrTexto").textContent = p.qrTexto || "";
+    document.querySelectorAll(".a,.b").forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    document.querySelectorAll(".a").forEach((el) => (el.style.opacity = 0));
+    document.querySelectorAll(".b").forEach((el) => (el.style.opacity = 0));
+    A($("logoGiro"), [{ transform: "rotateY(0deg)" }, { transform: "rotateY(0deg)" }], { duration: 1 });
+
+    // ---- ENTRA
+    A($("corpo"), [{ clipPath: "inset(0 100% 0 0 round 20px)" }, { clipPath: "inset(0 0% 0 0 round 20px)" }], { duration: 900 });
+    A($("topo"), [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], { duration: 1000, delay: 120 });
+    A($("logo"), [{ opacity: 0, transform: "scale(.35) rotate(-14deg)" }, { opacity: 1, transform: "none" }], { duration: 750, delay: 260, easing: "cubic-bezier(.34,1.56,.64,1)" });
+    sobe(document.querySelectorAll("#cenaPatro .nome .a"), 420, 90);
+    sobe(document.querySelectorAll("#pInfos .info"), 640, 110);
+    if (p.qr) A($("qrGiro"), [{ transform: "rotateY(-90deg)" }, { transform: "rotateY(0deg)" }], { duration: 800, delay: 780, easing: "cubic-bezier(.34,1.4,.64,1)" });
+    setTimeout(() => { $("pNome").classList.remove("passa"); void $("pNome").offsetWidth; $("pNome").classList.add("passa"); }, 1250);
+    A($("progresso"), [{ transform: "scaleX(0)" }, { transform: "scaleX(1)" }], { duration: tPatro * 1000, delay: 900, easing: "linear" });
+    await OBS.espera(tPatro + 0.9);
+
+    if (comInscreva) {
+      // ---- VIRA PARA "SE INSCREVE"
+      await somePraCima(document.querySelectorAll("#cenaPatro .a"));
+      $("cenaPatro").style.visibility = "hidden"; $("cenaInsc").style.visibility = "visible";
+      A($("logoGiro"), [{ transform: "rotateY(0deg)" }, { transform: "rotateY(180deg)" }], { duration: 900, easing: "cubic-bezier(.65,0,.35,1)" });
+      if (p.qr) A($("qrGiro"), [{ transform: "rotateY(0deg)" }, { transform: "rotateY(180deg)" }], { duration: 900, delay: 120, easing: "cubic-bezier(.65,0,.35,1)" });
+      else { $("faixa").classList.remove("sem-qr"); A($("qrGiro"), [{ transform: "rotateY(90deg)" }, { transform: "rotateY(180deg)" }], { duration: 700 }); }
+      setTimeout(() => { $("qrTitulo").textContent = "Inscreva-se"; $("qrTexto").style.fontSize = "20px"; $("qrTexto").textContent = C.canal; }, 520);
+      sobe(document.querySelectorAll("#cenaInsc .b"), 200, 90);
+      A($("progresso"), [{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }], { duration: 500, easing: "ease-in" });
+      await OBS.espera(1.7);
+
+      // cursor vai até o botão e clica
+      const fx = $("faixa").getBoundingClientRect(), bt = $("botao").getBoundingClientRect(), si = $("sino").getBoundingClientRect();
+      const px = (r, dx, dy) => `translate(${r.left - fx.left + dx}px, ${r.top - fx.top + dy}px)`;
+      await A($("cursor"), [{ opacity: 0, transform: px(bt, bt.width + 160, 150) }, { opacity: 1, transform: px(bt, bt.width * .55, bt.height * .45) }], { duration: 800 }).finished;
+      await A($("botao"), [{ transform: "scale(1)" }, { transform: "scale(.9)" }, { transform: "scale(1)" }], { duration: 260, fill: "none" }).finished;
+      $("botao").classList.add("feito");
+      await OBS.espera(0.35);
+      await A($("cursor"), [{ transform: px(bt, bt.width * .55, bt.height * .45) }, { transform: px(si, si.width * .5, si.height * .5) }], { duration: 520 }).finished;
+      A($("sino"), [{ transform: "scale(1)" }, { transform: "scale(.88)" }, { transform: "scale(1)" }], { duration: 240, fill: "none" });
+      $("sino").classList.add("ativo");
+      $("sino").querySelector("svg").animate([0, 22, -18, 14, -10, 6, 0].map((r) => ({ transform: `rotate(${r}deg)` })), { duration: 900, delay: 120 });
+      await OBS.espera(0.5);
+      A($("cursor"), [{ opacity: 1, transform: px(si, si.width * .5, si.height * .5) }, { opacity: 0, transform: px(si, si.width + 80, 140) }], { duration: 600 });
+      await OBS.espera(Math.max(1, tInsc - 3.6));
+    }
+
+    // ---- SAI
+    const todos = document.querySelectorAll(comInscreva ? "#cenaInsc .b" : "#cenaPatro .a");
+    somePraCima(todos, 30);
+    A($("logo"), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(.4) rotate(10deg)" }], { duration: 450, delay: 150, easing: "cubic-bezier(.7,0,.84,0)" });
+    await A($("corpo"), [{ clipPath: "inset(0 0 0 0% round 20px)" }, { clipPath: "inset(0 0 0 100% round 20px)" }], { duration: 750, delay: 320, easing: "cubic-bezier(.7,0,.84,0)" }).finished;
+
+    if (repete > 0) { await OBS.espera(repete); rodada(); }
+  }
+  rodada();
+})();
+</script>
+</body>
+</html>
