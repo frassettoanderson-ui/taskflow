@@ -1,7 +1,7 @@
 // Configuração do atendimento automático: saudação (primeiro contato / quem volta) e IA que responde até alguém assumir.
 import { useEffect, useState } from 'react';
-import { alterar, type ConfigAtendimento, type PassoFluxo } from '../shared/dados';
-import { telefone } from '../ui/formato';
+import { alterar, gravar, type ConfigAtendimento, type PassoFluxo } from '../shared/dados';
+import { dataHora, telefone } from '../ui/formato';
 import { useColecao } from '../ui/hooks';
 import { mudarEstado } from './atendimento';
 import { useCRM } from './contexto';
@@ -22,6 +22,7 @@ export function AbaAtendimento() {
   const { avisar, chatPorId, contatos } = useCRM();
   const cfg = useColecao('atendimento');
   const estados = useColecao('atendimentoChats') ?? {};
+  const registro = useColecao('registroAtendimento') ?? [];
   const [primeiro, setPrimeiro] = useState<PassoFluxo[] | null>(null);
   const [retorno, setRetorno] = useState<PassoFluxo[] | null>(null);
 
@@ -151,6 +152,30 @@ export function AbaAtendimento() {
                 </button>
               </div>
             ))}
+          </div>
+        </>
+      )}
+
+      <h3 className="secao-titulo campo--largo">Registro (o que o atendimento fez com cada mensagem)</h3>
+      {registro.length === 0 ? (
+        <div className="ajuda campo--largo">Nada registrado ainda. Se um cliente mandar mensagem e nada aparecer aqui, a extensão não está recebendo as mensagens: atualize a extensão (↻) e o WhatsApp (F5).</div>
+      ) : (
+        <>
+          <div className="lista-simples campo--largo">
+            {registro.map((r, i) => (
+              <div key={i} className={`lista-simples__item${r.erro ? ' lista-simples__item--erro' : ''}`}>
+                <div>
+                  <strong>{contatos[r.chatId]?.nome || chatPorId.get(r.chatId)?.nome || telefone(r.nome)}</strong>
+                  <small>{r.texto}</small>
+                </div>
+                <small>{dataHora(r.em)}</small>
+              </div>
+            ))}
+          </div>
+          <div className="linha-botoes campo--largo">
+            <button className="btn" onClick={() => gravar('registroAtendimento', [])}>
+              Limpar registro
+            </button>
           </div>
         </>
       )}

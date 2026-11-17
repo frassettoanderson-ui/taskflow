@@ -52,7 +52,7 @@ export function montarPrompt(p: PedidoIA, cfg: ConfigIA): { sistema: string; usu
           'Regras:\n' +
           '- Use só as informações acima. NUNCA invente preço, prazo, estoque, endereço, horário, desconto ou política.\n' +
           `- Se não souber responder, se o cliente pedir para falar com uma pessoa, reclamar, quiser fechar negócio/pagar ou negociar valores, responda começando com ${CHAMAR_ATENDENTE} seguido de uma frase curta avisando que vai chamar alguém da equipe.\n` +
-          `- Se a última mensagem do cliente não pede resposta (só "ok", "obrigado", figurinha, ou só um cumprimento que já foi respondido na conversa), responda exatamente ${SEM_RESPOSTA}.\n` +
+          `- Se a última mensagem do cliente não pede resposta (só "ok", "obrigado" ou figurinha depois de um assunto encerrado), responda exatamente ${SEM_RESPOSTA}. Se for só um cumprimento ("oi", "bom dia") e a empresa ainda não cumprimentou nesta conversa, cumprimente e pergunte como pode ajudar.\n` +
           '- Você não ouve áudios nem vê imagens/vídeos ([áudio], [imagem] na conversa): peça com gentileza para o cliente escrever, ou chame a equipe se for importante.\n' +
           '- Não diga que é uma pessoa. Se perguntarem, diga que é o assistente virtual e que a equipe pode assumir.\n' +
           '- No máximo 3 frases curtas. Não repita a saudação que já foi enviada.\n' +

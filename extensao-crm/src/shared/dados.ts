@@ -346,6 +346,16 @@ export interface Banco {
   atendimento: ConfigAtendimento;
   /** chatId → situação do atendimento automático */
   atendimentoChats: Record<string, EstadoAtendimento>;
+  /** últimas decisões do atendimento automático (para entender por que respondeu ou não) */
+  registroAtendimento: RegistroAtendimento[];
+}
+
+export interface RegistroAtendimento {
+  em: number;
+  chatId: string;
+  nome: string;
+  texto: string;
+  erro?: boolean;
 }
 
 export const ETAPAS_PADRAO: Etapa[] = [
@@ -383,6 +393,7 @@ const PADRAO: Banco = {
     esperaMax: 12,
   },
   atendimentoChats: {},
+  registroAtendimento: [],
   config: {
     mostrarFaixa: true,
     funilAtivo: 'principal',

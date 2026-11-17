@@ -45,6 +45,14 @@ export function mudarEstado(chatId: string, fn: (e: EstadoAtendimento) => void) 
   return p;
 }
 
+/** Anota o que o atendimento decidiu (aparece em Configurações > Atendimento automático > Registro). */
+function registrar(chatId: string, nome: string, texto: string, erro?: boolean) {
+  console.info('[CRM atendimento]', chatId, texto);
+  gravacao = gravacao
+    .then(() => alterar('registroAtendimento', (l) => [{ em: Date.now(), chatId, nome, texto, erro }, ...l].slice(0, 40)))
+    .catch(() => {});
+}
+
 function notificar(chatId: string, titulo: string, texto: string) {
   avisar(`${titulo}: ${texto}`);
   chrome.runtime.sendMessage({ tipo: 'notificar-atendimento', chatId, titulo, texto }).catch(() => {});
@@ -131,9 +139,12 @@ async function mensagemMinha(m: MsgResumo) {
 // ---------- mensagem do cliente ----------
 
 async function mensagemDoCliente(m: MsgResumo) {
-  if (!conversaIndividual(m.chatId) || m.sistema || agoraSeg() - m.t > IDADE_MAX_SEG) return;
+  if (!conversaIndividual(m.chatId) || m.sistema) return;
+  const nome = m.chatId.split('@')[0];
+  if (agoraSeg() - m.t > IDADE_MAX_SEG) return registrar(m.chatId, nome, 'Mensagem antiga (mais de 15 min): ignorada');
   const cfg = await ler('atendimento');
-  if (!cfg.saudacaoAtiva && !cfg.iaAtiva) return;
+  if (!cfg.saudacaoAtiva && !cfg.iaAtiva) return registrar(m.chatId, nome, 'Recebida, mas saudação e IA estão desligadas');
+  if (!lotes.has(m.chatId)) registrar(m.chatId, nome, `Recebida: "${conteudo(m).slice(0, 60)}". Respondendo em alguns segundos`);
   const anterior = lotes.get(m.chatId);
   if (anterior) clearTimeout(anterior.timer);
   const min = Math.max(1, cfg.esperaMin);
@@ -142,7 +153,10 @@ async function mensagemDoCliente(m: MsgResumo) {
   const primeira = anterior?.primeira ?? m;
   const timer = window.setTimeout(() => {
     lotes.delete(m.chatId);
-    const fila = (filas.get(m.chatId) ?? Promise.resolve()).then(() => tratar(m.chatId, primeira)).catch((err) => avisar(`Atendimento automático: ${(err as Error).message}`, true));
+    const fila = (filas.get(m.chatId) ?? Promise.resolve()).then(() => tratar(m.chatId, primeira)).catch((err) => {
+      avisar(`Atendimento automático: ${(err as Error).message}`, true);
+      registrar(m.chatId, nome, `Erro: ${(err as Error).message}`, true);
+    });
     filas.set(m.chatId, fila);
   }, seg * 1000);
   lotes.set(m.chatId, { primeira, timer });
@@ -152,14 +166,15 @@ async function tratar(chatId: string, primeira: MsgResumo) {
   const [cfg, estados, contatos, config] = await Promise.all([ler('atendimento'), ler('atendimentoChats'), ler('contatos'), ler('config')]);
   if (!cfg.saudacaoAtiva && !cfg.iaAtiva) return;
   const st = estados[chatId];
-  if (st?.saiu) return;
+  const nm = contatos[chatId]?.nome || chatId.split('@')[0];
+  if (st?.saiu) return registrar(chatId, nm, 'Não respondeu: o cliente tinha pedido para sair');
 
   const [hist, info] = await Promise.all([wa('historico', chatId, 40), wa('infoChat', chatId)]);
   const doLote = hist.filter((x) => x.t >= primeira.t);
   // alguém da equipe já respondeu enquanto o robô esperava
-  if (doLote.some((x) => x.deMim && !doRobo.has(x.id))) return;
+  if (doLote.some((x) => x.deMim && !doRobo.has(x.id))) return registrar(chatId, nm, 'Não respondeu: alguém da equipe respondeu antes');
   const doCliente = doLote.filter((x) => !x.deMim);
-  if (!doCliente.length) return;
+  if (!doCliente.length) return registrar(chatId, nm, `Não achou a mensagem do cliente no histórico (${hist.length} mensagens lidas)`, true);
 
   const ultimoTexto = doCliente[doCliente.length - 1].texto;
   if (pediuParaSair(ultimoTexto)) {
@@ -167,7 +182,7 @@ async function tratar(chatId: string, primeira: MsgResumo) {
       e.saiu = true;
     });
     avisar(`${info.nome || info.numero} pediu para não receber mais mensagens automáticas`);
-    return;
+    return registrar(chatId, nm, 'Cliente pediu para sair: automático desligado para ele');
   }
 
   const anteriores = hist.filter((x) => x.t < primeira.t);
@@ -194,7 +209,9 @@ async function tratar(chatId: string, primeira: MsgResumo) {
   // 1) saudação
   if (cfg.saudacaoAtiva && novaConversa) {
     const passos = conhecido ? cfg.retorno : cfg.primeiroContato;
+    if (!passos.length) registrar(chatId, nm, `Conversa nova, mas a saudação de ${conhecido ? '"já conversou antes"' : '"primeiro contato"'} está vazia`);
     if (passos.length) {
+      registrar(chatId, nm, `Mandando saudação de ${conhecido ? 'cliente que volta' : 'primeiro contato'}`);
       await enviarComoRobo(chatId, () => enviarPassos(destino, passos, assinatura, (id) => doRobo.add(id)));
       await mudarEstado(chatId, (e) => {
         e.ultimaSaudacao = Date.now();
@@ -203,7 +220,12 @@ async function tratar(chatId: string, primeira: MsgResumo) {
   }
 
   // 2) IA
-  if (!cfg.iaAtiva || humano || st?.iaDesligada) return;
+  if (!cfg.iaAtiva) {
+    if (!(cfg.saudacaoAtiva && novaConversa)) registrar(chatId, nm, novaConversa ? 'IA desligada' : `IA desligada e não é conversa nova (última mensagem há menos de ${cfg.novaConversaHoras}h)`);
+    return;
+  }
+  if (humano) return registrar(chatId, nm, 'IA não respondeu: conversa com a equipe (devolva pela ficha)');
+  if (st?.iaDesligada) return registrar(chatId, nm, 'IA desligada nesta conversa');
   const seguidas = novaConversa ? 0 : (st?.seguidas ?? 0);
   if (seguidas >= Math.max(1, cfg.limiteSeguidas)) {
     await passarParaHumano(chatId, destino.nome ?? '', 'limite', `a IA já respondeu ${seguidas} vezes seguidas`);
@@ -217,14 +239,14 @@ async function tratar(chatId: string, primeira: MsgResumo) {
     resposta = (await pedirIA('atender', '', `${nomeCliente}${conhecido ? 'Cliente que já conversou com a empresa antes.' : 'Primeiro contato deste cliente.'}\n\nConversa:\n${conversa}`, cfg.instrucoes)).trim();
   } catch (err) {
     avisar(`A IA não respondeu ${destino.nome || destino.numero}: ${(err as Error).message}`, true);
-    return;
+    return registrar(chatId, nm, `Erro da IA: ${(err as Error).message}`, true);
   }
 
   // a equipe pode ter assumido enquanto a IA pensava
   const agora = (await ler('atendimentoChats'))[chatId];
-  if (agora?.humanoEm || agora?.iaDesligada || !(await ler('atendimento')).iaAtiva) return;
+  if (agora?.humanoEm || agora?.iaDesligada || !(await ler('atendimento')).iaAtiva) return registrar(chatId, nm, 'IA respondeu, mas a equipe assumiu (ou desligaram) antes de enviar');
 
-  if (!resposta || resposta.includes(SEM_RESPOSTA)) return;
+  if (!resposta || resposta.includes(SEM_RESPOSTA)) return registrar(chatId, nm, 'A IA achou que a mensagem não precisava de resposta');
   const chamar = resposta.startsWith(CHAMAR_ATENDENTE) || resposta.includes(CHAMAR_ATENDENTE);
   const texto = resposta.split(CHAMAR_ATENDENTE).join('').trim();
 
@@ -236,6 +258,7 @@ async function tratar(chatId: string, primeira: MsgResumo) {
       if (id) doRobo.add(id);
     });
   }
+  registrar(chatId, nm, chamar ? 'IA respondeu e chamou a equipe' : `IA respondeu: "${texto.slice(0, 60)}"`);
   if (chamar) {
     await passarParaHumano(chatId, destino.nome ?? '', 'ia', `a IA pediu ajuda: "${ultimoTexto.slice(0, 80)}"`);
     return;
@@ -247,6 +270,7 @@ async function tratar(chatId: string, primeira: MsgResumo) {
 
 export function iniciarAtendimento(aviso: (texto: string, erro?: boolean) => void) {
   avisar = aviso;
+  console.info('[CRM atendimento] ligado, ouvindo mensagens');
   const desliga = aoEvento((e) => {
     if (e.tipo !== 'nova_msg') return;
     if (e.msg.deMim) mensagemMinha(e.msg).catch(() => {});
