@@ -1,6 +1,6 @@
 # Container Barbearia — site (3 unidades em Imbituba/SC)
 
-**No ar (provisório):** https://container.89-117-79-163.sslip.io/ (VPS antiga, `/var/www/container-barbearia`, nginx + certbot). Deploy: `bash _dev/deploy.sh`. Falta o domínio do cliente.
+**No ar:** https://containerbarbearia.com.br/ (desde 17/11/2026; DNS no Registro.br, registro A `@` → 89.117.79.163; `www` ainda não criado). VPS antiga, `/var/www/container-barbearia`, nginx (`sites-available/containerbarbearia.com.br`) + certbot. O endereço sslip antigo continua respondendo. Deploy: `bash _dev/deploy.sh`.
 
 ## v2 (16/11/2026) — a que vale
 A v1 (feita na tasteskill, fundo claro) foi reprovada pelo usuário ("feio"); está guardada em `_v1/` só como registro.
@@ -22,4 +22,4 @@ Brief da v2: referência = Instagram; pegada **contêiner**; **colmeia de LED** 
 - Barbeiros da Vila Nova desconhecidos; Nova Brasília sem WhatsApp (botão leva ao Instagram).
 
 ## Faltam do cliente
-Domínio, fotos de fachada da VN e NB (os cards do mapa usam fotos de corte), nomes e @ dos barbeiros da VN (não acho em lugar público), foto melhor do Marco.
+Registro `www` no DNS (aí incluir no certificado: `certbot --nginx -d containerbarbearia.com.br -d www.containerbarbearia.com.br`), fotos de fachada da VN e NB (os cards do mapa usam fotos de corte), nomes e @ dos barbeiros da VN (não acho em lugar público), foto melhor do Marco.

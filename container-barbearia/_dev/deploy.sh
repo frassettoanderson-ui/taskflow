@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Deploy do site da Container Barbearia para a VPS antiga (89.117.79.163).
 # Rode de dentro da pasta container-barbearia/:   bash _dev/deploy.sh
-# Site estático → /var/www/container-barbearia (nginx; endereço provisório até o domínio do cliente)
+# Site estático → /var/www/container-barbearia (nginx; https://containerbarbearia.com.br)
 set -euo pipefail
 VPS="root@89.117.79.163"
 DESTINO="/var/www/container-barbearia"
-HOST="container.89-117-79-163.sslip.io"
+HOST="containerbarbearia.com.br"
 cd "$(dirname "$0")/.."
 
 echo "==> site → $VPS:$DESTINO"

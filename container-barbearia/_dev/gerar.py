@@ -82,7 +82,9 @@ GALERIA = {
 }
 
 # ---------- peças ----------
-def head(titulo, desc, og):
+SITE = 'https://containerbarbearia.com.br/'
+
+def head(titulo, desc, og, pagina=''):
     return f'''<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -93,7 +95,9 @@ def head(titulo, desc, og):
 <meta property="og:type" content="website">
 <meta property="og:title" content="{titulo}">
 <meta property="og:description" content="{desc}">
-<meta property="og:image" content="{og}">
+<meta property="og:image" content="{SITE}{og}">
+<meta property="og:url" content="{SITE}{pagina}">
+<link rel="canonical" href="{SITE}{pagina}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#0a0a0b">
 <link rel="icon" href="favicon.png" type="image/png">
@@ -440,7 +444,7 @@ def unidade(k):
             meio += equipe(['will', 'marco'], 'Na Nova Brasília', 'Os barbeiros', 'Will e Marco atendem por ordem de chegada. Toque no retrato e veja os trabalhos no Instagram.')
         galeria_k = k
     return (head(f'Barbearia Container {u["nome"]} | {u["tipo"].lower()} em Imbituba',
-                 f'Barbearia Container {u["nome"]}, {u["end_curto"]}, Imbituba: {u["tipo"].lower()}. {u["frase"]}', f'share-{k}.jpg')
+                 f'Barbearia Container {u["nome"]}, {u["end_curto"]}, Imbituba: {u["tipo"].lower()}. {u["frase"]}', f'share-{k}.jpg', f'{k}.html')
      + topo(k) + f'''<main>
 <section class="heroi heroi--unidade" aria-labelledby="heroi-h" style="min-height:88svh">
   <div class="heroi__foto"><img src="{u['foto']}" srcset="{u['foto800']} 800w, {u['foto']} 1536w" sizes="100vw" alt="{u['alt']}" fetchpriority="high"></div>
