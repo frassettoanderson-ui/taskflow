@@ -1,5 +1,5 @@
 // Painel lateral com a ficha do contato da conversa aberta.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { alterar, novoId, ORIGENS, totalNegocios, type Contato, type Nota } from '../shared/dados';
 import { dataCurta, dataHora, iniciais, lerArquivoComoDataUrl, mascaraMoeda, moeda, paraCampoDataHora, telefone, UFS } from '../ui/formato';
 import { useColecao } from '../ui/hooks';
@@ -116,7 +116,7 @@ export function Ficha() {
   const texto = (k: 'nome' | 'email' | 'empresa' | 'cargo' | 'cidade' | 'produtos', rotulo: string, largo = false, tipo = 'text') => (
     <label className={`campo${largo ? ' campo--largo' : ''}`}>
       <span>{rotulo}</span>
-      <input className="entrada" type={tipo} defaultValue={contato?.[k] ?? (k === 'nome' ? ativo.nome : '')} key={`${k}${ativo.id}`} onBlur={(e) => campo(k)(e.target.value.trim())} />
+      <EntradaAuto tipo={tipo} valor={contato?.[k] ?? (k === 'nome' ? ativo.nome : '')} key={`${k}${ativo.id}`} salvar={campo(k)} />
     </label>
   );
 
@@ -285,7 +285,7 @@ export function Ficha() {
                 {texto('produtos', 'Produtos de interesse', true)}
                 <label className="campo campo--largo">
                   <span>Observações</span>
-                  <textarea className="entrada" rows={3} defaultValue={contato?.observacoes ?? ''} key={`obs${ativo.id}`} onBlur={(e) => campo('observacoes')(e.target.value.trim())} />
+                  <EntradaAuto multilinha valor={contato?.observacoes ?? ''} key={`obs${ativo.id}`} salvar={campo('observacoes')} />
                 </label>
               </>
             )}
@@ -460,5 +460,39 @@ function BlocoAtendimento({ chatId }: { chatId: string }) {
         {botoes}
       </div>
     </section>
+  );
+}
+
+/**
+ * Campo da ficha que salva sozinho enquanto a pessoa digita (meio segundo depois de parar),
+ * ao sair do campo e também se trocar de conversa no meio da digitação.
+ */
+function EntradaAuto({ valor, salvar, tipo = 'text', multilinha }: { valor: string; salvar: (v: string) => void; tipo?: string; multilinha?: boolean }) {
+  const [v, setV] = useState(valor);
+  const atual = useRef(valor);
+  const gravado = useRef(valor);
+  const fn = useRef(salvar);
+  fn.current = salvar;
+  const timer = useRef<number>();
+
+  const gravar = () => {
+    clearTimeout(timer.current);
+    if (atual.current.trim() === gravado.current.trim()) return;
+    gravado.current = atual.current;
+    fn.current(atual.current.trim());
+  };
+  useEffect(() => () => gravar(), []);
+
+  const mudar = (x: string) => {
+    setV(x);
+    atual.current = x;
+    clearTimeout(timer.current);
+    timer.current = window.setTimeout(gravar, 600);
+  };
+
+  return multilinha ? (
+    <textarea className="entrada" rows={3} value={v} onChange={(e) => mudar(e.target.value)} onBlur={gravar} />
+  ) : (
+    <input className="entrada" type={tipo} value={v} onChange={(e) => mudar(e.target.value)} onBlur={gravar} />
   );
 }

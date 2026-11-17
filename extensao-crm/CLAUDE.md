@@ -56,5 +56,17 @@ Assinatura em TODAS as mensagens de texto, inclusive as digitadas no WhatsApp (s
 - Equipe assume: qualquer mensagem `deMim` cujo id não está em `doRobo` (ids que o próprio atendimento mandou) marca `atendimentoChats[chatId].humanoEm`. Respostas rápidas, agendamentos e texto digitado contam como equipe.
 - Estado por conversa em `atendimentoChats`, gravado em fila (`mudarEstado`).
 
+## v0.7.0 (17/11/2026): visual novo + atendimento explicado + testes
+- Visual: destaque verde-azulado (no lugar do laranja), cantos 3/4px, abas com sublinhado, ícones da barra 21px (+15%), engrenagem nova. Tokens em `src/ui/estilo.css`.
+- Configurações: rascunho + `BarraSalvar` (Salvar/Descartar) nas abas Atendimento, IA e Preferências; fechar/trocar de aba com alteração pendente pergunta antes (`SujoCtx`). Funis/Etiquetas/Integrações seguem salvando na hora.
+- Atendimento automático: subabas Configurar/Acompanhar, passo a passo 1-2-3 com chave liga/desliga (`ui/Interruptor.tsx`), saudação "nunca falou / já falou" com prévia em balões, modelo de instruções, ajustes avançados recolhidos.
+- Ficha: campos salvam enquanto digita (`EntradaAuto`), inclusive ao trocar de conversa.
+- Variáveis com nomes simples ("Primeiro nome", "Bom dia / Boa tarde").
+- Bug corrigido (v0.6.1): prompt antigo fazia a IA responder [SEM_RESPOSTA] a "oi" quando já tinha havido cumprimento.
+
+## Testes
+- `npm test`: 23 cenários do atendimento automático rodando o código real contra um WhatsApp simulado (`testes/simulador.ts`, `testes/atendimento.teste.ts`).
+- `node testes/previa.mjs`: gera `testes/.saida/previa.html` (interface com dados de exemplo, `?tema=claro`); servir a pasta (launch.json `crm-previa`, porta 8205).
+
 ## Próximas fases
 Ver `ROADMAP.md` (inventário da WaSpeed → o que falta reescrever).

@@ -5,7 +5,8 @@
   "scripts": {
     "build": "node build.mjs",
     "dev": "node build.mjs --watch",
-    "tipos": "tsc -p ."
+    "tipos": "tsc -p .",
+    "test": "node testes/rodar.mjs"
   },
   "author": "",
   "license": "ISC",

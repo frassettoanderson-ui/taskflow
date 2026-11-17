@@ -14,6 +14,25 @@ const ICONE: Record<TipoPasso, (p: { tam?: number }) => JSX.Element> = { texto: 
 const NOME: Record<TipoPasso, string> = { texto: 'Texto', image: 'Imagem', video: 'Vídeo', audio: 'Áudio', document: 'Arquivo' };
 const LIMITE_MB = 16;
 
+/** Nome amigável de cada dado do cliente (o código {{...}} fica escondido de quem não é técnico). */
+const NOME_VARIAVEL: Record<string, string> = {
+  primeiro_nome: 'Primeiro nome',
+  nome: 'Nome completo',
+  saudacao: 'Bom dia / Boa tarde',
+  periodo_dia: 'manhã / tarde / noite',
+  numero: 'Número',
+  email: 'E-mail',
+  empresa: 'Empresa',
+  cargo: 'Cargo',
+  cidade: 'Cidade',
+  estado: 'Estado',
+  origem: 'Origem',
+  produtos: 'Produtos',
+  valor_negocio: 'Valor do negócio',
+  mencionar_todos: 'Marcar todos (grupo)',
+};
+const PRINCIPAIS = ['primeiro_nome', 'nome', 'saudacao', 'numero'];
+
 export function ConteudoPasso({ valor, aoMudar, mostrarVariaveis = true }: { valor: ConteudoEditavel; aoMudar: (p: Partial<ConteudoEditavel>) => void; mostrarVariaveis?: boolean }) {
   const { avisar } = useCRM();
 
@@ -68,31 +87,42 @@ export function ConteudoPasso({ valor, aoMudar, mostrarVariaveis = true }: { val
           <span>{valor.tipo === 'texto' ? 'Mensagem' : 'Legenda (opcional)'}</span>
           <textarea className="entrada" rows={valor.tipo === 'texto' ? 5 : 2} value={valor.texto} onChange={(e) => aoMudar({ texto: e.target.value })} placeholder="{{saudacao}}, {{primeiro_nome}}! Tudo bem?" />
           {valor.tipo === 'texto' && <BotoesIA texto={valor.texto} aoResultado={(t) => aoMudar({ texto: t })} />}
-          {mostrarVariaveis && (
-            <div className="variaveis">
-              {VARIAVEIS.map((v) => (
-                <button key={v} type="button" className="variavel" onClick={() => aoMudar({ texto: `${valor.texto}{{${v}}}` })}>
-                  {`{{${v}}}`}
-                </button>
-              ))}
-            </div>
-          )}
+          {mostrarVariaveis && <Variaveis aoInserir={(v) => aoMudar({ texto: `${valor.texto}{{${v}}}` })} />}
         </label>
       )}
 
       <label className="campo">
-        <span>Antes de enviar, parecer</span>
+        <span>Antes de mandar, o cliente vê</span>
         <select className="entrada" value={valor.simular} onChange={(e) => aoMudar({ simular: e.target.value as Simulacao })}>
-          <option value="nenhuma">Nada</option>
-          <option value="digitando">Digitando...</option>
-          <option value="gravando">Gravando áudio...</option>
+          <option value="nenhuma">Nada (manda na hora)</option>
+          <option value="digitando">"digitando..."</option>
+          <option value="gravando">"gravando áudio..."</option>
         </select>
       </label>
       <label className="campo">
-        <span>Por quantos segundos</span>
+        <span>Durante quantos segundos</span>
         <input className="entrada" type="number" min={1} max={30} disabled={valor.simular === 'nenhuma'} value={valor.simularSeg} onChange={(e) => aoMudar({ simularSeg: Number(e.target.value) || 1 })} />
       </label>
     </>
+  );
+}
+
+/** Botões para colocar dados do cliente no texto (o nome dele, bom dia/boa tarde...). */
+function Variaveis({ aoInserir }: { aoInserir: (v: string) => void }) {
+  const [todas, setTodas] = useState(false);
+  const lista = todas ? [...VARIAVEIS] : PRINCIPAIS;
+  return (
+    <div className="variaveis">
+      <span className="variaveis__rotulo">Colocar no texto:</span>
+      {lista.map((v) => (
+        <button key={v} type="button" className="variavel" title={`Entra como {{${v}}} e vira o dado de cada cliente`} onClick={() => aoInserir(v)}>
+          {NOME_VARIAVEL[v] ?? v}
+        </button>
+      ))}
+      <button type="button" className="variavel variavel--mais" onClick={() => setTodas((x) => !x)}>
+        {todas ? 'menos' : 'mais dados'}
+      </button>
+    </div>
   );
 }
 

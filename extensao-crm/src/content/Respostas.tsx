@@ -227,7 +227,7 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
       <div className="modal">
         <div className="modal__topo">
           <h2>{r.id ? 'Editar resposta' : 'Nova resposta'}</h2>
-          <p>Escolha o tipo, escreva a mensagem e o atalho para usar com /</p>
+          <p>Uma resposta pronta para mandar com um clique ou digitando / e o atalho na conversa. Escolha "Fluxo" para mandar várias mensagens seguidas (ex.: texto, depois um áudio, depois uma foto).</p>
           <button className="icone-btn modal__fechar" onClick={voltar} title="Voltar (Esc)">
             <IconFechar />
           </button>
@@ -273,7 +273,7 @@ function Editor({ inicial, voltar }: { inicial: RespostaRapida; voltar: () => vo
 
             {fluxo ? (
               <div className="campo campo--largo">
-                <span>Etapas do fluxo (enviadas em sequência)</span>
+                <span>Mensagens do fluxo (saem uma depois da outra, na ordem abaixo)</span>
                 <EditorEtapas passos={passos} aoMudar={(p) => set({ passos: p })} />
               </div>
             ) : (
@@ -368,7 +368,7 @@ export function EditorEtapas({ passos, aoMudar }: { passos: PassoFluxo[]; aoMuda
       ))}
       <button type="button" className="btn" style={{ marginTop: 8 }} onClick={() => aoMudar([...passos, passoVazio('texto')])}>
         <IconMais tam={16} />
-        Adicionar etapa
+        Adicionar mensagem
       </button>
     </>
   );
@@ -390,7 +390,7 @@ function PassoEditor({ passo, indice, total, aoMudar, aoSubir, aoDescer, aoApaga
         <button type="button" className="icone-btn" title="Descer" disabled={indice === total - 1} onClick={aoDescer}>
           <IconBaixar tam={14} />
         </button>
-        <button type="button" className="icone-btn" title="Tirar etapa" onClick={aoApagar}>
+        <button type="button" className="icone-btn" title="Tirar esta mensagem" onClick={aoApagar}>
           <IconLixo tam={14} />
         </button>
       </div>
@@ -398,7 +398,7 @@ function PassoEditor({ passo, indice, total, aoMudar, aoSubir, aoDescer, aoApaga
         <div className="passo__corpo">
           {indice > 0 && (
             <label className="campo campo--largo">
-              <span>Esperar antes desta etapa (segundos)</span>
+              <span>Esperar antes desta mensagem (segundos)</span>
               <input className="entrada" type="number" min={0} max={120} value={passo.esperaSeg} onChange={(e) => aoMudar({ esperaSeg: Number(e.target.value) || 0 })} />
             </label>
           )}

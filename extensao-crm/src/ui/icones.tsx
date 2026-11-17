@@ -3,7 +3,7 @@ import type { SVGProps } from 'react';
 
 type P = SVGProps<SVGSVGElement> & { tam?: number };
 
-function Base({ tam = 18, children, ...p }: P & { children: React.ReactNode }) {
+function Base({ tam = 21, children, ...p }: P & { children: React.ReactNode }) {
   return (
     <svg width={tam} height={tam} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
       {children}
@@ -49,8 +49,8 @@ export const IconFicha = (p: P) => (
 );
 export const IconEngrenagem = (p: P) => (
   <Base {...p}>
-    <circle cx="10" cy="10" r="2.4" />
-    <path d="M10 2.8v2M10 15.2v2M2.8 10h2M15.2 10h2M4.9 4.9l1.4 1.4M13.7 13.7l1.4 1.4M4.9 15.1l1.4-1.4M13.7 6.3l1.4-1.4" />
+    <path d="M16.11 8.11 18.13 8.35 18.13 11.65 16.11 11.89 15.66 12.99 16.92 14.59 14.59 16.92 12.99 15.66 11.89 16.11 11.65 18.13 8.35 18.13 8.11 16.11 7.01 15.66 5.41 16.92 3.08 14.59 4.34 12.99 3.89 11.89 1.87 11.65 1.87 8.35 3.89 8.11 4.34 7.01 3.08 5.41 5.41 3.08 7.01 4.34 8.11 3.89 8.35 1.87 11.65 1.87 11.89 3.89 12.99 4.34 14.59 3.08 16.92 5.41 15.66 7.01Z" />
+    <circle cx="10" cy="10" r="2.7" />
   </Base>
 );
 export const IconFechar = (p: P) => (

@@ -1,9 +1,10 @@
 // Configurações: funis e etapas, etiquetas do WhatsApp Business, backup e planilhas.
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { alterar, exportarTudo, gravar, importarTudo, novoId, type Config, type Etapa, type Funil } from '../shared/dados';
 import { AbaAtendimento } from './AbaAtendimento';
 import { AbaIA } from './AbaIA';
 import { AbaWebhooks } from './AbaWebhooks';
+import { BarraSalvar, SujoCtx } from './BarraSalvar';
 import { NOMES_PRIVACIDADE } from './privacidade';
 import type { EtiquetaWA } from '../shared/protocolo';
 import { useEsc } from '../ui/hooks';
@@ -24,17 +25,34 @@ export type AbaConfig = 'funis' | 'etiquetas' | 'preferencias' | 'atendimento' |
 
 export function Config({ fechar, abaInicial = 'funis' }: { fechar: () => void; abaInicial?: AbaConfig }) {
   const { business } = useCRM();
-  const [aba, setAba] = useState<AbaConfig>(abaInicial);
-  useEffect(() => setAba(abaInicial), [abaInicial]);
-  useEsc(fechar);
+  const [aba, setAbaReal] = useState<AbaConfig>(abaInicial);
+  const sujos = useRef(new Set<string>());
+  const marcarSujo = useCallback((qual: string, sujo: boolean) => {
+    if (sujo) sujos.current.add(qual);
+    else sujos.current.delete(qual);
+  }, []);
+  /** pergunta antes de perder o que não foi salvo */
+  const podeSair = () => !sujos.current.size || window.confirm('Há alterações que não foram salvas. Sair mesmo assim e perder o que mudou?');
+  const setAba = (a: AbaConfig) => {
+    if (a === aba || !podeSair()) return;
+    sujos.current.clear();
+    setAbaReal(a);
+  };
+  const sair = () => {
+    if (!podeSair()) return;
+    sujos.current.clear();
+    fechar();
+  };
+  useEffect(() => setAbaReal(abaInicial), [abaInicial]);
+  useEsc(sair);
 
   return (
-    <div className="modal-fundo" onMouseDown={(e) => e.target === e.currentTarget && fechar()}>
-      <div className="modal">
+    <div className="modal-fundo" onMouseDown={(e) => e.target === e.currentTarget && sair()}>
+      <div className="modal modal--config">
         <div className="modal__topo">
           <h2>Configurações</h2>
           <p>Os dados do CRM ficam guardados só neste navegador.</p>
-          <button className="icone-btn modal__fechar" onClick={fechar} title="Fechar (Esc)">
+          <button className="icone-btn modal__fechar" onClick={sair} title="Fechar (Esc)">
             <IconFechar />
           </button>
           <div className="abas">
@@ -63,6 +81,7 @@ export function Config({ fechar, abaInicial = 'funis' }: { fechar: () => void; a
             </button>
           </div>
         </div>
+        <SujoCtx.Provider value={marcarSujo}>
         <div className="modal__corpo">
           {aba === 'funis' && <AbaFunis />}
           {aba === 'etiquetas' && business && <AbaEtiquetas />}
@@ -72,6 +91,7 @@ export function Config({ fechar, abaInicial = 'funis' }: { fechar: () => void; a
           {aba === 'integracoes' && <AbaWebhooks />}
           {aba === 'dados' && <AbaDados />}
         </div>
+        </SujoCtx.Provider>
       </div>
     </div>
   );
@@ -171,7 +191,7 @@ function AbaFunis() {
               Adicionar etapa
             </button>
           </div>
-          <div className="ajuda">Apagar uma etapa ou um funil não apaga os contatos: eles só saem daquele funil.</div>
+          <div className="ajuda">As mudanças desta aba são salvas na hora. Apagar uma etapa ou um funil não apaga os contatos: eles só saem daquele funil.</div>
         </>
       )}
     </>
@@ -281,9 +301,18 @@ function AbaEtiquetas() {
 }
 
 function AbaPreferencias() {
-  const { config, avisar } = useCRM();
-  if (!config) return null;
-  const salvar = (p: Partial<Config>) => gravar('config', { ...config, ...p });
+  const { config: salvo, avisar } = useCRM();
+  const [config, setConfig] = useState<Config | undefined>(salvo);
+  const sujo = !!salvo && !!config && JSON.stringify({ p: salvo.privacidade, a: salvo.assinatura, b: salvo.backupAuto }) !== JSON.stringify({ p: config.privacidade, a: config.assinatura, b: config.backupAuto });
+  useEffect(() => {
+    if (salvo && (!config || !sujo)) setConfig(salvo);
+  }, [salvo]);
+  if (!config || !salvo) return null;
+  const salvar = (p: Partial<Config>) => setConfig({ ...config, ...p });
+  const gravarTudo = async () => {
+    await alterar('config', (atual) => ({ ...atual, privacidade: config.privacidade, assinatura: { ...config.assinatura, nome: config.assinatura.nome.trim() }, backupAuto: config.backupAuto }));
+    avisar('Preferências salvas');
+  };
   const priv = config.privacidade;
 
   return (
@@ -305,7 +334,7 @@ function AbaPreferencias() {
           <input type="checkbox" checked={config.assinatura.ativa} onChange={(e) => salvar({ assinatura: { ...config.assinatura, ativa: e.target.checked } })} />
           Assinar todas as mensagens de texto (inclusive as que eu digito no WhatsApp)
         </label>
-        <input className="entrada" placeholder="Ex.: Anderson - Comercial" defaultValue={config.assinatura.nome} onBlur={(e) => salvar({ assinatura: { ...config.assinatura, nome: e.target.value.trim() } })} />
+        <input className="entrada" placeholder="Ex.: Anderson - Comercial" value={config.assinatura.nome} onChange={(e) => salvar({ assinatura: { ...config.assinatura, nome: e.target.value } })} />
         <div className="campos" style={{ marginTop: 6 }}>
           <label className="campo">
             <span>Onde</span>
@@ -365,6 +394,9 @@ function AbaPreferencias() {
           </div>
         </div>
         {config.backupAuto.ultimo && <small className="ajuda" style={{ textAlign: 'left' }}>Último backup automático: {config.backupAuto.ultimo.split('-').reverse().join('/')}</small>}
+      </div>
+      <div className="campo--largo">
+        <BarraSalvar aba="preferencias" sujo={sujo} salvar={gravarTudo} descartar={() => setConfig(salvo)} />
       </div>
     </div>
   );
