@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Termo de Participação · Bora Contá</title>
+<style>
+  @font-face { font-family: "Anton"; src: url("fontes/Anton-Regular.ttf"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; src: url("fontes/Poppins-Bold.ttf"); }
+  @font-face { font-family: "Poppins"; font-weight: 900; src: url("fontes/Poppins-Black.ttf"); }
+  @font-face { font-family: "Lexend"; font-weight: 400; src: url("fontes/Lexend-Regular.ttf"); }
+  @font-face { font-family: "Lexend"; font-weight: 600; src: url("fontes/Lexend-SemiBold.ttf"); }
+
+  :root { --roxo: #29024d; --roxo2: #3d0870; --laranja: #ffa104; --rosa: #fd3d69; --texto: #24183a; --suave: #6b5b85; --linha: #e6dcf2; }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Lexend", sans-serif; color: var(--texto); font-size: 10.6pt; line-height: 1.55; }
+
+  .folha { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; }
+  .folha:last-child { page-break-after: auto; }
+
+  /* ---- papel timbrado ---- */
+  .topo { height: 38mm; background: linear-gradient(100deg, var(--roxo2), var(--roxo) 55%, #160029); display: grid; place-items: center; position: relative; }
+  .topo::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2.2mm; background: linear-gradient(90deg, var(--laranja) 0 70%, var(--rosa) 70%); }
+  .topo img { height: 26mm; }
+  .marca-dagua { position: absolute; left: 50%; top: 52%; width: 120mm; transform: translate(-50%, -50%); opacity: .045; border-radius: 50%; pointer-events: none; }
+  .rodape { position: absolute; left: 0; right: 0; bottom: 0; height: 13mm; background: var(--roxo); color: #e2d0f5; display: flex; align-items: center; justify-content: center; gap: 7mm; font-family: "Poppins"; font-weight: 700; font-size: 8.3pt; letter-spacing: .02em; }
+  .rodape::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 1.2mm; background: var(--laranja); }
+  .rodape i { width: 1.4mm; height: 1.4mm; border-radius: 50%; background: var(--rosa); }
+  .pag { position: absolute; right: 12mm; bottom: 16mm; font-family: "Poppins"; font-weight: 700; font-size: 7.5pt; color: var(--suave); letter-spacing: .08em; }
+
+  .miolo { position: relative; padding: 11mm 20mm 0; }
+
+  /* ---- conteúdo ---- */
+  .titulo { text-align: center; margin-bottom: 6mm; }
+  .titulo small { display: block; font-family: "Poppins"; font-weight: 700; font-size: 8.5pt; letter-spacing: .3em; color: var(--rosa); text-transform: uppercase; }
+  .titulo h1 { font-family: "Anton"; font-weight: 400; font-size: 27pt; line-height: 1.12; color: var(--roxo); text-transform: uppercase; letter-spacing: .01em; }
+  .titulo p { font-size: 10.6pt; color: var(--suave); max-width: 135mm; margin: 2mm auto 0; }
+
+  .ficha { border: 1.2pt solid var(--linha); border-radius: 3mm; padding: 4.5mm 6mm 3mm; margin-bottom: 6mm; display: grid; grid-template-columns: 1fr 1fr; gap: 3.2mm 8mm; }
+  .campo { display: flex; flex-direction: column; }
+  .campo.todo { grid-column: 1 / -1; }
+  .campo span { font-family: "Poppins"; font-weight: 700; font-size: 7.3pt; letter-spacing: .14em; text-transform: uppercase; color: var(--suave); }
+  .campo b { display: block; height: 7.5mm; border-bottom: 1pt solid #b9a8cf; }
+
+  .clausula { display: grid; grid-template-columns: 9mm 1fr; gap: 0 3mm; margin-bottom: 4.6mm; break-inside: avoid; }
+  .num { width: 9mm; height: 9mm; border-radius: 50%; background: var(--laranja); color: var(--roxo); font-family: "Anton"; font-size: 13pt; display: grid; place-items: center; margin-top: .3mm; }
+  .clausula h2 { font-family: "Poppins"; font-weight: 900; font-size: 11.5pt; color: var(--roxo); line-height: 1.3; margin: 1.4mm 0 1.2mm; }
+  .clausula p + p { margin-top: 1.6mm; }
+  .clausula ul { list-style: none; margin-top: 1.4mm; }
+  .clausula li { position: relative; padding-left: 5mm; margin-top: .9mm; }
+  .clausula li::before { content: ""; position: absolute; left: .6mm; top: 2.3mm; width: 2mm; height: 2mm; border-radius: .5mm; background: var(--rosa); transform: rotate(45deg); }
+  strong { font-weight: 600; color: var(--roxo); }
+
+  .local { text-align: center; margin: 7mm 0 0; font-size: 10.6pt; }
+  .assinaturas { display: grid; grid-template-columns: 1fr; gap: 15mm; margin-top: 15mm; }
+  .assinaturas .linha2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14mm; }
+  .ass { text-align: center; }
+  .ass .traco { border-top: 1.2pt solid var(--roxo); margin: 0 auto 1.6mm; width: 100%; }
+  .ass b { display: block; font-family: "Poppins"; font-weight: 700; font-size: 10pt; color: var(--roxo); }
+  .ass span { font-size: 8.5pt; color: var(--suave); }
+  .ass.part { width: 110mm; margin: 0 auto; }
+  .obrigado { margin-top: 12mm; text-align: center; font-family: "Poppins"; font-weight: 900; font-size: 11pt; color: var(--rosa); letter-spacing: .02em; }
+</style>
+</head>
+<body>
+
+<!-- ================= PÁGINA 1 ================= -->
+<section class="folha">
+  <header class="topo"><img src="logo-horizontal.webp" alt="Bora Contá Podcast"></header>
+  <img class="marca-dagua" src="logo_bora_conta.webp" alt="">
+  <div class="miolo">
+    <div class="titulo">
+      <small>Podcast Bora Contá</small>
+      <h1>Termo de Participação</h1>
+      <p>Que bom ter você aqui! Antes de ligar os microfones, deixamos combinado como funciona a sua participação. É rapidinho.</p>
+    </div>
+
+    <div class="ficha">
+      <div class="campo todo"><span>Participante (nome completo)</span><b></b></div>
+      <div class="campo"><span>CPF</span><b></b></div>
+      <div class="campo"><span>Data da gravação</span><b></b></div>
+      <div class="campo"><span>Telefone / WhatsApp</span><b></b></div>
+      <div class="campo"><span>Instagram</span><b></b></div>
+    </div>
+
+    <div class="clausula"><div class="num">1</div><div>
+      <h2>Sua participação</h2>
+      <p>Você topou participar do episódio do <strong>Bora Contá</strong> de forma voluntária e <strong>sem cobrança de cachê</strong>, e nós também não cobramos nada de você.</p>
+    </div></div>
+
+    <div class="clausula"><div class="num">2</div><div>
+      <h2>Uso da imagem e da voz</h2>
+      <p>Você autoriza o Bora Contá a usar a sua <strong>imagem, voz, nome e o conteúdo da conversa</strong> gravados no episódio, <strong>sem custo e por tempo indeterminado</strong>, em:</p>
+      <ul>
+        <li>episódio completo no YouTube, na BoraFlix (boraconta.com.br) e em outras plataformas de áudio e vídeo;</li>
+        <li>cortes, trechos, reels, stories, chamadas e materiais de divulgação nas redes sociais;</li>
+        <li>miniaturas, capas e artes do programa.</li>
+      </ul>
+    </div></div>
+
+    <div class="clausula"><div class="num">3</div><div>
+      <h2>Edição</h2>
+      <p>Para deixar o episódio mais gostoso de assistir, podemos <strong>editar, cortar e organizar</strong> a conversa e incluir legenda, trilha e efeitos. Nosso compromisso é <strong>não tirar nenhuma fala sua do contexto</strong> nem mudar o sentido do que você disse.</p>
+    </div></div>
+
+    <div class="clausula"><div class="num">4</div><div>
+      <h2>Patrocínio e monetização</h2>
+      <p>O programa pode ter <strong>patrocinadores, anúncios e monetização</strong> nas plataformas. Você entende que isso faz parte do projeto e não gera pagamento a você. Se você mencionar a sua empresa ou um produto, essa é uma escolha sua.</p>
+    </div></div>
+  </div>
+  <div class="pag">1 / 2</div>
+  <footer class="rodape">boraconta.com.br <i></i> @boracontaoficial <i></i> youtube.com/@boraconta</footer>
+</section>
+
+<!-- ================= PÁGINA 2 ================= -->
+<section class="folha">
+  <header class="topo"><img src="logo-horizontal.webp" alt="Bora Contá Podcast"></header>
+  <img class="marca-dagua" src="logo_bora_conta.webp" alt="">
+  <div class="miolo">
+    <div class="clausula"><div class="num">5</div><div>
+      <h2>O que você fala</h2>
+      <p>As opiniões e informações ditas durante a conversa são <strong>suas</strong>, e você é responsável por elas. Por isso, combinamos de evitar:</p>
+      <ul>
+        <li>acusações sem prova contra pessoas ou empresas;</li>
+        <li>informações sigilosas (de trabalho, de clientes, de terceiros);</li>
+        <li>conteúdo ofensivo ou discriminatório.</li>
+      </ul>
+      <p>Se algo assim escapar, a gente conversa e, se for preciso, corta na edição.</p>
+    </div></div>
+
+    <div class="clausula"><div class="num">6</div><div>
+      <h2>Arrependeu de alguma fala?</h2>
+      <p>Tranquilo! Avise a gente <strong>antes da publicação</strong> que analisamos com carinho a retirada do trecho. Depois que o episódio for ao ar, podemos tirar trechos de <strong>novas publicações</strong>. Só não temos como apagar o que outras pessoas já baixaram ou compartilharam.</p>
+    </div></div>
+
+    <div class="clausula"><div class="num">7</div><div>
+      <h2>Seus dados</h2>
+      <p>Usamos seus dados (nome, contato, @ das redes) <strong>só para organizar a gravação e divulgar o episódio</strong>, nunca para vender ou repassar a terceiros, conforme a Lei Geral de Proteção de Dados (LGPD).</p>
+    </div></div>
+
+    <div class="clausula"><div class="num">8</div><div>
+      <h2>Tudo certo?</h2>
+      <p>Ao assinar, você confirma que leu, entendeu e concorda com este termo.</p>
+    </div></div>
+
+    <p class="local">Imbituba/SC, ______ de ________________________ de __________</p>
+
+    <div class="assinaturas">
+      <div class="ass part"><div class="traco"></div><b>Participante</b><span>assinatura</span></div>
+      <div class="linha2">
+        <div class="ass"><div class="traco"></div><b>Anderson Frassetto</b><span>Apresentador · Bora Contá</span></div>
+        <div class="ass"><div class="traco"></div><b>Léo</b><span>Apresentador · Bora Contá</span></div>
+      </div>
+    </div>
+
+    <p class="obrigado">Valeu por contar a sua história com a gente!</p>
+  </div>
+  <div class="pag">2 / 2</div>
+  <footer class="rodape">boraconta.com.br <i></i> @boracontaoficial <i></i> youtube.com/@boraconta</footer>
+</section>
+
+</body>
+</html>
