@@ -283,7 +283,7 @@
       return;
     }
     $('#preco-pix').textContent = 'R$ ' + brl(cfg.valor);
-    $('#preco-cartao').textContent = 'R$ ' + brl(cfg.valorCartao) + (cfg.maxParcelas > 1 ? ' · até ' + cfg.maxParcelas + 'x' : '');
+    $('#preco-cartao').textContent = '(com juros da maquininha)';   // o valor final depende das parcelas que a pessoa escolher
     var c = $('#valor-cartao');
     c.textContent = 'ou R$ ' + brl(cfg.valorCartao) + ' no cartão' + (cfg.maxParcelas > 1 ? ', em até ' + cfg.maxParcelas + 'x' : '') + ' (com a taxa da operadora)';
     c.hidden = false;
