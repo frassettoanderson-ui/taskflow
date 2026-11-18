@@ -108,6 +108,8 @@ td .sub { color: var(--suave); font-size: .82rem; }
 .lista-grupos button { text-align: left; background: var(--g2); border: 1px solid var(--linha); border-radius: 4px; padding: .7em .9em; cursor: pointer; }
 .lista-grupos button:hover, .lista-grupos button.atual { border-color: var(--lime); }
 .lista-grupos small { color: var(--suave); }
+.busca-grupos { width: 100%; margin-bottom: .7rem; padding: .7em .9em; background: var(--g2); border: 1px solid var(--linha); border-radius: 4px; color: inherit; font: inherit; }
+.busca-grupos:focus { outline: none; border-color: var(--lime); }
 iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; background: #fff; }
 
 .toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--g2); border: 1px solid var(--lime); padding: .7em 1.2em; border-radius: 6px; z-index: 40; max-width: calc(100% - 32px); }
@@ -244,6 +246,7 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
   <button class="modal__x" data-fecha>&times;</button>
   <h3>Grupo dos inscritos</h3>
   <p class="nota" style="margin-bottom:.8rem">Crie o grupo no celular da academia e escolha aqui. Quem pagar é colocado nele; se o WhatsApp não deixar, a pessoa recebe o link.</p>
+  <input class="busca-grupos" id="busca-grupos" placeholder="Buscar grupo pelo nome…" autocomplete="off">
   <div class="lista-grupos" id="lista-grupos">Carregando…</div>
 </div></div>
 
@@ -490,11 +493,24 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
     api('whatsapp/grupos').then(function (j) {
       if (!j._ok) { box.textContent = 'Conecte o WhatsApp primeiro.'; return; }
       if (!j.grupos.length) { box.textContent = 'Nenhum grupo nesse WhatsApp. Crie o grupo no celular e tente de novo.'; return; }
-      box.innerHTML = j.grupos.map(function (g) {
-        return '<button data-jid="' + esc(g.jid) + '" data-nome="' + esc(g.nome) + '"' + (g.jid === j.atual ? ' class="atual"' : '') + '>' + esc(g.nome) + ' <small>· ' + g.membros + ' membros' + (g.jid === j.atual ? ' · escolhido' : '') + '</small></button>';
-      }).join('');
+      // o escolhido e os que parecem do curso vêm primeiro; o resto em ordem alfabética
+      var sem = function (s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+      var peso = function (g) { return g.jid === j.atual ? 0 : /corrida|curso|inscrit/.test(sem(g.nome)) ? 1 : 2; };
+      gruposLista = j.grupos.slice().sort(function (a, b) { return peso(a) - peso(b) || sem(a.nome).localeCompare(sem(b.nome)); });
+      gruposAtual = j.atual; desenharGrupos();
+      var busca = $('#busca-grupos'); busca.value = ''; busca.focus();
     }).catch(function () { box.textContent = 'Erro ao carregar.'; });
   };
+  var gruposLista = [], gruposAtual = null;
+  function desenharGrupos() {
+    var sem = function (s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+    var q = sem($('#busca-grupos').value.trim());
+    var lista = gruposLista.filter(function (g) { return !q || sem(g.nome).indexOf(q) > -1; });
+    $('#lista-grupos').innerHTML = lista.length ? lista.map(function (g) {
+      return '<button data-jid="' + esc(g.jid) + '" data-nome="' + esc(g.nome) + '"' + (g.jid === gruposAtual ? ' class="atual"' : '') + '>' + esc(g.nome) + ' <small>· ' + g.membros + ' membros' + (g.jid === gruposAtual ? ' · escolhido' : '') + '</small></button>';
+    }).join('') : 'Nenhum grupo com esse nome.';
+  }
+  $('#busca-grupos').addEventListener('input', desenharGrupos);
   $('#lista-grupos').addEventListener('click', function (e) {
     var b = e.target.closest('[data-jid]'); if (!b) return;
     api('whatsapp/grupo', { method: 'POST', body: { jid: b.dataset.jid, nome: b.dataset.nome } }).then(function (j) {

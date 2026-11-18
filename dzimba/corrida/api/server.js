@@ -22,7 +22,7 @@ const PUBLIC_BASE = (process.env.PUBLIC_BASE || 'https://academiadzimba.com.br/c
 const ADMIN_KEY = process.env.ADMIN_KEY || '';
 // Venda por LOTES: "vagas:valor" separados por vírgula. Quando as vagas pagas de um lote acabam, o próximo entra sozinho.
 // Cortesias não ocupam vaga de lote. Quem gerou o PIX/cartão paga o valor do lote em que gerou.
-const LOTES = String(process.env.LOTES || '30:99.90,30:119.90,30:139.90').split(',').map(s => s.trim()).filter(Boolean)
+const LOTES = String(process.env.LOTES || '30:99.90,30:119.90,60:139.90').split(',').map(s => s.trim()).filter(Boolean)
   .map((s, i) => { const [v, p] = s.split(':'); return { numero: i + 1, vagas: Number(v), valor: Number(p) }; })
   .filter(l => l.vagas > 0 && l.valor > 0);
 const MAX_PARCELAS = Number(process.env.MAX_PARCELAS || '1');
@@ -54,6 +54,7 @@ const mp = (endpoint, opts = {}) => fetch('https://api.mercadopago.com' + endpoi
 
 const app = express();
 app.use(express.json());
+app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });   // painel e checkout sempre com dado fresco
 app.set('trust proxy', true);
 
 const digits = s => String(s || '').replace(/\D/g, '');
