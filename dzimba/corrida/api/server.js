@@ -590,7 +590,8 @@ app.get('/api/whatsapp/qr', async (req, res) => {
 });
 app.get('/api/whatsapp/grupos', async (req, res) => {
   if (!admin(req, res)) return;
-  const r = await evo('/group/myall', { timeout: 20000 }).catch(e => ({ ok: false, body: { error: e.message } }));
+  // /group/list = todos os grupos em que o número está (o /group/myall só traz os que ele criou)
+  const r = await evo('/group/list', { timeout: 30000 }).catch(e => ({ ok: false, body: { error: e.message } }));
   if (!r.ok) return res.status(502).json({ error: 'falha', detalhe: r.body?.error });
   const lista = (r.body.data || []).map(g => ({ jid: g.JID || g.jid, nome: g.Name || g.GroupName?.Name || g.Subject || g.name || '(sem nome)',
     membros: (g.Participants || g.participants || []).length })).filter(g => g.jid);
