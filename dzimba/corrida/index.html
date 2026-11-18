@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Big+Shoulders+Display:wght@600;800;900&family=Cormorant+Garamond:ital,wght@1,600&family=Permanent+Marker&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=19">
+  <link rel="stylesheet" href="css/style.css?v=20">
   <script>
     document.documentElement.classList.add('anima');   // sempre animado (pedido do dono), mesmo com "reduzir movimento"
   </script>
@@ -385,6 +385,7 @@
       <form id="pay-form" novalidate>
         <label>Nome completo <small>(como vai sair no certificado)</small><input name="nome" autocomplete="name" required></label>
         <label>WhatsApp com DDD<input name="whatsapp" inputmode="tel" autocomplete="tel" required></label>
+        <label>CPF <small>(o Mercado Pago confere para aprovar o pagamento)</small><input name="cpf" inputmode="numeric" autocomplete="off" maxlength="14" required></label>
         <label>E-mail<input name="email" type="email" autocomplete="email" required></label>
         <fieldset class="niveis">
           <legend>Hoje você está em qual nível?</legend>
@@ -403,6 +404,7 @@
 
     <div class="pay__passo" data-step="pix" hidden>
       <h3 class="pay__titulo">Falta pouco!</h3>
+      <p class="pay__recusa" id="pay-recusa" hidden>O cartão não foi aprovado. Sem problema: pague no PIX abaixo e a vaga fica garantida na hora.</p>
       <p class="pay__sub">Escaneie o QR code no app do seu banco ou copie o código</p>
       <img class="pay__qr" alt="QR code do PIX">
       <button class="pay__copiar" type="button">Copiar código PIX</button>
@@ -425,6 +427,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
-<script src="js/main.js?v=18" defer></script>
+<script src="js/main.js?v=19" defer></script>
 </body>
 </html>

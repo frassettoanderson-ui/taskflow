@@ -71,14 +71,28 @@ function loteAtual() {   // { numero, vagas, valor, restantes } ou null se acabo
 const valorAtual = () => (loteAtual() || LOTES[LOTES.length - 1]).valor;
 const valorCartao = v => Number((v / (1 - TAXA_CARTAO)).toFixed(2));
 
+function cpfValido(c) {
+  c = digits(c);
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  for (const n of [9, 10]) {
+    let s = 0;
+    for (let i = 0; i < n; i++) s += Number(c[i]) * (n + 1 - i);
+    if (((s * 10) % 11) % 10 !== Number(c[n])) return false;
+  }
+  return true;
+}
+// CPF vai para o Mercado Pago: sem ele o antifraude não confere o comprador e recusa mais cartões
+const identificacao = d => (d.cpf ? { identification: { type: 'CPF', number: d.cpf } } : {});
+
 function lerInscricao(body) {
   const nome = String(body.nome || '').trim().replace(/\s+/g, ' ');
   const email = String(body.email || '').trim();
   const whatsapp = digits(body.whatsapp);
   const nivel = NIVEIS.includes(body.nivel) ? body.nivel : '';
-  if (!ok(nome) || nome.split(' ').length < 2 || !/.+@.+\..+/.test(email) || whatsapp.length < 10) return null;
+  const cpf = digits(body.cpf);
+  if (!ok(nome) || nome.split(' ').length < 2 || !/.+@.+\..+/.test(email) || whatsapp.length < 10 || !cpfValido(cpf)) return null;
   const patrocinadores = body.patrocinadores === true;   // autorização expressa (LGPD): só vale marcada pela própria pessoa
-  return { nome, email, whatsapp, nivel, patrocinadores, ...(patrocinadores ? { patrocinadoresEm: new Date().toISOString() } : {}) };
+  return { nome, email, whatsapp, cpf, nivel, patrocinadores, ...(patrocinadores ? { patrocinadoresEm: new Date().toISOString() } : {}) };
 }
 
 // o front usa pra decidir se abre o formulário ou cai no WhatsApp
@@ -109,7 +123,7 @@ app.post('/api/inscrever', async (req, res) => {
       payment_method_id: 'pix',
       notification_url: `${PUBLIC_BASE}/api/webhook`,
       external_reference: id,
-      payer: { email: d.email, first_name: primeiro, last_name: resto.join(' ') },
+      payer: { email: d.email, first_name: primeiro, last_name: resto.join(' '), ...identificacao(d) },
     }),
   });
   if (!r.ok) { console.error('MP pix erro', r.status, r.body); return res.status(502).json({ error: 'falha_pix', detalhe: r.body.message }); }
@@ -135,7 +149,7 @@ app.post('/api/cartao', async (req, res) => {
     method: 'POST',
     body: JSON.stringify({
       items: itens,
-      payer: { name: pnome, surname: sobrenome, email: d.email, phone: { area_code: ddd, number: fone } },
+      payer: { name: pnome, surname: sobrenome, email: d.email, phone: { area_code: ddd, number: fone }, ...identificacao(d) },
       additional_info: { items: itens, payer: { first_name: pnome, last_name: sobrenome, phone: { area_code: ddd, number: fone } } },
       statement_descriptor: 'DZIMBA CORRIDA',
       external_reference: id,
@@ -149,6 +163,44 @@ app.post('/api/cartao', async (req, res) => {
   db[id] = { id, ...d, valor: VALOR_CARTAO, lote: LOTE, metodo: 'cartao', mp_id: null, status: 'pending', criado: new Date().toISOString(), pago: null };
   save();
   res.json({ id, init_point: r.body.init_point });
+});
+
+// cartão recusado: a pessoa volta para o site e já recebe o PIX do mesmo lote (sem a taxa do cartão)
+app.post('/api/pix-do-cartao', async (req, res) => {
+  if (!TOKEN) return res.status(503).json({ error: 'pagamento_nao_configurado' });
+  const rec = db[String(req.body.id || '')];
+  if (!rec || rec.manual) return res.status(404).json({ error: 'nao_encontrado' });
+  if (rec.status === 'approved') return res.json({ id: rec.id, status: 'approved', grupo: cfg.grupoLink || '' });
+  const pid = digits(req.body.payment_id);
+  if (pid) {
+    const p = await mp('/v1/payments/' + pid);
+    if (p.ok && p.body.external_reference === rec.id) {
+      if (p.body.status === 'approved') { rec.mp_id = pid; aprovar(rec); return res.json({ id: rec.id, status: 'approved', grupo: cfg.grupoLink || '' }); }
+      if (p.body.status === 'rejected') registrarRecusa(rec, p.body);
+    }
+  }
+  if (rec.metodo === 'pix' && rec.pixQr && rec.status === 'pending') return res.json({ id: rec.id, ...rec.pixQr });
+  if (esgotado()) return res.status(409).json({ error: 'esgotado', detalhe: 'As vagas acabaram.' });
+  const VALOR = (LOTES.find(l => l.numero === rec.lote) || {}).valor || valorAtual();
+  const [primeiro, ...resto] = rec.nome.split(' ');
+  const r = await mp('/v1/payments', {
+    method: 'POST',
+    headers: { 'X-Idempotency-Key': rec.id + '-pix' },
+    body: JSON.stringify({
+      transaction_amount: VALOR,
+      description: TITULO,
+      payment_method_id: 'pix',
+      notification_url: `${PUBLIC_BASE}/api/webhook`,
+      external_reference: rec.id,
+      payer: { email: rec.email, first_name: primeiro, last_name: resto.join(' '), ...identificacao(rec) },
+    }),
+  });
+  if (!r.ok) { console.error('MP pix (cartão recusado) erro', r.status, r.body); return res.status(502).json({ error: 'falha_pix' }); }
+  const tx = r.body.point_of_interaction?.transaction_data || {};
+  rec.metodo = 'pix'; rec.valor = VALOR; rec.mp_id = r.body.id; rec.status = 'pending';
+  rec.pixQr = { qr_code: tx.qr_code, qr_code_base64: tx.qr_code_base64, expira: tx.expiration_date };
+  save();
+  res.json({ id: rec.id, ...rec.pixQr });
 });
 
 // o front pergunta o status enquanto o PIX não confirma
@@ -173,11 +225,40 @@ app.post('/api/webhook', async (req, res) => {
     if (!r.ok) return;
     const rec = db[r.body.external_reference];
     if (!rec) return;
+    if (r.body.status === 'rejected') { registrarRecusa(rec, r.body); return; }
     rec.mp_id = paymentId;
     if (r.body.status === 'approved') aprovar(rec);
     else if (rec.status === 'pending') { rec.status = r.body.status; save(); }
   } catch (e) { console.error('webhook', e); }
 });
+
+// motivo da recusa em português (status_detail do Mercado Pago)
+const MOTIVOS = {
+  cc_rejected_high_risk: 'Antifraude do Mercado Pago',
+  cc_rejected_blacklist: 'Cartão bloqueado pelo Mercado Pago',
+  cc_rejected_insufficient_amount: 'Sem limite/saldo',
+  cc_rejected_bad_filled_security_code: 'Código de segurança errado',
+  cc_rejected_bad_filled_date: 'Validade errada',
+  cc_rejected_bad_filled_card_number: 'Número do cartão errado',
+  cc_rejected_bad_filled_other: 'Dados do cartão errados',
+  cc_rejected_call_for_authorize: 'Banco pediu autorização do titular',
+  cc_rejected_card_disabled: 'Cartão desativado no banco',
+  cc_rejected_card_type_not_allowed: 'Tipo de cartão não aceito',
+  cc_rejected_duplicated_payment: 'Pagamento repetido',
+  cc_rejected_max_attempts: 'Tentativas demais',
+  cc_rejected_invalid_installments: 'Parcelamento não aceito',
+  cc_rejected_other_reason: 'Recusado pelo banco do cartão',
+  rejected_by_bank: 'Recusado pelo banco do cartão',
+  rejected_by_regulations: 'Recusado por regra do Mercado Pago',
+  rejected_high_risk: 'Antifraude do Mercado Pago',
+};
+function registrarRecusa(rec, pg) {
+  rec.recusas = rec.recusas || [];
+  if (rec.recusas.some(x => String(x.mp_id) === String(pg.id))) return;
+  rec.recusas.push({ mp_id: pg.id, em: new Date().toISOString(), detalhe: pg.status_detail || '', motivo: MOTIVOS[pg.status_detail] || pg.status_detail || 'Recusado', bandeira: pg.payment_method_id || '' });
+  if (rec.status === 'pending') rec.status = 'rejected';
+  save();
+}
 
 function aprovar(rec) {
   if (rec.status === 'approved') return;
@@ -550,9 +631,9 @@ app.get('/api/admin', (req, res) => {
     return res.send('\ufeff' + rs.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(';')).join('\n'));
   }
   let nc = 0;
-  const rows = [['#', 'nome', 'whatsapp', 'email', 'nivel', 'status', 'metodo', 'valor', 'inscrito', 'pago', 'grupo', 'mensagem', 'presente', 'certificado', 'patrocinadores'],
-    ...list.map(r => [r.status === 'approved' ? ++nc : '', r.nome, r.whatsapp, r.email, NIVEL_TXT[r.nivel] || '', r.status, r.metodo, r.valor, r.criado, r.pago || '',
-      r.pos?.grupo || '', r.pos?.texto || '', r.presente ? 'sim' : '', r.cert?.status || '', r.patrocinadores ? 'autorizou' : ''])];
+  const rows = [['#', 'nome', 'whatsapp', 'cpf', 'email', 'nivel', 'status', 'metodo', 'valor', 'inscrito', 'pago', 'grupo', 'mensagem', 'presente', 'certificado', 'patrocinadores', 'cartao recusado'],
+    ...list.map(r => [r.status === 'approved' ? ++nc : '', r.nome, r.whatsapp, r.cpf || '', r.email, NIVEL_TXT[r.nivel] || '', r.status, r.metodo, r.valor, r.criado, r.pago || '',
+      r.pos?.grupo || '', r.pos?.texto || '', r.presente ? 'sim' : '', r.cert?.status || '', r.patrocinadores ? 'autorizou' : '', (r.recusas || []).map(x => x.motivo).join(' | ')])];
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename=inscritos-corrida-dzimba.csv');
   res.send('﻿' + rows.map(r => r.map(c => `"${String(c == null ? '' : c).replace(/"/g, '""')}"`).join(';')).join('\n'));

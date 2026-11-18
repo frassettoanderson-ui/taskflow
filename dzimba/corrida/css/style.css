@@ -443,6 +443,7 @@ a { color: inherit; }
 .pay__preco { opacity: .75; font: 600 .78em/1 var(--corpo); letter-spacing: .04em; text-transform: none; white-space: nowrap; }
 .pay__aviso { margin: 0; font-size: .88rem; color: var(--suave); text-align: center; }
 .pay__erro { margin: 0; color: var(--erro); font-size: .92rem; text-align: center; }
+.pay__recusa { margin: .2rem 0 .6rem; padding: .7em .9em; border-radius: 6px; background: rgba(255,107,91,.1); color: var(--texto); font-size: .92rem; text-align: center; }
 .pay__qr { width: 230px; height: 230px; margin: 0 auto 1rem; background: #fff; padding: 10px; border-radius: 6px; }
 .pay__copiar { width: 100%; padding: .9em; background: var(--preto); border: 1px dashed var(--lime); color: var(--lime); font: 700 1rem var(--corpo); border-radius: 4px; cursor: pointer; }
 .pay__espera { display: flex; align-items: center; justify-content: center; gap: .6em; color: var(--suave); font-size: .92rem; margin: 1.2rem 0 0; }

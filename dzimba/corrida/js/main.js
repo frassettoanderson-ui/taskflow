@@ -12,6 +12,7 @@
   var ZAP = 'https://wa.me/5548999474500?text=';
   var CURSO = new Date('2026-12-12T14:30:00-03:00').getTime();
   var cfg = { enabled: false }, voltouFalha = /[?&]pagamento=falhou/.test(location.search);
+  var qs = new URLSearchParams(location.search), refCartao = qs.get('external_reference'), pagCartao = qs.get('payment_id') || qs.get('collection_id');
 
   var $ = function (s, el) { return (el || document).querySelector(s); };
   var $$ = function (s, el) { return Array.prototype.slice.call((el || document).querySelectorAll(s)); };
@@ -291,7 +292,7 @@
     .catch(function () { return { enabled: false }; })
     .then(function (c) {
       cfg = c || { enabled: false }; aplicarConfig();
-      if (voltouFalha && cfg.enabled) { abrir(); mostraErro('O pagamento no cartão não foi aprovado. Tente de novo ou pague no PIX.'); }
+      if (voltouFalha && cfg.enabled) cartaoRecusado();
     });
 
   function passo(nome) { $$('.pay__passo', pay).forEach(function (p) { p.hidden = p.dataset.step !== nome; }); }
@@ -321,11 +322,25 @@
     if (d.length > 7) r = '(' + d.slice(0, 2) + ') ' + d.slice(2, d.length - 4) + '-' + d.slice(-4);
     this.value = r;
   });
+  form.cpf.addEventListener('input', function () {
+    var d = this.value.replace(/\D/g, '').slice(0, 11);
+    this.value = d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
+  });
+  function cpfValido(c) {
+    c = String(c).replace(/\D/g, '');
+    if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+    for (var n = 9; n <= 10; n++) {
+      var s = 0;
+      for (var i = 0; i < n; i++) s += Number(c[i]) * (n + 1 - i);
+      if (((s * 10) % 11) % 10 !== Number(c[n])) return false;
+    }
+    return true;
+  }
   form.nome.addEventListener('input', function () { campoNome.value = this.value; nomeAoVivo(); });
 
   function dados() {
     var nivel = $('input[name=nivel]:checked', form);
-    return { nome: form.nome.value.trim(), whatsapp: form.whatsapp.value, email: form.email.value.trim(), nivel: nivel ? nivel.value : '', patrocinadores: form.patrocinadores.checked };
+    return { nome: form.nome.value.trim(), whatsapp: form.whatsapp.value, cpf: form.cpf.value, email: form.email.value.trim(), nivel: nivel ? nivel.value : '', patrocinadores: form.patrocinadores.checked };
   }
   function mostraErro(t) { erro.textContent = t; erro.hidden = false; }
   function validar(d) {
@@ -333,6 +348,7 @@
     var falha = null;
     if (d.nome.split(/\s+/).length < 2) falha = [form.nome, 'Escreva o nome completo, do jeito que vai sair no certificado.'];
     else if (d.whatsapp.replace(/\D/g, '').length < 10) falha = [form.whatsapp, 'Confira o WhatsApp com DDD.'];
+    else if (!cpfValido(d.cpf)) falha = [form.cpf, 'Confira o CPF.'];
     else if (!/.+@.+\..+/.test(d.email)) falha = [form.email, 'Confira o e-mail.'];
     if (!falha) return true;
     falha[0].classList.add('invalido'); falha[0].focus(); mostraErro(falha[1]); return false;
@@ -344,7 +360,7 @@
   }
   function falhou(j) {
     if (j && j.error === 'esgotado') return 'As vagas acabaram.';
-    if (j && j.error === 'dados_invalidos') return 'Confira os dados e tente de novo.';
+    if (j && j.error === 'dados_invalidos') return 'Confira os dados (nome completo, WhatsApp, CPF e e-mail) e tente de novo.';
     return 'Não deu para gerar o pagamento agora. Tente de novo em instantes.';
   }
 
@@ -353,7 +369,7 @@
     erro.hidden = true;
     var d = dados(); if (!validar(d)) return;
     var txt = 'Olá! Quero garantir minha vaga no *Curso Treinamento de Corrida de Rua* (12/12).\n\n' +
-      'Nome: ' + d.nome + '\nWhatsApp: ' + d.whatsapp + '\nE-mail: ' + d.email + (d.nivel ? '\nNível: ' + NIVEIS[d.nivel] : '') +
+      'Nome: ' + d.nome + '\nWhatsApp: ' + d.whatsapp + '\nCPF: ' + d.cpf + '\nE-mail: ' + d.email + (d.nivel ? '\nNível: ' + NIVEIS[d.nivel] : '') +
       '\nAutorizo compartilhar meus contatos com os patrocinadores: ' + (d.patrocinadores ? 'SIM' : 'não') +
       (cfg.valor ? '\n\nValor: R$ ' + brl(cfg.valor) + (cfg.lote ? ' (' + cfg.lote.numero + 'º lote)' : '') : '');
     window.open(ZAP + encodeURIComponent(txt), '_blank', 'noopener');
@@ -368,6 +384,16 @@
     post('inscrever', d).then(function (j) {
       ocupado(false);
       if (!j._ok || !j.qr_code) { mostraErro(falhou(j)); return; }
+      mostrarPix(j);
+    }).catch(function () { ocupado(false); mostraErro(falhou()); });
+  });
+
+  function confirmado(s) {
+    var g = $('#pay-grupo');
+    if (s.grupo) { g.href = s.grupo; g.hidden = false; }
+    passo('ok');
+  }
+  function mostrarPix(j) {
       $('.pay__qr', pay).src = 'data:image/png;base64,' + j.qr_code_base64;
       var copiar = $('.pay__copiar', pay);
       copiar.textContent = 'Copiar código PIX';
@@ -382,13 +408,25 @@
         fetch(API + 'status/' + j.id).then(function (r) { return r.json(); }).then(function (s) {
           if (s.status !== 'approved') return;
           clearInterval(poll);
-          var g = $('#pay-grupo');
-          if (s.grupo) { g.href = s.grupo; g.hidden = false; }
-          passo('ok');
+          confirmado(s);
         }).catch(function () {});
       }, 4000);
-    }).catch(function () { ocupado(false); mostraErro(falhou()); });
-  });
+  }
+
+  // voltou do Mercado Pago com o cartão recusado: o PIX do mesmo lote já abre pronto
+  function cartaoRecusado() {
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) {}
+    abrir();
+    if (!refCartao) { mostraErro('O pagamento no cartão não foi aprovado. Tente de novo ou pague no PIX.'); return; }
+    ocupado(true);
+    post('pix-do-cartao', { id: refCartao, payment_id: pagCartao }).then(function (j) {
+      ocupado(false);
+      if (j._ok && j.status === 'approved') { confirmado(j); return; }
+      if (!j._ok || !j.qr_code) { mostraErro('O pagamento no cartão não foi aprovado. Preencha de novo e pague no PIX.'); return; }
+      $('#pay-recusa').hidden = false;
+      mostrarPix(j);
+    }).catch(function () { ocupado(false); mostraErro('O pagamento no cartão não foi aprovado. Tente de novo ou pague no PIX.'); });
+  }
 
   $('[data-cartao]', form).addEventListener('click', function () {
     erro.hidden = true;

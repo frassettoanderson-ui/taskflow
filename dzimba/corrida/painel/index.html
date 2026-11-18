@@ -374,7 +374,11 @@ iframe.previa { width: 100%; height: 60vh; border: 0; border-radius: 4px; backgr
   function linha(i) {
     var pago = i.status === 'approved';
     var pagto = pago ? '<span class="tag ok">' + esc(METODO[i.metodo] || i.metodo) + ' · ' + brl(i.valor) + '</span><div class="sub">' + dataBR(i.pago) + '</div>'
-      : '<span class="tag pend">' + (i.status === 'pending' ? 'Aguardando' : esc(i.status)) + '</span><div class="sub">' + dataBR(i.criado) + '</div>';
+      : '<span class="tag pend">' + (i.status === 'pending' ? 'Aguardando' : i.status === 'rejected' ? 'Recusado' : esc(i.status)) + '</span><div class="sub">' + dataBR(i.criado) + '</div>';
+    if (i.recusas && i.recusas.length) {
+      var ult = i.recusas[i.recusas.length - 1];
+      pagto += '<div class="sub"><span class="tag erro" title="' + esc(i.recusas.map(function (x) { return dataBR(x.em) + ': ' + x.motivo + (x.bandeira ? ' (' + x.bandeira + ')' : ''); }).join('\n')) + '">Cartão recusado' + (i.recusas.length > 1 ? ' ' + i.recusas.length + 'x' : '') + '</span> ' + esc(ult.motivo) + '</div>';
+    }
     var grupo = '';
     if (pago) {
       if (i.noGrupo === true) grupo = '<span class="tag ok">No grupo</span>';
