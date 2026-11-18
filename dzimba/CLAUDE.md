@@ -96,7 +96,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
 - **Testar local:** `ADMIN_KEY=x PORT=8499 node server.js` em `corrida/api`, mais o servidor `dzimba-corrida` do launch.json (porta 8171, faz proxy de `/corrida/api/` para 8499).
 
 ### Falta (corrida)
-1. **Access Token de produção do Mercado Pago da academia** (`APP_USR-...`, conta com chave PIX cadastrada). Vai em `MP_ACCESS_TOKEN` no `/opt/dzimba-corrida/.env`, depois `pm2 restart dzimba-corrida`.
+1. ~~Access Token do Mercado Pago~~ (18/11): **ligado**. App "Curso Corrida DZimba" (Checkout Pro) na conta MP **DECARVALHOPATRICK** (id 177629499, pessoa física, do Patrick); token em `MP_ACCESS_TOKEN` no `/opt/dzimba-corrida/.env` (backup `.env.bak-*`). Testado: `/api/config` enabled:true e Pix de R$1 gerou QR (cancelado na hora). Taxa do cartão repassada = `TAXA_CARTAO` 4,98% (padrão; ajustar se a taxa contratada for outra).
 2. ~~Valor~~ (16/11): **venda por lotes**, `LOTES=30:99,30:119,30:139` no `.env` da VPS (vagas:valor). O lote muda sozinho quando as vagas pagas do lote acabam (cortesia não conta); total 90 vagas, depois esgota. A página e o `/api/config` só revelam o valor do lote ATUAL; os próximos aparecem como "valor maior" (pedido do usuário). Quem gerou o PIX/cartão paga o valor do lote em que gerou. O painel mostra o lote e as vendidas.
 3. **Parear o WhatsApp** (48) 99947-4500 pelo QR do painel e **criar o grupo** e escolher no painel
 4. ~~Fotos do Marcos~~ (15/11): `img/marcos-1.jpg` é a foto dele do Instagram @marcospaulohuber (post da Univinte, de camisa social) trocada no Codex para roupa de corrida na pista, com o rosto mantido. Alternativa na orla em `_dev/marcos-praia.jpg`. Se o Marcos mandar foto real de corrida, trocar.
