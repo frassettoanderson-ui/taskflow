@@ -80,7 +80,7 @@ Segue o molde da conferência Diamond da Abarim (`../site/diamond/`).
   - O `.env` e o `data/` (inscritos.json, config.json) só existem na VPS; o deploy não sobrescreve.
 - **Pagamento:** Mercado Pago da academia.
   - PIX na própria página.
-  - Cartão pelo Checkout Pro, com a taxa repassada: `VALOR/(1-TAXA_CARTAO)`.
+  - Cartão pelo Checkout Pro, com a taxa repassada: `VALOR/(1-TAXA_CARTAO)`. Desde 18/11 em **até 3x** (`MAX_PARCELAS=3` no `.env` da VPS); os juros das parcelas são da maquininha e quem paga é o comprador (consultado em 18/11, lote de R$99: 1x R$104,19 · 2x total R$114,23 · 3x total R$115,89). O botão do cartão no checkout não mostra valor, só "(com juros da maquininha)" (pedido do usuário).
   - **Aprovação do cartão (18/11):** a inscrição pede **CPF** (máscara + validação dos dígitos no site e no servidor) e manda em `payer.identification` no Pix e no cartão, porque sem CPF o antifraude recusa mais (`cc_rejected_high_risk`). Cada recusa fica gravada em `rec.recusas` (webhook ou volta do MP) com o motivo em português (`MOTIVOS` no server.js); o painel mostra a etiqueta "Cartão recusado" com o motivo, e a planilha tem as colunas `cpf` e `cartao recusado`.
   - **Cartão recusado → Pix na hora:** a volta de falha do MP (`?pagamento=falhou&external_reference=...&payment_id=...`) chama `POST /api/pix-do-cartao`, que transforma a mesma inscrição em Pix do mesmo lote (sem a taxa do cartão) e o site já abre o QR com o aviso "O cartão não foi aprovado". Chamar de novo devolve o mesmo QR.
   - Conta do Patrick: o endereço estava pendente no MP (`address_pending`) em 18/11; completar o cadastro/validação de identidade ajuda a aprovar.
