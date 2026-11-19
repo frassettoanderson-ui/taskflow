@@ -52,7 +52,7 @@ O que dispara tudo é um script no REAPER (`Scripts\play_automatico.lua`). O `__
 **Painel de LED:**
 - É da NovaStar. O NovaLCT V5.9.2 e o MarsServerProvider ficam abertos e conversam com **3 aparelhos na rede**: 192.168.0.230, .240 e .244, porta 5200.
 - O vídeo sai da RX 580 por duas saídas: um monitor "HDMI" e um aparelho NovaStar ("HDMI2.0").
-- **Ainda não confirmado:** como a imagem do OBS vai para o LED. Não há projetor salvo no OBS. Isso só dá para ver na tela, pelo AnyDesk.
+- **Confirmado pelo usuário em 19/11:** o LED está ligado no PC pelo HDMI e funciona como **segunda tela** do Windows. O OBS mostra a imagem nessa tela.
 
 ## 4. Som
 
@@ -101,6 +101,5 @@ O que dispara tudo é um script no REAPER (`Scripts\play_automatico.lua`). O `__
 
 **Falta confirmar na academia:**
 - o que a COM25 aciona;
-- como o OBS aparece no LED;
 - o que é o aparelho em 192.168.0.231:8088;
 - o que faz a regra das 23:54 do Lumikit.
