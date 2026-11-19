@@ -1,6 +1,6 @@
 # OX Show — telão, música, luz e luz ambiente da OXFITNESS num lugar só
 
-Substitui a corrente frágil OBS + REAPER + loopMIDI + scripts Python + Advanced Scene Switcher por **um programa só** (Python stdlib + pyserial opcional) que roda no PC da academia (DESKTOP-NLQHNPL, 192.168.0.210, acesso só via AnyDesk; usuário roda os scripts que eu mando). O Lumikit continua, minimizado, comandado pela API WebRemote.
+Substitui a corrente frágil OBS + REAPER + loopMIDI + scripts Python + Advanced Scene Switcher por **um programa só** (Python stdlib + pyserial opcional) que roda no PC da academia (DESKTOP-NLQHNPL, 192.168.0.210; desde 16/11 também por SSH via Tailscale: `ssh usuario@100.122.133.22`, shell cmd). O Lumikit continua, minimizado, comandado pela API WebRemote.
 
 ## Arquivos (`oxshow/`)
 - `oxshow.py` — servidor :8710. Painel `/` (PIN; localhost dispensa), telão `/telao` (só localhost), mídia `/midia/*` com Range, SSE `/telao/sse`.
@@ -19,8 +19,11 @@ Substitui a corrente frágil OBS + REAPER + loopMIDI + scripts Python + Advanced
 - API/relay no repo raniandark-pdv: `server/src/modules/show/show.routes.ts` (`/show/login`, `/show/status`, `/show/proxy/*`, agente `/show/agente/fila|resposta`). Token do painel assinado com `JWT_SECRET + ":oxshow"` (não vale no OX Cloud).
 - O `oxshow.py` abre conexão de SAÍDA (`laco_nuvem`, long-poll com `X-Agente-Token` = `SHOW_AGENTE_TOKEN` do `.env` da VPS OX / `nuvem.token` no `config.json` da academia) e repassa cada pedido para `127.0.0.1:8710` (só `/api/`), com `X-Usuario` → registro mostra "OX Cloud: usuário". Atualizar o PC: `atualizar.ps1` (zip com `token-nuvem.txt`, gitignored).
 
+## Como funciona hoje
+Levantamento completo de 19/11/2026 em `levantamento-pc-telao-2026-11-19.md` (agenda do Lumikit, evento das 21h peça por peça, Sonvra pelo OBS, NovaStar, liga 04:30 BIOS / desliga 00:00).
+
 ## Regra de ouro
-O **evento das 21h (seg-sex)** continua no REAPER até a migração. Por isso: agenda vem **desativada**, `telao.abrir_automatico=false`, e `janela_protegida` trava comandos manuais 20:58–21:03 em dias úteis. Migração = testar fora do horário → desligar REAPER/OBS do início do Windows + tarefas `Mudar_Para_Cena_*` → ativar agenda e `abrir_automatico` → tirar `janela_protegida`.
+O **evento das 21h (seg-sex)** continua no REAPER até a migração. Por isso: agenda vem **desativada**, `telao.abrir_automatico=false`, e `janela_protegida` trava comandos manuais 20:58–21:03 em dias úteis. Migração = testar fora do horário → desligar REAPER/OBS do início do Windows (as tarefas `Mudar_Para_Cena_*` já não existem; ver levantamento) → ativar agenda e `abrir_automatico` → tirar `janela_protegida`.
 
 ## Pendências
 - Instalar e testar no PC real (monitor do LED, autoplay com som, Lumikit `timeline_play` sem MTC — se não tocar, gerar MTC via winmm/loopMIDI).
