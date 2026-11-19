@@ -351,6 +351,9 @@ def achar(colecao, iid):
     return item
 
 
+CENA_ATUAL = {"id": None}
+
+
 def rodar_cena(iid, profundidade=0, origem=""):
     cena = achar("cenas", iid)
     falhas = []
@@ -360,6 +363,8 @@ def rodar_cena(iid, profundidade=0, origem=""):
         except Exception as e:
             falhas.append(str(e))
     registrar("cena", cena["nome"], falhas, origem)
+    if profundidade == 0 and not falhas:
+        CENA_ATUAL["id"] = iid
     return falhas
 
 
@@ -502,7 +507,8 @@ def proximos(limite=6):
                 break
     lista.sort(key=lambda x: x[0])
     dias = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"]
-    return [{"quando": f"{dias[q.weekday()]} {q:%d/%m %H:%M:%S}", "nome": i["nome"]} for q, i in lista[:limite]]
+    return [{"quando": f"{dias[q.weekday()]} {q:%d/%m %H:%M:%S}", "nome": i["nome"], "tipo": i.get("tipo"), "alvo": i.get("alvo"),
+             "dia": dias[q.weekday()], "hora": f"{q:%H:%M}", "faltam": int((q - agora_).total_seconds())} for q, i in lista[:limite]]
 
 
 def laco_agenda():
@@ -679,6 +685,7 @@ def estado_painel():
         "ambiente": {"porta": CFG["ambiente"]["porta"], "cenas": [{"id": c["id"], "nome": c["nome"]} for c in CFG["ambiente"]["cenas"]]},
         "evento": ex.info() if ex and ex.is_alive() else None,
         "proximos": proximos(),
+        "cena": CENA_ATUAL["id"],
         "verificacao": VERIFICACAO,
         "protegido": janela_protegida(),
         "relogio": agora().strftime("%H:%M:%S"),
