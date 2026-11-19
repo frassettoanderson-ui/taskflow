@@ -17,7 +17,7 @@
 | O dia todo | O telão roda um vídeo único em loop e a música toca pelo site **Sonvra** | OBS (cena "Painel de Led") |
 | **19:00** (todos os dias) | Executa o cue "19:00" (luz da noite) | Agenda do Lumikit |
 | **20:59:57 a ~21:01:35** (seg a sex) | **Evento das 21h** (detalhe na seção 2) | REAPER + Lumikit + OBS + COM25 |
-| **23:54** (todos os dias) | Uma regra do Lumikit do tipo 10. Não identifiquei o que faz; provavelmente apaga as luzes. Conferir no Lumikit. | Agenda do Lumikit |
+| **23:54** (todos os dias) | Regra do Lumikit do tipo 10. Pela ordem das ações dentro do programa, deve ser **"Release all (Desligar tudo)"**, que apaga todas as luzes antes de fechar. Alta probabilidade, falta só olhar a tela. | Agenda do Lumikit |
 | **23:55** | Fecha OBS, REAPER, Lumikit, Edge, Chrome e NovaLCT "com educação", espera 20 s e limpa a sessão dos navegadores | Tarefa "Desligar Soft" (`Documents\Desligar Soft.bat`) |
 | **00:00** | Desliga o PC na marra (`shutdown -s -f`) | Tarefa "Desligar PC" |
 
@@ -58,7 +58,7 @@ O que dispara tudo é um script no REAPER (`Scripts\play_automatico.lua`). O `__
 
 - A placa de som é a USB **Meibaisi MBS16CH**, de 16 canais. O OBS manda o áudio para "Alto-falantes (MBS16CH)".
 - **A música do dia** é o site **Sonvra** aberto no Edge. O OBS captura esse som e o manda para a placa. Por isso o Edge usava cerca de 1 GB de RAM, e **se o OBS cair, a música para junto**.
-- O Chrome está conectado a **192.168.0.231:8088**, que é o painel web de algum aparelho da rede. Pode ser a mesa de som; confirmar.
+- **192.168.0.231 é a mesa de som Duonn AXIOS16E.** A página dela se chama "AXIOS16E" e foi aberta 50 vezes no Chrome, que a abre sozinho quando o PC liga.
 - Há um aparelho Google Cast (Chromecast ou TV) em 192.168.20.233, em outra faixa de rede.
 
 ## 5. Luz
@@ -101,5 +101,4 @@ O que dispara tudo é um script no REAPER (`Scripts\play_automatico.lua`). O `__
 
 **Falta confirmar na academia:**
 - o que a COM25 aciona;
-- o que é o aparelho em 192.168.0.231:8088;
-- o que faz a regra das 23:54 do Lumikit.
+- olhar na tela do Lumikit se a regra das 23:54 é mesmo "Release all".
