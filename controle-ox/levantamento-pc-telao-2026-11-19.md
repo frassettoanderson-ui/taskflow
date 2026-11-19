@@ -102,3 +102,17 @@ O que dispara tudo é um script no REAPER (`Scripts\play_automatico.lua`). O `__
 **Falta confirmar na academia:**
 - o que a COM25 aciona;
 - olhar na tela do Lumikit se a regra das 23:54 é mesmo "Release all".
+
+## 9. Fotos do rack (19/11)
+
+| Equipamento | Papel |
+|---|---|
+| **NovaStar VC6 Pro** (controladora de vídeo do LED) | Recebe o HDMI do PC (é a "segunda tela"). É o aparelho "NOVE45E" que o Windows vê. |
+| **Taramps THS 4004** (amplificador de 4 zonas: WC MAS, WC FEM, LOUNGE…) | Som dos banheiros e do lounge |
+| **Taigar System GSP2x** (processador digital de caixas) | O visor mostra **"Pro=1"** (programa 1) |
+| **Duonn AXIOS 16** (mesa digital) | Ligada ao PC por **USB**. A placa de som "MBS16CH" que o Windows vê é a própria mesa, com driver Meibaisi. Também está na rede: 192.168.0.231. |
+| Adaptador azul **USB → RS485** (CH340) na traseira do PC | É a COM25, com 2 fios no borne verde |
+
+**COM25, hipótese forte:** o par RS485 vai para o **processador Taigar**, e "cena 1" e "cena 2" trocam o **programa (preset) de som** dele. Por exemplo: Pro=1 é o som normal, e Pro=2 é o som do show das 21h.
+- **Indícios:** o visor mostra "Pro=1", que bate com o "cena 1" do dia; processadores desse tipo costumam ter RS485 para trocar de preset; e na academia não há outro aparelho de RS485.
+- **Para confirmar:** ver se os 2 fios do adaptador chegam no borne RS485 atrás do Taigar, ou olhar o visor dele durante o evento das 21h (deve mostrar "Pro=2").
