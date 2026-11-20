@@ -1080,3 +1080,123 @@ html[data-zoom="sai"] .app.zoom-entra-sozinha { animation-name: vt-tras-volta; t
 .rt-veredito b { color: var(--ouro-claro); }
 .rt-nivel { height: 4px; border-radius: 2px; background: var(--placa-2); overflow: hidden; }
 .rt-nivel i { display: block; height: 100%; width: 0; background: var(--apagado); transition: width .08s linear; }
+
+/* ---------- acordes: tela de entrada (Notas, Acordes, Campo harmônico) ---------- */
+.ah-topo { position: relative; }
+.ah-grade { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.ah-grade .ah-cartao.ini-cartao { grid-column: auto; min-height: 190px; }
+.ah-texto { display: block; width: 100%; padding: 0 14px 18px; }
+.ah-cartao .ini-nome { padding: 0 0 6px; font-size: 32px; color: var(--ouro-claro); }
+.ah-dica { display: block; font-size: 14.5px; line-height: 1.35; color: #d8d2c6; text-shadow: 0 1px 8px rgba(0,0,0,.8); }
+@media (min-width: 640px) {
+  .ah-grade { grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .ah-grade .ah-cartao.ini-cartao { min-height: 360px; }
+}
+@media (min-width: 1024px) {
+  .ah-grade .ah-cartao.ini-cartao { min-height: 470px; }
+  .ah-cartao .ini-nome { font-size: 40px; }
+  .ah-texto { padding-bottom: 26px; }
+}
+
+/* ---------- notas do braço ---------- */
+.nt-controles { display: grid; gap: 0 10px; max-width: 640px; margin: 0 auto; }
+@media (min-width: 700px) { .nt-controles { grid-template-columns: 1fr 1fr; } }
+.nt-escolha { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 2px 0 16px; }
+.nt-chip {
+  min-width: 46px; min-height: 40px; padding: 6px 10px; border: 0; border-radius: var(--r-p); cursor: pointer;
+  background: var(--placa-2); color: var(--texto); font-weight: 700; font-size: 15px; transition: background .15s, color .15s;
+}
+.nt-chip.sust { background: var(--placa); color: var(--apagado); font-size: 14px; }
+.nt-chip:hover { background: var(--placa-3); }
+.nt-chip.ativo { background: var(--ouro); color: var(--tinta); }
+.nt-braco { border-radius: var(--r); background: #100e0c; padding: 6px 4px; }
+.nt-braco svg { display: block; width: 100%; height: auto; font-family: var(--fonte); user-select: none; }
+.nt-braco.em-pe { max-width: 460px; margin: 0 auto; }
+.nt-traste { stroke: #8e8981; stroke-width: 2.6; }
+.nt-pestana { stroke: #e7dcc6; stroke-width: 9; stroke-linecap: round; }
+.nt-corda { stroke: #d8d0c0; opacity: .85; }
+.nt-corda.grossa { stroke: #c2a46e; }
+.nt-bolinha { fill: #e2d8c4; opacity: .22; }
+.nt-num { fill: var(--apagado); font-size: 13px; font-weight: 600; }
+.nt-num.forte { fill: var(--texto); font-weight: 800; }
+.nt-cnum { fill: var(--ouro); font-size: 13px; font-weight: 800; }
+.nt-nota { cursor: pointer; outline: none; }
+.nt-nota circle { fill: #15130f; stroke: rgba(227,173,69,.42); stroke-width: 1.5; transition: fill .15s, stroke .15s; }
+.nt-nota text { fill: var(--texto); font-weight: 800; pointer-events: none; }
+.nt-nota.sust circle { fill: #0e0d0b; stroke: rgba(241,237,228,.14); }
+.nt-nota.sust text { fill: var(--apagado); font-weight: 700; }
+.nt-nota.aberta circle { stroke: var(--ouro); stroke-width: 2; }
+.nt-nota:hover circle, .nt-nota:focus-visible circle { stroke: var(--ouro-claro); stroke-width: 2.5; }
+.nt-nota.marcada circle { fill: var(--ouro); stroke: var(--ouro); }
+.nt-nota.marcada text { fill: var(--tinta); }
+.nt-nota.mesma circle { fill: var(--ouro-claro); stroke: #fff; stroke-width: 3.5; }
+.nt-nota.soando { animation: nt-pulsa .6s ease-out; transform-box: fill-box; transform-origin: center; }
+@keyframes nt-pulsa { 0% { transform: scale(1.35); } 100% { transform: scale(1); } }
+.nt-legenda { text-align: center; color: var(--apagado); font-size: 14.5px; margin: 12px auto 0; max-width: 560px; min-height: 2.9em; }
+.nt-legenda strong { color: var(--ouro-claro); }
+.nt-dicas { display: grid; gap: 8px; margin-top: 18px; }
+@media (min-width: 700px) { .nt-dicas { grid-template-columns: repeat(3, 1fr); } }
+.nt-dicas div { background: var(--placa); border-radius: var(--r); padding: 14px 16px; text-align: center; }
+.nt-dicas strong { display: block; color: var(--ouro-claro); font-size: 16px; margin-bottom: 4px; }
+.nt-dicas span { color: var(--apagado); font-size: 14px; line-height: 1.45; }
+
+/* ---------- campo harmônico ---------- */
+.ch-cabeca { text-align: center; margin: -4px 0 8px; }
+.ch-cabeca h2 { margin: 0; font-size: 40px; line-height: 1; font-stretch: 78%; font-weight: 800; color: var(--ouro-claro); }
+.ch-cabeca p { margin: 8px auto 0; max-width: 46ch; color: var(--apagado); font-size: 15px; }
+.ch-bloco { margin-top: 34px; }
+.ch-bloco h3 { margin: 0 0 8px; text-align: center; font-size: 23px; font-stretch: 78%; font-weight: 800; }
+.ch-texto { text-align: center; color: var(--apagado); font-size: 14.5px; max-width: 56ch; margin: 0 auto 14px; }
+.ch-texto strong { color: var(--texto); }
+.ch-acoes { display: flex; justify-content: center; }
+.ch-escala { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr) auto) minmax(0, 1fr); align-items: center; gap: 3px; margin: 6px 0 14px; }
+.ch-nota {
+  display: grid; justify-items: center; gap: 1px; padding: 10px 0 8px; border: 0; border-radius: var(--r-p);
+  background: var(--placa-2); color: var(--texto); cursor: pointer; transition: background .15s;
+}
+.ch-nota b { font-size: 15px; line-height: 1.1; }
+.ch-nota small { font-size: 11px; color: var(--apagado); }
+.ch-nota:hover { background: var(--placa-3); }
+.ch-nota.soando { background: var(--ouro); color: var(--tinta); }
+.ch-nota.soando small { color: #4a3812; }
+.ch-passo { font-size: 12px; font-weight: 700; color: var(--apagado); text-align: center; }
+.ch-passo.meio { color: var(--ouro); font-weight: 800; }
+@media (min-width: 640px) {
+  .ch-escala { gap: 6px; }
+  .ch-nota b { font-size: 19px; }
+  .ch-nota { padding: 14px 0 10px; }
+  .ch-passo { font-size: 14px; }
+}
+.ch-pulo { background: var(--placa); border-radius: var(--r); padding: 16px 10px 4px; }
+.ch-pulo-linha { display: flex; justify-content: center; gap: 5px; flex-wrap: wrap; }
+.ch-pulo-nota { min-width: 40px; padding: 8px 6px; border-radius: var(--r-p); text-align: center; font-weight: 700; background: var(--placa-2); opacity: .25; }
+.ch-pulo-nota.pega { opacity: 1; background: var(--ouro); color: var(--tinta); }
+.ch-pulo-nota.pulada { opacity: .5; text-decoration: line-through; }
+.ch-pulo-res { text-align: center; font-size: 18px; margin: 12px 0; }
+.ch-pulo-res b { color: var(--ouro-claro); font-size: 24px; }
+.ch-pulo-graus { margin-bottom: 10px; }
+.ch-graus { display: flex; flex-wrap: wrap; justify-content: center; }
+.ch-graus .mural-cartao { width: calc((100% - 10px) / 2); }
+@media (min-width: 640px) { .ch-graus .mural-cartao { width: calc((100% - 30px) / 4); } }
+.ch-tipo { font-size: 13px; color: var(--texto); font-weight: 600; }
+.ch-notas { font-size: 12.5px; color: var(--apagado); }
+.ch-grau.raro .mural-tocar { opacity: .72; }
+.ch-raro { display: block; padding: 9px 6px; border-top: 1px solid var(--linha); text-align: center; color: var(--apagado); font-size: 12.5px; }
+.ch-regra { text-align: center; margin: 18px auto 12px; font-size: 17px; font-weight: 800; color: var(--ouro-claro); }
+.ch-regra small { display: block; margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--apagado); }
+.ch-seqs { display: grid; gap: 10px; }
+@media (min-width: 640px) { .ch-seqs { grid-template-columns: 1fr 1fr; } }
+.ch-seq {
+  display: grid; gap: 12px; padding: 16px 14px 14px; border-radius: var(--r); background: var(--placa); text-align: center;
+  outline: 2px solid transparent; outline-offset: -2px; transition: outline-color .3s;
+}
+.ch-seq.tocando { outline-color: var(--ouro); }
+.ch-seq-topo strong { display: block; font-size: 17px; }
+.ch-seq-topo small { display: block; color: var(--apagado); font-size: 13.5px; margin-top: 6px; }
+.ch-seq-acordes { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+.ch-seq-acordes i {
+  font-style: normal; font-weight: 800; font-size: 20px; min-width: 46px; padding: 4px 8px; border-radius: var(--r-p);
+  background: var(--placa-2); color: var(--ouro-claro); transition: background .15s, color .15s;
+}
+.ch-seq-acordes i.agora { background: var(--ouro); color: var(--tinta); }
+.ch-seq-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

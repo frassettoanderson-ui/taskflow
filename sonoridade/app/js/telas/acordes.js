@@ -20,7 +20,7 @@ export function montar(el, query) {
   };
 
   el.innerHTML = `
-    ${barraTopo('Acordes')}
+    ${barraTopo('Todos os acordes', '#/acordes')}
 
     <section class="qualquer">
       <label class="busca qualquer-campo">
@@ -53,7 +53,7 @@ export function montar(el, query) {
         <span class="mural-ext">${esc(a.nome)}</span>
         ${braco(a, { orientacao: 'vertical' })}
       </button>
-      <a class="mural-abrir" href="#/acordes/${encodeURIComponent(sim)}${consulta ? `?${consulta}` : ''}" aria-label="Detalhes de ${esc(sim)}">
+      <a class="mural-abrir" href="#/acordes/todos/${encodeURIComponent(sim)}${consulta ? `?${consulta}` : ''}" aria-label="Detalhes de ${esc(sim)}">
         Detalhes ${ICONES.avancar}
       </a>
     </div>`;
@@ -100,7 +100,7 @@ export function montar(el, query) {
         const ativo = links.find((l) => l.classList.contains('ativo'));
         const indice = $('#indice');
         if (ativo && indice) indice.scrollTo({ left: ativo.offsetLeft - (indice.clientWidth - ativo.offsetWidth) / 2, behavior: 'smooth' });
-        history.replaceState(null, '', `#/acordes?lista=${it.target.dataset.grupo}`);
+        history.replaceState(null, '', `#/acordes/todos?lista=${it.target.dataset.grupo}`);
       });
     }, { rootMargin: '-45% 0px -50% 0px' });
     el.querySelectorAll('.mural-grupo').forEach((s) => espiao.observe(s));
@@ -125,7 +125,7 @@ export function montar(el, query) {
       </div>
       <p class="tom-legenda">I V vi IV: a sequência que mais aparece em louvor.</p>
     `;
-    history.replaceState(null, '', `#/acordes?tom=${t.id}`);
+    history.replaceState(null, '', `#/acordes/todos?tom=${t.id}`);
   }
 
   function desenhar() {
@@ -181,7 +181,7 @@ export function montar(el, query) {
         ${braco(a, { compacto: window.innerWidth < 600, orientacao: 'horizontal' })}
         <div class="acoes">
           <button class="botao principal" data-tocar="${esc(s)}">${ICONES.som}<span>Ouvir</span></button>
-          <a class="botao" href="#/acordes/${encodeURIComponent(s)}">Detalhes</a>
+          <a class="botao" href="#/acordes/todos/${encodeURIComponent(s)}">Detalhes</a>
         </div>
       </div>`;
   }

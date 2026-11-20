@@ -2,6 +2,9 @@
 import * as inicio from './telas/inicio.js';
 import * as acordes from './telas/acordes.js';
 import * as acordeDetalhe from './telas/acorde.js';
+import * as acordesInicio from './telas/acordes-inicio.js';
+import * as notas from './telas/notas.js';
+import * as campo from './telas/campo.js';
 import * as batidas from './telas/batidas.js';
 import * as treino from './telas/treino.js';
 import * as sequencias from './telas/sequencias.js';
@@ -14,8 +17,13 @@ import * as exercicios from './telas/exercicios.js';
 import * as ferramentas from './telas/ferramentas.js';
 
 const ROTAS = [
-  { re: /^\/acordes\/([^?]+)(?:\?(.*))?$/, tela: acordeDetalhe },
-  { re: /^\/acordes(?:\?(.*))?$/, tela: acordes },
+  // Acordes: tela de entrada com 3 cartões (Notas, Acordes, Campo harmônico)
+  { re: /^\/acordes\/todos\/([^?]+)(?:\?(.*))?$/, tela: acordeDetalhe },
+  { re: /^\/acordes\/todos(?:\?(.*))?$/, tela: acordes },
+  { re: /^\/acordes\/notas\/?$/, tela: notas },
+  { re: /^\/acordes\/campo(?:\?(.*))?$/, tela: campo },
+  { re: /^\/acordes\/?(?:\?.*)?$/, tela: acordesInicio },
+  { re: /^\/acordes\/([^?]+)(?:\?(.*))?$/, tela: acordeDetalhe },   // links antigos
   { re: /^\/batidas\/([^?]+)(?:\?(.*))?$/, tela: treino },
   { re: /^\/batidas\/?$/, tela: batidas },
   { re: /^\/sequencias\/?$/, tela: sequencias },

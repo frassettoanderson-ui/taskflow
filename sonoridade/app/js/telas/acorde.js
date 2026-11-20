@@ -9,7 +9,7 @@ export function montar(el, simbolo, query) {
   const q = lerQuery(query);
   // fora do dicionário (C6(9), F#m7...), a posição é calculada pela teoria
   const a = acorde(simbolo) || (ehAcorde(simbolo) ? posicao(simbolo) : null);
-  const voltar = `#/acordes?${q.tom ? `tom=${q.tom}` : `lista=${q.lista || 'primeiros'}`}`;
+  const voltar = `#/acordes/todos?${q.tom ? `tom=${q.tom}` : `lista=${q.lista || 'primeiros'}`}`;
 
   if (!a) {
     el.innerHTML = `${barraTopo('Acordes', voltar)}<p class="intro">Acorde não encontrado.</p>`;
@@ -30,7 +30,7 @@ export function montar(el, simbolo, query) {
   const pos = lista.indexOf(simbolo);
   const ant = pos > 0 ? lista[pos - 1] : null;
   const prox = pos >= 0 && pos < lista.length - 1 ? lista[pos + 1] : null;
-  const link = (s) => `#/acordes/${encodeURIComponent(s)}?${consulta}`;
+  const link = (s) => `#/acordes/todos/${encodeURIComponent(s)}?${consulta}`;
 
   el.innerHTML = `
     ${barraTopo('Acorde', voltar)}
