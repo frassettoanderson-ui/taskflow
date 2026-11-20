@@ -5,12 +5,13 @@
 import { ICONES } from '../ui/comum.js';
 
 const V = 'v=3';
+// breve: true = ainda não liberado para os amigos: preto e branco, sem clique, com "Em breve"
 const CARTOES = [
-  { id: 'cifras', href: '#/cifras', nome: 'Cifras', foto: 'cifras', grande: true },
-  { id: 'banda', href: '../prototipo/', nome: 'Tocar com banda', foto: 'banda', grande: true },
+  { id: 'cifras', href: '#/cifras', nome: 'Cifras', foto: 'cifras', grande: true, breve: true },
+  { id: 'banda', href: '../prototipo/', nome: 'Tocar com banda', foto: 'banda', grande: true, breve: true },
   { id: 'acordes', href: '#/acordes', nome: 'Acordes', foto: 'acordes' },
   { id: 'batidas', href: '#/batidas', nome: 'Batidas', foto: 'batidas' },
-  { id: 'aulas', href: '#/aulas', nome: 'Aulas', foto: 'aulas' },
+  { id: 'aulas', href: '#/aulas', nome: 'Aulas', foto: 'aulas', breve: true },
   { id: 'exercicios', href: '#/exercicios', nome: 'Exercícios', foto: 'exercicios' },
   { id: 'ferramentas', href: '#/ferramentas', nome: 'Ferramentas', foto: 'ferramentas' },
 ];
@@ -25,10 +26,11 @@ export function montar(el) {
     </header>
     <nav class="ini-grade">
       ${CARTOES.map((c, i) => `
-        <a class="ini-cartao${c.grande ? ' grande' : ''}" href="${c.href}" data-id="${c.id}" style="--i:${i}">
+        <${c.breve ? 'div' : 'a'} class="ini-cartao${c.grande ? ' grande' : ''}${c.breve ? ' breve' : ''}"${c.breve ? ' aria-disabled="true"' : ` href="${c.href}"`} data-id="${c.id}" style="--i:${i}">
           <img src="img/inicio/${c.foto}.webp?${V}" alt="" loading="${c.grande ? 'eager' : 'lazy'}">
+          ${c.breve ? '<span class="ini-breve">Em breve</span>' : ''}
           <span class="ini-nome">${c.nome}</span>
-        </a>`).join('')}
+        </${c.breve ? 'div' : 'a'}>`).join('')}
     </nav>
   `;
 

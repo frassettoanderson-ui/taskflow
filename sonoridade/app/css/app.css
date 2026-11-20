@@ -102,6 +102,17 @@ svg { flex: none; }
   color: var(--texto); text-shadow: 0 2px 12px rgba(0,0,0,.7);
 }
 .ini-cartao.grande { grid-column: 1 / -1; min-height: 200px; }
+/* ainda não liberado: preto e branco, sem clique */
+.ini-cartao.breve { cursor: default; }
+.ini-cartao.breve img { filter: grayscale(1) brightness(.6); }
+.ini-cartao.breve:hover { outline-color: rgba(227,173,69,.18); }
+.ini-cartao.breve:hover img { transform: none; filter: grayscale(1) brightness(.6); }
+.ini-cartao.breve .ini-nome, .ini-cartao.grande.breve .ini-nome { color: #c9c4ba; }
+.ini-breve {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  padding: 5px 12px; border-radius: var(--r-p); background: rgba(13,13,12,.78);
+  color: var(--ouro-claro); font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
 .ini-cartao.grande .ini-nome { font-size: 34px; color: var(--ouro-claro); }
 .ini-cartao:last-child { grid-column: 1 / -1; min-height: 130px; }
 
