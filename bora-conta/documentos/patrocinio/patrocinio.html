@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Bora Contá · Planos de Patrocínio · Temporada 2</title>
+<style>
+  @font-face { font-family: "Anton"; src: url("../fontes/Anton-Regular.ttf"); }
+  @font-face { font-family: "Poppins"; font-weight: 700; src: url("../fontes/Poppins-Bold.ttf"); }
+  @font-face { font-family: "Poppins"; font-weight: 900; src: url("../fontes/Poppins-Black.ttf"); }
+  @font-face { font-family: "Lexend"; font-weight: 400; src: url("../fontes/Lexend-Regular.ttf"); }
+  @font-face { font-family: "Lexend"; font-weight: 600; src: url("../fontes/Lexend-SemiBold.ttf"); }
+
+  :root {
+    --roxo: #29024d; --roxo2: #3d0870; --fundo: #1a0033; --card: rgba(255,255,255,.055); --borda: rgba(226,208,245,.16);
+    --laranja: #ffa104; --rosa: #fd3d69; --lilas: #e2d0f5; --suave: #b9a6d3;
+    --bronze: #d9905a; --prata: #cfd3df; --ouro: #ffc83d; --diamond: #7fe0ff; --partner1: #ffa104; --partner2: #fd3d69;
+  }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: var(--fundo); }
+  body { font-family: "Lexend", sans-serif; color: #fff; font-size: 10.5pt; line-height: 1.5; }
+
+  .folha {
+    width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always;
+    background:
+      radial-gradient(110mm 90mm at 85% 8%, rgba(253,61,105,.20), transparent 70%),
+      radial-gradient(130mm 110mm at 10% 95%, rgba(255,161,4,.14), transparent 70%),
+      linear-gradient(170deg, var(--roxo2), var(--roxo) 40%, var(--fundo));
+  }
+  .folha:last-child { page-break-after: auto; }
+  .listras { position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.018) 0 1.2mm, transparent 1.2mm 7mm); pointer-events: none; }
+  .conteudo { position: relative; padding: 16mm 16mm 0; height: 100%; }
+
+  .topinho { display: flex; justify-content: center; margin-bottom: 9mm; }
+  .topinho img { height: 15mm; }
+  .rodape { position: absolute; left: 0; right: 0; bottom: 0; height: 11mm; display: flex; align-items: center; justify-content: center; gap: 6mm; font-family: "Poppins"; font-weight: 700; font-size: 8pt; color: var(--suave); border-top: .6mm solid; border-image: linear-gradient(90deg, var(--laranja), var(--rosa)) 1; background: rgba(0,0,0,.22); }
+  .rodape i { width: 1.3mm; height: 1.3mm; border-radius: 50%; background: var(--rosa); }
+
+  .kicker { display: block; text-align: center; font-family: "Poppins"; font-weight: 700; font-size: 9pt; letter-spacing: .32em; text-transform: uppercase; color: var(--laranja); }
+  h2.titulo { text-align: center; font-family: "Anton"; font-weight: 400; font-size: 34pt; line-height: 1.05; text-transform: uppercase; margin-top: 2mm; }
+  h2.titulo em { font-style: normal; color: var(--laranja); }
+  .sub { text-align: center; color: var(--lilas); max-width: 150mm; margin: 3mm auto 0; font-size: 11pt; }
+
+  /* ===== CAPA ===== */
+  .capa .conteudo { padding-top: 20mm; text-align: center; }
+  .capa .logo { height: 30mm; }
+  .capa .selo { display: inline-block; margin-top: 12mm; padding: 2mm 6mm; border-radius: 99mm; background: rgba(255,161,4,.14); border: .4mm solid rgba(255,161,4,.6); font-family: "Poppins"; font-weight: 700; font-size: 9pt; letter-spacing: .3em; color: var(--laranja); }
+  .capa h1 { font-family: "Anton"; font-weight: 400; font-size: 64pt; line-height: .98; text-transform: uppercase; margin-top: 6mm; letter-spacing: .005em; }
+  .capa h1 span { color: var(--laranja); display: block; }
+  .capa .linha { font-family: "Poppins"; font-weight: 700; font-size: 13pt; color: var(--lilas); margin-top: 5mm; }
+  .capa .linha b { color: #fff; background: var(--rosa); padding: .6mm 3mm; border-radius: 1.5mm; margin-left: 1mm; }
+  .capa .dupla { position: absolute; left: 50%; bottom: 0; width: 186mm; transform: translateX(-50%); }
+  .capa .brilho { position: absolute; left: 50%; bottom: -30mm; width: 190mm; height: 150mm; transform: translateX(-50%); background: radial-gradient(closest-side, rgba(255,161,4,.38), rgba(253,61,105,.18) 55%, transparent); }
+  .capa .chao { position: absolute; left: 0; right: 0; bottom: 0; height: 40mm; background: linear-gradient(transparent, rgba(26,0,51,.95)); }
+  .capa .assin { position: absolute; left: 0; right: 0; bottom: 9mm; text-align: center; font-family: "Poppins"; font-weight: 700; font-size: 9.5pt; color: var(--lilas); letter-spacing: .06em; }
+
+  /* ===== QUEM SOMOS ===== */
+  .foto { height: 70mm; border-radius: 5mm; overflow: hidden; margin: 7mm 0 7mm; position: relative; border: .4mm solid var(--borda); }
+  .foto img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; }
+  .foto::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 55%, rgba(26,0,51,.7)); }
+  .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+  .num { background: var(--card); border: .35mm solid var(--borda); border-radius: 4mm; padding: 5mm 2mm 4.5mm; text-align: center; }
+  .num b { display: block; font-family: "Anton"; font-weight: 400; font-size: 27pt; line-height: 1; color: var(--laranja); }
+  .num span { display: block; margin-top: 2mm; font-family: "Poppins"; font-weight: 700; font-size: 8pt; line-height: 1.3; color: var(--lilas); text-transform: uppercase; letter-spacing: .06em; }
+  .onde { margin-top: 8mm; }
+  .onde h3 { text-align: center; font-family: "Poppins"; font-weight: 900; font-size: 12pt; margin-bottom: 4mm; }
+  .onde ul { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .onde li { background: var(--card); border: .35mm solid var(--borda); border-radius: 3.5mm; padding: 3.5mm 4mm; text-align: center; }
+  .onde li b { display: block; font-family: "Poppins"; font-weight: 900; font-size: 10.5pt; color: #fff; }
+  .onde li span { font-size: 9pt; color: var(--suave); }
+  .fonte { text-align: center; font-size: 7.5pt; color: var(--suave); margin-top: 4mm; opacity: .8; }
+
+  /* ===== PLANOS ===== */
+  .planos { display: flex; flex-direction: column; gap: 3.6mm; margin-top: 7mm; }
+  .plano { display: grid; grid-template-columns: 50mm 1fr; border-radius: 4.5mm; overflow: hidden; border: .4mm solid var(--borda); background: var(--card); min-height: 39mm; }
+  .plano .cab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 3mm; color: #1a0033; background: var(--c); }
+  .plano .cab::after { content: ""; position: absolute; inset: 0; background: linear-gradient(150deg, rgba(255,255,255,.35), transparent 45%, rgba(0,0,0,.12)); }
+  .plano .cab small { position: relative; z-index: 1; font-family: "Poppins"; font-weight: 700; font-size: 7pt; letter-spacing: .25em; text-transform: uppercase; opacity: .75; }
+  .plano .cab strong { position: relative; z-index: 1; font-family: "Anton"; font-weight: 400; font-size: 23pt; line-height: 1.05; text-transform: uppercase; }
+  .plano .cab .preco { position: relative; z-index: 1; font-family: "Poppins"; font-weight: 900; font-size: 15pt; line-height: 1.1; margin-top: 1mm; }
+  .plano .cab .preco sup { font-size: 8pt; vertical-align: 2.4mm; margin-right: .6mm; }
+  .plano .cab .preco i { font-style: normal; font-size: 7.5pt; font-weight: 700; opacity: .75; }
+  .plano .itens { padding: 4mm 6mm; display: flex; flex-direction: column; justify-content: center; }
+  .plano .tudo { font-family: "Poppins"; font-weight: 700; font-size: 8.4pt; color: var(--suave); letter-spacing: .03em; margin-bottom: 1.4mm; }
+  .plano .tudo b { color: var(--c); }
+  .plano ul { list-style: none; }
+  .plano li { position: relative; padding-left: 6mm; font-size: 10pt; line-height: 1.4; margin: .8mm 0; }
+  .plano li::before { content: ""; position: absolute; left: 0; top: 1.2mm; width: 3.6mm; height: 3.6mm; border-radius: 50%; background: var(--c); }
+  .plano li::after { content: ""; position: absolute; left: 1.1mm; top: 2.1mm; width: 1.3mm; height: .7mm; border-left: .45mm solid #1a0033; border-bottom: .45mm solid #1a0033; transform: rotate(-45deg); }
+  .plano li b { font-weight: 600; }
+  .bronze { --c: var(--bronze); } .prata { --c: var(--prata); } .ouro { --c: var(--ouro); } .diamond { --c: var(--diamond); }
+  .plano.partner { --c: var(--partner1); border: .6mm solid var(--laranja); box-shadow: 0 0 0 1.2mm rgba(255,161,4,.12); }
+  .partner .cab { background: linear-gradient(140deg, var(--partner1), var(--partner2)); color: #fff; }
+  .partner .cab small { opacity: .9; }
+  .fita { position: absolute; z-index: 2; top: 2.2mm; left: -9mm; transform: rotate(-35deg); background: #fff; color: var(--rosa); font-family: "Poppins"; font-weight: 900; font-size: 5.8pt; letter-spacing: .12em; padding: .5mm 9mm; }
+
+  /* ===== TABELA ===== */
+  table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 7mm; font-size: 9.2pt; }
+  th, td { text-align: center; padding: 2.6mm 1.5mm; border-bottom: .3mm solid var(--borda); }
+  th { font-family: "Poppins"; font-weight: 900; font-size: 8.4pt; text-transform: uppercase; letter-spacing: .05em; padding-bottom: 3mm; }
+  th small { display: block; font-weight: 700; font-size: 8pt; color: var(--suave); letter-spacing: 0; text-transform: none; margin-top: .6mm; }
+  th.bronze { color: var(--bronze); } th.prata { color: var(--prata); } th.ouro { color: var(--ouro); } th.diamond { color: var(--diamond); } th.partner { color: var(--laranja); }
+  td:first-child { text-align: left; color: var(--lilas); width: 66mm; }
+  td.sim::before { content: ""; display: inline-block; width: 4.4mm; height: 4.4mm; border-radius: 50%; background: var(--c, var(--laranja)); vertical-align: middle; }
+  td.nao::before { content: ""; display: inline-block; width: 2.6mm; height: .5mm; background: rgba(226,208,245,.3); vertical-align: middle; }
+  td.c-bronze { --c: var(--bronze); } td.c-prata { --c: var(--prata); } td.c-ouro { --c: var(--ouro); } td.c-diamond { --c: var(--diamond); } td.c-partner { --c: var(--laranja); }
+  tr:last-child td { border-bottom: 0; }
+
+  .half { margin-top: 9mm; border-radius: 5mm; padding: 7mm 8mm 7mm; text-align: center; position: relative; overflow: hidden; border: .5mm solid rgba(127,224,255,.5); background: linear-gradient(150deg, rgba(127,224,255,.12), rgba(255,255,255,.04)); }
+  .half .kicker { color: var(--diamond); }
+  .half h3 { font-family: "Anton"; font-weight: 400; font-size: 30pt; line-height: 1.05; text-transform: uppercase; margin-top: 1.5mm; }
+  .half .preco { font-family: "Poppins"; font-weight: 900; font-size: 20pt; color: var(--diamond); margin-top: 1mm; }
+  .half .preco i { font-style: normal; font-size: 9pt; color: var(--suave); }
+  .half p { color: var(--lilas); max-width: 140mm; margin: 2.5mm auto 0; }
+  .half .tags { display: flex; justify-content: center; gap: 3mm; margin-top: 4.5mm; flex-wrap: wrap; }
+  .half .tags span { font-family: "Poppins"; font-weight: 700; font-size: 8.5pt; padding: 1.6mm 4mm; border-radius: 99mm; background: rgba(127,224,255,.12); border: .3mm solid rgba(127,224,255,.4); }
+
+  /* ===== CONTATO ===== */
+  .passos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; margin-top: 9mm; }
+  .passo { background: var(--card); border: .35mm solid var(--borda); border-radius: 4.5mm; padding: 7mm 4mm 6mm; text-align: center; }
+  .passo b { display: grid; place-items: center; width: 12mm; height: 12mm; margin: 0 auto 3mm; border-radius: 50%; background: var(--laranja); color: var(--roxo); font-family: "Anton"; font-size: 17pt; font-weight: 400; }
+  .passo h4 { font-family: "Poppins"; font-weight: 900; font-size: 11pt; line-height: 1.25; }
+  .passo p { font-size: 9.3pt; color: var(--suave); margin-top: 1.6mm; }
+  .cta { margin-top: 12mm; text-align: center; border-radius: 6mm; padding: 11mm 8mm 10mm; background: linear-gradient(140deg, var(--laranja), var(--rosa)); position: relative; overflow: hidden; }
+  .cta::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(115deg, rgba(255,255,255,.06) 0 1.2mm, transparent 1.2mm 7mm); }
+  .cta > * { position: relative; z-index: 1; }
+  .cta h3 { font-family: "Anton"; font-weight: 400; font-size: 36pt; line-height: 1; text-transform: uppercase; }
+  .cta p { font-family: "Poppins"; font-weight: 700; font-size: 11.5pt; margin-top: 3mm; }
+  .cta .contatos { display: flex; justify-content: center; gap: 5mm; margin-top: 6mm; }
+  .cta .contatos span { background: var(--roxo); color: #fff; font-family: "Poppins"; font-weight: 900; font-size: 12pt; padding: 3mm 7mm; border-radius: 99mm; }
+  .letras { margin-top: 9mm; text-align: center; font-size: 8.5pt; color: var(--suave); line-height: 1.6; }
+  .letras b { color: var(--lilas); font-weight: 600; }
+  .final-logo { display: flex; justify-content: center; margin-top: 9mm; }
+  .final-logo img { width: 34mm; border-radius: 50%; box-shadow: 0 0 0 1.4mm var(--laranja); }
+</style>
+</head>
+<body>
+
+<!-- ============ 1. CAPA ============ -->
+<section class="folha capa">
+  <div class="listras"></div>
+  <div class="brilho"></div>
+  <div class="conteudo">
+    <img class="logo" src="logo-horizontal.webp" alt="Bora Contá Podcast">
+    <div><span class="selo">PLANOS DE PATROCÍNIO</span></div>
+    <h1>Sua marca<span>na conversa</span></h1>
+    <p class="linha">Temporada 2 <b>estreia em dezembro</b></p>
+  </div>
+  <img class="dupla" src="dupla.png" alt="Anderson e Léo, apresentadores do Bora Contá">
+  <div class="chao"></div>
+  <p class="assin">boraconta.com.br · @boracontaoficial</p>
+</section>
+
+<!-- ============ 2. QUEM SOMOS ============ -->
+<section class="folha">
+  <div class="listras"></div>
+  <div class="conteudo">
+    <div class="topinho"><img src="logo-horizontal.webp" alt=""></div>
+    <span class="kicker">Quem somos</span>
+    <h2 class="titulo">Histórias <em>de verdade</em></h2>
+    <p class="sub">O Bora Contá é o podcast do Anderson e do Léo, gravado em Imbituba/SC. A cada episódio, um convidado senta na cadeira e conta a história que viveu: viagens, superação, negócios e muita risada.</p>
+    <div class="foto"><img src="dupla_b.jpg" alt="Anderson e Léo"></div>
+    <div class="numeros">
+      <div class="num"><b>23,6 mil</b><span>seguidores no Instagram</span></div>
+      <div class="num"><b>7,8 mil</b><span>curtidas nos últimos 76 posts</span></div>
+      <div class="num"><b>1 mil</b><span>inscritos no YouTube</span></div>
+      <div class="num"><b>10</b><span>episódios na 1ª temporada</span></div>
+    </div>
+    <div class="onde">
+      <h3>Onde a sua marca aparece</h3>
+      <ul>
+        <li><b>YouTube</b><span>episódio completo, gravado em estúdio</span></li>
+        <li><b>Instagram</b><span>cortes diários, reels e stories</span></li>
+        <li><b>BoraFlix</b><span>nosso site com todos os episódios</span></li>
+        <li><b>Estúdio</b><span>no programa, ao vivo na gravação</span></li>
+      </ul>
+    </div>
+    <p class="fonte">Números de 23/11/2026, das contas @boracontaoficial (Instagram) e @boraconta (YouTube).</p>
+  </div>
+  <footer class="rodape">boraconta.com.br <i></i> @boracontaoficial <i></i> youtube.com/@boraconta</footer>
+</section>
+
+<!-- ============ 3. PLANOS ============ -->
+<section class="folha">
+  <div class="listras"></div>
+  <div class="conteudo">
+    <div class="topinho"><img src="logo-horizontal.webp" alt=""></div>
+    <span class="kicker">Escolha o seu</span>
+    <h2 class="titulo">Planos de <em>patrocínio</em></h2>
+    <div class="planos">
+      <div class="plano bronze">
+        <div class="cab"><small>Plano</small><strong>Bronze</strong><div class="preco"><sup>R$</sup>150<i>/mês</i></div></div>
+        <div class="itens"><ul>
+          <li>Sua marca <b>aparece na tela durante o programa</b> como apoiadora do projeto</li>
+        </ul></div>
+      </div>
+      <div class="plano prata">
+        <div class="cab"><small>Plano</small><strong>Prata</strong><div class="preco"><sup>R$</sup>300<i>/mês</i></div></div>
+        <div class="itens"><p class="tudo">Tudo do <b>Bronze</b>, e mais:</p><ul>
+          <li><b>Citações ao vivo</b> durante o programa</li>
+        </ul></div>
+      </div>
+      <div class="plano ouro">
+        <div class="cab"><small>Plano</small><strong>Ouro</strong><div class="preco"><sup>R$</sup>550<i>/mês</i></div></div>
+        <div class="itens"><p class="tudo">Tudo do <b>Bronze e Prata</b>, e mais:</p><ul>
+          <li><b>Citação dedicada</b>: um momento do programa só da sua marca</li>
+          <li>Marca <b>fixada no destaque "Patrocinadores"</b> do nosso Instagram</li>
+        </ul></div>
+      </div>
+      <div class="plano diamond">
+        <div class="cab"><small>Plano</small><strong>Diamond</strong><div class="preco"><sup>R$</sup>900<i>/mês</i></div></div>
+        <div class="itens"><p class="tudo">Tudo dos planos anteriores, e mais:</p><ul>
+          <li><b>Stories semanais</b> divulgando a sua marca</li>
+          <li><b>Visita ao seu local</b> para criar um conteúdo exclusivo</li>
+        </ul></div>
+      </div>
+      <div class="plano partner">
+        <div class="cab"><span class="fita">COMPLETO</span><small>Plano</small><strong>Partner</strong><div class="preco"><sup>R$</sup>1.500<i>/mês</i></div></div>
+        <div class="itens"><p class="tudo">Tudo dos planos anteriores, e mais:</p><ul>
+          <li><b>Uso do estúdio 1 dia por semana</b>, das 8h às 23h</li>
+          <li>Para gravar os seus conteúdos ou até <b>o seu próprio podcast</b></li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+  <footer class="rodape">boraconta.com.br <i></i> @boracontaoficial <i></i> youtube.com/@boraconta</footer>
+</section>
+
+<!-- ============ 4. COMPARATIVO + HALF PARTNER ============ -->
+<section class="folha">
+  <div class="listras"></div>
+  <div class="conteudo">
+    <div class="topinho"><img src="logo-horizontal.webp" alt=""></div>
+    <span class="kicker">Lado a lado</span>
+    <h2 class="titulo">O que cada plano <em>entrega</em></h2>
+    <table>
+      <thead><tr>
+        <th></th>
+        <th class="bronze">Bronze<small>R$ 150</small></th>
+        <th class="prata">Prata<small>R$ 300</small></th>
+        <th class="ouro">Ouro<small>R$ 550</small></th>
+        <th class="diamond">Diamond<small>R$ 900</small></th>
+        <th class="partner">Partner<small>R$ 1.500</small></th>
+      </tr></thead>
+      <tbody>
+        <tr><td>Marca na tela durante o programa</td><td class="sim c-bronze"></td><td class="sim c-prata"></td><td class="sim c-ouro"></td><td class="sim c-diamond"></td><td class="sim c-partner"></td></tr>
+        <tr><td>Citações ao vivo no programa</td><td class="nao"></td><td class="sim c-prata"></td><td class="sim c-ouro"></td><td class="sim c-diamond"></td><td class="sim c-partner"></td></tr>
+        <tr><td>Citação dedicada à sua marca</td><td class="nao"></td><td class="nao"></td><td class="sim c-ouro"></td><td class="sim c-diamond"></td><td class="sim c-partner"></td></tr>
+        <tr><td>Destaque "Patrocinadores" no Instagram</td><td class="nao"></td><td class="nao"></td><td class="sim c-ouro"></td><td class="sim c-diamond"></td><td class="sim c-partner"></td></tr>
+        <tr><td>Stories semanais</td><td class="nao"></td><td class="nao"></td><td class="nao"></td><td class="sim c-diamond"></td><td class="sim c-partner"></td></tr>
+        <tr><td>Visita ao seu local para conteúdo exclusivo</td><td class="nao"></td><td class="nao"></td><td class="nao"></td><td class="sim c-diamond"></td><td class="sim c-partner"></td></tr>
+        <tr><td>Estúdio 1 dia por semana (8h às 23h)</td><td class="nao"></td><td class="nao"></td><td class="nao"></td><td class="nao"></td><td class="sim c-partner"></td></tr>
+      </tbody>
+    </table>
+
+    <div class="half">
+      <span class="kicker">Só quer o estúdio?</span>
+      <h3>Half Partner</h3>
+      <div class="preco">R$ 990 <i>/mês</i></div>
+      <p>Para quem quer um estúdio de podcast pronto para gravar, sem precisar aparecer no Bora Contá. Você usa o nosso estúdio <b>1 dia por semana, das 8h às 23h</b>, para criar os seus conteúdos ou gravar o seu próprio podcast.</p>
+      <div class="tags"><span>Estúdio montado</span><span>1 dia por semana</span><span>8h às 23h</span><span>Seu conteúdo, sua marca</span></div>
+    </div>
+  </div>
+  <footer class="rodape">boraconta.com.br <i></i> @boracontaoficial <i></i> youtube.com/@boraconta</footer>
+</section>
+
+<!-- ============ 5. COMO FUNCIONA + CONTATO ============ -->
+<section class="folha">
+  <div class="listras"></div>
+  <div class="conteudo">
+    <div class="topinho"><img src="logo-horizontal.webp" alt=""></div>
+    <span class="kicker">Simples assim</span>
+    <h2 class="titulo">Como <em>funciona</em></h2>
+    <div class="passos">
+      <div class="passo"><b>1</b><h4>Você escolhe o plano</h4><p>Chama a gente e conta um pouco da sua marca.</p></div>
+      <div class="passo"><b>2</b><h4>A gente prepara tudo</h4><p>Criamos as artes com a sua logo e combinamos o que falar no programa.</p></div>
+      <div class="passo"><b>3</b><h4>Sua marca no ar</h4><p>A partir do próximo episódio, você aparece para o nosso público.</p></div>
+    </div>
+
+    <div class="cta">
+      <h3>Bora contar a sua história também?</h3>
+      <p>As vagas de patrocínio da Temporada 2 são limitadas.</p>
+      <div class="contatos"><span>@boracontaoficial</span><span>boraconta.com.br</span></div>
+    </div>
+
+    <p class="letras"><b>Valores mensais.</b> Os benefícios valem a partir da assinatura e são acumulativos entre os planos (cada plano inclui o anterior).<br>Uso do estúdio sujeito a agendamento prévio.</p>
+    <div class="final-logo"><img src="logo_bora_conta.webp" alt="Bora Contá"></div>
+  </div>
+  <footer class="rodape">boraconta.com.br <i></i> @boracontaoficial <i></i> youtube.com/@boraconta</footer>
+</section>
+
+</body>
+</html>
