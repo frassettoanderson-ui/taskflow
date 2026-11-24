@@ -65,6 +65,11 @@ final class NFeBuilder
         $ide->indFinal = ($p['consumidor_final'] ?? true) ? 1 : 0;
         // indPres: 1 presencial (padrão), 2 internet (loja online), 4 entrega a domicílio, 9 outros
         $ide->indPres = (int) ($p['presenca'] ?? 1);
+        // NT 2020.006: venda não presencial (2 internet, 3 teleatendimento, 4 entrega, 9 outros) exige indIntermed
+        // (0 = site/plataforma própria, sem intermediador; 1 = marketplace, que exige o grupo infIntermed). Senão: rejeição 434.
+        if (in_array($ide->indPres, [2, 3, 4, 9], true)) {
+            $ide->indIntermed = (int) ($p['intermediador'] ?? 0);
+        }
         $ide->procEmi = 0;
         $ide->verProc = 'emissor-fiscal-1.0';
         $make->tagide($ide);
