@@ -376,6 +376,30 @@
   .knob::before,.knob i::after{display:none}
   .knob i{background:var(--img-knob) center/cover;border-radius:50%}
 
+
+  /* ---------- no ar: prévia do telão ---------- */
+  .noar{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:22px;align-items:stretch}
+  .monitor{background:#050505;border-radius:10px;padding:10px;border:1px solid #000;
+    box-shadow:0 0 0 3px #2c2d30, 0 0 0 4px #000, inset 0 2px 10px rgba(0,0,0,.9);display:flex;flex-direction:column;gap:10px}
+  .tela{position:relative;aspect-ratio:16/9;background:#000;border-radius:4px;overflow:hidden;display:grid;place-items:center}
+  .tela img{width:100%;height:100%;object-fit:contain;display:block}
+  .tela .sem{font-family:var(--f-lcd);color:var(--tinta-3);font-size:15px;text-align:center;padding:20px}
+  .tela .selo{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:8px;padding:4px 10px 3px;border-radius:4px;
+    background:rgba(0,0,0,.72);font:600 13px/1.2 var(--f-rot);letter-spacing:.16em;text-transform:uppercase;color:var(--tinta)}
+  .tela .selo i{width:9px;height:9px;border-radius:50%;background:var(--ox-luz);box-shadow:0 0 8px var(--ox-luz)}
+  .tela .selo.parado i{background:var(--tinta-3);box-shadow:none}
+  .tela .selo span{font-family:var(--f-lcd);letter-spacing:.04em;color:var(--ambar)}
+  .monitor-rod{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;font-family:var(--f-lcd);font-size:15px;color:var(--ambar-2);text-align:center}
+  .monitor-rod strong{color:var(--ambar);font-weight:400}
+  .fila-ar{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .fila-ar .lcd{margin:0;text-align:center;padding:14px 16px;flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0}
+  .fila-ar .rot{font:600 13px/1 var(--f-rot);letter-spacing:.2em;text-transform:uppercase;color:var(--tinta-3)}
+  .fila-ar .val{font-family:var(--f-rot);font-weight:700;font-size:22px;letter-spacing:.05em;text-transform:uppercase;line-height:1.15;color:var(--ambar);
+    text-shadow:0 0 10px rgba(255,176,32,.4);overflow-wrap:anywhere}
+  .fila-ar .val.apagado{color:var(--ambar-apagado);text-shadow:none}
+  .fila-ar .det{font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2);overflow-wrap:anywhere}
+  .fila-ar .agora .val{font-size:26px}
+  @media (max-width:900px){ .noar{grid-template-columns:1fr} }
   @media (max-width:1100px){
     .ev-painel{grid-template-columns:1fr}
     .mus-painel{grid-template-columns:1fr}
@@ -455,6 +479,27 @@
     <div id="evInfo" class="sub" style="margin:0 0 10px"></div>
     <button class="prim peq" id="evParar">Parar evento</button>
   </div>
+
+
+  <section>
+    <h2>No ar</h2>
+    <div class="sub">O que está passando no telão agora e o que vem depois</div>
+    <div class="noar">
+      <div class="monitor">
+        <div class="tela" id="arTela">
+          <div class="sem" id="arSem">Carregando a imagem do telão</div>
+          <img id="arImg" alt="Imagem atual do telão" hidden>
+          <div class="selo parado" id="arSelo"><i></i>Ao vivo <span id="arHora">--:--:--</span></div>
+        </div>
+        <div class="monitor-rod" id="arTelao">&nbsp;</div>
+      </div>
+      <div class="fila-ar">
+        <div class="lcd agora"><div class="rot">Tocando agora</div><div class="val apagado" id="arMus">Sem música</div><div class="det" id="arMusFonte">&nbsp;</div></div>
+        <div class="lcd"><div class="rot">Próxima música</div><div class="val apagado" id="arProxMus">Sem informação</div><div class="det" id="arProxMusDet">&nbsp;</div></div>
+        <div class="lcd"><div class="rot">Próximo vídeo</div><div class="val apagado" id="arProxVid">Nada agendado</div><div class="det" id="arProxVidDet">&nbsp;</div></div>
+      </div>
+    </div>
+  </section>
 
   <section>
     <h2>Cenas</h2>
@@ -1047,6 +1092,47 @@ async function carregarRegistro(){
 }
 
 // ---------------------------------------------------------- carga e atualização
+
+// ---------------------------------------------------------- NO AR (prévia do telão)
+function faltaTxt(seg){
+  if (seg < 60) return "em instantes";
+  const h = Math.floor(seg / 3600), m = Math.floor(seg % 3600 / 60);
+  return "em " + (h ? h + "h " : "") + m + "min";
+}
+function linha(id, txt, apagado){ const e = $(id); e.textContent = txt; if (apagado !== undefined) e.classList.toggle("apagado", !!apagado); }
+function renderPrevia(P){
+  const f = P.foto;
+  if (f){
+    $("arImg").src = f.src; $("arImg").hidden = false; $("arSem").hidden = true;
+    $("arTela").style.aspectRatio = f.w + "/" + f.h;
+    $("arHora").textContent = f.hora;
+  } else {
+    $("arImg").hidden = true; $("arSem").hidden = false;
+    $("arSem").textContent = "Sem imagem do telão" + (P.foto_erro ? ": " + P.foto_erro : "");
+  }
+  $("arSelo").classList.toggle("parado", !f);
+  $("arTelao").replaceChildren("No ar: ", el("strong", {}, P.telao.atual), " · pelo " + P.telao.quem);
+  const m = P.musica;
+  linha("arMus", m.atual || "Sem música", !m.atual);
+  linha("arMusFonte", m.atual ? (m.fonte || "") + (m.tocando ? "" : " · pausada") : "Nada tocando agora");
+  linha("arProxMus", m.proxima || "Sem informação", !m.proxima);
+  linha("arProxMusDet", m.proxima ? m.fonte : (m.proxima_obs || "\u00a0"));
+  const v = P.proximo_video;
+  linha("arProxVid", v ? v.nome : "Nada agendado", !v);
+  linha("arProxVidDet", v ? `${v.dia} ${v.hora} · ${faltaTxt(v.faltam)} · ${v.origem}` : "Nenhum vídeo na agenda ativa");
+}
+let previaRodando = false;
+async function lacoPrevia(){
+  if (previaRodando) return; previaRodando = true;
+  while (true){
+    const visivel = !document.hidden && $("aba-agora").classList.contains("on") && D;
+    if (visivel){
+      try { renderPrevia(await api("/api/previa")); }
+      catch(e){ $("arSelo").classList.add("parado"); if (e.message !== "PIN inválido") $("arSem").textContent = "Sem contato com o PC da academia"; }
+    }
+    await new Promise(r => setTimeout(r, visivel ? (NUVEM ? 1500 : 1000) : 2000));
+  }
+}
 async function carregarMidia(){ try { M = await api("/api/midia"); } catch(e){} }
 async function atualizar(){
   try { E = await api("/api/estado"); renderAgora(); if ($("aba-telao").classList.contains("on")) $("tlJanela").textContent = E.telao.conectado ? "A janela do telão está aberta e conectada" : "A janela do telão não está aberta"; }
@@ -1061,6 +1147,7 @@ async function iniciar(){
 }
 $("pinForm").onsubmit = e => { e.preventDefault(); salvarPin($("pinInput").value.trim()); $("pin").classList.remove("on"); iniciar(); };
 iniciar();
+lacoPrevia();
 setInterval(() => { if (!ocupado && !document.hidden && !$("modal").classList.contains("on")) atualizar(); }, 2000);
 setInterval(() => { if (!document.hidden && $("aba-agora").classList.contains("on")) carregarLuz(); }, 8000);
 if (NUVEM) $("tlAbrir").textContent = "Abrir telão no PC da academia";

@@ -5,6 +5,7 @@ Roda no PC da academia. Serve:
   /telao   página que vai em tela cheia no painel de LED (vídeo, site, imagem e a música do dia)
 Só usa a biblioteca padrão do Python; pyserial é opcional (luz ambiente na COM).
 """
+import base64
 import ctypes
 import datetime
 import json
@@ -587,12 +588,7 @@ def abrir_telao():
     nav = achar_navegador()
     if not nav:
         raise RuntimeError("Não achei o Edge nem o Chrome")
-    mons = monitores()
-    escolha = CFG["telao"].get("monitor", "secundario")
-    if isinstance(escolha, int) and 1 <= escolha <= len(mons):
-        m = mons[escolha - 1]
-    else:
-        m = next((x for x in mons if not x["principal"]), mons[0] if mons else {"x": 0, "y": 0})
+    m = monitor_do_telao() or {"x": 0, "y": 0}
     url = f"http://127.0.0.1:{CFG.get('porta_painel', 8710)}/telao"
     args = [nav, f"--kiosk", url, "--edge-kiosk-type=fullscreen", "--no-first-run", "--no-default-browser-check",
             "--autoplay-policy=no-user-gesture-required", "--disable-features=Translate,TranslateUI",
@@ -630,6 +626,214 @@ def laco_vigia():
                 time.sleep(25)
         except Exception:
             log.exception("vigia do telão")
+
+
+# ================================================================ prévia do telão (foto do monitor do LED + música)
+# O painel mostra quase ao vivo o que está no LED: uma foto pequena do monitor a cada ~1 s.
+# Funciona com o OBS ainda no comando (é foto da tela, não depende de quem desenha nela).
+
+def monitor_do_telao():
+    mons = monitores()
+    escolha = CFG["telao"].get("monitor", "secundario")
+    if isinstance(escolha, int) and 1 <= escolha <= len(mons):
+        return mons[escolha - 1]
+    return next((x for x in mons if not x["principal"]), mons[0] if mons else None)
+
+
+class _GUID(ctypes.Structure):
+    _fields_ = [("d1", ctypes.c_uint32), ("d2", ctypes.c_uint16), ("d3", ctypes.c_uint16), ("d4", ctypes.c_ubyte * 8)]
+
+    @classmethod
+    def de(cls, texto):
+        import uuid
+        return cls.from_buffer_copy(uuid.UUID(texto).bytes_le)
+
+
+_GDIP = {"token": None}
+
+
+def _jpeg_gdiplus(hbmp, qualidade=72):
+    """HBITMAP -> bytes JPEG pelo GDI+ do Windows (sem Pillow)."""
+    import tempfile
+    from ctypes import wintypes
+    gp = ctypes.windll.gdiplus
+    if _GDIP["token"] is None:
+        class Entrada(ctypes.Structure):
+            _fields_ = [("versao", ctypes.c_uint32), ("cb", ctypes.c_void_p), ("sem_thread", wintypes.BOOL), ("sem_codecs", wintypes.BOOL)]
+        tok = ctypes.c_size_t()
+        if gp.GdiplusStartup(ctypes.byref(tok), ctypes.byref(Entrada(1, None, False, False)), None) != 0:
+            raise OSError("GDI+ não iniciou")
+        _GDIP["token"] = tok
+
+    class Param(ctypes.Structure):
+        _fields_ = [("guid", _GUID), ("n", ctypes.c_ulong), ("tipo", ctypes.c_ulong), ("valor", ctypes.c_void_p)]
+
+    class Params(ctypes.Structure):
+        _fields_ = [("qtd", ctypes.c_uint), ("p", Param * 1)]
+
+    img = ctypes.c_void_p()
+    if gp.GdipCreateBitmapFromHBITMAP(ctypes.c_void_p(hbmp), None, ctypes.byref(img)) != 0:
+        raise OSError("GDI+ não leu a imagem")
+    q = ctypes.c_ulong(qualidade)
+    ps = Params(1, (Param * 1)(Param(_GUID.de("1d5be4b5-fa4a-452d-9cdd-5db35105e7eb"), 1, 4, ctypes.cast(ctypes.byref(q), ctypes.c_void_p))))
+    clsid = _GUID.de("557cf401-1a04-11d3-9a73-0000f81ef32e")  # codificador JPEG
+    fd, arq = tempfile.mkstemp(suffix=".jpg", prefix="oxshow-previa-")
+    os.close(fd)
+    try:
+        st = gp.GdipSaveImageToFile(img, ctypes.c_wchar_p(arq), ctypes.byref(clsid), ctypes.byref(ps))
+        if st != 0:
+            raise OSError(f"GDI+ não gravou o JPEG ({st})")
+        with open(arq, "rb") as f:
+            return f.read()
+    finally:
+        gp.GdipDisposeImage(img)
+        try:
+            os.remove(arq)
+        except OSError:
+            pass
+
+
+def capturar_monitor(m, largura=640):
+    from ctypes import wintypes
+    u, g = ctypes.windll.user32, ctypes.windll.gdi32
+    H = ctypes.c_void_p
+    u.GetDC.restype = H
+    u.GetDC.argtypes = [H]
+    u.ReleaseDC.argtypes = [H, H]
+    g.CreateCompatibleDC.restype = H
+    g.CreateCompatibleDC.argtypes = [H]
+    g.CreateCompatibleBitmap.restype = H
+    g.CreateCompatibleBitmap.argtypes = [H, ctypes.c_int, ctypes.c_int]
+    g.SelectObject.restype = H
+    g.SelectObject.argtypes = [H, H]
+    g.SetStretchBltMode.argtypes = [H, ctypes.c_int]
+    g.SetBrushOrgEx.argtypes = [H, ctypes.c_int, ctypes.c_int, H]
+    g.StretchBlt.argtypes = [H, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, H,
+                             ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.DWORD]
+    g.DeleteObject.argtypes = [H]
+    g.DeleteDC.argtypes = [H]
+    w, h = m["w"], m["h"]
+    lw = min(largura, w)
+    lh = max(1, round(h * lw / w))
+    tela = u.GetDC(None)
+    mem = g.CreateCompatibleDC(tela)
+    bmp = g.CreateCompatibleBitmap(tela, lw, lh)
+    antigo = g.SelectObject(mem, bmp)
+    try:
+        g.SetStretchBltMode(mem, 4)  # HALFTONE: reduz sem serrilhar
+        g.SetBrushOrgEx(mem, 0, 0, None)
+        if not g.StretchBlt(mem, 0, 0, lw, lh, tela, m["x"], m["y"], w, h, 0x00CC0020):
+            raise OSError("não consegui copiar a tela")
+        g.SelectObject(mem, antigo)
+        return _jpeg_gdiplus(bmp), lw, lh
+    finally:
+        g.DeleteObject(bmp)
+        g.DeleteDC(mem)
+        u.ReleaseDC(None, tela)
+
+
+def titulos_janelas():
+    if os.name != "nt":
+        return []
+    from ctypes import wintypes
+    u = ctypes.windll.user32
+    titulos = []
+    PROC = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+    def cb(hwnd, _lp):
+        if u.IsWindowVisible(hwnd):
+            n = u.GetWindowTextLengthW(hwnd)
+            if n:
+                buf = ctypes.create_unicode_buffer(n + 1)
+                u.GetWindowTextW(hwnd, buf, n + 1)
+                titulos.append(buf.value)
+        return True
+
+    u.EnumWindows(PROC(cb), 0)
+    return titulos
+
+
+def musica_externa():
+    """Música que toca fora do OX Show (Sonvra no Edge): lê o título da janela do navegador."""
+    chave = ((CFG.get("musica_externa") or {}).get("janela") or "sonvra").lower()
+    for t in titulos_janelas():
+        if chave in t.lower():
+            t = re.sub(r"\s+e mais \d+ (páginas?|guias?)", "", t)
+            t = re.sub(r"\s+-\s+[^-]*-\s+Microsoft\W*Edge$", "", t)
+            t = re.sub(r"\s+-\s+(Microsoft\W*Edge|Google Chrome)$", "", t)
+            t = re.sub(r"\s*[|\-–]\s*Sonvra.*$", "", t, flags=re.I).strip()
+            return t or None
+    return None
+
+
+def _videos_dos_passos(passos, prof=0):
+    for p in passos or []:
+        if p.get("tipo") == "telao" and p.get("modo") == "video" and p.get("arquivo"):
+            yield p["arquivo"]
+        elif p.get("tipo") == "cena" and prof < 3:
+            c = next((x for x in DADOS.get("cenas", []) if x.get("id") == p.get("id")), None)
+            if c:
+                yield from _videos_dos_passos(c.get("passos"), prof + 1)
+
+
+def proximo_video():
+    for p in proximos(12):
+        col = "eventos" if p.get("tipo") == "evento" else "cenas"
+        item = next((x for x in DADOS.get(col, []) if x.get("id") == p.get("alvo")), None)
+        arq = next(_videos_dos_passos(item.get("passos")), None) if item else None
+        if arq:
+            return {"nome": os.path.splitext(arq)[0], "dia": p["dia"], "hora": p["hora"], "faltam": p["faltam"], "origem": p["nome"]}
+    return None
+
+
+_PREVIA = {"t": 0.0, "foto": None, "erro": None, "lock": threading.Lock()}
+
+
+def foto_do_telao():
+    with _PREVIA["lock"]:
+        if time.time() - _PREVIA["t"] < 0.8:
+            return _PREVIA["foto"], _PREVIA["erro"]
+        _PREVIA["t"] = time.time()
+        try:
+            if os.name != "nt":
+                raise OSError("prévia só no Windows")
+            m = monitor_do_telao()
+            if not m:
+                raise OSError("monitor do telão não encontrado")
+            jpg, w, h = capturar_monitor(m)
+            _PREVIA["foto"] = {"src": "data:image/jpeg;base64," + base64.b64encode(jpg).decode("ascii"), "w": w, "h": h,
+                               "hora": agora().strftime("%H:%M:%S")}
+            _PREVIA["erro"] = None
+        except Exception as e:
+            _PREVIA["foto"], _PREVIA["erro"] = None, str(e)
+        return _PREVIA["foto"], _PREVIA["erro"]
+
+
+def previa(com_foto=True, janelas=False):
+    foto, erro = foto_do_telao() if com_foto else (None, None)
+    m = dict(ESTADO.musica)
+    with MUSICA.lock:
+        prox_faixa = os.path.splitext(MUSICA.fila[0])[0] if (m.get("playlist") and MUSICA.fila) else None
+    if m.get("nome"):
+        musica = {"atual": m["nome"], "fonte": "Playlist " + m["playlist"], "tocando": bool(m.get("tocando")),
+                  "proxima": prox_faixa, "proxima_obs": None if prox_faixa else "A playlist recomeça embaralhada"}
+    else:
+        ext = musica_externa()
+        musica = {"atual": ext, "fonte": "Sonvra, no navegador" if ext else None, "tocando": bool(ext),
+                  "proxima": None, "proxima_obs": "O Sonvra não informa a próxima" if ext else None}
+    if ESTADO.clientes > 0:
+        t = ESTADO.telao_efetivo()
+        nome = os.path.splitext(t.get("arquivo") or "")[0]
+        atual = {"video": "Vídeo " + nome, "imagem": "Imagem " + nome, "site": "Site " + str(t.get("url", "")),
+                 "preto": "Tela preta"}.get(t.get("modo"), "Tela padrão")
+        quem = "OX Show"
+    else:
+        atual, quem = "Vídeo do dia em loop", "OBS"
+    r = {"foto": foto, "foto_erro": erro, "telao": {"atual": atual, "quem": quem}, "proximo_video": proximo_video(),
+         "musica": musica, "relogio": agora().strftime("%H:%M:%S")}
+    if janelas:
+        r["janelas"] = titulos_janelas()
+    return r
 
 
 # ================================================================ trava enquanto o REAPER ainda faz o evento
@@ -827,6 +1031,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(401, {"erro": "PIN inválido"})
         if rota == "/api/estado":
             return self._json(200, estado_painel())
+        if rota == "/api/previa":
+            q = parse_qs(url.query)
+            return self._json(200, previa(com_foto=q.get("foto", ["1"])[0] != "0", janelas="janelas" in q))
         if rota == "/api/dados":
             return self._json(200, {k: DADOS[k] for k in COLECOES})
         if rota == "/api/midia":
@@ -923,7 +1130,7 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------- OX Cloud (painel de qualquer rede)
 # Conexão de SAÍDA para o OX Cloud (long-poll): busca os comandos do painel de lá, executa aqui
 # como se fosse o painel local e devolve a resposta. Não precisa abrir porta no roteador.
-VERSAO = "1.1"
+VERSAO = "1.2"
 
 
 def laco_nuvem():
