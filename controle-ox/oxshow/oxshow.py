@@ -753,16 +753,71 @@ def titulos_janelas():
     return titulos
 
 
-def musica_externa():
-    """Música que toca fora do OX Show (Sonvra no Edge): lê o título da janela do navegador."""
-    chave = ((CFG.get("musica_externa") or {}).get("janela") or "sonvra").lower()
+# Música tocando fora do OX Show (rádio indoor no Edge: Vymber, Sonvra...). O Windows sabe o que está
+# tocando (controle de mídia do sistema, o mesmo da tecla de música); lemos por um PowerShell rápido.
+_PS_MIDIA = r"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' } | Select-Object -First 1
+function Esperar($op, $tipo) { $t = $asTask.MakeGenericMethod($tipo).Invoke($null, @($op)); $t.Wait(5000) | Out-Null; $t.Result }
+$M = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
+$P = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType = WindowsRuntime]
+$ger = Esperar ($M::RequestAsync()) $M
+$lista = @(foreach ($s in $ger.GetSessions()) {
+  $p = Esperar ($s.TryGetMediaPropertiesAsync()) $P
+  [pscustomobject]@{ app = $s.SourceAppUserModelId; titulo = $p.Title; artista = $p.Artist; status = [string]$s.GetPlaybackInfo().PlaybackStatus }
+})
+ConvertTo-Json -Compress -InputObject $lista
+"""
+_MIDIA_WIN = {"t": 0.0, "lista": [], "rodando": False}
+
+
+def _ler_midia_windows():
+    try:
+        import base64 as b64
+        cod = b64.b64encode(_PS_MIDIA.encode("utf-16-le")).decode("ascii")
+        r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", cod], capture_output=True,
+                           timeout=20, creationflags=0x08000000)  # sem janela piscando no telão
+        txt = r.stdout.decode("utf-8", "replace").strip()
+        inicio = txt.find("[")
+        _MIDIA_WIN["lista"] = json.loads(txt[inicio:]) if inicio >= 0 else []
+    except Exception as e:
+        log.warning("mídia do Windows: %s", e)
+    finally:
+        _MIDIA_WIN["t"] = time.time()
+        _MIDIA_WIN["rodando"] = False
+
+
+def midia_windows():
+    """Último resultado (no máximo ~5 s de atraso); a leitura roda por fora para não segurar o painel."""
+    if os.name == "nt" and not _MIDIA_WIN["rodando"] and time.time() - _MIDIA_WIN["t"] > 4:
+        _MIDIA_WIN["rodando"] = True
+        threading.Thread(target=_ler_midia_windows, daemon=True).start()
+    return _MIDIA_WIN["lista"]
+
+
+def site_de_musica():
+    """Nome do site de rádio aberto no navegador (para mostrar a fonte)."""
+    chaves = (CFG.get("musica_externa") or {}).get("sites") or ["Vymber", "Sonvra"]
     for t in titulos_janelas():
-        if chave in t.lower():
-            t = re.sub(r"\s+e mais \d+ (páginas?|guias?)", "", t)
-            t = re.sub(r"\s+-\s+[^-]*-\s+Microsoft\W*Edge$", "", t)
-            t = re.sub(r"\s+-\s+(Microsoft\W*Edge|Google Chrome)$", "", t)
-            t = re.sub(r"\s*[|\-–]\s*Sonvra.*$", "", t, flags=re.I).strip()
-            return t or None
+        for c in chaves:
+            if c.lower() in t.lower():
+                return c
+    return None
+
+
+def musica_externa():
+    lista = [x for x in midia_windows() if isinstance(x, dict) and (x.get("titulo") or "").strip()]
+    lista.sort(key=lambda x: (x.get("status") != "Playing", "edge" not in (x.get("app") or "").lower()))
+    site = site_de_musica()
+    if site:  # o site manda só o nome dele no lugar da música: não serve como nome de música
+        lista = [x for x in lista if site.lower() not in x["titulo"].lower()]
+    if lista:
+        x = lista[0]
+        nome = x["titulo"].strip() + (" · " + x["artista"].strip() if (x.get("artista") or "").strip() else "")
+        return {"atual": nome, "tocando": x.get("status") == "Playing", "site": site}
+    if site:
+        return {"atual": None, "tocando": any(x.get("status") == "Playing" for x in midia_windows()), "site": site}
     return None
 
 
@@ -818,9 +873,12 @@ def previa(com_foto=True, janelas=False):
         musica = {"atual": m["nome"], "fonte": "Playlist " + m["playlist"], "tocando": bool(m.get("tocando")),
                   "proxima": prox_faixa, "proxima_obs": None if prox_faixa else "A playlist recomeça embaralhada"}
     else:
-        ext = musica_externa()
-        musica = {"atual": ext, "fonte": "Sonvra, no navegador" if ext else None, "tocando": bool(ext),
-                  "proxima": None, "proxima_obs": "O Sonvra não informa a próxima" if ext else None}
+        ext = musica_externa() or {}
+        site = ext.get("site")
+        musica = {"atual": ext.get("atual") or (f"Tocando pelo {site}" if site else None),
+                  "fonte": f"{site}, no navegador" if site else ("Player do Windows" if ext.get("atual") else None),
+                  "tocando": bool(ext.get("tocando")),
+                  "proxima": None, "proxima_obs": f"O {site} não informa a próxima" if site else None}
     if ESTADO.clientes > 0:
         t = ESTADO.telao_efetivo()
         nome = os.path.splitext(t.get("arquivo") or "")[0]
@@ -1130,7 +1188,7 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------- OX Cloud (painel de qualquer rede)
 # Conexão de SAÍDA para o OX Cloud (long-poll): busca os comandos do painel de lá, executa aqui
 # como se fosse o painel local e devolve a resposta. Não precisa abrir porta no roteador.
-VERSAO = "1.2"
+VERSAO = "1.3"
 
 
 def laco_nuvem():
