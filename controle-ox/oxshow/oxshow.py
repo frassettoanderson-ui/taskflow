@@ -59,7 +59,11 @@ REGISTRO_PATH = os.path.join(BASE, "registro.json")
 DADOS_LOCK = threading.Lock()
 DADOS = ler_json(DADOS_PATH, {})
 for _k, _v in (("cenas", []), ("eventos", []), ("agenda", []), ("musica", {"programacao": []}),
-               ("telao_padrao", {"modo": "preto"})):
+               ("telao_padrao", {"modo": "preto"}), ("videos", {}),
+               ("telao_config", {"funcionamento": {"0": ["05:00", "23:59"], "1": ["05:00", "23:59"], "2": ["05:00", "23:59"],
+                                                   "3": ["05:00", "23:59"], "4": ["05:00", "23:59"], "5": ["08:00", "17:00"],
+                                                   "6": ["08:00", "14:00"]},
+                                 "volume_musica_com_video": 10})):
     DADOS.setdefault(_k, _v)
 
 EXT_VIDEO = {".mp4", ".webm", ".mov", ".m4v"}
@@ -97,6 +101,13 @@ class Estado:
         t = dict(self.telao)
         if t.get("modo") == "padrao":
             p = dict(DADOS.get("telao_padrao") or {"modo": "preto"})
+            if p.get("modo") == "rodizio":
+                loops = videos_em_loop()
+                if not loops:
+                    return {"modo": "preto", "id": t["id"], "padrao": True, "rodizio": True}
+                arq = loops[RODIZIO["i"] % len(loops)]
+                return {"modo": "video", "arquivo": arq, "repetir": len(loops) == 1, "mudo": not video_cfg(arq).get("som"),
+                        "id": t["id"] + RODIZIO["n"], "padrao": True, "rodizio": True}
             p["id"] = t["id"]
             p["padrao"] = True
             return p
@@ -110,6 +121,42 @@ _seq = [0]
 def proximo_id():
     _seq[0] += 1
     return int(time.time() * 1000) * 10 + _seq[0] % 10
+
+
+RODIZIO = {"i": 0, "n": 0}
+
+
+def video_cfg(arquivo):
+    return (DADOS.get("videos") or {}).get(arquivo) or {}
+
+
+def videos_em_loop():
+    return [v for v in listar("videos", EXT_VIDEO) if video_cfg(v).get("tipo") == "loop"]
+
+
+DUCK = {"ativo": False, "pausou_externa": False}
+
+
+def atualizar_som_video():
+    """Vídeo com som no telão: a música baixa (ou o rádio do navegador pausa) enquanto ele passa; depois volta."""
+    t = ESTADO.telao_efetivo()
+    quer = t.get("modo") == "video" and not t.get("mudo") and ESTADO.clientes > 0
+    if quer == DUCK["ativo"]:
+        return
+    DUCK["ativo"] = quer
+    MUSICA.publicar()
+    if not ESTADO.musica.get("faixa"):  # música do dia ainda no navegador (Vymber): pausa e retoma
+        if quer:
+            def pausar():
+                try:
+                    midia_windows_comando("pausar")
+                    DUCK["pausou_externa"] = True
+                except Exception as e:
+                    log.info("vídeo com som: não pausei o rádio (%s)", e)
+            threading.Thread(target=pausar, daemon=True).start()
+        elif DUCK["pausou_externa"]:
+            DUCK["pausou_externa"] = False
+            threading.Thread(target=lambda: midia_windows_comando("retomar"), daemon=True).start()
 
 
 def telao_mostrar(passo):
@@ -128,6 +175,7 @@ def telao_mostrar(passo):
     ESTADO.telao = novo
     ESTADO.controle["pausado"] = False  # vídeo novo sempre começa tocando
     ESTADO.publicar()
+    atualizar_som_video()
 
 
 def telao_controle(p):
@@ -241,6 +289,8 @@ class Musica:
         m["nome"] = os.path.splitext(self.atual)[0] if self.atual else None
         m["playlist"] = nome
         m["volume"] = self.volume_manual if self.volume_manual is not None else self.volume_base
+        if DUCK["ativo"]:
+            m["volume"] = min(m["volume"], int((DADOS.get("telao_config") or {}).get("volume_musica_com_video", 10)))
         m["tocando"] = bool(self.atual) and not self.pausada
         ESTADO.publicar()
 
@@ -971,6 +1021,151 @@ def previa(com_foto=True, janelas=False):
     return r
 
 
+# ================================================================ vídeos do telão: envio, configuração e "X vezes por dia"
+def minutos(hhmm):
+    h, m = hhmm.split(":")
+    return int(h) * 60 + int(m)
+
+
+def horarios_do_dia(vezes, dia, ordem=0, total=1):
+    """Espalha N passagens no horário da academia daquele dia. 'ordem' desloca um pouco cada vídeo para não baterem juntos."""
+    func = ((DADOS.get("telao_config") or {}).get("funcionamento") or {}).get(str(dia.weekday()))
+    if not func or not vezes:
+        return []
+    ini, fim = minutos(func[0]), minutos(func[1])
+    if fim <= ini:
+        return []
+    passo = (fim - ini) / vezes
+    desloc = passo * ordem / max(total, 1) / 2
+    lista = []
+    for i in range(int(vezes)):
+        m = int(ini + passo * i + passo / 2 + desloc) % (24 * 60)
+        lista.append(f"{m // 60:02d}:{m % 60:02d}")
+    return lista
+
+
+def videos_vezes():
+    return [v for v in listar("videos", EXT_VIDEO) if video_cfg(v).get("tipo") == "vezes" and int(video_cfg(v).get("vezes") or 0) > 0]
+
+
+def agenda_insercoes(dia):
+    vs = videos_vezes()
+    lista = []
+    for ordem, v in enumerate(vs):
+        for i, h in enumerate(horarios_do_dia(int(video_cfg(v)["vezes"]), dia, ordem, len(vs))):
+            lista.append((h, v, i))
+    return sorted(lista)
+
+
+INSERCOES = {"dia": None, "feitas": set(), "fila": []}
+
+
+def telao_livre():
+    ex = EXEC["atual"]
+    return (ESTADO.telao.get("modo") == "padrao" and not (ex and ex.is_alive()) and not janela_protegida())
+
+
+def laco_insercoes():
+    while True:
+        time.sleep(10)
+        try:
+            if ESTADO.clientes == 0:  # o telão ainda está no OBS: o OX Show não mexe em nada
+                continue
+            hoje = agora().date()
+            if INSERCOES["dia"] != hoje:
+                INSERCOES.update(dia=hoje, feitas=set(), fila=[])
+            hm = agora().strftime("%H:%M")
+            agora_min = minutos(hm)
+            for h, v, i in agenda_insercoes(hoje):
+                chave = f"{v}|{i}"
+                if h <= hm and chave not in INSERCOES["feitas"] and 0 <= agora_min - minutos(h) <= 15:
+                    INSERCOES["feitas"].add(chave)
+                    INSERCOES["fila"].append((time.time(), v, i))
+            INSERCOES["fila"] = [x for x in INSERCOES["fila"] if time.time() - x[0] < 15 * 60]
+            if INSERCOES["fila"] and telao_livre():
+                _t, v, i = INSERCOES["fila"].pop(0)
+                telao_mostrar({"modo": "video", "arquivo": v, "mudo": not video_cfg(v).get("som")})
+                registrar("telão", os.path.splitext(v)[0], [], f"{i + 1}ª passagem do dia")
+        except Exception:
+            log.exception("inserções do telão")
+
+
+def nome_seguro(nome):
+    base, ext = os.path.splitext(os.path.basename(str(nome or "")))
+    base = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', " ", base).strip(" .")[:80] or "video"
+    ext = ext.lower()
+    if ext not in EXT_VIDEO:
+        raise ValueError("Formato de vídeo não aceito (use mp4, webm, mov ou m4v)")
+    return base, ext
+
+
+ENVIOS = {}
+
+
+def receber_parte(corpo):
+    eid = str(corpo.get("id") or "")
+    if not re.fullmatch(r"[A-Za-z0-9]{6,40}", eid):
+        raise ValueError("Envio inválido")
+    base, ext = nome_seguro(corpo.get("nome"))
+    parte, total = int(corpo.get("parte", -1)), int(corpo.get("total", 0))
+    if not (0 <= parte < total):
+        raise ValueError("Parte inválida")
+    pasta = os.path.join(MIDIA, "videos")
+    tmp = os.path.join(pasta, f".envio-{eid}.part")
+    esperado = ENVIOS.get(eid, 0)
+    if parte == esperado - 1:  # repetição da última parte (a rede caiu na resposta): já está gravada
+        return {"ok": True, "parte": parte}
+    if parte != esperado:
+        raise ValueError(f"Parte fora de ordem (esperava {esperado + 1}, veio {parte + 1})")
+    dados = base64.b64decode(corpo.get("dados") or "")
+    with open(tmp, "wb" if parte == 0 else "ab") as f:
+        f.write(dados)
+    ENVIOS[eid] = parte + 1
+    if parte + 1 < total:
+        return {"ok": True, "parte": parte}
+    ENVIOS.pop(eid, None)
+    final, n = base + ext, 2
+    while os.path.exists(os.path.join(pasta, final)):
+        final, n = f"{base} ({n}){ext}", n + 1
+    os.replace(tmp, os.path.join(pasta, final))
+    with DADOS_LOCK:
+        DADOS.setdefault("videos", {})[final] = {"tipo": "manual", "vezes": 4, "som": False}
+        gravar_json(DADOS_PATH, DADOS)
+    log.info("vídeo recebido: %s (%s bytes)", final, os.path.getsize(os.path.join(pasta, final)))
+    return {"ok": True, "arquivo": final}
+
+
+def apagar_video(arquivo):
+    origem = caminho_midia("videos", arquivo)
+    if not os.path.isfile(origem):
+        raise FileNotFoundError("Vídeo não encontrado")
+    t = ESTADO.telao_efetivo()
+    if t.get("modo") == "video" and t.get("arquivo") == arquivo:
+        raise ValueError("Esse vídeo está no ar agora. Troque o telão antes de apagar.")
+    lixeira = os.path.join(MIDIA, "lixeira")
+    os.makedirs(lixeira, exist_ok=True)
+    destino = os.path.join(lixeira, agora().strftime("%Y%m%d-%H%M%S ") + arquivo)
+    os.replace(origem, destino)  # vai para a lixeira, não some de vez
+    with DADOS_LOCK:
+        (DADOS.get("videos") or {}).pop(arquivo, None)
+        gravar_json(DADOS_PATH, DADOS)
+    log.info("vídeo para a lixeira: %s", arquivo)
+
+
+def lista_videos():
+    hoje = agora().date()
+    hm = agora().strftime("%H:%M")
+    agenda = agenda_insercoes(hoje)
+    r = []
+    for v in listar("videos", EXT_VIDEO):
+        c = video_cfg(v)
+        horas = [h for h, a, _i in agenda if a == v]
+        r.append({"arquivo": v, "tamanho": os.path.getsize(caminho_midia("videos", v)), "tipo": c.get("tipo", "manual"),
+                  "vezes": int(c.get("vezes") or 4), "som": bool(c.get("som")), "horarios": horas,
+                  "proximos": [h for h in horas if h > hm][:4]})
+    return r
+
+
 # ================================================================ sorteio (ponte para o servidor do sorteio no OX Cloud)
 # O painel fala só com o OX Show; a chave do sorteio fica no config.json deste PC e nunca vai para o navegador.
 SORTEIO_ROTAS = {"state": "GET", "treinando": "GET", "participantes": "GET", "cmd": "POST", "excluir": "POST", "restaurar": "POST"}
@@ -1020,7 +1215,7 @@ def janela_protegida():
 
 # ================================================================ HTTP
 
-COLECOES = {"cenas", "eventos", "agenda", "musica", "telao_padrao"}
+COLECOES = {"cenas", "eventos", "agenda", "musica", "telao_padrao", "videos", "telao_config"}
 
 
 def validar(colecao, valor):
@@ -1042,8 +1237,25 @@ def validar(colecao, valor):
             if not (re.fullmatch(r"\d{2}:\d{2}", f.get("inicio", "")) and re.fullmatch(r"\d{2}:\d{2}", f.get("fim", ""))):
                 raise ValueError("Horário de música inválido (use HH:MM)")
     elif colecao == "telao_padrao":
-        if not isinstance(valor, dict) or valor.get("modo") not in ("video", "imagem", "site", "preto"):
+        if not isinstance(valor, dict) or valor.get("modo") not in ("video", "imagem", "site", "preto", "rodizio"):
             raise ValueError("Telão padrão inválido")
+    elif colecao == "videos":
+        if not isinstance(valor, dict):
+            raise ValueError("Lista de vídeos inválida")
+        for nome, c in valor.items():
+            if not isinstance(c, dict) or c.get("tipo") not in ("loop", "vezes", "manual"):
+                raise ValueError(f"Tipo inválido em '{nome}'")
+            if c.get("tipo") == "vezes" and not (1 <= int(c.get("vezes") or 0) <= 96):
+                raise ValueError(f"Número de vezes inválido em '{nome}' (1 a 96)")
+    elif colecao == "telao_config":
+        func = (valor or {}).get("funcionamento")
+        if not isinstance(func, dict):
+            raise ValueError("Horário inválido")
+        for d, h in func.items():
+            if h and not (isinstance(h, list) and len(h) == 2 and all(re.fullmatch(r"\d{2}:\d{2}", x or "") for x in h)):
+                raise ValueError("Horário da academia inválido (use HH:MM)")
+        if not (0 <= int(valor.get("volume_musica_com_video", 10)) <= 100):
+            raise ValueError("Volume inválido")
 
 
 def estado_painel():
@@ -1203,6 +1415,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(401, {"erro": "PIN inválido"})
         if rota == "/api/estado":
             return self._json(200, estado_painel())
+        if rota == "/api/videos":
+            return self._json(200, lista_videos())
         if rota.startswith("/api/sorteio/"):
             try:
                 st, corpo = sorteio_api(rota[len("/api/sorteio/"):], "GET", {k: v[0] for k, v in parse_qs(url.query).items()})
@@ -1240,6 +1454,12 @@ class Handler(BaseHTTPRequestHandler):
             if rota == "/telao/fim" and corpo.get("id") == ESTADO.telao.get("id") and ESTADO.telao.get("modo") == "video":
                 ESTADO.telao = {"modo": "padrao", "id": proximo_id()}
                 ESTADO.publicar()
+                atualizar_som_video()
+            elif rota == "/telao/fim" and ESTADO.telao.get("modo") == "padrao" and corpo.get("id") == ESTADO.telao_efetivo().get("id"):
+                RODIZIO["i"] += 1
+                RODIZIO["n"] += 1
+                ESTADO.publicar()
+                atualizar_som_video()
             elif rota == "/telao/musica-fim" and corpo.get("id") == ESTADO.musica.get("id"):
                 MUSICA.proxima()
             elif rota == "/telao/erro":
@@ -1277,6 +1497,10 @@ class Handler(BaseHTTPRequestHandler):
                 executar_passo(corpo)
             elif rota == "/api/parar":
                 parar_evento()
+            elif rota == "/api/videos/enviar":
+                return self._json(200, receber_parte(corpo))
+            elif rota == "/api/videos/apagar":
+                apagar_video(corpo.get("arquivo", ""))
             elif rota == "/api/telao/abrir":
                 abrir_telao()
             elif rota == "/api/telao/fechar":
@@ -1309,8 +1533,9 @@ class Handler(BaseHTTPRequestHandler):
             gravar_json(DADOS_PATH, DADOS)
         if colecao == "musica":
             MUSICA.acao({"acao": "programacao"})
-        if colecao == "telao_padrao":
+        if colecao in ("telao_padrao", "videos"):
             ESTADO.publicar()
+            atualizar_som_video()
         log.info("dados '%s' salvos pelo painel (%s)", colecao, self._origem())
         return self._json(200, {"ok": True})
 
@@ -1318,7 +1543,7 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------- OX Cloud (painel de qualquer rede)
 # Conexão de SAÍDA para o OX Cloud (long-poll): busca os comandos do painel de lá, executa aqui
 # como se fosse o painel local e devolve a resposta. Não precisa abrir porta no roteador.
-VERSAO = "1.5"
+VERSAO = "1.6"
 
 
 def laco_nuvem():
@@ -1380,6 +1605,7 @@ def main():
     srv = ThreadingHTTPServer(("0.0.0.0", porta), Handler)
     srv.daemon_threads = True
     threading.Thread(target=laco_agenda, daemon=True).start()
+    threading.Thread(target=laco_insercoes, daemon=True).start()
     threading.Thread(target=laco_vigia, daemon=True).start()
     threading.Thread(target=laco_nuvem, daemon=True).start()
     if CFG["telao"].get("abrir_automatico"):

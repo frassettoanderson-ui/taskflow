@@ -100,6 +100,48 @@
   .sub.erro{color:#ff8a7a}
   .sub strong{color:var(--tinta)}
   .avisos:empty{display:none}
+  /* envio de vídeo */
+  .envio{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:12px;max-width:820px;margin:0 auto}
+  .envio-campo{display:flex;align-items:center;gap:14px;min-height:58px;padding:8px 10px;border-radius:8px;background:var(--lcd);border:1px solid #000;
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.9), 0 0 0 2px #2c2d30;cursor:pointer;min-width:0}
+  .envio-campo input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+  .envio-campo b{flex:none;font:700 13px/1 var(--f-rot);letter-spacing:.14em;text-transform:uppercase;color:var(--tinta);padding:12px 14px;border-radius:6px;
+    background:linear-gradient(180deg,#34353a,#232427);box-shadow:0 0 0 1px #000, inset 0 1px 0 rgba(255,255,255,.1)}
+  .envio-campo span{font-family:var(--f-lcd);font-size:15px;color:var(--ambar);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .envio-campo:focus-within{box-shadow:inset 0 2px 8px rgba(0,0,0,.9), 0 0 0 2px var(--latao-2)}
+  .envio button{min-height:58px;font-size:17px}
+  .envio-prog{max-width:820px;margin:16px auto 0;text-align:center}
+  .envio-txt{font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2);margin-top:8px}
+  /* lista de vídeos */
+  .vid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}
+  .vid .ctl{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+  .vid .ctl select{width:auto;min-height:40px;padding:6px 10px}
+  .vid .ctl input[type=number]{width:74px;min-height:40px;padding:6px 8px;text-align:center}
+  .vid .ctl .x{font-size:13px;color:var(--tinta-2)}
+  .vid .tag{display:inline-block;margin-left:8px;font:600 11px/1 var(--f-rot);letter-spacing:.14em;text-transform:uppercase;padding:3px 6px;border-radius:3px;border:1px solid currentColor;color:var(--ambar)}
+  .vid .tag.som{color:var(--ok)}
+  /* horário */
+  .func{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:10px;max-width:1000px;margin:0 auto}
+  .func .dia{display:flex;flex-direction:column;gap:6px;align-items:stretch;padding:10px;border-radius:8px;background:rgba(0,0,0,.25);border:1px solid #000}
+  .func .dia b{text-align:center;font:700 14px/1 var(--f-rot);letter-spacing:.16em;text-transform:uppercase}
+  .func .dia input[type=time]{min-height:38px;padding:4px 6px;text-align:center}
+  .func .dia label.chk{justify-content:center;font-size:12px}
+  .func .dia.fechado input[type=time]{opacity:.35}
+  .func-vol{max-width:420px;margin:16px auto 0}
+  /* template (em breve) */
+  .tpl{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:center}
+  .tpl-tela{aspect-ratio:2816/976;display:grid;grid-template-columns:1fr 3.2fr 1fr;grid-template-rows:auto 1fr auto;gap:6px;padding:8px;border-radius:6px;
+    background:#050505;border:1px solid #000;box-shadow:0 0 0 3px #2c2d30, 0 0 0 4px #000;font:600 11px/1 var(--f-rot);letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-3)}
+  .tpl-tela>div{border:1px dashed #3a3a3e;border-radius:4px;display:flex;align-items:center;justify-content:center}
+  .tpl-topo{grid-column:1/-1;justify-content:space-between !important;padding:6px 10px}
+  .tpl-logo{color:var(--ox-luz)}
+  .tpl-video{background:repeating-linear-gradient(135deg,rgba(255,176,32,.07) 0 10px,transparent 10px 20px);color:var(--ambar-2)}
+  .tpl-rodape{grid-column:1/-1;justify-content:space-around !important;padding:6px}
+  .tpl-info{text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .tpl-info p{color:var(--tinta-2);font-size:14px;max-width:38ch}
+  .tpl-selo{font:700 13px/1 var(--f-rot);letter-spacing:.24em;text-transform:uppercase;color:var(--ambar);border:1px solid var(--ambar-2);border-radius:4px;padding:6px 10px 5px}
+  @media (max-width:900px){ .func{grid-template-columns:repeat(4,minmax(0,1fr))} .tpl{grid-template-columns:1fr} .vid{grid-template-columns:1fr} .vid .ctl{justify-content:center} }
+  @media (max-width:560px){ .envio{grid-template-columns:1fr} .func{grid-template-columns:repeat(2,minmax(0,1fr))} }
   .so-bts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:760px;margin:0 auto}
   .so-bts button{min-height:72px;font-size:18px}
   .so-visor{max-width:760px;margin:0 auto 18px;padding:18px 20px 16px;text-align:center}
@@ -670,16 +712,54 @@
     <div class="grade" id="agTelaoBts"></div>
   </section>
   <section>
+    <h2>Enviar vídeo</h2>
+    <div class="sub">Escolha um ou mais vídeos (mp4, webm ou mov). Pela internet o envio demora mais que na rede da academia.</div>
+    <div class="envio">
+      <label class="envio-campo"><input type="file" id="tlArquivo" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v" multiple><b>Escolher vídeos</b><span id="tlArqNome">Nenhum vídeo escolhido</span></label>
+      <button class="prim" id="tlEnviar" disabled>Enviar</button>
+    </div>
+    <div class="envio-prog" id="tlProg" hidden><div class="barra-prog"><i id="tlBarra"></i></div><div class="envio-txt" id="tlProgTxt"></div></div>
+  </section>
+
+  <section>
+    <h2>Vídeos</h2>
+    <div class="sub">Em loop: entra no rodízio da tela padrão. X vezes por dia: passa espalhado no horário da academia. Com som: a música baixa enquanto ele passa.</div>
+    <div class="lista" id="tlVideos"></div>
+  </section>
+
+  <section>
+    <h2>Horário da academia</h2>
+    <div class="sub">Os vídeos de "X vezes por dia" são espalhados dentro deste horário</div>
+    <div class="func" id="tlFunc"></div>
+    <div class="func-vol"><label class="campo"><span>Volume da música durante vídeo com som (%)</span><input type="number" id="tlVolVideo" min="0" max="100"></label></div>
+    <div class="acoes"><button class="prim" id="tlFuncSalvar">Salvar horário</button></div>
+  </section>
+
+  <section>
     <h2>Tela padrão</h2>
     <div class="sub">O que o telão mostra quando nada está programado (e depois de cada vídeo)</div>
     <div class="form" id="padraoForm"></div>
     <div class="acoes"><button class="prim" id="padraoSalvar">Salvar tela padrão</button></div>
   </section>
   <section>
-    <h2>Vídeos</h2>
-    <div class="sub">Pasta midia\videos no PC da academia</div>
-    <div class="lista" id="tlVideos"></div>
+    <h2>Template</h2>
+    <div class="sub">Moldura do telão com banners, relógio, previsão do tempo e patrocinadores, com o vídeo rodando dentro</div>
+    <div class="tpl">
+      <div class="tpl-tela" aria-hidden="true">
+        <div class="tpl-topo"><span>09:41</span><span class="tpl-logo">OXFITNESS</span><span>24° Imbituba</span></div>
+        <div class="tpl-lado">Banner</div>
+        <div class="tpl-video">Vídeo</div>
+        <div class="tpl-lado">Banner</div>
+        <div class="tpl-rodape"><span>Patrocinador</span><span>Patrocinador</span><span>Patrocinador</span><span>Patrocinador</span></div>
+      </div>
+      <div class="tpl-info">
+        <span class="tpl-selo">Em breve</span>
+        <p>Aqui vão ficar os templates do telão: você escolhe a moldura, sobe os banners e os patrocinadores, e o vídeo do momento roda dentro dela.</p>
+        <button disabled>Enviar template</button>
+      </div>
+    </div>
   </section>
+
   <section>
     <h2>Imagens</h2>
     <div class="sub">Pasta midia\imagens</div>
@@ -903,6 +983,7 @@ $("abas").addEventListener("click", e => {
   if (b.dataset.aba === "luz") carregarLuz();
   if (b.dataset.aba === "sorteio") abrirSorteio();
   if (b.dataset.aba === "telao" || b.dataset.aba === "musica") carregarMidia().then(renderDados);
+  if (b.dataset.aba === "telao") carregarVideos();
 });
 
 // ---------------------------------------------------------- AGORA
@@ -1215,7 +1296,7 @@ function renderDados(){
   // telão
   const P = D.telao_padrao;
   const f = $("padraoForm");
-  const selModo = opcoes(el("select", {on: {change: e => { P.modo = e.target.value; if (P.modo === "video") P.arquivo = M.videos[0]; if (P.modo === "imagem") P.arquivo = M.imagens[0]; renderDados(); }}}), [["video","Vídeo"],["imagem","Imagem"],["site","Site"],["preto","Tela preta"]], P.modo);
+  const selModo = opcoes(el("select", {on: {change: e => { P.modo = e.target.value; if (P.modo === "video") P.arquivo = M.videos[0]; if (P.modo === "imagem") P.arquivo = M.imagens[0]; renderDados(); }}}), [["rodizio","Rodízio dos vídeos em loop"],["video","Um vídeo"],["imagem","Imagem"],["site","Site"],["preto","Tela preta"]], P.modo);
   const partes = [campo("Mostrar", selModo)];
   if (P.modo === "video" || P.modo === "imagem"){
     const lista = P.modo === "video" ? M.videos : M.imagens;
@@ -1226,9 +1307,8 @@ function renderDados(){
   f.replaceChildren(...partes);
 
   const trava = E && E.protegido;
-  $("tlVideos").replaceChildren(...(M.videos.length ? M.videos.map(v => el("div", {class: "item"}, el("div", {}, el("div", {class: "t"}, semExt(v))),
-    el("div", {class: "bts"}, btn("Mostrar uma vez", () => cmd("/api/passo", {tipo: "telao", modo: "video", arquivo: v}, "Telão: " + semExt(v)), "peq"),
-      btn("Repetindo", () => cmd("/api/passo", {tipo: "telao", modo: "video", arquivo: v, repetir: true}, "Telão: " + semExt(v)), "peq")))) : [el("div", {class: "vazio"}, "Nenhum vídeo na pasta")]));
+  renderVideos();
+  renderFuncionamento();
   $("tlImagens").replaceChildren(...(M.imagens.length ? M.imagens.map(v => el("div", {class: "item"}, el("div", {}, el("div", {class: "t"}, semExt(v))),
     el("div", {class: "bts"}, btn("Mostrar", () => cmd("/api/passo", {tipo: "telao", modo: "imagem", arquivo: v}, "Telão: " + semExt(v)), "peq")))) : [el("div", {class: "vazio"}, "Nenhuma imagem na pasta")]));
   if (E) $("tlJanela").textContent = E.telao.conectado ? "A janela do telão está aberta e conectada" : "A janela do telão não está aberta";
@@ -1250,6 +1330,94 @@ function renderDados(){
   $("muPlaylists").replaceChildren(...(pls.length ? pls.map(p => el("div", {class: "item"}, el("div", {}, el("div", {class: "t"}, p), el("div", {class: "d"}, M.playlists[p] + " músicas")),
     el("div", {class: "bts"}, btn("Tocar agora", () => cmd("/api/passo", {tipo: "musica", acao: "playlist", playlist: p}, "Tocando " + p), "peq")))) : [el("div", {class: "vazio"}, "Nenhuma pasta em midia\\musicas")]));
 }
+// ---------------------------------------------------------- vídeos do telão
+let V = [];
+const TIPOS_V = [["loop", "Em loop"], ["vezes", "X vezes por dia"], ["manual", "Só quando mandar"]];
+function mb(b){ return b >= 1e9 ? (b / 1e9).toFixed(1).replace(".", ",") + " GB" : (b / 1e6).toFixed(1).replace(".", ",") + " MB"; }
+async function carregarVideos(){ try { V = await api("/api/videos"); renderVideos(); } catch(e){} }
+async function salvarVideo(arquivo, mudanca){
+  const todos = JSON.parse(JSON.stringify(D.videos || {}));
+  todos[arquivo] = Object.assign({tipo: "manual", vezes: 4, som: false}, todos[arquivo] || {}, mudanca);
+  if (await salvarColecao("videos", todos)) carregarVideos();
+}
+function renderVideos(){
+  if (!D) return;
+  const trava = E && E.protegido;
+  $("tlVideos").replaceChildren(...(V.length ? V.map(v => {
+    const c = Object.assign({tipo: "manual", vezes: 4, som: false}, (D.videos || {})[v.arquivo] || {});
+    const desc = [mb(v.tamanho), c.tipo === "loop" ? "no rodízio da tela padrão" : c.tipo === "vezes"
+      ? (v.horarios.length ? (v.proximos.length ? "próximas: " + v.proximos.join(", ") : "já passou todas hoje") + ` · horários: ${v.horarios.join(", ")}` : "academia fechada hoje")
+      : "passa só quando alguém mandar"].join(" · ");
+    const tipo = opcoes(el("select", {"aria-label": "Tipo do vídeo", on: {change: e => salvarVideo(v.arquivo, {tipo: e.target.value})}}), TIPOS_V, c.tipo);
+    const vezes = el("input", {type: "number", min: 1, max: 96, value: c.vezes, "aria-label": "Vezes por dia", on: {change: e => salvarVideo(v.arquivo, {vezes: Math.max(1, Math.min(96, +e.target.value || 1))})}});
+    const som = opcoes(el("select", {"aria-label": "Som do vídeo", on: {change: e => salvarVideo(v.arquivo, {som: e.target.value === "1"})}}), [["0", "Sem som"], ["1", "Com som"]], c.som ? "1" : "0");
+    const passar = btn("Passar agora", () => cmd("/api/passo", {tipo: "telao", modo: "video", arquivo: v.arquivo, mudo: !c.som}, "Telão: " + semExt(v.arquivo)), "peq");
+    passar.disabled = trava;
+    return el("div", {class: "item vid"},
+      el("div", {}, el("div", {class: "t"}, semExt(v.arquivo), c.som ? el("span", {class: "tag som"}, "com som") : "", c.tipo !== "manual" ? el("span", {class: "tag"}, c.tipo === "loop" ? "loop" : c.vezes + "x por dia") : ""),
+        el("div", {class: "d"}, desc)),
+      el("div", {class: "ctl"}, tipo, c.tipo === "vezes" ? vezes : null, c.tipo === "vezes" ? el("span", {class: "x"}, "vezes") : null, som, passar,
+        btn("Apagar", () => apagarVideo(v.arquivo), "peq perigo")));
+  }) : [el("div", {class: "vazio"}, "Nenhum vídeo ainda. Envie o primeiro acima.")]));
+}
+async function apagarVideo(arquivo){
+  if (!confirm(`Apagar o vídeo "${semExt(arquivo)}"?\n\nEle vai para a lixeira do PC da academia (dá para recuperar lá).`)) return;
+  try { await api("/api/videos/apagar", "POST", {arquivo}); aviso("Vídeo apagado"); D = await api("/api/dados"); await carregarMidia(); renderDados(); carregarVideos(); }
+  catch(e){ aviso(e.message, true); }
+}
+function renderFuncionamento(){
+  if (!D || !D.telao_config) return;
+  const F = D.telao_config.funcionamento;
+  $("tlFunc").replaceChildren(...DIAS.map((nome, i) => {
+    const h = F[String(i)], fechado = !h;
+    const ini = el("input", {type: "time", value: h ? h[0] : "08:00", disabled: fechado, "aria-label": nome + " abre", on: {change: e => { F[String(i)][0] = e.target.value; }}});
+    const fim = el("input", {type: "time", value: h ? h[1] : "18:00", disabled: fechado, "aria-label": nome + " fecha", on: {change: e => { F[String(i)][1] = e.target.value; }}});
+    return el("div", {class: "dia" + (fechado ? " fechado" : "")}, el("b", {}, nome), ini, fim,
+      el("label", {class: "chk"}, el("input", {type: "checkbox", checked: fechado, on: {change: e => { F[String(i)] = e.target.checked ? null : ["08:00", "18:00"]; renderFuncionamento(); }}}), "Fechada"));
+  }));
+  if (document.activeElement !== $("tlVolVideo")) $("tlVolVideo").value = D.telao_config.volume_musica_com_video ?? 10;
+}
+$("tlFuncSalvar").onclick = async () => {
+  const cfg = JSON.parse(JSON.stringify(D.telao_config));
+  cfg.volume_musica_com_video = Math.max(0, Math.min(100, +$("tlVolVideo").value || 0));
+  if (await salvarColecao("telao_config", cfg)) carregarVideos();
+};
+$("tlArquivo").onchange = () => {
+  const f = [...$("tlArquivo").files];
+  $("tlArqNome").textContent = f.length ? (f.length === 1 ? f[0].name + " · " + mb(f[0].size) : f.length + " vídeos · " + mb(f.reduce((a, x) => a + x.size, 0))) : "Nenhum vídeo escolhido";
+  $("tlEnviar").disabled = !f.length;
+};
+$("tlEnviar").onclick = async () => {
+  const arqs = [...$("tlArquivo").files];
+  if (!arqs.length) return;
+  $("tlEnviar").disabled = true; $("tlProg").hidden = false;
+  const TAM = NUVEM ? 512 * 1024 : 4 * 1024 * 1024;
+  const espera = ms => new Promise(r => setTimeout(r, ms));
+  for (const [n, f] of arqs.entries()){
+    const id = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    const total = Math.max(1, Math.ceil(f.size / TAM)), inicio = Date.now();
+    for (let i = 0; i < total; i++){
+      const buf = new Uint8Array(await f.slice(i * TAM, (i + 1) * TAM).arrayBuffer());
+      let bin = "";
+      for (let j = 0; j < buf.length; j += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(j, j + 0x8000));
+      const corpo = {id, nome: f.name, parte: i, total, dados: btoa(bin)};
+      for (let tent = 1; ; tent++){
+        try { await api("/api/videos/enviar", "POST", corpo); break; }
+        catch(e){
+          if (tent >= 5){ aviso(`Falhou o envio de ${f.name}: ${e.message}`, true); $("tlEnviar").disabled = false; return; }
+          await espera(1500 * tent);
+        }
+      }
+      const pct = Math.round((i + 1) / total * 100), seg = (Date.now() - inicio) / 1000, falta = seg / (i + 1) * (total - i - 1);
+      $("tlBarra").style.width = pct + "%";
+      $("tlProgTxt").textContent = `${f.name}: ${pct}%` + (arqs.length > 1 ? ` · vídeo ${n + 1} de ${arqs.length}` : "") + (falta > 5 ? ` · falta ${falta >= 60 ? Math.ceil(falta / 60) + " min" : Math.ceil(falta) + " s"}` : "");
+    }
+  }
+  aviso(arqs.length > 1 ? "Vídeos enviados" : "Vídeo enviado");
+  $("tlArquivo").value = ""; $("tlArqNome").textContent = "Nenhum vídeo escolhido";
+  $("tlProgTxt").textContent = "Envio concluído. Escolha abaixo se o vídeo é em loop, X vezes por dia, e se tem som.";
+  D = await api("/api/dados"); await carregarMidia(); renderDados(); carregarVideos();
+};
 $("padraoSalvar").onclick = () => salvarColecao("telao_padrao", D.telao_padrao);
 $("muNova").onclick = () => { D.musica.programacao.push({inicio: "06:00", fim: "23:00", playlist: Object.keys(M.playlists)[0] || "", volume: 60, dias: [0,1,2,3,4,5,6]}); renderDados(); };
 $("muSalvar").onclick = () => salvarColecao("musica", D.musica);
