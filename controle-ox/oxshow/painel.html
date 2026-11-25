@@ -1848,9 +1848,9 @@ function renderVymber(r){
       catch(e){ renderVymber({aberto: false}); $("vySemTxt").textContent = "Sem contato com o PC da academia"; $("vyAbrir").hidden = true; }
     }
     vyJa = false;
-    const espera = ver ? (NUVEM ? 1300 : 700) : 2000;
-    for (let t = 0; t < espera && !vyJa; t += 100) await new Promise(r => setTimeout(r, 100));
-    if (vyJa) await new Promise(r => setTimeout(r, 250));
+    const espera = ver ? (NUVEM ? 600 : 350) : 2000;
+    for (let t = 0; t < espera && !vyJa; t += 50) await new Promise(r => setTimeout(r, 50));
+    if (vyJa) await new Promise(r => setTimeout(r, 120));
   }
 })();
 $("vyImg").addEventListener("click", e => { $("vyTela").focus({preventScroll: true}); vyAcao({tipo: "clique", ...vyPos(e)}); });

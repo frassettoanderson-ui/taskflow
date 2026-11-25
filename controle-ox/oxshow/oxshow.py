@@ -8,6 +8,8 @@ Só usa a biblioteca padrão do Python; pyserial é opcional (luz ambiente na CO
 import base64
 import hashlib
 import ctypes
+import http.client
+import queue
 import datetime
 import json
 import logging
@@ -885,14 +887,29 @@ def cdp(metodo, params=None, tentativa=True, sess=None):
     return cdp(metodo, params, tentativa=False, sess=sess)
 
 
+def _vy_desminimizar():
+    """Minimizada, a página para de desenhar e cada foto leva ~2,5 s. Ao olhar a tela, volta ao normal."""
+    if time.time() - VYMBER.get("janela_t", 0) < 3 or not VYMBER.get("alvo"):
+        return
+    VYMBER["janela_t"] = time.time()
+    try:
+        w = cdp("Browser.getWindowForTarget", {"targetId": VYMBER["alvo"]})
+        if (w.get("bounds") or {}).get("windowState") == "minimized":
+            cdp("Browser.setWindowBounds", {"windowId": w["windowId"], "bounds": {"windowState": "normal"}})
+            time.sleep(0.3)
+    except Exception as e:
+        log.info("Vymber: não consegui desminimizar (%s)", e)
+
+
 def vymber_tela():
     """Foto da janela do Vymber (jpeg em base64) + tamanho da área da página, para mapear os cliques."""
     if not vymber_aberto():
         return {"aberto": False}
     agora = time.time()
-    if VYMBER["foto"] and agora - VYMBER["foto_t"] < 0.4:
+    if VYMBER["foto"] and agora - VYMBER["foto_t"] < 0.25:
         return VYMBER["foto"]
     m = cdp("Page.getLayoutMetrics")
+    _vy_desminimizar()
     v = m.get("cssVisualViewport") or m.get("visualViewport") or {}
     w, h = v.get("clientWidth") or 1280, v.get("clientHeight") or 800
     escala = min(1.0, 1000 / max(w, 1))
@@ -2102,6 +2119,49 @@ class Handler(BaseHTTPRequestHandler):
 VERSAO = "1.7"
 
 
+class Conexoes:
+    """Conexões HTTPS reaproveitadas (keep-alive) com o OX Cloud."""
+
+    def __init__(self, base):
+        u = urlparse(base)
+        self.https, self.host, self.porta = u.scheme == "https", u.hostname, u.port
+        self.prefixo = u.path.rstrip("/")
+        self.livres = queue.LifoQueue()
+
+    def _nova(self, timeout):
+        cls = http.client.HTTPSConnection if self.https else http.client.HTTPConnection
+        return cls(self.host, self.porta, timeout=timeout)
+
+    def pedir(self, metodo, caminho, corpo=None, cab=None, timeout=15):
+        for tentativa in (1, 2):
+            try:
+                c = self.livres.get_nowait()
+            except queue.Empty:
+                c = self._nova(timeout)
+            try:
+                c.timeout = timeout
+                if c.sock:
+                    c.sock.settimeout(timeout)
+                c.request(metodo, self.prefixo + caminho, body=corpo, headers=cab or {})
+                r = c.getresponse()
+                dados = r.read()
+                if r.will_close:
+                    c.close()
+                else:
+                    self.livres.put(c)
+                return r.status, dados
+            except Exception:
+                try:
+                    c.close()
+                except Exception:
+                    pass
+                if tentativa == 2:
+                    raise
+
+
+NUVEM_CONEXOES = {}
+
+
 def laco_nuvem():
     nuvem = CFG.get("nuvem") or {}
     url, token = (nuvem.get("url") or "").rstrip("/"), nuvem.get("token") or ""
@@ -2109,12 +2169,15 @@ def laco_nuvem():
         return
     cab = {"X-Agente-Token": token, "X-Agente-Versao": VERSAO, "X-Agente-Maquina": os.environ.get("COMPUTERNAME", "")}
     log.info("OX Cloud: conectando em %s", url)
+    fila, respostas = Conexoes(url), Conexoes(url)
+    NUVEM_CONEXOES["respostas"] = respostas
     falhas = 0
     while True:
         try:
-            req = urllib.request.Request(url + "/api/show/agente/fila", headers=cab)
-            with urllib.request.urlopen(req, timeout=40) as r:
-                pedidos = json.loads(r.read() or b"{}").get("pedidos") or []
+            st, corpo = fila.pedir("GET", "/api/show/agente/fila", cab=cab, timeout=40)
+            if st != 200:
+                raise RuntimeError(f"HTTP {st}")
+            pedidos = json.loads(corpo or b"{}").get("pedidos") or []
             if falhas:
                 log.info("OX Cloud: reconectado")
             falhas = 0
@@ -2147,9 +2210,10 @@ def atender_nuvem(url, cab, p):
             status, corpo = 502, json.dumps({"erro": f"OX Show não respondeu: {e}"})
     try:
         resp = json.dumps({"id": p.get("id"), "status": status, "corpo": corpo}).encode("utf-8")
-        req = urllib.request.Request(url + "/api/show/agente/resposta", data=resp, method="POST",
-                                     headers={**cab, "Content-Type": "application/json"})
-        urllib.request.urlopen(req, timeout=15).close()
+        conn = NUVEM_CONEXOES.get("respostas") or Conexoes(url)
+        st, _ = conn.pedir("POST", "/api/show/agente/resposta", resp, {**cab, "Content-Type": "application/json"}, timeout=15)
+        if st >= 400:
+            raise RuntimeError(f"HTTP {st}")
     except Exception as e:
         log.warning("OX Cloud: falha ao devolver resposta: %s", e)
 
