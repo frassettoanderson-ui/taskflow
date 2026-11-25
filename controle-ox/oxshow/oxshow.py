@@ -977,11 +977,18 @@ SORTEIO_ROTAS = {"state": "GET", "treinando": "GET", "participantes": "GET", "cm
 SORTEIO_CMDS = {"geral", "aovivo", "next", "mute", "fullscreen", "home", "reset"}
 
 
+def sorteio_no_telao():
+    t = ESTADO.telao_efetivo()
+    return t.get("modo") == "site" and "/sorteio" in str(t.get("url", ""))
+
+
 def sorteio_api(ep, metodo, params):
     if SORTEIO_ROTAS.get(ep) != metodo:
         raise ValueError("Comando de sorteio inválido")
     if ep == "cmd" and params.get("c") not in SORTEIO_CMDS:
         raise ValueError("Comando de sorteio inválido")
+    if ep == "cmd" and params.get("c") in ("geral", "aovivo") and not sorteio_no_telao():
+        raise ValueError("Primeiro toque em \"Mostrar sorteio no telão\"")
     link = (CFG.get("sorteio") or {}).get("controle") or ""
     if not link:
         raise ValueError("O sorteio não está configurado neste PC")

@@ -112,6 +112,7 @@
     text-shadow:0 0 14px rgba(255,176,32,.45);margin-top:4px;overflow-wrap:anywhere}
   .so-msg{font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2);margin-top:8px;min-height:18px}
   .so-grandes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:760px;margin:0 auto 14px}
+  .so-bts button.ativo{box-shadow:0 0 0 2px var(--ok), 0 0 18px rgba(70,224,90,.35)}
   .so-grandes button{min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
   .so-grandes b{font-size:26px;letter-spacing:.12em}
   .so-grandes span,.so-peq span{display:block;font-family:var(--f-texto);font-weight:500;font-size:12px;letter-spacing:.02em;text-transform:none;color:var(--tinta-2)}
@@ -1334,17 +1335,20 @@ const soAberta = () => !document.hidden && $("aba-sorteio").classList.contains("
 function soMsg(t){ $("soMsg").textContent = t || "\u00a0"; }
 function soNorm(t){ return String(t || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, ""); }
 
+const sorteioNoTelao = () => !!(E && E.telao && E.telao.modo === "site" && /\/sorteio/.test(E.telao.url || ""));
 function renderSorteio(){
-  const on = !!SO.telao;
+  const on = !!SO.telao, noTelao = sorteioNoTelao();
+  $("soMostrar").classList.toggle("ativo", noTelao);
+  $("soMostrar").textContent = noTelao ? "Sorteio no telão" : "Mostrar sorteio no telão";
   $("soSt").classList.toggle("on", on);
   $("soStTxt").textContent = on ? "Tela do sorteio aberta no telão" : "Tela do sorteio fechada no telão";
-  $("soSub").textContent = on ? "Pronto para sortear" : "Abra a tela do sorteio no telão (botão acima) para liberar os comandos";
+  $("soSub").textContent = !on ? "A página do sorteio não está aberta no PC do telão" : noTelao ? "Pronto para sortear" : "Toque em \"Mostrar sorteio no telão\" para liberar o sorteio";
   $("soEb").textContent = on && SO.eyebrow ? SO.eyebrow : "\u00a0";
   $("soTt").textContent = !on ? "Aguardando o telão" : (SO.title || (SO.status === "idle" ? "Pronto para iniciar" : "-"));
   const g = $("soGeral");
-  g.disabled = !on || SO.status === "running" || soOcupado;
+  g.disabled = !on || !noTelao || SO.status === "running" || soOcupado;
   g.querySelector("b").textContent = SO.status === "running" ? "Sorteando" : SO.status === "finished" ? "Novo sorteio geral" : "Sorteio geral";
-  $("soVivo").disabled = !on || SO.status === "running" || soOcupado;
+  $("soVivo").disabled = !on || !noTelao || SO.status === "running" || soOcupado;
   $("soNext").disabled = !(on && SO.status === "running");
   ["soHome", "soMute", "soFull", "soReset"].forEach(i => $(i).disabled = !on);
   $("soMuteTxt").textContent = SO.muted ? "desligado" : "ligado";
@@ -1444,7 +1448,7 @@ $("soVoltar").onclick = () => cmd("/api/executar", {tipo: "cena", id: "normal"},
 
 async function carregarMidia(){ try { M = await api("/api/midia"); } catch(e){} }
 async function atualizar(){
-  try { E = await api("/api/estado"); renderAgora(); if ($("aba-telao").classList.contains("on")) $("tlJanela").textContent = E.telao.conectado ? "A janela do telão está aberta e conectada" : "A janela do telão não está aberta"; }
+  try { E = await api("/api/estado"); renderAgora(); renderSorteio(); if ($("aba-telao").classList.contains("on")) $("tlJanela").textContent = E.telao.conectado ? "A janela do telão está aberta e conectada" : "A janela do telão não está aberta"; }
   catch(e){ if (e.message !== "PIN inválido") $("status").textContent = "Sem contato com o OX Show"; }
 }
 async function iniciar(){
