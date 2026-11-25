@@ -242,6 +242,28 @@
   .contagem.vazia .ct-dig{color:var(--ambar-apagado);text-shadow:none}
   .contagem.vazia .ct-dig em{animation:none}
 
+  /* eventos: cartão explicativo */
+  .ev-cartoes{display:flex;flex-direction:column;gap:16px;max-width:980px;margin:0 auto}
+  .ev-cartao{background:rgba(0,0,0,.28);border:1px solid #000;border-radius:10px;padding:18px 20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+  .ev-cab{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+  .ev-cab h3{margin:0;font:700 22px/1.1 var(--f-rot);letter-spacing:.06em;text-transform:uppercase;color:var(--tinta)}
+  .ev-quando{margin-top:6px;font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2)}
+  .ev-quando.off{color:var(--tinta-3)}
+  .ev-desc{margin:12px 0 0;color:var(--tinta-2);font-size:15px;line-height:1.5;max-width:70ch}
+  .ev-linha{list-style:none;margin:16px 0 0 6px;padding:0;display:flex;flex-direction:column;gap:2px;border-left:2px solid #2c2d30}
+  .ev-linha li{display:grid;grid-template-columns:70px minmax(0,1fr);gap:14px;align-items:baseline;padding:6px 0 6px 16px;position:relative}
+  .ev-linha li::before{content:"";position:absolute;left:-6px;top:13px;width:10px;height:10px;border-radius:2px;background:#3a3a3e;box-shadow:0 0 0 2px #121214}
+  .ev-linha li.t-telao::before{background:var(--ox-luz)}
+  .ev-linha li.t-luz::before{background:var(--ambar)}
+  .ev-linha li.t-musica::before{background:var(--ok)}
+  .ev-linha .seg{font-family:var(--f-lcd);font-size:15px;color:var(--ambar);font-variant-numeric:tabular-nums}
+  .ev-linha .oq{color:var(--tinta);font-size:15px}
+  .ev-rod{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+  .ev-rod .dur{font-family:var(--f-lcd);font-size:13px;color:var(--tinta-3)}
+  .ev-rod .bts{display:flex;gap:8px}
+  textarea{width:100%;min-height:84px;resize:vertical;background:#0c0c0d;color:var(--tinta);border:1px solid #000;border-radius:6px;padding:10px;font:inherit}
+  @media (max-width:560px){ .ev-cab{flex-direction:column} .ev-linha li{grid-template-columns:58px minmax(0,1fr);gap:10px} }
+
   /* ---------- música ---------- */
   .mus-painel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:center}
   .mus-op{display:flex;flex-direction:column;gap:16px;min-width:0}
@@ -585,8 +607,7 @@
   <button data-aba="sorteio">Sorteio</button>
   <button data-aba="telao">Telão</button>
   <button data-aba="musica">Música</button>
-  <button data-aba="luz">Luz</button>
-  <button data-aba="cenas">Cenas</button>
+  <button data-aba="luz">Iluminação</button>
   <button data-aba="eventos">Eventos</button>
   <button data-aba="agenda">Agenda</button>
   <button data-aba="registro">Registro</button>
@@ -854,6 +875,18 @@
 <!-- ======================= LUZ ======================= -->
 <div class="aba" id="aba-luz">
   <section>
+    <h2>Cenas</h2>
+    <div class="sub">Um toque muda tudo de uma vez (luz, ambiente, telão e música)</div>
+    <div class="grade cenas" id="agCenas"></div>
+  </section>
+
+  <section>
+    <h2>Editar cenas</h2>
+    <div class="sub">Combinações prontas que acontecem na hora (telão + música + luz + ambiente)</div>
+    <div class="lista" id="lsCenas"></div>
+    <div class="acoes"><button class="prim" data-novo="cenas">Nova cena</button></div>
+  </section>
+  <section>
     <h2>Luz do palco</h2>
     <div class="sub" id="agLuzSub"></div>
     <div class="acoes" style="margin:0 0 14px">
@@ -873,21 +906,7 @@
   </section>
 </div>
 
-<!-- ======================= CENAS / EVENTOS / AGENDA ======================= -->
-<div class="aba" id="aba-cenas">
-  <section>
-    <h2>Cenas</h2>
-    <div class="sub">Um toque muda tudo de uma vez</div>
-    <div class="grade cenas" id="agCenas"></div>
-  </section>
-
-  <section>
-    <h2>Editar cenas</h2>
-    <div class="sub">Combinações prontas que acontecem na hora (telão + música + luz + ambiente)</div>
-    <div class="lista" id="lsCenas"></div>
-    <div class="acoes"><button class="prim" data-novo="cenas">Nova cena</button></div>
-  </section>
-</div>
+<!-- ======================= EVENTOS / AGENDA ======================= -->
 <div class="aba" id="aba-eventos">
   <section>
     <h2>Eventos</h2>
@@ -904,10 +923,10 @@
   </section>
 
   <section>
-    <h2>Editar eventos</h2>
-    <div class="sub">Sequências com tempo: cada passo acontece X segundos depois do início</div>
-    <div class="lista" id="lsEventos"></div>
-    <div class="acoes"><button class="prim" data-novo="eventos">Novo evento</button></div>
+    <h2>Como cada evento funciona</h2>
+    <div class="sub">O que acontece, em que segundo, e quando roda sozinho</div>
+    <div class="ev-cartoes" id="lsEventos"></div>
+    <div class="acoes"><button class="prim" data-novo="eventos">Criar evento</button></div>
   </section>
 </div>
 <div class="aba" id="aba-agenda">
@@ -1005,6 +1024,32 @@ function descPasso(p){
     case "cena": return "Rodar cena " + nomeCena(p.id);
   }
   return p.tipo;
+}
+function tempoEv(s){ s = +s || 0; const m = Math.floor(s / 60), r = s - m * 60; return m + ":" + (r < 10 ? "0" : "") + (Number.isInteger(r) ? r : r.toFixed(1).replace(".", ",")); }
+function diasTxt(d){ return d.length === 7 ? "Todo dia" : d.join() === "0,1,2,3,4" ? "Segunda a sexta" : d.join() === "5,6" ? "Sábado e domingo" : d.map(x => DIAS[x]).join(", "); }
+function renderCartoesEventos(){
+  const trava = E && E.protegido;
+  $("lsEventos").replaceChildren(...(D.eventos.length ? D.eventos.map(x => {
+    const ags = D.agenda.filter(a => a.tipo === "evento" && a.alvo === x.id);
+    const ligados = ags.filter(a => a.ativo);
+    const quando = ligados.length ? "Roda sozinho: " + ligados.map(a => `${diasTxt(a.dias)} às ${a.hora.slice(0, 5)}`).join(" · ")
+      : ags.length ? "Agendamento desligado (" + ags.map(a => `${diasTxt(a.dias)} às ${a.hora.slice(0, 5)}`).join(" · ") + "): só roda quando alguém manda"
+      : "Sem agendamento: só roda quando alguém manda";
+    const passos = [...x.passos].sort((a, b) => (a.em || 0) - (b.em || 0));
+    const dur = Math.max(0, ...passos.map(p => p.em || 0));
+    const classe = p => p.tipo === "telao" ? "t-telao" : p.tipo === "musica" ? "t-musica" : /luz|blackout|ambiente/.test(p.tipo) ? "t-luz" : "";
+    const testar = btn("Rodar agora", () => { if (confirm(`Rodar "${x.nome}" agora no telão, luz e som?`)) cmd("/api/executar", {tipo: "evento", id: x.id}, "Rodando " + x.nome); }, "peq");
+    testar.disabled = trava;
+    return el("article", {class: "ev-cartao"},
+      el("div", {class: "ev-cab"},
+        el("div", {}, el("h3", {}, x.nome), el("div", {class: "ev-quando" + (ligados.length ? "" : " off")}, quando))),
+      x.descricao ? el("p", {class: "ev-desc"}, x.descricao) : el("p", {class: "ev-desc"}, "Sem explicação ainda. Toque em Editar e escreva o que é este evento."),
+      passos.length ? el("ol", {class: "ev-linha"}, passos.map(p => el("li", {class: classe(p)}, el("span", {class: "seg"}, tempoEv(p.em)), el("span", {class: "oq"}, descPasso(p)))))
+        : el("div", {class: "vazio"}, "Nenhum passo ainda"),
+      el("div", {class: "ev-rod"},
+        el("span", {class: "dur"}, `${passos.length} passos · dura ${tempoEv(dur)}`),
+        el("div", {class: "bts"}, testar, btn("Editar", () => carregarMidia().then(() => abrirEditor("eventos", x)), "peq"))));
+  }) : [el("div", {class: "vazio"}, "Nenhum evento ainda. Crie o primeiro abaixo.")]));
 }
 function descTelao(t){
   if (!t) return "";
@@ -1263,6 +1308,7 @@ function abrirEditor(colecao, original){
   function desenhar(){
     const partes = [el("h3", {}, (original ? "Editar " : "Novo ") + titulo.toLowerCase())];
     const form = [campo("Nome", el("input", {type: "text", value: obj.nome, on: {input: e => obj.nome = e.target.value}}))];
+    if (ehEvento) form.push(campo("O que é este evento", el("textarea", {placeholder: "Ex.: show diário das 21h, com vídeo no telão e luz do palco", on: {input: e => obj.descricao = e.target.value}}, obj.descricao || "")));
     if (ehAgenda){
       form.push(campo("Hora", el("input", {type: "time", step: 1, value: obj.hora, on: {change: e => obj.hora = e.target.value.length === 5 ? e.target.value + ":00" : e.target.value}})));
       form.push(campo("O que rodar", opcoes(el("select", {on: {change: e => { obj.tipo = e.target.value; obj.alvo = (D[obj.tipo === "evento" ? "eventos" : "cenas"][0] || {}).id; desenhar(); }}}), [["evento","Evento"],["cena","Cena"]], obj.tipo)));
@@ -1321,10 +1367,7 @@ function renderDados(){
       colecao === "agenda" ? btn(x.ativo ? "Desativar" : "Ativar", () => salvarColecao("agenda", D.agenda.map(a => a.id === x.id ? {...a, ativo: !a.ativo} : a)), "peq") : null,
       btn("Editar", () => carregarMidia().then(() => abrirEditor(colecao, x)), "peq")))) : [el("div", {class: "vazio"}, "Nada cadastrado")]));
   lst("cenas", "lsCenas", x => x.passos.map(descPasso).join(" · ") || "sem passos");
-  lst("eventos", "lsEventos", x => {
-    const dur = Math.max(0, ...x.passos.map(p => p.em || 0));
-    return `${x.passos.length} passos · ${Math.ceil(dur)}s · ` + x.passos.slice(0, 3).map(p => `${p.em || 0}s ${descPasso(p)}`).join(" · ") + (x.passos.length > 3 ? " ..." : "");
-  });
+  renderCartoesEventos();
   lst("agenda", "lsAgenda", x => {
     const alvo = (D[x.tipo === "evento" ? "eventos" : "cenas"].find(y => y.id === x.alvo) || {nome: "(apagado)"}).nome;
     const dias = x.dias.length === 7 ? "Todo dia" : x.dias.join() === "0,1,2,3,4" ? "Seg a sex" : x.dias.map(d => DIAS[d]).join(", ");
