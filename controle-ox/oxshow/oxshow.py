@@ -81,6 +81,7 @@ class Estado:
         self.versao = 0
         self.telao = {"modo": "padrao", "id": 0}
         self.musica = {"faixa": None, "id": 0, "volume": 0, "tocando": False}
+        self.controle = {"pausado": False, "volume": 100}
         self.clientes = 0
         self.ultimo_contato = 0.0
 
@@ -90,7 +91,7 @@ class Estado:
             self.cond.notify_all()
 
     def foto(self):
-        return {"telao": self.telao_efetivo(), "musica": dict(self.musica)}
+        return {"telao": self.telao_efetivo(), "musica": dict(self.musica), "controle": dict(self.controle)}
 
     def telao_efetivo(self):
         t = dict(self.telao)
@@ -125,7 +126,31 @@ def telao_mostrar(passo):
     elif modo not in ("padrao", "preto"):
         raise ValueError(f"Modo de telão desconhecido: {modo}")
     ESTADO.telao = novo
+    ESTADO.controle["pausado"] = False  # vídeo novo sempre começa tocando
     ESTADO.publicar()
+
+
+def telao_controle(p):
+    a = p.get("acao")
+    if a == "volume":
+        ESTADO.controle["volume"] = max(0, min(100, int(p["volume"])))
+    elif a in ("pausar", "tocar"):
+        ESTADO.controle["pausado"] = a == "pausar"
+    elif a in ("proximo", "anterior"):
+        videos = listar("videos", EXT_VIDEO)
+        if not videos:
+            raise ValueError("Nenhum vídeo na pasta de vídeos")
+        t = ESTADO.telao_efetivo()
+        atual = t.get("arquivo") if t.get("modo") == "video" else None
+        i = videos.index(atual) if atual in videos else -1
+        i = (i + (1 if a == "proximo" else -1)) % len(videos)
+        ESTADO.controle["pausado"] = False
+        telao_mostrar({"modo": "video", "arquivo": videos[i]})
+    else:
+        raise ValueError(f"Ação de telão desconhecida: {a}")
+    ESTADO.publicar()
+    if ESTADO.clientes == 0:
+        raise ValueError("Comando guardado, mas o telão ainda está no OBS: a janela do OX Show não está aberta no LED")
 
 
 def caminho_midia(sub, nome):
@@ -165,6 +190,7 @@ class Musica:
         self.pausada = False
         self.fila = []
         self.atual = None
+        self.historico = []
 
     def faixa_ativa(self):
         hm = agora().strftime("%H:%M")
@@ -189,7 +215,7 @@ class Musica:
                     self.trocar_playlist(None)
 
     def trocar_playlist(self, nome):
-        self.playlist, self.fila = nome, []
+        self.playlist, self.fila, self.historico = nome, [], []
         self.proxima()
 
     def faixas(self, nome):
@@ -201,6 +227,8 @@ class Musica:
             if nome and not self.fila:
                 self.fila = self.faixas(nome)
                 random.shuffle(self.fila)
+            if self.atual:
+                self.historico = (self.historico + [self.atual])[-50:]
             self.atual = self.fila.pop(0) if nome and self.fila else None
             self.publicar(nova=True)
 
@@ -226,7 +254,17 @@ class Musica:
             elif a == "volume":
                 self.volume_manual = max(0, min(100, int(passo["volume"])))
             elif a == "proxima":
+                self.pausada = False
                 self.proxima()
+                return
+            elif a == "anterior":
+                if not self.historico:
+                    raise ValueError("Não tem música anterior nesta playlist")
+                if self.atual:
+                    self.fila.insert(0, self.atual)
+                self.atual = self.historico.pop()
+                self.pausada = False
+                self.publicar(nova=True)
                 return
             elif a == "playlist":
                 if passo["playlist"] not in listar_midia()["playlists"]:
@@ -323,7 +361,12 @@ def executar_passo(p, profundidade=0):
     if tipo == "telao":
         telao_mostrar(p)
     elif tipo == "musica":
-        MUSICA.acao(p)
+        if not ESTADO.musica.get("faixa") and p.get("acao") in ("pausar", "retomar", "proxima", "anterior"):
+            midia_windows_comando(p["acao"])  # música do dia ainda vem do rádio no navegador
+        else:
+            MUSICA.acao(p)
+    elif tipo == "telao_controle":
+        telao_controle(p)
     elif tipo == "luz":
         lumikit(f"edmx_change_scene/{int(p.get('pagina', 0))}/{int(p['cena'])}")
     elif tipo == "luz_timeline":
@@ -788,6 +831,37 @@ def _ler_midia_windows():
         _MIDIA_WIN["rodando"] = False
 
 
+_PS_COMANDO = r"""
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$asTask = [System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' } | Select-Object -First 1
+function Esperar($op, $tipo) { $t = $asTask.MakeGenericMethod($tipo).Invoke($null, @($op)); $t.Wait(5000) | Out-Null; $t.Result }
+$M = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
+$ger = Esperar ($M::RequestAsync()) $M
+$s = @($ger.GetSessions()) | Sort-Object { $_.SourceAppUserModelId -notmatch 'Edge' } | Select-Object -First 1
+if (-not $s) { 'SEM'; exit }
+$op = switch ('ACAO') { 'pausar' { $s.TryPauseAsync() } 'retomar' { $s.TryPlayAsync() } 'proxima' { $s.TrySkipNextAsync() } 'anterior' { $s.TrySkipPreviousAsync() } }
+if (Esperar $op ([bool])) { 'OK' } else { 'NAO' }
+"""
+
+
+def midia_windows_comando(acao):
+    if os.name != "nt":
+        raise ValueError("Sem música tocando")
+    cod = base64.b64encode(_PS_COMANDO.replace("ACAO", acao).encode("utf-16-le")).decode("ascii")
+    r = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-EncodedCommand", cod], capture_output=True,
+                       timeout=20, creationflags=0x08000000)
+    saida = r.stdout.decode("utf-8", "replace").strip().splitlines()
+    res = saida[-1].strip() if saida else ""
+    _MIDIA_WIN["t"] = 0  # relê o que está tocando
+    site = site_de_musica() or "rádio do navegador"
+    if res == "SEM":
+        raise ValueError("Nenhuma música tocando no PC")
+    if res != "OK":
+        nomes = {"pausar": "pausar", "retomar": "dar play", "proxima": "avançar", "anterior": "voltar"}
+        raise ValueError(f"O {site} não aceitou {nomes.get(acao, acao)}")
+
+
 def midia_windows():
     """Último resultado (no máximo ~5 s de atraso); a leitura roda por fora para não segurar o painel."""
     if os.name == "nt" and not _MIDIA_WIN["rodando"] and time.time() - _MIDIA_WIN["t"] > 4:
@@ -870,13 +944,14 @@ def previa(com_foto=True, janelas=False):
     with MUSICA.lock:
         prox_faixa = os.path.splitext(MUSICA.fila[0])[0] if (m.get("playlist") and MUSICA.fila) else None
     if m.get("nome"):
-        musica = {"atual": m["nome"], "fonte": "Playlist " + m["playlist"], "tocando": bool(m.get("tocando")),
+        musica = {"atual": m["nome"], "fonte": "Playlist " + m["playlist"], "tocando": bool(m.get("tocando")), "volume": m.get("volume"),
                   "proxima": prox_faixa, "proxima_obs": None if prox_faixa else "A playlist recomeça embaralhada"}
     else:
         ext = musica_externa() or {}
         site = ext.get("site")
         musica = {"atual": ext.get("atual") or (f"Tocando pelo {site}" if site else None),
                   "fonte": f"{site}, no navegador" if site else ("Player do Windows" if ext.get("atual") else None),
+                  "volume": m.get("volume"),
                   "tocando": bool(ext.get("tocando")),
                   "proxima": None, "proxima_obs": f"O {site} não informa a próxima" if site else None}
     if ESTADO.clientes > 0:
@@ -887,7 +962,9 @@ def previa(com_foto=True, janelas=False):
         quem = "OX Show"
     else:
         atual, quem = "Vídeo do dia em loop", "OBS"
-    r = {"foto": foto, "foto_erro": erro, "telao": {"atual": atual, "quem": quem}, "proximo_video": proximo_video(),
+    led = CFG["telao"].get("led") or {"largura": 2816, "altura": 976}
+    r = {"foto": foto, "foto_erro": erro, "telao": {"atual": atual, "quem": quem, **ESTADO.controle}, "led": led,
+         "proximo_video": proximo_video(),
          "musica": musica, "relogio": agora().strftime("%H:%M:%S")}
     if janelas:
         r["janelas"] = titulos_janelas()
@@ -1188,7 +1265,7 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------- OX Cloud (painel de qualquer rede)
 # Conexão de SAÍDA para o OX Cloud (long-poll): busca os comandos do painel de lá, executa aqui
 # como se fosse o painel local e devolve a resposta. Não precisa abrir porta no roteador.
-VERSAO = "1.3"
+VERSAO = "1.4"
 
 
 def laco_nuvem():

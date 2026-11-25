@@ -89,6 +89,15 @@ function aplicarMusica(m){
   if (!m.tocando && !audio.paused) setTimeout(() => { if (!estado.musica.tocando) audio.pause(); }, 700);
 }
 
+// ---------------- controle do vídeo (pausa e volume, pelo painel)
+function aplicarControle(c){
+  videos.forEach(v => { v.volume = Math.max(0, Math.min(1, (c.volume ?? 100) / 100)); });
+  const v = videos[vAtivo];
+  if (!v.classList.contains("on") || !v.getAttribute("src")) return;
+  if (c.pausado && !v.paused) v.pause();
+  if (!c.pausado && v.paused) tocar(v);
+}
+
 // ---------------- canal com o OX Show (reconecta sozinho)
 let ultimoDado = Date.now();
 function conectar(){
@@ -99,6 +108,7 @@ function conectar(){
     estado = JSON.parse(ev.data);
     aplicarTelao(estado.telao);
     aplicarMusica(estado.musica);
+    aplicarControle(estado.controle || {});
   };
   es.onerror = () => { $("aviso").style.display = "block"; };
 }
@@ -108,7 +118,7 @@ conectar();
 let ultimoTempo = -1, parado = 0;
 setInterval(() => {
   const v = videos[vAtivo];
-  if (v.classList.contains("on") && !v.paused){
+  if (v.classList.contains("on") && !v.paused && !(estado && estado.controle && estado.controle.pausado)){
     parado = v.currentTime === ultimoTempo ? parado + 1 : 0;
     ultimoTempo = v.currentTime;
     if (parado >= 6){ avisar("/telao/erro", {msg: "vídeo travado, recarregando"}); location.reload(); }
