@@ -45,6 +45,9 @@ final class Emitente
         // Ambiente POR EMITENTE (1=produção, 2=homologação); 0 = usa o FISCAL_AMBIENTE global.
         // Permite virar um emitente pra produção sem afetar os demais do motor.
         public readonly int $ambiente = 0,
+        // NFS-e Nacional por procuração: CPF/CNPJ do procurador (contabilidade) cujo certificado assina
+        // a DPS e faz o mTLS (ver Support/Procuradores). Vazio = certificado do próprio emitente.
+        public readonly string $nfseProcurador = '',
     ) {}
 
     /** Ambiente efetivo deste emitente (o próprio, ou o global quando não definido). */
@@ -95,6 +98,7 @@ final class Emitente
             municipioTom:   preg_replace('/\D/', '', (string) ($d['municipio_tom'] ?? '')),
             ipmSubdominio:  (string) ($d['ipm_subdominio'] ?? ''),
             ambiente:       (int) ($d['ambiente'] ?? 0),
+            nfseProcurador: preg_replace('/\D/', '', (string) ($d['nfse_procurador'] ?? '')),
         );
     }
 

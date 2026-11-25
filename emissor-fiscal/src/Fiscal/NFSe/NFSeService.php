@@ -8,6 +8,7 @@ use App\Fiscal\NFSe\Danfse\DanfseRegistry;
 use App\Support\CertificadoManager;
 use App\Support\Contador;
 use App\Support\Emitente;
+use App\Support\Procuradores;
 use App\Support\XmlStore;
 use NFePHP\Common\Certificate;
 
@@ -38,11 +39,17 @@ final class NFSeService
             : $this->registry->paraMunicipio($municipio);
     }
 
-    /** Carrega o certificado só quando o provider exige (clientes IPM não têm). */
+    /**
+     * Carrega o certificado só quando o provider exige (clientes IPM não têm). Emitente com procurador
+     * (procuração eletrônica da NFS-e na Receita) usa o certificado do procurador, só no Padrão Nacional.
+     */
     private function certPara(NFSeProvider $p): ?Certificate
     {
         if (!$p->precisaCertificado()) {
             return null;
+        }
+        if ($this->emitente->nfseProcurador !== '' && $p->nome() === 'nacional') {
+            return $this->cert ??= (new Procuradores($this->root))->certificado($this->emitente->nfseProcurador);
         }
         return $this->cert ??= CertificadoManager::carregar(
             $this->root,

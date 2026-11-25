@@ -23,6 +23,7 @@ use App\Support\Contador;
 use App\Support\EmitenteRepository;
 use App\Support\XmlStore;
 use App\Admin\EmitenteAdminService;
+use App\Support\Procuradores;
 
 $root = dirname(__DIR__);
 require $root . '/vendor/autoload.php';
@@ -252,12 +253,36 @@ $router->add('POST', '/v1/admin/emitentes', function (Request $req) use ($exigir
     if (!ApiKeys::podeAdministrar($req->caller, $cnpjAdm, $existia)) {
         Response::erro('Esta chave não administra este emitente.', 403);
     }
+    // procurador da NFS-e: tem de ser um cadastrado por esta mesma chave admin
+    $proc = preg_replace('/\D/', '', (string) ($req->body['nfse_procurador'] ?? ''));
+    if ($proc !== '' && !(new Procuradores(dirname(__DIR__)))->daChave($proc, (string) $req->caller['nome'])) {
+        Response::erro('Procurador da NFS-e não cadastrado por esta chave.', 403);
+    }
     $cert = $req->body['certificado_base64'] ?? null;
     $r = $admin()->registrar($req->body, is_string($cert) ? $cert : null);
     if (!$existia) {
         $admin()->liberarChave($cnpjAdm, (string) $req->caller['nome']);
     }
     Response::ok(['emitente' => $r]);
+});
+
+/**
+ * POST /v1/admin/procuradores {documento, certificado_base64, cert_password}: certificado de quem emite
+ * NFS-e Nacional em nome dos clientes por procuração eletrônica (contabilidade). Fica da chave que cadastrou.
+ */
+$router->add('POST', '/v1/admin/procuradores', function (Request $req) use ($exigirAdmin) {
+    $exigirAdmin($req);
+    try {
+        $r = (new Procuradores(dirname(__DIR__)))->registrar(
+            (string) ($req->body['documento'] ?? ''),
+            (string) ($req->body['certificado_base64'] ?? ''),
+            (string) ($req->body['cert_password'] ?? ''),
+            (string) $req->caller['nome']
+        );
+    } catch (\DomainException $e) {
+        Response::erro($e->getMessage(), 403);
+    }
+    Response::ok(['procurador' => $r]);
 });
 
 $router->add('GET', '/v1/admin/emitentes', function (Request $req) use ($exigirAdmin, $admin) {

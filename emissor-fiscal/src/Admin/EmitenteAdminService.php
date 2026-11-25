@@ -74,6 +74,8 @@ final class EmitenteAdminService
             'resp_tec_email' => (string) ($d['resp_tec_email'] ?? ''),
             // ambiente POR EMITENTE (1 produção, 2 homologação); sem ele vale o FISCAL_AMBIENTE global
             'ambiente' => in_array((int) ($d['ambiente'] ?? 0), [1, 2], true) ? (int) $d['ambiente'] : null,
+            // NFS-e por procuração (certificado da contabilidade); ausente = volta ao certificado próprio
+            'nfse_procurador' => preg_replace('/\D/', '', (string) ($d['nfse_procurador'] ?? '')),
         ], fn ($v) => $v !== '' && $v !== null);
 
         // preserva cert_password/csc/ambiente/dados IPM antigos se não vieram agora (update parcial)
