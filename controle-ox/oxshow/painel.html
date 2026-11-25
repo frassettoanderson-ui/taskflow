@@ -1825,10 +1825,11 @@ function vyPos(e){
   return {x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height};
 }
 function renderVymber(r){
+  if (r.igual) return;
   VY = r;
   const img = $("vyImg");
   if (r.aberto && r.foto){
-    img.src = "data:image/jpeg;base64," + r.foto;
+    img.src = `data:image/${r.tipo || "jpeg"};base64,` + r.foto;
     img.hidden = false;
     $("vyTela").style.aspectRatio = `${r.largura}/${r.altura}`;
     $("vyEnd").textContent = (r.url || "").replace(/^https?:\/\//, "") || "Vymber";
@@ -1842,15 +1843,17 @@ function renderVymber(r){
 }
 (async function lacoVymber(){
   while (true){
+    // o PC só devolve imagem quando a tela muda (ou depois de 6 s sem mudança, só o "igual")
     const ver = vyAberta() && D;
+    let falhou = false;
     if (ver){
-      try { renderVymber(await api("/api/vymber/tela")); }
-      catch(e){ renderVymber({aberto: false}); $("vySemTxt").textContent = "Sem contato com o PC da academia"; $("vyAbrir").hidden = true; }
+      const v = VY.aberto && VY.foto ? VY.v || "" : "";
+      try { renderVymber(await api(`/api/vymber/tela?esperar=6&v=${encodeURIComponent(v)}`)); }
+      catch(e){ falhou = true; VY = {aberto: false}; renderVymber({aberto: false}); $("vySemTxt").textContent = "Sem contato com o PC da academia"; $("vyAbrir").hidden = true; }
     }
     vyJa = false;
-    const espera = ver ? (NUVEM ? 600 : 350) : 2000;
+    const espera = ver ? (falhou ? 2000 : 60) : 2000;
     for (let t = 0; t < espera && !vyJa; t += 50) await new Promise(r => setTimeout(r, 50));
-    if (vyJa) await new Promise(r => setTimeout(r, 120));
   }
 })();
 $("vyImg").addEventListener("click", e => { $("vyTela").focus({preventScroll: true}); vyAcao({tipo: "clique", ...vyPos(e)}); });

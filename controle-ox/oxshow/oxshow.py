@@ -901,8 +901,26 @@ def _vy_desminimizar():
         log.info("Vymber: não consegui desminimizar (%s)", e)
 
 
-def vymber_tela():
-    """Foto da janela do Vymber (jpeg em base64) + tamanho da área da página, para mapear os cliques."""
+VY_MUDOU = threading.Event()
+
+
+def vymber_tela(v=None, esperar=0):
+    """Foto da janela do Vymber + tamanho da página (para mapear os cliques).
+    Com `v` (versão que o painel já tem): espera até `esperar` s a tela mudar; se não mudar, volta sem a foto."""
+    limite = time.time() + min(max(float(esperar or 0), 0), 8)
+    while True:
+        r = _vymber_foto()
+        if not v or not r.get("aberto") or r.get("v") != v:
+            return r
+        if time.time() >= limite:
+            return {"aberto": True, "igual": True, "v": v}
+        VY_MUDOU.wait(0.35)
+        if VY_MUDOU.is_set():
+            VY_MUDOU.clear()
+            time.sleep(0.15)  # dá tempo da página reagir ao clique
+
+
+def _vymber_foto():
     if not vymber_aberto():
         return {"aberto": False}
     agora = time.time()
@@ -913,11 +931,13 @@ def vymber_tela():
     v = m.get("cssVisualViewport") or m.get("visualViewport") or {}
     w, h = v.get("clientWidth") or 1280, v.get("clientHeight") or 800
     escala = min(1.0, 1000 / max(w, 1))
-    r = cdp("Page.captureScreenshot", {"format": "jpeg", "quality": 62, "fromSurface": True,
+    r = cdp("Page.captureScreenshot", {"format": "webp", "quality": 50, "fromSurface": True,
                                        "clip": {"x": v.get("pageX", 0), "y": v.get("pageY", 0), "width": w, "height": h, "scale": escala}})
     info = cdp("Runtime.evaluate", {"expression": "[location.href, document.title]", "returnByValue": True})
     href, titulo = ((info.get("result") or {}).get("value") or ["", ""])
-    VYMBER["foto"] = {"aberto": True, "foto": r.get("data"), "largura": w, "altura": h, "url": href, "titulo": titulo}
+    foto = r.get("data") or ""
+    VYMBER["foto"] = {"aberto": True, "foto": foto, "tipo": "webp", "largura": w, "altura": h, "url": href, "titulo": titulo,
+                      "v": hashlib.md5((foto + href).encode()).hexdigest()[:12]}
     VYMBER["foto_t"] = agora
     return VYMBER["foto"]
 
@@ -931,6 +951,7 @@ def vymber_acao(c):
         raise RuntimeError("O Vymber não está aberto no OX Show")
     tipo = c.get("tipo")
     VYMBER["foto_t"] = 0
+    VY_MUDOU.set()
     if tipo in ("clique", "rolar", "mover"):
         tela = VYMBER["foto"] or vymber_tela()
         x = max(0.0, min(1.0, float(c.get("x", 0)))) * tela["largura"]
@@ -2005,7 +2026,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._corpo(st, corpo, "application/json; charset=utf-8")
         if rota == "/api/vymber/tela":
             try:
-                return self._json(200, vymber_tela())
+                q = parse_qs(url.query)
+                return self._json(200, vymber_tela((q.get("v") or [""])[0], (q.get("esperar") or ["0"])[0]))
             except Exception as e:
                 return self._json(200, {"aberto": vymber_aberto(), "erro": str(e)})
         if rota == "/api/youtube/estado":
