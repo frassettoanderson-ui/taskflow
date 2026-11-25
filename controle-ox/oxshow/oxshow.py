@@ -2193,7 +2193,7 @@ class Conexoes:
     def pedir(self, metodo, caminho, corpo=None, cab=None, timeout=15):
         for tentativa in (1, 2):
             try:
-                c = self.livres.get_nowait()
+                c = self.livres.get_nowait() if tentativa == 1 else self._nova(timeout)
             except queue.Empty:
                 c = self._nova(timeout)
             try:
