@@ -99,6 +99,7 @@
   .sub{text-align:center;font-size:14px;color:var(--tinta-2);margin-bottom:18px;min-height:18px}
   .sub.erro{color:#ff8a7a}
   .sub strong{color:var(--tinta)}
+  .avisos:empty{display:none}
   .cols{display:grid;gap:18px;grid-template-columns:1fr 1fr}
   .cols>section{margin-bottom:18px}
   .grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
@@ -464,14 +465,14 @@
   <button data-aba="agora" class="on">Agora</button>
   <button data-aba="telao">Telão</button>
   <button data-aba="musica">Música</button>
+  <button data-aba="luz">Luz</button>
   <button data-aba="cenas">Cenas</button>
   <button data-aba="eventos">Eventos</button>
   <button data-aba="agenda">Agenda</button>
   <button data-aba="registro">Registro</button>
 </nav>
 
-<!-- ======================= AGORA ======================= -->
-<div class="aba on" id="aba-agora">
+<div class="avisos">
   <div class="banner trava" id="bTrava" hidden><div class="tit">Evento das 21h rodando pelo REAPER</div><div>Comandos manuais travados por alguns minutos.</div></div>
   <div class="banner evento" id="bEvento" hidden>
     <div class="tit" id="evNome"></div>
@@ -479,7 +480,10 @@
     <div id="evInfo" class="sub" style="margin:0 0 10px"></div>
     <button class="prim peq" id="evParar">Parar evento</button>
   </div>
+</div>
 
+<!-- ======================= AGORA ======================= -->
+<div class="aba on" id="aba-agora">
 
   <section>
     <h2>No ar</h2>
@@ -501,90 +505,15 @@
     </div>
   </section>
 
-  <section>
-    <h2>Cenas</h2>
-    <div class="sub">Um toque muda tudo de uma vez</div>
-    <div class="grade cenas" id="agCenas"></div>
-  </section>
-
-  <div class="cols">
-    <section>
-      <h2>Eventos</h2>
-      <div class="sub">Sequências com tempo (vídeo, luz, música e ambiente)</div>
-      <div class="ev-painel">
-        <div class="ev-lista" id="agEventos"></div>
-        <div class="contagem" id="agContagem">
-          <div class="ct-rot" id="ctRot">Próximo na agenda</div>
-          <div class="ct-dig"><span id="ctH">--</span><em>:</em><span id="ctM">--</span><em>:</em><span id="ctS">--</span></div>
-          <div class="ct-leg"><span>Horas</span><span>Minutos</span><span>Segundos</span></div>
-          <div class="ct-nome" id="ctNome">Nada agendado</div>
-        </div>
-      </div>
-    </section>
-
-    <section id="modMusica">
-      <h2>Música</h2>
-      <div class="sub">Reprodução e volume principal</div>
-      <div class="mus-painel">
-        <div class="mus-op">
-          <div class="lcd tocador">
-            <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-            <div class="tocador-txt"><div class="faixa-musica" id="agFaixa">Sem música</div><div class="playlist" id="agPlaylist"></div></div>
-          </div>
-          <div class="transporte">
-            <button id="agPausar" aria-label="Pausar"><svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg><span>Pausar</span></button>
-            <button id="agProxima" aria-label="Próxima"><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span>Próxima</span></button>
-            <button id="agProg" aria-label="Voltar à programação"><svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 1-6.6 4.7l2 .7A5 5 0 1 0 12 7v3L7.5 6 12 2z"/></svg><span>Programação</span></button>
-          </div>
-        </div>
-        <div class="mus-vol">
-          <div class="vol-rot">Volume master</div>
-          <div class="knob-box">
-            <div class="escala" aria-hidden="true"><b style="--a:-135deg">0</b><b style="--a:-67.5deg">25</b><b style="--a:0deg">50</b><b style="--a:67.5deg">75</b><b style="--a:135deg">100</b></div>
-            <div class="knob" id="agKnob" role="slider" tabindex="0" aria-label="Volume da música" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
-          </div>
-          <div class="vol-num" id="agVolNum">0%</div>
-          <div class="leds"><span id="ledSom">Tocando</span><span id="ledMudo">Mudo</span></div>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <div class="cols">
-    <section>
-      <h2>Telão</h2>
-      <div class="lcd lcd--linha"><div class="sub" id="agTelao"></div></div>
-      <div class="grade" id="agTelaoBts"></div>
-    </section>
-    <section>
-      <h2>Luz ambiente</h2>
-      <div class="sub" id="agAmbSub"></div>
-      <div class="grade" id="agAmb"></div>
-    </section>
-  </div>
-
-  <section>
-    <h2>Luz do palco</h2>
-    <div class="sub" id="agLuzSub"></div>
-    <div class="acoes" style="margin:0 0 14px">
-      <button class="peq" id="pagMenos" aria-label="Página anterior">&lsaquo;</button>
-      <button class="peq" id="pagNome" disabled style="opacity:1;min-width:110px">Página 1</button>
-      <button class="peq" id="pagMais" aria-label="Próxima página">&rsaquo;</button>
-      <button class="peq" id="agBlackout">Blackout</button>
-    </div>
-    <div class="grade luz" id="agLuz"></div>
-    <div class="acoes" id="agTimelines"></div>
-  </section>
-
-  <section>
-    <h2>Próximos na agenda</h2>
-    <div class="sub" id="agVerif"></div>
-    <div class="lista" id="agProximos"></div>
-  </section>
 </div>
 
 <!-- ======================= TELÃO ======================= -->
 <div class="aba" id="aba-telao">
+  <section>
+    <h2>Agora no telão</h2>
+    <div class="lcd lcd--linha"><div class="sub" id="agTelao"></div></div>
+    <div class="grade" id="agTelaoBts"></div>
+  </section>
   <section>
     <h2>Tela padrão</h2>
     <div class="sub">O que o telão mostra quando nada está programado (e depois de cada vídeo)</div>
@@ -610,6 +539,32 @@
 
 <!-- ======================= MÚSICA ======================= -->
 <div class="aba" id="aba-musica">
+  <section id="modMusica">
+    <h2>Música</h2>
+    <div class="sub">Reprodução e volume principal</div>
+    <div class="mus-painel">
+      <div class="mus-op">
+        <div class="lcd tocador">
+          <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="tocador-txt"><div class="faixa-musica" id="agFaixa">Sem música</div><div class="playlist" id="agPlaylist"></div></div>
+        </div>
+        <div class="transporte">
+          <button id="agPausar" aria-label="Pausar"><svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg><span>Pausar</span></button>
+          <button id="agProxima" aria-label="Próxima"><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span>Próxima</span></button>
+          <button id="agProg" aria-label="Voltar à programação"><svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 1-6.6 4.7l2 .7A5 5 0 1 0 12 7v3L7.5 6 12 2z"/></svg><span>Programação</span></button>
+        </div>
+      </div>
+      <div class="mus-vol">
+        <div class="vol-rot">Volume master</div>
+        <div class="knob-box">
+          <div class="escala" aria-hidden="true"><b style="--a:-135deg">0</b><b style="--a:-67.5deg">25</b><b style="--a:0deg">50</b><b style="--a:67.5deg">75</b><b style="--a:135deg">100</b></div>
+          <div class="knob" id="agKnob" role="slider" tabindex="0" aria-label="Volume da música" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
+        </div>
+        <div class="vol-num" id="agVolNum">0%</div>
+        <div class="leds"><span id="ledSom">Tocando</span><span id="ledMudo">Mudo</span></div>
+      </div>
+    </div>
+  </section>
   <section>
     <h2>Programação do dia</h2>
     <div class="sub">Qual playlist toca em cada horário. Fora desses horários fica em silêncio.</div>
@@ -623,10 +578,38 @@
   </section>
 </div>
 
+<!-- ======================= LUZ ======================= -->
+<div class="aba" id="aba-luz">
+  <section>
+    <h2>Luz do palco</h2>
+    <div class="sub" id="agLuzSub"></div>
+    <div class="acoes" style="margin:0 0 14px">
+      <button class="peq" id="pagMenos" aria-label="Página anterior">&lsaquo;</button>
+      <button class="peq" id="pagNome" disabled style="opacity:1;min-width:110px">Página 1</button>
+      <button class="peq" id="pagMais" aria-label="Próxima página">&rsaquo;</button>
+      <button class="peq" id="agBlackout">Blackout</button>
+    </div>
+    <div class="grade luz" id="agLuz"></div>
+    <div class="acoes" id="agTimelines"></div>
+  </section>
+
+  <section>
+    <h2>Luz ambiente</h2>
+    <div class="sub" id="agAmbSub"></div>
+    <div class="grade" id="agAmb"></div>
+  </section>
+</div>
+
 <!-- ======================= CENAS / EVENTOS / AGENDA ======================= -->
 <div class="aba" id="aba-cenas">
   <section>
     <h2>Cenas</h2>
+    <div class="sub">Um toque muda tudo de uma vez</div>
+    <div class="grade cenas" id="agCenas"></div>
+  </section>
+
+  <section>
+    <h2>Editar cenas</h2>
     <div class="sub">Combinações prontas que acontecem na hora (telão + música + luz + ambiente)</div>
     <div class="lista" id="lsCenas"></div>
     <div class="acoes"><button class="prim" data-novo="cenas">Nova cena</button></div>
@@ -635,6 +618,20 @@
 <div class="aba" id="aba-eventos">
   <section>
     <h2>Eventos</h2>
+    <div class="sub">Sequências com tempo (vídeo, luz, música e ambiente)</div>
+    <div class="ev-painel">
+      <div class="ev-lista" id="agEventos"></div>
+      <div class="contagem" id="agContagem">
+        <div class="ct-rot" id="ctRot">Próximo na agenda</div>
+        <div class="ct-dig"><span id="ctH">--</span><em>:</em><span id="ctM">--</span><em>:</em><span id="ctS">--</span></div>
+        <div class="ct-leg"><span>Horas</span><span>Minutos</span><span>Segundos</span></div>
+        <div class="ct-nome" id="ctNome">Nada agendado</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Editar eventos</h2>
     <div class="sub">Sequências com tempo: cada passo acontece X segundos depois do início</div>
     <div class="lista" id="lsEventos"></div>
     <div class="acoes"><button class="prim" data-novo="eventos">Novo evento</button></div>
@@ -642,7 +639,12 @@
 </div>
 <div class="aba" id="aba-agenda">
   <section>
-    <h2>Agenda</h2>
+    <h2>Próximos na agenda</h2>
+    <div class="sub" id="agVerif"></div>
+    <div class="lista" id="agProximos"></div>
+  </section>
+  <section>
+    <h2>Editar agenda</h2>
     <div class="sub">Eventos e cenas que rodam sozinhos em dias e horários fixos</div>
     <div class="lista" id="lsAgenda"></div>
     <div class="acoes"><button class="prim" data-novo="agenda">Novo agendamento</button></div>
@@ -743,6 +745,7 @@ $("abas").addEventListener("click", e => {
   document.querySelectorAll("#abas button").forEach(x => x.classList.toggle("on", x === b));
   document.querySelectorAll(".aba").forEach(a => a.classList.toggle("on", a.id === "aba-" + b.dataset.aba));
   if (b.dataset.aba === "registro") carregarRegistro();
+  if (b.dataset.aba === "luz") carregarLuz();
   if (b.dataset.aba === "telao" || b.dataset.aba === "musica") carregarMidia().then(renderDados);
 });
 
@@ -1149,7 +1152,7 @@ $("pinForm").onsubmit = e => { e.preventDefault(); salvarPin($("pinInput").value
 iniciar();
 lacoPrevia();
 setInterval(() => { if (!ocupado && !document.hidden && !$("modal").classList.contains("on")) atualizar(); }, 2000);
-setInterval(() => { if (!document.hidden && $("aba-agora").classList.contains("on")) carregarLuz(); }, 8000);
+setInterval(() => { if (!document.hidden && $("aba-luz").classList.contains("on")) carregarLuz(); }, 8000);
 if (NUVEM) $("tlAbrir").textContent = "Abrir telão no PC da academia";
 </script>
 </body>
