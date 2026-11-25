@@ -100,6 +100,13 @@
   .sub.erro{color:#ff8a7a}
   .sub strong{color:var(--tinta)}
   .avisos:empty{display:none}
+  .so-bts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:760px;margin:0 auto}
+  .so-bts button{min-height:72px;font-size:18px}
+  .so-moldura{max-width:760px;margin:0 auto;border-radius:10px;overflow:hidden;background:#000;border:1px solid #000;
+    box-shadow:0 0 0 3px #2c2d30, 0 0 0 4px #000}
+  .so-moldura iframe{display:block;width:100%;height:860px;border:0;background:#000}
+  .so-moldura .vazio{padding:40px 20px;text-align:center}
+  @media (max-width:560px){ .so-bts{grid-template-columns:1fr} .so-moldura iframe{height:780px} }
   .cols{display:grid;gap:18px;grid-template-columns:1fr 1fr}
   .cols>section{margin-bottom:18px}
   .grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
@@ -495,6 +502,7 @@
 
 <nav id="abas">
   <button data-aba="agora" class="on">Agora</button>
+  <button data-aba="sorteio">Sorteio</button>
   <button data-aba="telao">Telão</button>
   <button data-aba="musica">Música</button>
   <button data-aba="luz">Luz</button>
@@ -574,6 +582,23 @@
         <button id="arMAvancar" aria-label="Avançar"><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span>Avançar</span></button>
       </div>
     </div>
+  </section>
+</div>
+
+<!-- ======================= SORTEIO ======================= -->
+<div class="aba" id="aba-sorteio">
+  <section>
+    <h2>Sorteio no telão</h2>
+    <div class="sub">Coloca a tela do sorteio no LED e, no fim, volta o telão ao normal</div>
+    <div class="so-bts">
+      <button class="prim" id="soMostrar">Mostrar sorteio no telão</button>
+      <button id="soVoltar">Voltar o telão ao normal</button>
+    </div>
+  </section>
+  <section>
+    <h2>Controle do sorteio</h2>
+    <div class="sub">Sorteio geral, sorteio ao vivo de quem está treinando e lista de participantes</div>
+    <div class="so-moldura" id="soMoldura"><div class="vazio">Abrindo o controle do sorteio</div></div>
   </section>
 </div>
 
@@ -816,6 +841,7 @@ $("abas").addEventListener("click", e => {
   document.querySelectorAll(".aba").forEach(a => a.classList.toggle("on", a.id === "aba-" + b.dataset.aba));
   if (b.dataset.aba === "registro") carregarRegistro();
   if (b.dataset.aba === "luz") carregarLuz();
+  if (b.dataset.aba === "sorteio") abrirSorteio();
   if (b.dataset.aba === "telao" || b.dataset.aba === "musica") carregarMidia().then(renderDados);
 });
 
@@ -1242,6 +1268,20 @@ async function lacoPrevia(){
     await new Promise(r => setTimeout(r, visivel ? (NUVEM ? 1500 : 1000) : 2000));
   }
 }
+// ---------------------------------------------------------- SORTEIO
+let sorteioAberto = false;
+async function abrirSorteio(){
+  if (sorteioAberto) return;
+  try {
+    const r = await api("/api/sorteio");
+    if (!r.controle){ $("soMoldura").replaceChildren(el("div", {class: "vazio"}, "O link do controle do sorteio não está configurado no PC da academia")); return; }
+    $("soMoldura").replaceChildren(el("iframe", {src: r.controle, title: "Controle do sorteio", allow: "fullscreen"}));
+    sorteioAberto = true;
+  } catch(e){ $("soMoldura").replaceChildren(el("div", {class: "vazio"}, "Não consegui abrir o controle: " + e.message)); }
+}
+$("soMostrar").onclick = () => cmd("/api/executar", {tipo: "cena", id: "sorteio"}, "Sorteio no telão");
+$("soVoltar").onclick = () => cmd("/api/executar", {tipo: "cena", id: "normal"}, "Telão normal");
+
 async function carregarMidia(){ try { M = await api("/api/midia"); } catch(e){} }
 async function atualizar(){
   try { E = await api("/api/estado"); renderAgora(); if ($("aba-telao").classList.contains("on")) $("tlJanela").textContent = E.telao.conectado ? "A janela do telão está aberta e conectada" : "A janela do telão não está aberta"; }

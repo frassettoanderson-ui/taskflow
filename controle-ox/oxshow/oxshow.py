@@ -1166,6 +1166,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(401, {"erro": "PIN inválido"})
         if rota == "/api/estado":
             return self._json(200, estado_painel())
+        if rota == "/api/sorteio":  # link do controle do sorteio (com a chave): só com PIN/login
+            return self._json(200, {"controle": (CFG.get("sorteio") or {}).get("controle")})
         if rota == "/api/previa":
             q = parse_qs(url.query)
             return self._json(200, previa(com_foto=q.get("foto", ["1"])[0] != "0", janelas="janelas" in q))
