@@ -288,13 +288,38 @@ const primeiroNome = rec => String(rec.nome || '').split(' ')[0] || '';
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const erroEvo = r => 'falhou:' + String((r.body && (r.body.error || r.body.message)) || r.status).slice(0, 160);
 
-function limparPendentes(rec) {
-  const chave = chaveFone(rec.whatsapp), mail = String(rec.email || '').toLowerCase();
+// Mesma pessoa = mesmo CPF; sem CPF nos dois, mesmo WhatsApp ou e-mail E mesmo primeiro nome
+// (assim a mãe que inscreve a filha pelo próprio celular não perde a inscrição da filha).
+const semAcento = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+function mesmaPessoa(a, b) {
+  const ca = digits(a.cpf), cb = digits(b.cpf);
+  if (ca.length === 11 && cb.length === 11) return ca === cb;
+  const contato = (chaveFone(a.whatsapp) && chaveFone(a.whatsapp) === chaveFone(b.whatsapp))
+    || (a.email && semAcento(a.email) === semAcento(b.email));
+  return contato && semAcento(a.nome).split(' ')[0] === semAcento(b.nome).split(' ')[0];
+}
+
+// Quando alguém paga, as outras inscrições PENDENTES da mesma pessoa somem do painel
+// e o Pix delas é cancelado no Mercado Pago (para não pagar duas vezes).
+const limpando = new Set();
+async function limparPendentes(rec) {
   for (const [id, r] of Object.entries(db)) {
-    if (id === rec.id || r.status !== 'pending') continue;
-    if ((chave && chaveFone(r.whatsapp) === chave) || (mail && String(r.email || '').toLowerCase() === mail)) delete db[id];
+    if (id === rec.id || r.status !== 'pending' || limpando.has(id) || !mesmaPessoa(rec, r)) continue;
+    limpando.add(id);
+    try {
+      if (r.mp_id && TOKEN) {
+        const p = await mp('/v1/payments/' + r.mp_id);
+        if (p.ok && p.body.status === 'approved') { aprovar(r); continue; }   // pagou as duas: as duas ficam
+        if (p.ok && ['pending', 'in_process'].includes(p.body.status)) await mp('/v1/payments/' + r.mp_id, { method: 'PUT', body: JSON.stringify({ status: 'cancelled' }) });
+      }
+      console.log('pendente duplicado removido:', r.nome, id, '(pago:', rec.id + ')');
+      delete db[id]; save();
+    } catch (e) { console.error('limparPendentes', id, e.message); }
+    finally { limpando.delete(id); }
   }
 }
+// também pega a inscrição repetida feita DEPOIS do pagamento (ex.: a pessoa não viu a confirmação e se inscreveu de novo)
+setInterval(() => { for (const r of Object.values(db)) if (r.status === 'approved') limparPendentes(r); }, 60000);
 
 async function estadoZap() {
   if (!temZap()) return 'nao_configurado';
