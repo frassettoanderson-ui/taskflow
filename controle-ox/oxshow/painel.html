@@ -102,11 +102,34 @@
   .avisos:empty{display:none}
   .so-bts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:760px;margin:0 auto}
   .so-bts button{min-height:72px;font-size:18px}
-  .so-moldura{max-width:760px;margin:0 auto;border-radius:10px;overflow:hidden;background:#000;border:1px solid #000;
-    box-shadow:0 0 0 3px #2c2d30, 0 0 0 4px #000}
-  .so-moldura iframe{display:block;width:100%;height:860px;border:0;background:#000}
-  .so-moldura .vazio{padding:40px 20px;text-align:center}
-  @media (max-width:560px){ .so-bts{grid-template-columns:1fr} .so-moldura iframe{height:780px} }
+  .so-visor{max-width:760px;margin:0 auto 18px;padding:18px 20px 16px;text-align:center}
+  .so-st{display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--f-rot);letter-spacing:.18em;text-transform:uppercase;color:var(--tinta-3)}
+  .so-st i{width:10px;height:10px;border-radius:50%;background:#3a1010;box-shadow:inset 0 1px 2px rgba(0,0,0,.9)}
+  .so-st.on i{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .so-st.on{color:var(--tinta-2)}
+  .so-eb{font-family:var(--f-lcd);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--ambar-2);margin-top:14px;min-height:18px}
+  .so-tt{font-family:var(--f-rot);font-weight:700;font-size:38px;line-height:1.05;letter-spacing:.04em;text-transform:uppercase;color:var(--ambar);
+    text-shadow:0 0 14px rgba(255,176,32,.45);margin-top:4px;overflow-wrap:anywhere}
+  .so-msg{font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2);margin-top:8px;min-height:18px}
+  .so-grandes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:760px;margin:0 auto 14px}
+  .so-grandes button{min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  .so-grandes b{font-size:26px;letter-spacing:.12em}
+  .so-grandes span,.so-peq span{display:block;font-family:var(--f-texto);font-weight:500;font-size:12px;letter-spacing:.02em;text-transform:none;color:var(--tinta-2)}
+  .so-grandes .prim span{color:#ffd9d4}
+  .so-vivo b{color:#7dff8c;text-shadow:0 0 10px rgba(70,224,90,.45)}
+  .so-peq{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;max-width:760px;margin:0 auto}
+  .so-peq button{min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px}
+  .so-rolar{max-height:420px;overflow:auto;padding-right:4px}
+  .so-rolar.alto{max-height:560px}
+  .item.ganhou .t,.item.excluido .t{color:var(--tinta-3)}
+  .item .selo-it{display:inline-block;margin-left:8px;font:600 11px/1 var(--f-rot);letter-spacing:.14em;text-transform:uppercase;padding:3px 6px;border-radius:3px;border:1px solid currentColor}
+  .item .selo-it.ganhou{color:var(--ambar)} .item .selo-it.excluido{color:#ff8a7c}
+  .so-busca{display:grid;grid-template-columns:1fr auto;gap:10px;max-width:760px;margin:0 auto 14px}
+  .so-busca input{min-height:46px;width:100%;padding:0 14px;border-radius:6px;border:1px solid #000;background:var(--lcd);color:var(--ambar);font:16px var(--f-lcd);
+    box-shadow:inset 0 2px 8px rgba(0,0,0,.9), 0 0 0 2px #2c2d30}
+  .so-busca input::placeholder{color:var(--ambar-apagado)}
+  .so-busca input:focus{outline:none;box-shadow:inset 0 2px 8px rgba(0,0,0,.9), 0 0 0 2px var(--latao-2)}
+  @media (max-width:560px){ .so-bts,.so-grandes{grid-template-columns:1fr} .so-peq{grid-template-columns:repeat(2,minmax(0,1fr))} .so-tt{font-size:28px} }
   .cols{display:grid;gap:18px;grid-template-columns:1fr 1fr}
   .cols>section{margin-bottom:18px}
   .grade{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
@@ -597,8 +620,44 @@
   </section>
   <section>
     <h2>Controle do sorteio</h2>
-    <div class="sub">Sorteio geral, sorteio ao vivo de quem está treinando e lista de participantes</div>
-    <div class="so-moldura" id="soMoldura"><div class="vazio">Abrindo o controle do sorteio</div></div>
+    <div class="sub" id="soSub">Conectando ao sorteio</div>
+    <div class="so-visor lcd">
+      <div class="so-st" id="soSt"><i></i><span id="soStTxt">Verificando o telão do sorteio</span></div>
+      <div class="so-eb" id="soEb">&nbsp;</div>
+      <div class="so-tt" id="soTt">-</div>
+      <div class="so-msg" id="soMsg">&nbsp;</div>
+    </div>
+    <div class="so-grandes">
+      <button class="prim" id="soGeral" disabled><b>Sorteio geral</b><span>todos os alunos ativos</span></button>
+      <button class="so-vivo" id="soVivo" disabled><b>Sorteio ao vivo</b><span>só quem está treinando agora</span></button>
+    </div>
+    <div class="so-peq">
+      <button id="soNext" disabled>Avançar<span>pular a espera</span></button>
+      <button id="soHome" disabled>Voltar ao início<span>tela inicial do sorteio</span></button>
+      <button id="soMute" disabled>Som<span id="soMuteTxt">ligado</span></button>
+      <button id="soFull" disabled>Tela cheia<span>no telão</span></button>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section>
+      <h2>Treinando agora</h2>
+      <div class="sub" id="soTrCab">Consultando a catraca</div>
+      <div class="lista so-rolar" id="soTrLista"></div>
+    </section>
+    <section>
+      <h2>Ganhadores</h2>
+      <div class="sub" id="soGanhCab">Ninguém ganhou ainda</div>
+      <div class="lista so-rolar" id="soGanh"></div>
+    </section>
+  </div>
+
+  <section>
+    <h2>Participantes</h2>
+    <div class="sub" id="soPartCab">Alunos ativos que concorrem no sorteio geral</div>
+    <div class="so-busca"><input id="soBusca" type="search" placeholder="Buscar aluno pelo nome" autocomplete="off"><button id="soPartCarregar">Carregar lista</button></div>
+    <div class="lista so-rolar alto" id="soPart"><div class="vazio">Toque em "Carregar lista" para ver os participantes</div></div>
+    <div class="acoes"><button class="perigo" id="soReset" disabled>Reiniciar tudo do zero</button></div>
   </section>
 </div>
 
@@ -1268,17 +1327,118 @@ async function lacoPrevia(){
     await new Promise(r => setTimeout(r, visivel ? (NUVEM ? 1500 : 1000) : 2000));
   }
 }
-// ---------------------------------------------------------- SORTEIO
-let sorteioAberto = false;
-async function abrirSorteio(){
-  if (sorteioAberto) return;
-  try {
-    const r = await api("/api/sorteio");
-    if (!r.controle){ $("soMoldura").replaceChildren(el("div", {class: "vazio"}, "O link do controle do sorteio não está configurado no PC da academia")); return; }
-    $("soMoldura").replaceChildren(el("iframe", {src: r.controle, title: "Controle do sorteio", allow: "fullscreen"}));
-    sorteioAberto = true;
-  } catch(e){ $("soMoldura").replaceChildren(el("div", {class: "vazio"}, "Não consegui abrir o controle: " + e.message)); }
+// ---------------------------------------------------------- SORTEIO (controle nativo; o OX Show repassa ao servidor do sorteio)
+let SO = {telao: false, status: "idle", winners: [], aovivo: {ganhadores: []}}, soOcupado = false, soPP = null;
+const soApi = (ep, metodo, corpo) => api("/api/sorteio/" + ep, metodo, corpo);
+const soAberta = () => !document.hidden && $("aba-sorteio").classList.contains("on");
+function soMsg(t){ $("soMsg").textContent = t || "\u00a0"; }
+function soNorm(t){ return String(t || "").toLowerCase().normalize("NFD").replace(/\p{M}/gu, ""); }
+
+function renderSorteio(){
+  const on = !!SO.telao;
+  $("soSt").classList.toggle("on", on);
+  $("soStTxt").textContent = on ? "Tela do sorteio aberta no telão" : "Tela do sorteio fechada no telão";
+  $("soSub").textContent = on ? "Pronto para sortear" : "Abra a tela do sorteio no telão (botão acima) para liberar os comandos";
+  $("soEb").textContent = on && SO.eyebrow ? SO.eyebrow : "\u00a0";
+  $("soTt").textContent = !on ? "Aguardando o telão" : (SO.title || (SO.status === "idle" ? "Pronto para iniciar" : "-"));
+  const g = $("soGeral");
+  g.disabled = !on || SO.status === "running" || soOcupado;
+  g.querySelector("b").textContent = SO.status === "running" ? "Sorteando" : SO.status === "finished" ? "Novo sorteio geral" : "Sorteio geral";
+  $("soVivo").disabled = !on || SO.status === "running" || soOcupado;
+  $("soNext").disabled = !(on && SO.status === "running");
+  ["soHome", "soMute", "soFull", "soReset"].forEach(i => $(i).disabled = !on);
+  $("soMuteTxt").textContent = SO.muted ? "desligado" : "ligado";
+  const vivo = (SO.aovivo && SO.aovivo.ganhadores) || [], geral = SO.winners || [];
+  $("soGanhCab").textContent = vivo.length || geral.length ? `${geral.length} no sorteio geral · ${vivo.length} ao vivo hoje` : "Ninguém ganhou ainda";
+  $("soGanh").replaceChildren(...[
+    ...geral.map((n, i) => el("div", {class: "item"}, el("div", {}, el("div", {class: "t"}, n), el("div", {class: "d"}, (i + 1) + "º do sorteio geral")))),
+    ...vivo.map(x => el("div", {class: "item"}, el("div", {}, el("div", {class: "t"}, x.nome), el("div", {class: "d"}, "Ao vivo hoje às " + x.hora))))
+  ]);
+  if (!vivo.length && !geral.length) $("soGanh").replaceChildren(el("div", {class: "vazio"}, "Os ganhadores aparecem aqui"));
 }
+async function atualizarSorteio(){
+  try { SO = Object.assign({telao: false, winners: [], aovivo: {ganhadores: []}}, await soApi("state")); }
+  catch(e){ SO.telao = false; soMsg(e.message); }
+  renderSorteio();
+}
+async function soCmd(c, rotulo){
+  soMsg("");
+  try {
+    const d = await soApi("cmd?c=" + c, "POST", {c});
+    if (d.ok === 0) soMsg(d.motivo || "Aguarde um instante");
+    else if (rotulo) aviso(rotulo);
+  } catch(e){ soMsg(e.message); }
+  setTimeout(atualizarSorteio, 400);
+}
+async function soSortear(c){
+  const geral = c === "geral";
+  if (!confirm(geral ? "Fazer o sorteio geral agora?\n\nBusca todos os alunos ativos no OX e sorteia 1. Personal, funcionário, quem já ganhou e quem foi excluído ficam de fora."
+                     : "Fazer um sorteio ao vivo agora?\n\nSorteia 1 brinde entre quem está treinando neste momento (pela catraca). O sorteio geral não é afetado.")) return;
+  soOcupado = true; renderSorteio();
+  soMsg(geral ? "Buscando os alunos ativos no OX" : "Consultando a catraca");
+  try {
+    const d = await soApi("cmd?c=" + c, "POST", {c});
+    if (d.ok === 0) soMsg(d.motivo || "Aguarde um instante");
+    else soMsg(geral ? `${d.ativos} alunos ativos · ${d.elegiveis} concorrendo` : `${d.treinando} treinando agora · ${d.elegiveis} concorrendo`);
+  } catch(e){ soMsg(e.message); }
+  soOcupado = false; setTimeout(atualizarSorteio, 400); if (!geral) setTimeout(carregarTreinando, 1500);
+}
+async function soExcluir(nome, acao, depois){
+  if (acao === "excluir" && !confirm(`Excluir ${nome} do sorteio?\n\nA pessoa deixa de concorrer no sorteio geral e no ao vivo. Dá para voltar depois.`)) return;
+  try { await soApi(acao + "?nome=" + encodeURIComponent(nome), "POST", {nome}); aviso(acao === "excluir" ? nome + " fora do sorteio" : nome + " de volta ao sorteio"); }
+  catch(e){ aviso(e.message, true); }
+  depois();
+}
+const SIT = {ganhou: "já ganhou hoje", excluido: "excluído"};
+async function carregarTreinando(){
+  if (!soAberta()) return;
+  try {
+    const d = await soApi("treinando");
+    $("soTrCab").textContent = `${d.treinando} treinando agora (${d.hora}) · ${d.concorrendo} concorrendo no ao vivo`;
+    $("soTrLista").replaceChildren(...(d.lista.length ? d.lista.map(x => el("div", {class: "item " + x.situacao},
+      el("div", {}, el("div", {class: "t"}, x.nome, SIT[x.situacao] ? el("span", {class: "selo-it " + x.situacao}, SIT[x.situacao]) : ""), el("div", {class: "d"}, "Entrou às " + x.entrou)),
+      el("div", {class: "bts"}, x.situacao === "concorre" ? btn("Excluir", () => soExcluir(x.nome, "excluir", carregarTreinando), "peq")
+        : x.situacao === "excluido" ? btn("Voltar", () => soExcluir(x.nome, "restaurar", carregarTreinando), "peq") : "")))
+      : [el("div", {class: "vazio"}, "Ninguém treinando agora")]));
+  } catch(e){ $("soTrCab").textContent = "Não consegui consultar a catraca: " + e.message; }
+}
+async function carregarParticipantes(){
+  $("soPart").replaceChildren(el("div", {class: "vazio"}, "Buscando os alunos ativos no OX"));
+  try { soPP = await soApi("participantes"); } catch(e){ $("soPart").replaceChildren(el("div", {class: "vazio"}, e.message)); return; }
+  $("soPartCarregar").textContent = "Atualizar lista";
+  desenharParticipantes();
+}
+function desenharParticipantes(){
+  if (!soPP) return;
+  const q = soNorm($("soBusca").value.trim());
+  const ok = n => !q || soNorm(n).includes(q);
+  const ganh = soPP.lista.filter(x => x.ganhou).length, exc = soPP.lista.filter(x => x.excluido).length;
+  $("soPartCab").textContent = `${soPP.concorrendo} concorrendo · ${soPP.total} alunos ativos · ${ganh} já ganharam · ${exc} excluídos` + (soPP.foraDaRegra ? ` · ${soPP.foraDaRegra} personal ou funcionário (fora)` : "");
+  const item = x => el("div", {class: "item" + (x.excluido ? " excluido" : x.ganhou ? " ganhou" : "")},
+    el("div", {}, el("div", {class: "t"}, x.nome, x.excluido ? el("span", {class: "selo-it excluido"}, "excluído") : x.ganhou ? el("span", {class: "selo-it ganhou"}, "já ganhou") : ""),
+      el("div", {class: "d"}, x.plano || "\u00a0")),
+    el("div", {class: "bts"}, btn(x.excluido ? "Voltar" : "Excluir", () => soExcluir(x.nome, x.excluido ? "restaurar" : "excluir", carregarParticipantes), "peq")));
+  const dentro = soPP.lista.filter(x => !x.excluido && ok(x.nome)), fora = soPP.lista.filter(x => x.excluido && ok(x.nome));
+  $("soPart").replaceChildren(...(dentro.length ? dentro.map(item) : [el("div", {class: "vazio"}, "Ninguém com esse nome")]),
+    ...(fora.length ? [el("div", {class: "vazio"}, "Excluídos"), ...fora.map(item)] : []));
+}
+$("soGeral").onclick = () => soSortear("geral");
+$("soVivo").onclick = () => soSortear("aovivo");
+$("soNext").onclick = () => soCmd("next");
+$("soHome").onclick = () => soCmd("home", "Sorteio no início");
+$("soMute").onclick = () => soCmd("mute");
+$("soFull").onclick = () => soCmd("fullscreen");
+$("soReset").onclick = () => { if (confirm("Reiniciar tudo do zero?\n\nLimpa a lista de quem já ganhou, recarrega a lista de alunos e volta ao início.")) soCmd("reset", "Sorteio reiniciado"); };
+$("soPartCarregar").onclick = carregarParticipantes;
+$("soBusca").oninput = desenharParticipantes;
+function abrirSorteio(){ atualizarSorteio(); carregarTreinando(); }
+(async function lacoSorteio(){
+  while (true){
+    if (soAberta() && D) await atualizarSorteio();
+    await new Promise(r => setTimeout(r, NUVEM ? 2000 : 1500));
+  }
+})();
+setInterval(carregarTreinando, 20000);
 $("soMostrar").onclick = () => cmd("/api/executar", {tipo: "cena", id: "sorteio"}, "Sorteio no telão");
 $("soVoltar").onclick = () => cmd("/api/executar", {tipo: "cena", id: "normal"}, "Telão normal");
 

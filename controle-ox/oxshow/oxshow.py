@@ -22,7 +22,7 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from logging.handlers import RotatingFileHandler
-from urllib.parse import quote, unquote, urlparse, parse_qs
+from urllib.parse import quote, unquote, urlencode, urlparse, parse_qs
 
 PASTA = os.path.dirname(os.path.abspath(__file__))
 CONFIG_PATH = os.environ.get("OX_CONFIG") or os.path.join(PASTA, "config.json")
@@ -971,6 +971,36 @@ def previa(com_foto=True, janelas=False):
     return r
 
 
+# ================================================================ sorteio (ponte para o servidor do sorteio no OX Cloud)
+# O painel fala só com o OX Show; a chave do sorteio fica no config.json deste PC e nunca vai para o navegador.
+SORTEIO_ROTAS = {"state": "GET", "treinando": "GET", "participantes": "GET", "cmd": "POST", "excluir": "POST", "restaurar": "POST"}
+SORTEIO_CMDS = {"geral", "aovivo", "next", "mute", "fullscreen", "home", "reset"}
+
+
+def sorteio_api(ep, metodo, params):
+    if SORTEIO_ROTAS.get(ep) != metodo:
+        raise ValueError("Comando de sorteio inválido")
+    if ep == "cmd" and params.get("c") not in SORTEIO_CMDS:
+        raise ValueError("Comando de sorteio inválido")
+    link = (CFG.get("sorteio") or {}).get("controle") or ""
+    if not link:
+        raise ValueError("O sorteio não está configurado neste PC")
+    u = urlparse(link)
+    chave = parse_qs(u.query).get("k", [""])[0]
+    q = {k: str(v) for k, v in params.items() if k in ("c", "nome")}
+    q["k"] = chave
+    url = f"{u.scheme}://{u.netloc}/sorteio/api/{ep}?{urlencode(q)}"
+    req = urllib.request.Request(url, data=b"" if metodo == "POST" else None, method=metodo,
+                                 headers={"User-Agent": "OXShow/" + VERSAO, "Cache-Control": "no-store"})
+    try:
+        with urllib.request.urlopen(req, timeout=14) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+    except OSError as e:
+        return 502, json.dumps({"ok": False, "erro": f"Servidor do sorteio não respondeu ({e})"}).encode("utf-8")
+
+
 # ================================================================ trava enquanto o REAPER ainda faz o evento
 
 def janela_protegida():
@@ -1166,8 +1196,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(401, {"erro": "PIN inválido"})
         if rota == "/api/estado":
             return self._json(200, estado_painel())
-        if rota == "/api/sorteio":  # link do controle do sorteio (com a chave): só com PIN/login
-            return self._json(200, {"controle": (CFG.get("sorteio") or {}).get("controle")})
+        if rota.startswith("/api/sorteio/"):
+            try:
+                st, corpo = sorteio_api(rota[len("/api/sorteio/"):], "GET", {k: v[0] for k, v in parse_qs(url.query).items()})
+            except ValueError as e:
+                return self._json(400, {"ok": False, "erro": str(e)})
+            return self._corpo(st, corpo, "application/json; charset=utf-8")
         if rota == "/api/previa":
             q = parse_qs(url.query)
             return self._json(200, previa(com_foto=q.get("foto", ["1"])[0] != "0", janelas="janelas" in q))
@@ -1208,6 +1242,16 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True})
         if not self._pin_ok():
             return self._json(401, {"erro": "PIN inválido"})
+        if rota.startswith("/api/sorteio/"):
+            try:
+                params = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
+                params.update({k: v for k, v in corpo.items() if k in ("c", "nome")})
+                st, resp = sorteio_api(rota[len("/api/sorteio/"):], "POST", params)
+            except ValueError as e:
+                return self._json(400, {"ok": False, "erro": str(e)})
+            if st == 200 and params.get("c"):
+                log.info("sorteio: %s (%s)", params["c"], self._origem())
+            return self._corpo(st, resp, "application/json; charset=utf-8")
         try:
             if rota == "/api/executar":
                 if janela_protegida() and corpo.get("tipo") != "evento-parar":
@@ -1267,7 +1311,7 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------- OX Cloud (painel de qualquer rede)
 # Conexão de SAÍDA para o OX Cloud (long-poll): busca os comandos do painel de lá, executa aqui
 # como se fosse o painel local e devolve a resposta. Não precisa abrir porta no roteador.
-VERSAO = "1.4"
+VERSAO = "1.5"
 
 
 def laco_nuvem():
