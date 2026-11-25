@@ -711,7 +711,8 @@ def fechar_telao():
 # ---------------------------------------------------------- VYMBER (janela própria, espelhada no painel)
 # O OX Show abre o Vymber num Edge só dele (perfil em C:\OXShow\vymber) com a porta de depuração
 # presa ao 127.0.0.1. O painel vê a tela por captura e manda cliques, rolagem e teclas por ela.
-VYMBER = {"p": None, "ws": None, "alvo": None, "trava": threading.Lock(), "foto": None, "foto_t": 0.0, "n": 0}
+VYMBER = {"p": None, "ws": None, "alvo": None, "trava": threading.Lock(), "foto": None, "foto_t": 0.0, "n": 0,
+          "porta": lambda: vymber_cfg()["porta"], "filtro": "vymber"}
 
 
 def vymber_cfg():
@@ -720,8 +721,9 @@ def vymber_cfg():
             "largura": int(c.get("largura") or 1280), "altura": int(c.get("altura") or 800)}
 
 
-def _cdp_http(caminho, timeout=2):
-    with urllib.request.urlopen(f"http://127.0.0.1:{vymber_cfg()['porta']}{caminho}", timeout=timeout) as r:
+def _cdp_http(caminho, timeout=2, s=None):
+    s = s or VYMBER
+    with urllib.request.urlopen(f"http://127.0.0.1:{s['porta']()}{caminho}", timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8"))
 
 
@@ -772,10 +774,11 @@ def fechar_vymber():
 
 
 # --- websocket mínimo (cliente) só para o protocolo de depuração do navegador
-def _ws_fechar():
-    s = VYMBER.get("ws")
-    VYMBER["ws"] = None
-    VYMBER["alvo"] = None
+def _ws_fechar(sess=None):
+    sess = sess or VYMBER
+    s = sess.get("ws")
+    sess["ws"] = None
+    sess["alvo"] = None
     if s:
         try:
             s.close()
@@ -833,11 +836,12 @@ def _ws_receber(s):
                 return msg.decode("utf-8")
 
 
-def _ws_conectar():
-    paginas = [p for p in _cdp_http("/json/list") if p.get("type") == "page"]
+def _ws_conectar(sess=None):
+    sess = sess or VYMBER
+    paginas = [p for p in _cdp_http("/json/list", s=sess) if p.get("type") == "page"]
     if not paginas:
-        raise RuntimeError("O Vymber não tem página aberta")
-    pag = next((p for p in paginas if "vymber" in (p.get("url") or "")), paginas[0])
+        raise RuntimeError("A janela não tem página aberta")
+    pag = next((p for p in paginas if sess["filtro"] in (p.get("url") or "")), paginas[0])
     u = urlparse(pag["webSocketDebuggerUrl"])
     s = socket.create_connection((u.hostname, u.port), timeout=8)
     chave = base64.b64encode(os.urandom(16)).decode()
@@ -853,17 +857,18 @@ def _ws_conectar():
     if b" 101 " not in resp.split(b"\r\n", 1)[0] or esperado.encode() not in resp:
         s.close()
         raise ConnectionError("o navegador recusou a conexão")
-    VYMBER["ws"], VYMBER["alvo"] = s, pag["id"]
+    sess["ws"], sess["alvo"] = s, pag["id"]
 
 
-def cdp(metodo, params=None, tentativa=True):
-    with VYMBER["trava"]:
+def cdp(metodo, params=None, tentativa=True, sess=None):
+    sess = sess or VYMBER
+    with sess["trava"]:
         try:
-            if not VYMBER["ws"]:
-                _ws_conectar()
-            s = VYMBER["ws"]
-            VYMBER["n"] += 1
-            n = VYMBER["n"]
+            if not sess["ws"]:
+                _ws_conectar(sess)
+            s = sess["ws"]
+            sess["n"] += 1
+            n = sess["n"]
             _ws_enviar(s, json.dumps({"id": n, "method": metodo, "params": params or {}}))
             fim = time.time() + 8
             while time.time() < fim:
@@ -872,12 +877,12 @@ def cdp(metodo, params=None, tentativa=True):
                     if "error" in m:
                         raise RuntimeError(m["error"].get("message", "erro do navegador"))
                     return m.get("result") or {}
-            raise TimeoutError("o Vymber não respondeu")
+            raise TimeoutError("a janela não respondeu")
         except (OSError, ConnectionError, TimeoutError, ValueError):
-            _ws_fechar()
+            _ws_fechar(sess)
             if not tentativa:
                 raise
-    return cdp(metodo, params, tentativa=False)
+    return cdp(metodo, params, tentativa=False, sess=sess)
 
 
 def vymber_tela():
@@ -1031,12 +1036,200 @@ def vymber_comando(c):
             raise ValueError("Playlist inválida")
     else:
         raise ValueError("Comando inválido")
+    if tipo == "tocar" and youtube_aberto():  # o Vymber volta: o YouTube para
+        fechar_youtube(retomar_vymber=False)
     if _vy_js(js) is False:
         raise RuntimeError("O botão não está disponível agora no Vymber")
     if tipo in ("playlist", "embaralhar"):
         registrar("música", f"Vymber: playlist {c.get('nome') or c.get('id') or 'embaralhada'}", [])
     VYMBER["foto_t"] = 0
     return {"ok": True}
+
+
+# ---------------------------------------------------------- YOUTUBE (vídeo ou playlist no som da academia)
+# Janela própria do Edge (perfil C:\OXShow\youtube, depuração na 9335). Enquanto toca, o Vymber fica pausado;
+# ao parar (ou se a janela for fechada), o Vymber volta. Quando começa o show das 21h, o YouTube pausa sozinho.
+YT = {"p": None, "ws": None, "alvo": None, "trava": threading.Lock(), "n": 0, "filtro": "youtube",
+      "porta": lambda: int((CFG.get("youtube") or {}).get("porta_cdp") or 9335), "pausou_vymber": False, "protegido": False}
+HOSTS_YT = {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
+
+
+def youtube_aberto():
+    try:
+        _cdp_http("/json/version", 1, YT)
+        return True
+    except Exception:
+        return False
+
+
+def _yt_link(u):
+    """Aceita link de vídeo, playlist, youtu.be e YouTube Music; devolve (url para abrir, tem_video)."""
+    u = (u or "").strip()
+    if not u.startswith("http"):
+        u = "https://" + u
+    pu = urlparse(u)
+    host = (pu.hostname or "").lower()
+    if host not in HOSTS_YT:
+        raise ValueError("Cole um link do YouTube (youtube.com ou youtu.be)")
+    q = parse_qs(pu.query)
+    lista = re.sub(r"[^\w-]", "", (q.get("list") or [""])[0])
+    video = re.sub(r"[^\w-]", "", pu.path.strip("/") if host == "youtu.be" else (q.get("v") or [""])[0])
+    if not lista and not video:
+        raise ValueError("Esse link não tem vídeo nem playlist")
+    if video:
+        return f"https://www.youtube.com/watch?v={video}" + (f"&list={lista}" if lista else ""), True
+    return f"https://www.youtube.com/playlist?list={lista}", False
+
+
+def _yt_js(expr):
+    r = cdp("Runtime.evaluate", {"expression": expr, "returnByValue": True, "awaitPromise": True}, sess=YT)
+    if r.get("exceptionDetails"):
+        raise RuntimeError("O YouTube não aceitou o comando")
+    return (r.get("result") or {}).get("value")
+
+
+def _yt_comecar(sem_video):
+    """Link só de playlist: espera a página e entra no primeiro vídeo dela (aí toca a lista inteira)."""
+    if not sem_video:
+        return
+    for _ in range(40):
+        time.sleep(0.5)
+        try:
+            href = _yt_js("(() => { const a = document.querySelector('a[href*=\"/watch?v=\"][href*=\"list=\"]'); return a ? a.href : null; })()")
+        except Exception:
+            href = None
+        if href:
+            cdp("Page.navigate", {"url": href}, sess=YT)
+            return
+
+
+def _pausar_vymber_pelo_youtube():
+    try:
+        if vymber_aberto() and (_vy_js(_VY_LER) or {}).get("tocando"):
+            vymber_comando({"tipo": "pausar"})
+            YT["pausou_vymber"] = True
+    except Exception as e:
+        log.info("YouTube: não pausei o Vymber (%s)", e)
+
+
+def abrir_youtube(link):
+    if janela_protegida():
+        raise PermissionError("Evento das 21h (REAPER) em andamento: comandos travados alguns minutos.")
+    url, tem_video = _yt_link(link)
+    if youtube_aberto():
+        cdp("Page.navigate", {"url": url}, sess=YT)
+    else:
+        nav = achar_navegador()
+        if not nav:
+            raise RuntimeError("Não achei o Edge nem o Chrome")
+        principal = next((m for m in monitores() if m["principal"]), None) or {"x": 0, "y": 0}
+        args = [nav, f"--app={url}", f"--user-data-dir={os.path.join(BASE, 'youtube')}",
+                f"--remote-debugging-port={YT['porta']()}", "--remote-debugging-address=127.0.0.1",
+                "--autoplay-policy=no-user-gesture-required", "--no-first-run", "--no-default-browser-check",
+                "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+                "--disable-background-timer-throttling", "--disable-features=Translate,TranslateUI,CalculateNativeWinOcclusion",
+                "--disable-session-crashed-bubble", "--noerrdialogs",
+                "--window-size=1280,800", f"--window-position={principal['x'] + 80},{principal['y'] + 80}"]
+        YT["p"] = subprocess.Popen(args)
+        for _ in range(40):
+            if youtube_aberto():
+                break
+            time.sleep(0.25)
+    _pausar_vymber_pelo_youtube()
+    threading.Thread(target=_yt_comecar, args=(not tem_video,), daemon=True).start()
+    registrar("música", "YouTube tocando no som da academia", [], obs=url)
+    return {"ok": True}
+
+
+def _matar_perfil(pasta):
+    if os.name == "nt":
+        perfil = os.path.join(BASE, pasta)
+        subprocess.run(["powershell", "-NoProfile", "-Command",
+                        "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*" + perfil.replace("'", "''") +
+                        "*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"],
+                       capture_output=True, timeout=20, creationflags=0x08000000)
+
+
+def fechar_youtube(retomar_vymber=True):
+    _ws_fechar(YT)
+    p = YT["p"]
+    if p and p.poll() is None:
+        p.terminate()
+    YT["p"] = None
+    _matar_perfil("youtube")
+    voltar = retomar_vymber and YT["pausou_vymber"]
+    YT["pausou_vymber"] = False
+    if voltar:
+        try:
+            vymber_comando({"tipo": "tocar"})
+        except Exception as e:
+            log.info("YouTube parou mas o Vymber não voltou (%s)", e)
+    registrar("música", "YouTube parado" + (", Vymber de volta" if voltar else ""), [])
+    return {"ok": True}
+
+
+_YT_LER = r"""(() => {
+  const p = document.getElementById("movie_player"), v = document.querySelector("video");
+  const d = p && p.getVideoData ? p.getVideoData() : {};
+  const lista = p && p.getPlaylist ? p.getPlaylist() : null;
+  const tit = s => (document.querySelector(s)?.textContent || "").replace(/\s+/g, " ").trim();
+  return { url: location.href, assistindo: location.pathname === "/watch", titulo: d.title || document.title.replace(/ - YouTube$/, ""),
+    autor: d.author || "", tocando: !!(v && !v.paused && !v.ended), tempo: v ? v.currentTime : 0, duracao: v && isFinite(v.duration) ? v.duration : 0,
+    volume: p && p.getVolume ? p.getVolume() : null, mudo: p && p.isMuted ? p.isMuted() : false,
+    anuncio: !!document.querySelector(".ad-showing"), pular: !!document.querySelector(".ytp-skip-ad-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button"),
+    posicao: p && p.getPlaylistIndex ? p.getPlaylistIndex() : -1, total: lista ? lista.length : 0,
+    playlist: tit("ytd-playlist-panel-renderer #header-description h3") || tit("ytd-playlist-panel-renderer .title") };
+})()"""
+
+
+def youtube_estado():
+    if not youtube_aberto():
+        return {"aberto": False}
+    e = _yt_js(_YT_LER) or {}
+    e["aberto"] = True
+    e["vymberPausado"] = YT["pausou_vymber"]
+    return e
+
+
+def youtube_comando(c):
+    if not youtube_aberto():
+        raise RuntimeError("O YouTube não está tocando no PC")
+    tipo = c.get("tipo")
+    acoes = {"tocar": "movie_player.playVideo()", "pausar": "movie_player.pauseVideo()",
+             "proxima": "movie_player.nextVideo()", "anterior": "movie_player.previousVideo()",
+             "pular": "(() => { const b = document.querySelector('.ytp-skip-ad-button, .ytp-ad-skip-button-modern, .ytp-ad-skip-button'); if (!b) return false; b.click(); return true; })()"}
+    if tipo in acoes:
+        js = acoes[tipo]
+    elif tipo == "volume":
+        v = max(0, min(100, int(c.get("volume", 0))))
+        js = f"(() => {{ movie_player.unMute(); movie_player.setVolume({v}); return true; }})()"
+    else:
+        raise ValueError("Comando inválido")
+    if tipo == "tocar" and janela_protegida():
+        raise PermissionError("Evento das 21h (REAPER) em andamento: comandos travados alguns minutos.")
+    if _yt_js(js) is False:
+        raise RuntimeError("Não deu para fazer isso agora no YouTube")
+    if tipo == "tocar" and not YT["pausou_vymber"]:
+        _pausar_vymber_pelo_youtube()
+    return {"ok": True}
+
+
+def laco_youtube():
+    """Janela do YouTube fechada por fora: o Vymber volta. Show das 21h começando: o YouTube pausa."""
+    while True:
+        time.sleep(5)
+        try:
+            prot = janela_protegida()
+            if prot and not YT["protegido"] and youtube_aberto():
+                _yt_js("movie_player.pauseVideo()")
+                registrar("música", "YouTube pausado para o show das 21h", [])
+            YT["protegido"] = prot
+            if YT["pausou_vymber"] and not youtube_aberto():
+                YT["pausou_vymber"] = False
+                vymber_comando({"tipo": "tocar"})
+                registrar("música", "YouTube fechado, Vymber de volta", [])
+        except Exception as e:
+            log.info("laço do YouTube: %s", e)
 
 
 def laco_vigia():
@@ -1762,6 +1955,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, vymber_tela())
             except Exception as e:
                 return self._json(200, {"aberto": vymber_aberto(), "erro": str(e)})
+        if rota == "/api/youtube/estado":
+            try:
+                return self._json(200, youtube_estado())
+            except Exception as e:
+                return self._json(200, {"aberto": youtube_aberto(), "erro": str(e)})
         if rota == "/api/vymber/estado":
             try:
                 return self._json(200, vymber_estado())
@@ -1853,6 +2051,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, vymber_acao(corpo))
             elif rota == "/api/vymber/comando":
                 return self._json(200, vymber_comando(corpo))
+            elif rota == "/api/youtube/tocar":
+                return self._json(200, abrir_youtube(corpo.get("link", "")))
+            elif rota == "/api/youtube/parar":
+                return self._json(200, fechar_youtube())
+            elif rota == "/api/youtube/comando":
+                return self._json(200, youtube_comando(corpo))
             elif rota == "/api/telao/abrir":
                 abrir_telao()
             elif rota == "/api/telao/fechar":
@@ -1959,6 +2163,7 @@ def main():
     threading.Thread(target=laco_agenda, daemon=True).start()
     threading.Thread(target=laco_insercoes, daemon=True).start()
     threading.Thread(target=laco_vigia, daemon=True).start()
+    threading.Thread(target=laco_youtube, daemon=True).start()
     threading.Thread(target=laco_nuvem, daemon=True).start()
     if CFG["telao"].get("abrir_automatico"):
         threading.Thread(target=abrir_telao, daemon=True).start()
