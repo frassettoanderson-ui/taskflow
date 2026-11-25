@@ -944,16 +944,16 @@ def previa(com_foto=True, janelas=False):
     with MUSICA.lock:
         prox_faixa = os.path.splitext(MUSICA.fila[0])[0] if (m.get("playlist") and MUSICA.fila) else None
     if m.get("nome"):
-        musica = {"atual": m["nome"], "fonte": "Playlist " + m["playlist"], "tocando": bool(m.get("tocando")), "volume": m.get("volume"),
+        musica = {"atual": m["nome"], "fonte": "Playlist " + m["playlist"], "externa": False, "tocando": bool(m.get("tocando")), "volume": m.get("volume"),
                   "proxima": prox_faixa, "proxima_obs": None if prox_faixa else "A playlist recomeça embaralhada"}
     else:
         ext = musica_externa() or {}
         site = ext.get("site")
-        musica = {"atual": ext.get("atual") or (f"Tocando pelo {site}" if site else None),
-                  "fonte": f"{site}, no navegador" if site else ("Player do Windows" if ext.get("atual") else None),
+        musica = {"atual": ext.get("atual"), "site": site, "externa": bool(site or ext.get("atual")),
+                  "fonte": site or ("Player do Windows" if ext.get("atual") else None),
                   "volume": m.get("volume"),
                   "tocando": bool(ext.get("tocando")),
-                  "proxima": None, "proxima_obs": f"O {site} não informa a próxima" if site else None}
+                  "proxima": None, "proxima_obs": f"O {site} não informa a próxima música" if site else None}
     if ESTADO.clientes > 0:
         t = ESTADO.telao_efetivo()
         nome = os.path.splitext(t.get("arquivo") or "")[0]

@@ -379,9 +379,35 @@
 
 
   /* ---------- no ar: prévia do telão ---------- */
-  .ar-bloco{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:24px;align-items:center}
-  .ctrl{display:flex;flex-direction:column;align-items:center;gap:6px;padding-left:24px;border-left:1px solid #000;box-shadow:-1px 0 0 rgba(255,255,255,.05)}
-  .transporte.quatro{grid-template-columns:repeat(2,1fr);width:100%;margin-top:8px}
+  .ar-bloco{display:grid;grid-template-columns:minmax(0,1fr) 210px;grid-template-areas:"tela vol" "botoes vol";gap:16px 26px;align-items:center}
+  .ar-bloco>.monitor,.ar-bloco>.deck{grid-area:tela}
+  .ar-bloco>.ctrl{grid-area:vol;align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+    padding-left:26px;border-left:1px solid #000;box-shadow:-1px 0 0 rgba(255,255,255,.05)}
+  .ctrl .knob-box{transform:scale(.82);margin:-22px -18px -26px}
+  .ctrl .vol-num.fora{font-size:15px;letter-spacing:.08em;color:var(--ambar-2);text-shadow:none}
+  .ar-botoes{grid-area:botoes;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .ar-botoes button{min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 6px}
+  .ar-botoes svg{width:22px;height:22px;fill:currentColor}
+  .ar-botoes span{font-size:11px;letter-spacing:.16em;color:var(--tinta-2)}
+  .ar-botoes button.ativo svg{fill:var(--ambar);filter:drop-shadow(0 0 5px rgba(255,176,32,.6))}
+  .ar-botoes button.ativo span{color:var(--ambar)}
+  /* visor da música */
+  .deck{margin:0;padding:18px 26px 0;text-align:center;display:flex;flex-direction:column}
+  .deck-topo{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px 14px}
+  .deck-rot{white-space:nowrap;font:600 12px/1 var(--f-rot);letter-spacing:.22em;text-transform:uppercase;color:var(--tinta-3)}
+  .deck-fonte{font-family:var(--f-lcd);font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ambar-2);
+    border:1px solid #3a2a0c;border-radius:3px;padding:3px 8px 2px;white-space:nowrap}
+  .deck-meio{display:flex;align-items:center;justify-content:center;gap:20px;padding:16px 0 18px}
+  .deck .eq{height:46px;gap:4px}
+  .deck .eq i{width:6px}
+  .deck-txt{min-width:0;flex:0 1 auto;padding-left:20px;border-left:1px solid #3a3020;text-align:left}
+  .deck-titulo{font-family:var(--f-rot);font-weight:700;font-size:32px;line-height:1.05;letter-spacing:.04em;text-transform:uppercase;color:var(--ambar);
+    text-shadow:0 0 12px rgba(255,176,32,.45);overflow-wrap:anywhere}
+  .deck-titulo.apagado{color:var(--ambar-apagado);text-shadow:none}
+  .deck-det{font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2);margin-top:4px}
+  .deck-seguir{display:flex;align-items:baseline;justify-content:center;gap:14px;border-top:1px solid #2a2010;margin:0 -26px;padding:12px 26px 14px}
+  .deck-prox{font-family:var(--f-lcd);font-size:15px;color:var(--ambar-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .deck-prox strong{color:var(--ambar);font-weight:400}
   .monitor{background:#050505;border-radius:10px;padding:10px;border:1px solid #000;
     box-shadow:0 0 0 3px #2c2d30, 0 0 0 4px #000, inset 0 2px 10px rgba(0,0,0,.9);display:flex;flex-direction:column;gap:10px}
   .tela{position:relative;aspect-ratio:2816/976;background:#000;border-radius:4px;overflow:hidden;display:grid;place-items:center}
@@ -402,7 +428,12 @@
   .fila-ar .val.apagado{color:var(--ambar-apagado);text-shadow:none}
   .fila-ar .det{font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2);overflow-wrap:anywhere}
   .fila-ar .agora .val{font-size:26px}
-  @media (max-width:900px){ .ar-bloco{grid-template-columns:1fr} .ctrl{padding:16px 0 0;border-left:0;border-top:1px solid #000;box-shadow:0 -1px 0 rgba(255,255,255,.05)} .transporte.quatro{grid-template-columns:repeat(4,1fr)} }
+  @media (max-width:900px){
+    .ar-bloco{grid-template-columns:1fr;grid-template-areas:"tela" "vol" "botoes"}
+    .ar-bloco>.ctrl{padding:8px 0 0;border-left:0;box-shadow:none}
+    .deck{padding:16px 16px 0} .deck-seguir{margin:0 -16px;padding:12px 16px 14px} .deck-titulo{font-size:24px} .deck-meio{gap:14px}
+    .deck-txt{padding-left:14px}
+  }
   @media (max-width:1100px){
     .ev-painel{grid-template-columns:1fr}
     .mus-painel{grid-template-columns:1fr}
@@ -448,7 +479,6 @@
     .placa .modelo{padding:2px 6px 0}
     .knob-box{transform:scale(.9)}
   }
-  @media (prefers-reduced-motion:reduce){ *{animation:none !important;transition:none !important} }
 </style>
 </head>
 <body>
@@ -507,12 +537,12 @@
           <div class="knob" id="arTKnob" role="slider" tabindex="0" aria-label="Volume do vídeo do telão" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
         </div>
         <div class="vol-num" id="arTVolNum">0%</div>
-        <div class="transporte quatro">
-          <button id="arTVoltar" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M6 5h3v14H6zM19 5l-9 7 9 7z"/></svg><span>Voltar</span></button>
-          <button id="arTPlay" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></svg><span>Play</span></button>
-          <button id="arTPausar" aria-label="Pausar"><svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg><span>Pausar</span></button>
-          <button id="arTAvancar" aria-label="Avançar"><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span>Avançar</span></button>
-        </div>
+      </div>
+      <div class="ar-botoes">
+        <button id="arTVoltar" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M6 5h3v14H6zM19 5l-9 7 9 7z"/></svg><span>Voltar</span></button>
+        <button id="arTPlay" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></svg><span>Play</span></button>
+        <button id="arTPausar" aria-label="Pausar"><svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg><span>Pausar</span></button>
+        <button id="arTAvancar" aria-label="Avançar"><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span>Avançar</span></button>
       </div>
     </div>
   </section>
@@ -521,9 +551,13 @@
     <h2>Música</h2>
     <div class="sub">O que está tocando na academia</div>
     <div class="ar-bloco">
-      <div class="fila-ar">
-        <div class="lcd agora"><div class="rot">Tocando agora</div><div class="val apagado" id="arMus">Sem música</div><div class="det" id="arMusFonte">&nbsp;</div></div>
-        <div class="lcd"><div class="rot">Próxima música</div><div class="val apagado" id="arProxMus">Sem informação</div><div class="det" id="arProxMusDet">&nbsp;</div></div>
+      <div class="deck lcd" id="arDeck">
+        <div class="deck-topo"><span class="deck-rot">Tocando agora</span><span class="deck-fonte" id="arMusFonte"></span></div>
+        <div class="deck-meio">
+          <div class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="deck-txt"><div class="deck-titulo" id="arMus">Sem música</div><div class="deck-det" id="arMusDet">&nbsp;</div></div>
+        </div>
+        <div class="deck-seguir"><span class="deck-rot">A seguir</span><span class="deck-prox" id="arProxMus">Sem informação</span></div>
       </div>
       <div class="ctrl">
         <div class="vol-rot">Volume da música</div>
@@ -532,12 +566,12 @@
           <div class="knob" id="arMKnob" role="slider" tabindex="0" aria-label="Volume da música" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>
         </div>
         <div class="vol-num" id="arMVolNum">0%</div>
-        <div class="transporte quatro">
-          <button id="arMVoltar" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M6 5h3v14H6zM19 5l-9 7 9 7z"/></svg><span>Voltar</span></button>
-          <button id="arMPlay" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></svg><span>Play</span></button>
-          <button id="arMPausar" aria-label="Pausar"><svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg><span>Pausar</span></button>
-          <button id="arMAvancar" aria-label="Avançar"><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span>Avançar</span></button>
-        </div>
+      </div>
+      <div class="ar-botoes">
+        <button id="arMVoltar" aria-label="Voltar"><svg viewBox="0 0 24 24"><path d="M6 5h3v14H6zM19 5l-9 7 9 7z"/></svg><span>Voltar</span></button>
+        <button id="arMPlay" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M7 4.5l12 7.5-12 7.5z"/></svg><span>Play</span></button>
+        <button id="arMPausar" aria-label="Pausar"><svg viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg><span>Pausar</span></button>
+        <button id="arMAvancar" aria-label="Avançar"><svg viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM15 5h3v14h-3z"/></svg><span>Avançar</span></button>
       </div>
     </div>
   </section>
@@ -1174,14 +1208,26 @@ function renderPrevia(P){
   $("arTPausar").classList.toggle("ativo", !!P.telao.pausado);
 
   const m = P.musica;
-  linha("arMus", m.atual || "Sem música", !m.atual);
-  linha("arMusFonte", m.atual ? (m.fonte || "") + (m.tocando ? "" : " · pausada") : "Nada tocando agora");
-  linha("arProxMus", m.proxima || "Sem informação", !m.proxima);
-  linha("arProxMusDet", m.proxima ? m.fonte : (m.proxima_obs || "\u00a0"));
-  if (!knobMus.mexendo) knobMus.pos(m.volume ?? 0);
-  knobMus.travar(trava);
+  const externa = !!m.externa;
+  $("arDeck").classList.toggle("tocando", !!m.tocando);
+  $("arMusFonte").textContent = m.fonte || "";
+  $("arMusFonte").hidden = !m.fonte;
+  linha("arMus", m.atual || (m.site ? "Rádio " + m.site : "Sem música"), !m.atual && !m.site);
+  $("arMusDet").textContent = m.atual ? (m.tocando ? (m.artista || "\u00a0") : "Pausada")
+    : m.site ? (m.tocando ? `Tocando agora · o ${m.site} não mostra o nome da música` : "Pausado") : "Nada tocando agora";
+  $("arProxMus").replaceChildren(m.proxima ? el("strong", {}, m.proxima) : (m.proxima_obs || "Sem informação"));
+  if (externa){
+    knobMus.travar(true);
+    if (!knobMus.mexendo) knobMus.pos(0);
+    $("arMVolNum").textContent = "No " + m.site;
+    $("arMVolNum").classList.add("fora");
+  } else {
+    $("arMVolNum").classList.remove("fora");
+    if (!knobMus.mexendo) knobMus.pos(m.volume ?? 0);
+    knobMus.travar(trava);
+  }
   $("arMPlay").classList.toggle("ativo", !!m.tocando);
-  $("arMPausar").classList.toggle("ativo", !!m.atual && !m.tocando);
+  $("arMPausar").classList.toggle("ativo", !!(m.atual || m.site) && !m.tocando);
   ["arTVoltar","arTPlay","arTPausar","arTAvancar","arMVoltar","arMPlay","arMPausar","arMAvancar"].forEach(i => $(i).disabled = trava);
 }
 let previaRodando = false;
