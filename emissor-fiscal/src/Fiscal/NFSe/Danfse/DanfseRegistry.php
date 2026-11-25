@@ -25,6 +25,12 @@ final class DanfseRegistry
         $this->mapa = is_array($json) ? $json : [];
     }
 
+    /** Layout pedido pelo nome (ex.: "oficial"); null se não existir. */
+    public function porNome(string $nome): ?DanfseRenderer
+    {
+        return $this->renderers[$nome] ?? null;
+    }
+
     public function paraMunicipio(string $codigoMunicipio): DanfseRenderer
     {
         $nome = $this->mapa[$codigoMunicipio] ?? ($this->mapa['_default'] ?? 'nacional');

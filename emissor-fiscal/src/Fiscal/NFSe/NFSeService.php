@@ -89,7 +89,7 @@ final class NFSeService
      * Gera o PDF (DANFSE) da NFS-e a partir do XML autorizado guardado.
      * Se não estiver guardado, consulta na ADN e usa o XML retornado.
      */
-    public function danfse(string $chave, string $municipio): array
+    public function danfse(string $chave, string $municipio, string $layout = ''): array
     {
         $xml = $this->store->recuperar($this->emitente->cnpj, $chave, 'nfse');
         if ($xml === null) {
@@ -100,11 +100,14 @@ final class NFSeService
             throw new \RuntimeException("XML da NFS-e não encontrado para a chave {$chave}.");
         }
 
-        $renderer = $this->danfseRegistry->paraMunicipio($this->emitente->cMun);
+        // layout pedido (ex.: "oficial" = DANFSe v2.0 do portal); sem pedido, o do município
+        $renderer = ($layout !== '' ? $this->danfseRegistry->porNome($layout) : null)
+            ?? $this->danfseRegistry->paraMunicipio($this->emitente->cMun);
         $pdf = $renderer->render($xml, [
-            'im'       => $this->emitente->im,
-            'fantasia' => $this->emitente->fantasia,
-            'ie'       => $this->emitente->ie,
+            'im'        => $this->emitente->im,
+            'fantasia'  => $this->emitente->fantasia,
+            'ie'        => $this->emitente->ie,
+            'cancelada' => $this->store->recuperar($this->emitente->cnpj, $chave, 'nfse-cancelamento') !== null,
         ]);
         $dir = "{$this->root}/storage/pdf/" . preg_replace('/\D/', '', $this->emitente->cnpj);
         if (!is_dir($dir)) {

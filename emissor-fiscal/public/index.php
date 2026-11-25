@@ -14,6 +14,7 @@ use App\Fiscal\NFSe\Providers\IpmAtendeNetProvider;
 use App\Fiscal\NFSe\Danfse\DanfseRegistry;
 use App\Fiscal\NFSe\Danfse\DanfseNacional;
 use App\Fiscal\NFSe\Danfse\DanfseImbituba;
+use App\Fiscal\NFSe\Danfse\DanfseOficial;
 use App\Http\Request;
 use App\Http\Response;
 use App\Http\Router;
@@ -40,7 +41,7 @@ $contador = new Contador($root);
 $nfseRegistry = new ProviderRegistry($root, new PadraoNacionalProvider(), new IpmAtendeNetProvider());
 
 // Layouts de DANFSE por município (nacional é o padrão).
-$danfseRegistry = new DanfseRegistry($root, new DanfseNacional(), new DanfseImbituba());
+$danfseRegistry = new DanfseRegistry($root, new DanfseNacional(), new DanfseImbituba(), new DanfseOficial($root));
 
 $req = new Request();
 $router = new Router($apiKeys);
@@ -511,7 +512,7 @@ $router->add('POST', '/v1/nfse/danfse', function (Request $req) use ($nfseDoEmit
     if ($chave === '') {
         Response::erro('Campo "chave" é obrigatório.', 400);
     }
-    Response::ok($nfseDoEmitente($req)->danfse($chave, (string) ($req->body['municipio'] ?? '')));
+    Response::ok($nfseDoEmitente($req)->danfse($chave, (string) ($req->body['municipio'] ?? ''), (string) ($req->body['layout'] ?? '')));
 });
 
 $router->add('POST', '/v1/nfse/cancelar', function (Request $req) use ($nfseDoEmitente) {
