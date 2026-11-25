@@ -992,7 +992,12 @@ def vymber_estado():
     # a página do Vymber só mostra parte das playlists de cada vez (a tela inicial tem os cartões royalty free,
     # gêneros e temáticas): junta tudo o que já foi visto para o painel ter a lista completa
     vistas = VYMBER.setdefault("playlists", {})
-    for p in e.get("playlists") or []:
+    lidas = e.get("playlists") or []
+    # "Minhas playlists" ficam sempre na barra lateral: a leitura atual manda (some a que foi apagada no Vymber)
+    if any(p["tipo"] == "minha" for p in lidas):
+        for k in [k for k in vistas if k[0] == "minha"]:
+            del vistas[k]
+    for p in lidas:
         vistas[(p["tipo"], p["id"], p["setor"])] = p
     if e.get("logado"):
         e["playlists"] = list(vistas.values())
