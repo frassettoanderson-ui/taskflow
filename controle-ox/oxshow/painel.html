@@ -100,6 +100,20 @@
   .sub.erro{color:#ff8a7a}
   .sub strong{color:var(--tinta)}
   .avisos:empty{display:none}
+  /* Vymber espelhado */
+  .vy{max-width:1100px;margin:0 auto;background:#050505;border-radius:10px;padding:10px;border:1px solid #000;
+    box-shadow:0 0 0 3px #2c2d30, 0 0 0 4px #000, inset 0 2px 10px rgba(0,0,0,.9);display:flex;flex-direction:column;gap:10px}
+  .vy-barra{display:flex;align-items:center;gap:8px}
+  .vy-end{flex:1;min-width:0;text-align:center;font-family:var(--f-lcd);font-size:14px;color:var(--ambar-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .vy-tela{position:relative;aspect-ratio:1280/800;background:#000;border-radius:4px;overflow:hidden;display:grid;place-items:center;outline:none;cursor:pointer}
+  .vy-tela:focus-visible{box-shadow:0 0 0 2px var(--latao-2)}
+  .vy-tela img{width:100%;height:100%;object-fit:fill;display:block;user-select:none;-webkit-user-drag:none}
+  .vy-sem{display:flex;flex-direction:column;align-items:center;gap:16px;padding:24px;text-align:center;font-family:var(--f-lcd);font-size:15px;color:var(--tinta-3)}
+  .vy-sem button{min-height:58px;font-size:17px;padding:0 28px}
+  .vy-tela img:not([hidden]) + .vy-sem{display:none}
+  .vy-digitar{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:8px}
+  .vy-digitar input{min-height:44px;font-family:var(--f-lcd);color:var(--ambar)}
+  @media (max-width:560px){ .vy-barra{flex-wrap:wrap} .vy-end{order:-1;flex-basis:100%} .vy-digitar{grid-template-columns:1fr 1fr 1fr} .vy-digitar input{grid-column:1/-1} }
   /* envio de vídeo */
   .envio{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:12px;max-width:820px;margin:0 auto}
   .envio-campo{display:flex;align-items:center;gap:14px;min-height:58px;padding:8px 10px;border-radius:8px;background:var(--lcd);border:1px solid #000;
@@ -774,6 +788,30 @@
 
 <!-- ======================= MÚSICA ======================= -->
 <div class="aba" id="aba-musica">
+  <section>
+    <h2>Vymber</h2>
+    <div class="sub">O Vymber rodando no PC da academia. Clique e role na tela como se estivesse lá; o som sai no PC.</div>
+    <div class="vy">
+      <div class="vy-barra">
+        <button class="peq" id="vyVoltar">Voltar</button>
+        <button class="peq" id="vyRecarregar">Recarregar</button>
+        <button class="peq" id="vyInicio">Início</button>
+        <div class="vy-end" id="vyEnd">Vymber</div>
+        <button class="peq perigo" id="vyFechar">Fechar</button>
+      </div>
+      <div class="vy-tela" id="vyTela" tabindex="0" aria-label="Tela do Vymber no PC da academia">
+        <img id="vyImg" alt="" draggable="false" hidden>
+        <div class="vy-sem" id="vySem"><span id="vySemTxt">Conferindo o Vymber no PC</span><button class="prim" id="vyAbrir" hidden>Abrir o Vymber no PC</button></div>
+      </div>
+      <div class="vy-digitar">
+        <input type="text" id="vyTexto" placeholder="Digitar no Vymber (clique antes no campo da tela)" autocomplete="off" spellcheck="false">
+        <button id="vyEnviarTxt">Digitar</button>
+        <button class="peq" id="vyApagarTecla" aria-label="Apagar uma letra">Apagar</button>
+        <button class="peq" id="vyEnter">Enter</button>
+      </div>
+    </div>
+  </section>
+
   <section id="modMusica">
     <h2>Música</h2>
     <div class="sub">Reprodução e volume principal</div>
@@ -1496,6 +1534,90 @@ async function lacoPrevia(){
     await new Promise(r => setTimeout(r, visivel ? (NUVEM ? 1500 : 1000) : 2000));
   }
 }
+// ---------------------------------------------------------- VYMBER (janela do PC espelhada; cliques e teclas vão pra lá)
+let VY = {aberto: null, largura: 1280, altura: 800}, vyJa = false;
+const vyAberta = () => !document.hidden && $("aba-musica").classList.contains("on");
+async function vyAcao(corpo){
+  try { await api("/api/vymber/acao", "POST", corpo); vyJa = true; }
+  catch(e){ aviso(e.message, true); }
+}
+function vyPos(e){
+  const r = $("vyImg").getBoundingClientRect();
+  return {x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height};
+}
+function renderVymber(r){
+  VY = r;
+  const img = $("vyImg");
+  if (r.aberto && r.foto){
+    img.src = "data:image/jpeg;base64," + r.foto;
+    img.hidden = false;
+    $("vyTela").style.aspectRatio = `${r.largura}/${r.altura}`;
+    $("vyEnd").textContent = (r.url || "").replace(/^https?:\/\//, "") || "Vymber";
+  } else {
+    img.hidden = true;
+    $("vyEnd").textContent = "Vymber";
+    $("vySemTxt").textContent = r.aberto ? (r.erro ? "O Vymber está abrindo no PC" : "Carregando a tela") : "O Vymber não está aberto no OX Show";
+    $("vyAbrir").hidden = !!r.aberto;
+  }
+  ["vyVoltar", "vyRecarregar", "vyInicio", "vyFechar", "vyEnviarTxt", "vyApagarTecla", "vyEnter"].forEach(id => $(id).disabled = !r.aberto);
+}
+(async function lacoVymber(){
+  while (true){
+    const ver = vyAberta() && D;
+    if (ver){
+      try { renderVymber(await api("/api/vymber/tela")); }
+      catch(e){ renderVymber({aberto: false}); $("vySemTxt").textContent = "Sem contato com o PC da academia"; $("vyAbrir").hidden = true; }
+    }
+    vyJa = false;
+    const espera = ver ? (NUVEM ? 1300 : 700) : 2000;
+    for (let t = 0; t < espera && !vyJa; t += 100) await new Promise(r => setTimeout(r, 100));
+    if (vyJa) await new Promise(r => setTimeout(r, 250));
+  }
+})();
+$("vyImg").addEventListener("click", e => { $("vyTela").focus({preventScroll: true}); vyAcao({tipo: "clique", ...vyPos(e)}); });
+let vyRoda = 0, vyRodaPos = null, vyRodaT = null;
+$("vyImg").addEventListener("wheel", e => {
+  e.preventDefault();
+  vyRoda += e.deltaY * (e.deltaMode === 1 ? 40 : 1); vyRodaPos = vyPos(e);
+  if (!vyRodaT) vyRodaT = setTimeout(() => { vyAcao({tipo: "rolar", ...vyRodaPos, dy: vyRoda}); vyRoda = 0; vyRodaT = null; }, 140);
+}, {passive: false});
+// celular: arrastar o dedo na tela rola a página do Vymber
+let vyToque = null;
+$("vyImg").addEventListener("touchstart", e => { if (e.touches.length === 1) vyToque = {y: e.touches[0].clientY, pos: vyPos(e.touches[0]), mexeu: false}; }, {passive: true});
+$("vyImg").addEventListener("touchmove", e => {
+  if (!vyToque) return;
+  const dy = vyToque.y - e.touches[0].clientY;
+  if (Math.abs(dy) > 12){ e.preventDefault(); vyToque.mexeu = true; vyRoda += dy * 2; vyToque.y = e.touches[0].clientY; vyRodaPos = vyToque.pos;
+    if (!vyRodaT) vyRodaT = setTimeout(() => { vyAcao({tipo: "rolar", ...vyRodaPos, dy: vyRoda}); vyRoda = 0; vyRodaT = null; }, 140); }
+}, {passive: false});
+$("vyImg").addEventListener("touchend", e => { if (vyToque && vyToque.mexeu) e.preventDefault(); vyToque = null; });
+// teclado do computador: com a tela em foco, o que se digita vai pro Vymber
+let vyBuf = "", vyBufT = null;
+const VY_TECLAS = ["Enter", "Backspace", "Tab", "Escape", "Delete", "ArrowLeft", "ArrowUp", "ArrowRight", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
+function vyDescarregar(){ if (vyBuf){ const t = vyBuf; vyBuf = ""; vyAcao({tipo: "texto", texto: t}); } vyBufT = null; }
+$("vyTela").addEventListener("keydown", e => {
+  if (!VY.aberto || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.key.length === 1){ e.preventDefault(); vyBuf += e.key; clearTimeout(vyBufT); vyBufT = setTimeout(vyDescarregar, 150); return; }
+  if (VY_TECLAS.includes(e.key)){ e.preventDefault(); clearTimeout(vyBufT); vyDescarregar(); vyAcao({tipo: "tecla", tecla: e.key}); }
+});
+$("vyEnviarTxt").onclick = () => { const t = $("vyTexto").value; if (t){ vyAcao({tipo: "texto", texto: t}); $("vyTexto").value = ""; } };
+$("vyTexto").addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); $("vyEnviarTxt").click(); } });
+$("vyApagarTecla").onclick = () => vyAcao({tipo: "tecla", tecla: "Backspace"});
+$("vyEnter").onclick = () => vyAcao({tipo: "tecla", tecla: "Enter"});
+$("vyVoltar").onclick = () => vyAcao({tipo: "voltar"});
+$("vyRecarregar").onclick = () => vyAcao({tipo: "recarregar"});
+$("vyInicio").onclick = () => vyAcao({tipo: "inicio"});
+$("vyAbrir").onclick = async () => {
+  $("vyAbrir").disabled = true; $("vySemTxt").textContent = "Abrindo o Vymber no PC";
+  try { await api("/api/vymber/abrir", "POST", {}); aviso("Vymber aberto no PC"); vyJa = true; }
+  catch(e){ aviso(e.message, true); }
+  $("vyAbrir").disabled = false;
+};
+$("vyFechar").onclick = async () => {
+  if (!confirm("Fechar o Vymber no PC da academia?\n\nA música do Vymber para até abrir de novo.")) return;
+  try { await api("/api/vymber/fechar", "POST", {}); aviso("Vymber fechado"); vyJa = true; }
+  catch(e){ aviso(e.message, true); }
+};
 // ---------------------------------------------------------- SORTEIO (controle nativo; o OX Show repassa ao servidor do sorteio)
 let SO = {telao: false, status: "idle", winners: [], aovivo: {ganhadores: []}}, soOcupado = false, soPP = null;
 const soApi = (ep, metodo, corpo) => api("/api/sorteio/" + ep, metodo, corpo);

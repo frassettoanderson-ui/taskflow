@@ -6,6 +6,7 @@ Roda no PC da academia. Serve:
 Só usa a biblioteca padrão do Python; pyserial é opcional (luz ambiente na COM).
 """
 import base64
+import hashlib
 import ctypes
 import datetime
 import json
@@ -14,6 +15,8 @@ import mimetypes
 import os
 import random
 import re
+import socket
+import struct
 import subprocess
 import sys
 import threading
@@ -703,6 +706,246 @@ def fechar_telao():
                         "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*" + perfil.replace("'", "''") +
                         "*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"],
                        capture_output=True, timeout=20)
+
+
+# ---------------------------------------------------------- VYMBER (janela própria, espelhada no painel)
+# O OX Show abre o Vymber num Edge só dele (perfil em C:\OXShow\vymber) com a porta de depuração
+# presa ao 127.0.0.1. O painel vê a tela por captura e manda cliques, rolagem e teclas por ela.
+VYMBER = {"p": None, "ws": None, "alvo": None, "trava": threading.Lock(), "foto": None, "foto_t": 0.0, "n": 0}
+
+
+def vymber_cfg():
+    c = CFG.get("vymber") or {}
+    return {"url": c.get("url") or "https://play.vymber.com.br/", "porta": int(c.get("porta_cdp") or 9334),
+            "largura": int(c.get("largura") or 1280), "altura": int(c.get("altura") or 800)}
+
+
+def _cdp_http(caminho, timeout=2):
+    with urllib.request.urlopen(f"http://127.0.0.1:{vymber_cfg()['porta']}{caminho}", timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def vymber_aberto():
+    try:
+        _cdp_http("/json/version", 1)
+        return True
+    except Exception:
+        return False
+
+
+def abrir_vymber():
+    if vymber_aberto():
+        return
+    nav = achar_navegador()
+    if not nav:
+        raise RuntimeError("Não achei o Edge nem o Chrome")
+    c = vymber_cfg()
+    principal = next((m for m in monitores() if m["principal"]), None) or {"x": 0, "y": 0}
+    args = [nav, f"--app={c['url']}", f"--user-data-dir={os.path.join(BASE, 'vymber')}",
+            f"--remote-debugging-port={c['porta']}", "--remote-debugging-address=127.0.0.1",
+            "--autoplay-policy=no-user-gesture-required", "--no-first-run", "--no-default-browser-check",
+            "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding",
+            "--disable-background-timer-throttling", "--disable-features=Translate,TranslateUI,CalculateNativeWinOcclusion",
+            "--disable-session-crashed-bubble", "--noerrdialogs",
+            f"--window-size={c['largura']},{c['altura']}", f"--window-position={principal['x'] + 40},{principal['y'] + 40}"]
+    VYMBER["p"] = subprocess.Popen(args)
+    for _ in range(40):
+        if vymber_aberto():
+            break
+        time.sleep(0.25)
+    registrar("música", "Vymber aberto no OX Show", [])
+
+
+def fechar_vymber():
+    _ws_fechar()
+    p = VYMBER["p"]
+    if p and p.poll() is None:
+        p.terminate()
+    VYMBER["p"] = None
+    if os.name == "nt":
+        perfil = os.path.join(BASE, "vymber")
+        subprocess.run(["powershell", "-NoProfile", "-Command",
+                        "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like '*" + perfil.replace("'", "''") +
+                        "*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"],
+                       capture_output=True, timeout=20, creationflags=0x08000000)
+    registrar("música", "Vymber do OX Show fechado", [])
+
+
+# --- websocket mínimo (cliente) só para o protocolo de depuração do navegador
+def _ws_fechar():
+    s = VYMBER.get("ws")
+    VYMBER["ws"] = None
+    VYMBER["alvo"] = None
+    if s:
+        try:
+            s.close()
+        except Exception:
+            pass
+
+
+def _ws_ler_exato(s, n):
+    buf = b""
+    while len(buf) < n:
+        parte = s.recv(n - len(buf))
+        if not parte:
+            raise ConnectionError("conexão fechada")
+        buf += parte
+    return buf
+
+
+def _ws_enviar(s, texto):
+    dados = texto.encode("utf-8")
+    cab = bytearray([0x81])
+    n = len(dados)
+    if n < 126:
+        cab.append(0x80 | n)
+    elif n < 65536:
+        cab.append(0x80 | 126)
+        cab += struct.pack(">H", n)
+    else:
+        cab.append(0x80 | 127)
+        cab += struct.pack(">Q", n)
+    mascara = os.urandom(4)
+    cab += mascara
+    s.sendall(bytes(cab) + bytes(b ^ mascara[i % 4] for i, b in enumerate(dados)))
+
+
+def _ws_receber(s):
+    msg = b""
+    while True:
+        b1, b2 = _ws_ler_exato(s, 2)
+        op, n = b1 & 0x0F, b2 & 0x7F
+        if n == 126:
+            n = struct.unpack(">H", _ws_ler_exato(s, 2))[0]
+        elif n == 127:
+            n = struct.unpack(">Q", _ws_ler_exato(s, 8))[0]
+        mascara = _ws_ler_exato(s, 4) if b2 & 0x80 else None
+        dados = _ws_ler_exato(s, n)
+        if mascara:
+            dados = bytes(b ^ mascara[i % 4] for i, b in enumerate(dados))
+        if op == 0x8:
+            raise ConnectionError("conexão fechada")
+        if op == 0x9:  # ping
+            continue
+        if op in (0x0, 0x1, 0x2):
+            msg += dados
+            if b1 & 0x80:
+                return msg.decode("utf-8")
+
+
+def _ws_conectar():
+    paginas = [p for p in _cdp_http("/json/list") if p.get("type") == "page"]
+    if not paginas:
+        raise RuntimeError("O Vymber não tem página aberta")
+    pag = next((p for p in paginas if "vymber" in (p.get("url") or "")), paginas[0])
+    u = urlparse(pag["webSocketDebuggerUrl"])
+    s = socket.create_connection((u.hostname, u.port), timeout=8)
+    chave = base64.b64encode(os.urandom(16)).decode()
+    s.sendall((f"GET {u.path} HTTP/1.1\r\nHost: {u.hostname}:{u.port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
+               f"Sec-WebSocket-Key: {chave}\r\nSec-WebSocket-Version: 13\r\n\r\n").encode())
+    resp = b""
+    while b"\r\n\r\n" not in resp:
+        parte = s.recv(4096)
+        if not parte:
+            raise ConnectionError("o navegador recusou a conexão")
+        resp += parte
+    esperado = base64.b64encode(hashlib.sha1((chave + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode()).digest()).decode()
+    if b" 101 " not in resp.split(b"\r\n", 1)[0] or esperado.encode() not in resp:
+        s.close()
+        raise ConnectionError("o navegador recusou a conexão")
+    VYMBER["ws"], VYMBER["alvo"] = s, pag["id"]
+
+
+def cdp(metodo, params=None, tentativa=True):
+    with VYMBER["trava"]:
+        try:
+            if not VYMBER["ws"]:
+                _ws_conectar()
+            s = VYMBER["ws"]
+            VYMBER["n"] += 1
+            n = VYMBER["n"]
+            _ws_enviar(s, json.dumps({"id": n, "method": metodo, "params": params or {}}))
+            fim = time.time() + 8
+            while time.time() < fim:
+                m = json.loads(_ws_receber(s))
+                if m.get("id") == n:
+                    if "error" in m:
+                        raise RuntimeError(m["error"].get("message", "erro do navegador"))
+                    return m.get("result") or {}
+            raise TimeoutError("o Vymber não respondeu")
+        except (OSError, ConnectionError, TimeoutError, ValueError):
+            _ws_fechar()
+            if not tentativa:
+                raise
+    return cdp(metodo, params, tentativa=False)
+
+
+def vymber_tela():
+    """Foto da janela do Vymber (jpeg em base64) + tamanho da área da página, para mapear os cliques."""
+    if not vymber_aberto():
+        return {"aberto": False}
+    agora = time.time()
+    if VYMBER["foto"] and agora - VYMBER["foto_t"] < 0.4:
+        return VYMBER["foto"]
+    m = cdp("Page.getLayoutMetrics")
+    v = m.get("cssVisualViewport") or m.get("visualViewport") or {}
+    w, h = v.get("clientWidth") or 1280, v.get("clientHeight") or 800
+    escala = min(1.0, 1000 / max(w, 1))
+    r = cdp("Page.captureScreenshot", {"format": "jpeg", "quality": 62, "fromSurface": True,
+                                       "clip": {"x": v.get("pageX", 0), "y": v.get("pageY", 0), "width": w, "height": h, "scale": escala}})
+    info = cdp("Runtime.evaluate", {"expression": "[location.href, document.title]", "returnByValue": True})
+    href, titulo = ((info.get("result") or {}).get("value") or ["", ""])
+    VYMBER["foto"] = {"aberto": True, "foto": r.get("data"), "largura": w, "altura": h, "url": href, "titulo": titulo}
+    VYMBER["foto_t"] = agora
+    return VYMBER["foto"]
+
+
+TECLAS_CDP = {"Enter": 13, "Backspace": 8, "Tab": 9, "Escape": 27, "Delete": 46, "ArrowLeft": 37, "ArrowUp": 38,
+              "ArrowRight": 39, "ArrowDown": 40, "Home": 36, "End": 35, "PageUp": 33, "PageDown": 34, " ": 32}
+
+
+def vymber_acao(c):
+    if not vymber_aberto():
+        raise RuntimeError("O Vymber não está aberto no OX Show")
+    tipo = c.get("tipo")
+    VYMBER["foto_t"] = 0
+    if tipo in ("clique", "rolar", "mover"):
+        tela = VYMBER["foto"] or vymber_tela()
+        x = max(0.0, min(1.0, float(c.get("x", 0)))) * tela["largura"]
+        y = max(0.0, min(1.0, float(c.get("y", 0)))) * tela["altura"]
+        if tipo == "rolar":
+            cdp("Input.dispatchMouseEvent", {"type": "mouseWheel", "x": x, "y": y, "deltaX": 0,
+                                             "deltaY": max(-3000, min(3000, float(c.get("dy", 0))))})
+        elif tipo == "mover":
+            cdp("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": y})
+        else:
+            cdp("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": y})
+            for t in ("mousePressed", "mouseReleased"):
+                cdp("Input.dispatchMouseEvent", {"type": t, "x": x, "y": y, "button": "left", "buttons": 1 if t == "mousePressed" else 0,
+                                                 "clickCount": 1})
+    elif tipo == "texto":
+        texto = str(c.get("texto") or "")[:500]
+        if texto:
+            cdp("Input.insertText", {"text": texto})
+    elif tipo == "tecla":
+        tecla = str(c.get("tecla") or "")
+        if tecla not in TECLAS_CDP:
+            raise ValueError("Tecla não suportada")
+        base = {"key": tecla, "code": "Space" if tecla == " " else tecla, "windowsVirtualKeyCode": TECLAS_CDP[tecla],
+                "nativeVirtualKeyCode": TECLAS_CDP[tecla]}
+        cdp("Input.dispatchKeyEvent", {"type": "rawKeyDown", **base})
+        if tecla in ("Enter", " "):
+            cdp("Input.dispatchKeyEvent", {"type": "char", "text": "\r" if tecla == "Enter" else " ", **base})
+        cdp("Input.dispatchKeyEvent", {"type": "keyUp", **base})
+    elif tipo == "voltar":
+        cdp("Runtime.evaluate", {"expression": "history.back()"})
+    elif tipo == "recarregar":
+        cdp("Page.reload")
+    elif tipo == "inicio":
+        cdp("Page.navigate", {"url": vymber_cfg()["url"]})
+    else:
+        raise ValueError("Ação inválida")
+    return {"ok": True}
 
 
 def laco_vigia():
@@ -1423,6 +1666,11 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as e:
                 return self._json(400, {"ok": False, "erro": str(e)})
             return self._corpo(st, corpo, "application/json; charset=utf-8")
+        if rota == "/api/vymber/tela":
+            try:
+                return self._json(200, vymber_tela())
+            except Exception as e:
+                return self._json(200, {"aberto": vymber_aberto(), "erro": str(e)})
         if rota == "/api/previa":
             q = parse_qs(url.query)
             return self._json(200, previa(com_foto=q.get("foto", ["1"])[0] != "0", janelas="janelas" in q))
@@ -1501,6 +1749,12 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, receber_parte(corpo))
             elif rota == "/api/videos/apagar":
                 apagar_video(corpo.get("arquivo", ""))
+            elif rota == "/api/vymber/abrir":
+                abrir_vymber()
+            elif rota == "/api/vymber/fechar":
+                fechar_vymber()
+            elif rota == "/api/vymber/acao":
+                return self._json(200, vymber_acao(corpo))
             elif rota == "/api/telao/abrir":
                 abrir_telao()
             elif rota == "/api/telao/fechar":
@@ -1543,7 +1797,7 @@ class Handler(BaseHTTPRequestHandler):
 # ---------------------------------------------------------- OX Cloud (painel de qualquer rede)
 # Conexão de SAÍDA para o OX Cloud (long-poll): busca os comandos do painel de lá, executa aqui
 # como se fosse o painel local e devolve a resposta. Não precisa abrir porta no roteador.
-VERSAO = "1.6"
+VERSAO = "1.7"
 
 
 def laco_nuvem():
