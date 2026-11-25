@@ -1105,6 +1105,39 @@ def _yt_js(expr):
     return (r.get("result") or {}).get("value")
 
 
+def _yt_saida():
+    """O padrão do Windows é o HDMI do telão; a mesa (MBS16CH) só recebe o Vymber via OBS.
+    Então o som do YouTube vai direto para a placa da mesa."""
+    nome = (CFG.get("youtube") or {}).get("saida") or "MBS16CH"
+    for perm in ("audioCapture", "speakerSelection"):
+        try:
+            cdp("Browser.grantPermissions", {"origin": "https://www.youtube.com", "permissions": [perm]}, sess=YT)
+        except Exception:
+            pass
+    return _yt_js("""(async () => {
+  const d = (await navigator.mediaDevices.enumerateDevices()).find(x => x.kind == 'audiooutput'
+    && x.deviceId != 'default' && x.deviceId != 'communications' && x.label.includes(%s));
+  if (!d) return 'sem saída';
+  const m = [...document.querySelectorAll('video, audio')];
+  if (!m.length) return 'sem player';
+  for (const e of m) if (e.sinkId !== d.deviceId) await e.setSinkId(d.deviceId);
+  return 'ok';
+})()""" % json.dumps(nome))
+
+
+def _yt_garantir_saida():
+    r = None
+    for _ in range(40):
+        try:
+            r = _yt_saida()
+            if r == "ok":
+                return
+        except Exception as e:
+            r = str(e)
+        time.sleep(0.5)
+    log.warning("YouTube: não consegui mandar o som para a mesa (%s)", r)
+
+
 def _yt_comecar(sem_video):
     """Link só de playlist: espera a página e entra no primeiro vídeo dela (aí toca a lista inteira)."""
     if not sem_video:
@@ -1153,6 +1186,7 @@ def abrir_youtube(link):
                 break
             time.sleep(0.25)
     _pausar_vymber_pelo_youtube()
+    threading.Thread(target=_yt_garantir_saida, daemon=True).start()
     threading.Thread(target=_yt_comecar, args=(not tem_video,), daemon=True).start()
     registrar("música", "YouTube tocando no som da academia", [], obs=url)
     return {"ok": True}
@@ -1241,6 +1275,8 @@ def laco_youtube():
                 _yt_js("movie_player.pauseVideo()")
                 registrar("música", "YouTube pausado para o show das 21h", [])
             YT["protegido"] = prot
+            if youtube_aberto():
+                _yt_saida()
             if YT["pausou_vymber"] and not youtube_aberto():
                 YT["pausou_vymber"] = False
                 vymber_comando({"tipo": "tocar"})
