@@ -948,6 +948,92 @@ def vymber_acao(c):
     return {"ok": True}
 
 
+# --- controle nativo do Vymber: lê o player da página e chama as funções dele (sem espelhar a tela)
+_VY_LER = r"""(() => {
+  const tx = e => (e ? e.textContent : "").replace(/\s+/g, " ").trim();
+  const q = s => tx(document.querySelector(s));
+  const logado = !!document.querySelector(".player-controls");
+  if (!logado) return { logado: false };
+  const jp = window.jQuery && jQuery(".player").data("jPlayer");
+  const itens = [...document.querySelectorAll(".playlist-musicas .itens")];
+  const ia = itens.findIndex(e => e.classList.contains("active"));
+  const fila = (ia >= 0 ? itens.slice(ia + 1, ia + 11) : itens.slice(0, 10)).map(e => ({
+    item: String(e.dataset.item), nome: tx(e.querySelector(".track")) || e.title || tx(e), tempo: tx(e.querySelector(".time")), spot: e.classList.contains("spot") }));
+  const pls = [], vistos = new Set();
+  for (const e of document.querySelectorAll("[onclick]")) {
+    const oc = e.getAttribute("onclick") || ""; let m, k = null;
+    if ((m = oc.match(/setMinhaPlaylist\((\d+)\)/))) k = { tipo: "minha", id: +m[1], setor: "" };
+    else if ((m = oc.match(/setPlaylistPadrao\((\d+),\s*'(sugeridas|livres|tematicas)'\)/))) k = { tipo: "padrao", id: +m[1], setor: m[2] };
+    else if ((m = oc.match(/setGenero\((\d+)\)/))) k = { tipo: "genero", id: +m[1], setor: "" };
+    if (!k) continue;
+    const ch = k.tipo + ":" + k.id + ":" + k.setor; if (vistos.has(ch)) continue; vistos.add(ch);
+    const d = e.closest(".descricao-playlists-lista");
+    k.nome = tx(d ? d.querySelector("p") : e.parentElement).slice(0, 70);
+    if (k.nome) pls.push(k);
+  }
+  return { logado: true, tocando: typeof statusPlayer === "function" && statusPlayer() === "playing",
+    faixa: q(".player-current-track"), tempo: q(".jp-current-time"), duracao: q(".jp-duration"),
+    spot: ia >= 0 && itens[ia].classList.contains("spot"), playlist: q(".titulo-playlist-execucao"),
+    volume: jp ? Math.round(jp.options.volume * 100) : null, fila, playlists: pls };
+})()"""
+
+
+def _vy_js(expr):
+    r = cdp("Runtime.evaluate", {"expression": expr, "returnByValue": True})
+    if r.get("exceptionDetails"):
+        raise RuntimeError("O Vymber não aceitou o comando")
+    return (r.get("result") or {}).get("value")
+
+
+def vymber_estado():
+    if not vymber_aberto():
+        return {"aberto": False}
+    e = _vy_js(_VY_LER) or {"logado": False}
+    # a página do Vymber só mostra parte das playlists de cada vez (a tela inicial tem os cartões royalty free,
+    # gêneros e temáticas): junta tudo o que já foi visto para o painel ter a lista completa
+    vistas = VYMBER.setdefault("playlists", {})
+    for p in e.get("playlists") or []:
+        vistas[(p["tipo"], p["id"], p["setor"])] = p
+    if e.get("logado"):
+        e["playlists"] = list(vistas.values())
+    e["aberto"] = True
+    return e
+
+
+def vymber_comando(c):
+    if not vymber_aberto():
+        raise RuntimeError("O Vymber não está aberto no PC")
+    tipo = c.get("tipo")
+    botoes = {"tocar": ".player-play", "pausar": ".player-pause", "proxima": ".player-next", "anterior": ".player-prev"}
+    if tipo in botoes:
+        js = f"(() => {{ const b = document.querySelector('{botoes[tipo]}'); if (!b) return false; b.click(); return true; }})()"
+    elif tipo == "faixa":
+        js = f"setCurrent('{int(c.get('item'))}')"
+    elif tipo == "volume":
+        v = max(0, min(100, int(c.get("volume", 0))))
+        js = f"(() => {{ jQuery('.player').jPlayer('volume', {v / 100}); try {{ jQuery('.bar-volume').slider('value', {v}); }} catch (e) {{}} return true; }})()"
+    elif tipo == "embaralhar":
+        js = "embaralharPlaylist()"
+    elif tipo == "playlist":
+        pid, qual = int(c.get("id")), c.get("qual")
+        if qual == "minha":
+            js = f"setMinhaPlaylist({pid})"
+        elif qual == "genero":
+            js = f"setGenero({pid})"
+        elif qual == "padrao" and c.get("setor") in ("sugeridas", "livres", "tematicas"):
+            js = f"setPlaylistPadrao({pid},'{c['setor']}')"
+        else:
+            raise ValueError("Playlist inválida")
+    else:
+        raise ValueError("Comando inválido")
+    if _vy_js(js) is False:
+        raise RuntimeError("O botão não está disponível agora no Vymber")
+    if tipo in ("playlist", "embaralhar"):
+        registrar("música", f"Vymber: playlist {c.get('nome') or c.get('id') or 'embaralhada'}", [])
+    VYMBER["foto_t"] = 0
+    return {"ok": True}
+
+
 def laco_vigia():
     """Se o telão sumir (navegador fechado/travado), abre de novo."""
     while True:
@@ -1671,6 +1757,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(200, vymber_tela())
             except Exception as e:
                 return self._json(200, {"aberto": vymber_aberto(), "erro": str(e)})
+        if rota == "/api/vymber/estado":
+            try:
+                return self._json(200, vymber_estado())
+            except Exception as e:
+                return self._json(200, {"aberto": vymber_aberto(), "erro": str(e)})
         if rota == "/api/previa":
             q = parse_qs(url.query)
             return self._json(200, previa(com_foto=q.get("foto", ["1"])[0] != "0", janelas="janelas" in q))
@@ -1755,6 +1846,8 @@ class Handler(BaseHTTPRequestHandler):
                 fechar_vymber()
             elif rota == "/api/vymber/acao":
                 return self._json(200, vymber_acao(corpo))
+            elif rota == "/api/vymber/comando":
+                return self._json(200, vymber_comando(corpo))
             elif rota == "/api/telao/abrir":
                 abrir_telao()
             elif rota == "/api/telao/fechar":
