@@ -186,6 +186,9 @@ XML;
         $issRetido = !empty($serv['iss_retido']) ? 2 : 1; // 1=não retido, 2=retido pelo tomador
         $cTribNac = $this->soDigitos((string) ($serv['item_lista_servico'] ?? '')); // ex.: 010701
         $descServ = htmlspecialchars((string) ($serv['descricao'] ?? ''), ENT_XML1);
+        // NBS (opcional no leiaute 1.00/1.01): 9 dígitos, depois de xDescServ. Sem ela (ou inválida) a tag não vai.
+        $nbs = $this->soDigitos((string) ($serv['nbs'] ?? ''));
+        $tagNbs = strlen($nbs) === 9 ? "\n        <cNBS>{$nbs}</cNBS>" : '';
 
         // opSimpNac: 1=Não optante, 2=MEI, 3=ME/EPP
         $opSimpNac = match ($e->crt) {
@@ -247,7 +250,7 @@ XML;
       <locPrest><cLocPrestacao>{$cLocPrest}</cLocPrestacao></locPrest>
       <cServ>
         <cTribNac>{$cTribNac}</cTribNac>
-        <xDescServ>{$descServ}</xDescServ>
+        <xDescServ>{$descServ}</xDescServ>{$tagNbs}
       </cServ>
     </serv>
     <valores>
