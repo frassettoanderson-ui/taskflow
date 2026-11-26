@@ -2,8 +2,11 @@
 //   canais.email    = { host, port, user, from, pass_cifrado }   (senha guardada cifrada)
 //   canais.whatsapp = { provider: 'evolution', url, token_cifrado }  (Evolution Go da HolyTech; token = da instância)
 //                   | { provider: 'whatsprofissional', token_cifrado }
+//                   | { provider: 'relay', url }  (o sistema da própria conta manda pelo WhatsApp dele: POST {numero, texto}
+//                                                  assinado com HMAC-SHA256 do webhook_secret da conta em X-HolyTech-Assinatura)
 // Sem canal próprio, a conta usa o e-mail da plataforma Holysign (variáveis HOLYSIGN_SMTP_*), se configurado.
 // Em desenvolvimento, sem nenhum canal, o código só aparece no log do servidor.
+import crypto from 'node:crypto'
 import nodemailer from 'nodemailer'
 import { config } from './config.js'
 import { cifrar, decifrar } from './cripto.js'
@@ -18,7 +21,8 @@ export function canaisDe(conta) {
   const email = c.email?.host ? { host: c.email.host, port: c.email.port, user: c.email.user, from: c.email.from, pass: c.email.pass_cifrado ? lerSegredo(c.email.pass_cifrado) : c.email.pass }
     : config.plataformaEmail.host ? config.plataformaEmail : null
   const tokenWhats = c.whatsapp?.token_cifrado ? lerSegredo(c.whatsapp.token_cifrado) : c.whatsapp?.token
-  const whatsapp = tokenWhats ? { provider: c.whatsapp.provider || 'whatsprofissional', url: c.whatsapp.url || 'http://127.0.0.1:8081', token: tokenWhats } : null
+  const whatsapp = c.whatsapp?.provider === 'relay' && c.whatsapp.url ? { provider: 'relay', url: c.whatsapp.url, segredo: conta.webhook_secret }
+    : tokenWhats ? { provider: c.whatsapp.provider || 'whatsprofissional', url: c.whatsapp.url || 'http://127.0.0.1:8081', token: tokenWhats } : null
   return { email, whatsapp, emailDaPlataforma: !c.email?.host && !!email }
 }
 
@@ -41,6 +45,13 @@ export function mascararEmail(v) {
 async function enviarWhats(w, fone, texto) {
   let p = soDigitos(fone)
   if (p.length === 10 || p.length === 11) p = '55' + p
+  if (w.provider === 'relay') {
+    const corpo = JSON.stringify({ numero: p, texto })
+    const assinatura = crypto.createHmac('sha256', w.segredo).update(corpo).digest('hex')
+    const r = await fetch(w.url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-HolyTech-Assinatura': assinatura }, body: corpo, signal: AbortSignal.timeout(20000) })
+    if (!r.ok) throw new Error(`WhatsApp ${r.status}: ${(await r.text()).slice(0, 160)}`)
+    return
+  }
   if (w.provider === 'evolution') {
     const r = await fetch(`${w.url.replace(/\/$/, '')}/send/text`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', apikey: w.token }, body: JSON.stringify({ number: p, text: texto }),
