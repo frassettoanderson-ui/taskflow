@@ -3,19 +3,78 @@
 <head>
 <meta charset="utf-8">
 <title>OX Show - Telão</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Barlow+Semi+Condensed:wght@600;700&display=swap">
 <style>
   html,body{margin:0;height:100%;background:#000;overflow:hidden;cursor:none}
-  .camada{position:fixed;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .4s ease;background:#000}
+  #area{position:fixed;inset:0;background:#000;overflow:hidden}
+  .camada{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .4s ease;background:#000}
   .camada.on{opacity:1}
   video.camada,img.camada{object-fit:contain}
-  #aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);color:#777;font:14px "Segoe UI",sans-serif;display:none}
+  /* ---------- template (moldura): desenhado em 1920x1080 e escalado para a tela */
+  :root{--fundo:#09090a;--painel:#121214;--linha:#26262a;--vermelho:#e3261c;--texto:#f3f0ea;--apagado:#8e8a84;
+    --f-num:"Big Shoulders Display","Bahnschrift Condensed","Bahnschrift",sans-serif;
+    --f-txt:"Barlow Semi Condensed","Bahnschrift SemiCondensed","Bahnschrift",sans-serif}
+  #palco{display:none}
+  body.tpl{background:var(--fundo)}
+  body.tpl #palco{display:grid;position:fixed;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;box-sizing:border-box;
+    grid-template-columns:1408px 1fr;grid-template-rows:792px 1fr;gap:20px;padding:28px;color:var(--texto);font-family:var(--f-txt);
+    background:radial-gradient(900px 500px at 100% 0%,rgba(227,38,28,.10),transparent 70%),var(--fundo)}
+  body.tpl #area{position:relative;inset:auto;border-radius:6px}
+  #lado{display:flex;flex-direction:column;gap:18px;min-width:0}
+  #marca{height:74px;display:flex;align-items:center;justify-content:center;border-bottom:2px solid var(--vermelho);padding-bottom:14px}
+  #marca img{max-height:58px;max-width:100%}
+  #marca b{font-family:var(--f-num);font-weight:900;font-size:56px;letter-spacing:.02em}
+  #hora{text-align:center;line-height:.82;font-family:var(--f-num);font-weight:900;font-size:176px;letter-spacing:-2px;font-variant-numeric:tabular-nums}
+  #hora i{font-style:normal;color:var(--vermelho);animation:pisca 2s steps(1) infinite}
+  @keyframes pisca{50%{opacity:.25}}
+  #data{text-align:center;font-weight:600;font-size:30px;text-transform:uppercase;letter-spacing:.14em;color:var(--apagado);margin-top:-4px}
+  #tempo{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:18px;background:var(--painel);border:1px solid var(--linha);border-radius:6px;padding:16px 20px}
+  #tempo[hidden]{display:none}
+  #tempo svg{width:72px;height:72px}
+  #temp{font-family:var(--f-num);font-weight:800;font-size:72px;line-height:.9}
+  #temp small{font-size:36px;color:var(--apagado)}
+  #tempoTxt{font-size:20px;white-space:nowrap;font-weight:600;color:var(--apagado);text-transform:uppercase;letter-spacing:.08em}
+  #tempoTxt span{color:var(--texto)}
+  #banner{flex:1;min-height:0;border-radius:6px;overflow:hidden;position:relative;background:#000}
+  #banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .8s ease}
+  #banner img.on{opacity:1}
+  #pontos{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:8px;z-index:2}
+  #pontos i{width:28px;height:4px;background:rgba(255,255,255,.35);border-radius:2px}
+  #pontos i.on{background:var(--vermelho)}
+  #faixa{grid-column:1 / -1;display:grid;grid-template-columns:260px 1fr;align-items:center;background:var(--painel);border:1px solid var(--linha);border-radius:6px;overflow:hidden}
+  #faixa h3{margin:0;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--vermelho);
+    font-family:var(--f-num);font-weight:900;font-size:44px;line-height:.9;text-transform:uppercase;letter-spacing:.02em}
+  #faixa h3 small{font-family:var(--f-txt);font-weight:700;font-size:18px;letter-spacing:.28em;opacity:.85;margin-top:6px}
+  #logos{display:flex;align-items:center;justify-content:space-around;padding:0 40px;height:100%;transition:opacity .6s ease}
+  #logos.troca{opacity:0}
+  #logos img{max-height:120px;max-width:280px;object-fit:contain}
+  #aviso{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);color:#777;font:14px "Segoe UI",sans-serif;display:none;z-index:9}
 </style>
 </head>
 <body>
-<video id="v1" class="camada" playsinline preload="auto"></video>
-<video id="v2" class="camada" playsinline preload="auto"></video>
-<img id="img" class="camada" alt="">
-<iframe id="site" class="camada" allow="autoplay; fullscreen"></iframe>
+<div id="palco">
+  <div id="lugarVideo"></div>
+  <aside id="lado">
+    <div id="marca"></div>
+    <div id="hora"></div>
+    <div id="data"></div>
+    <div id="tempo" hidden>
+      <svg viewBox="0 0 64 64" fill="none" stroke="#f3f0ea" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+        <circle cx="24" cy="24" r="9" stroke="#e3261c"/><path d="M24 7v4M24 37v4M7 24h4M37 24h4M12 12l3 3M33 12l-3 3" stroke="#e3261c"/>
+        <path d="M22 50h26a9 9 0 0 0 0-18 13 13 0 0 0-25 4 7 7 0 0 0-1 14z" fill="#121214"/>
+      </svg>
+      <div><div id="temp"></div><div id="tempoTxt"></div></div>
+    </div>
+    <div id="banner"><div id="pontos"></div></div>
+  </aside>
+  <footer id="faixa"><h3>Parceiros<small>OXFITNESS</small></h3><div id="logos"></div></footer>
+</div>
+<div id="area">
+  <video id="v1" class="camada" playsinline preload="auto"></video>
+  <video id="v2" class="camada" playsinline preload="auto"></video>
+  <img id="img" class="camada" alt="">
+  <iframe id="site" class="camada" allow="autoplay; fullscreen"></iframe>
+</div>
 <audio id="musica" preload="auto"></audio>
 <div id="aviso">Reconectando ao OX Show...</div>
 <script>
@@ -98,6 +157,86 @@ function aplicarControle(c){
   if (!c.pausado && v.paused) tocar(v);
 }
 
+// ---------------- template: moldura com relógio, clima, banners e parceiros; o vídeo roda dentro
+// Arquivos: midia\template\logo*.png, midia\template\banners\*, midia\template\parceiros\*
+let tplJson = "", tpl = {}, bannerI = 0, parcI = 0, tBanner = null, tParc = null, tClima = null;
+const DIAS = ["domingo","segunda","terça","quarta","quinta","sexta","sábado"];
+const MESES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+const POR_VEZ = 4;
+
+function escalar(){
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+  $("palco").style.transform = `translate(${(innerWidth - 1920 * k) / 2}px,${(innerHeight - 1080 * k) / 2}px) scale(${k})`;
+}
+addEventListener("resize", escalar);
+
+function relogio(){
+  const d = new Date();
+  $("hora").innerHTML = String(d.getHours()).padStart(2, "0") + "<i>:</i>" + String(d.getMinutes()).padStart(2, "0");
+  $("data").textContent = `${DIAS[d.getDay()]} · ${d.getDate()} de ${MESES[d.getMonth()]}`;
+}
+setInterval(() => { if (document.body.classList.contains("tpl")) relogio(); }, 5000);
+
+function clima(){
+  const lat = tpl.lat ?? -28.4667, lon = tpl.lon ?? -49.0069, cid = tpl.cidade || "Tubarão";
+  fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FSao_Paulo&forecast_days=1`)
+    .then(r => r.json()).then(t => {
+      $("temp").innerHTML = Math.round(t.current.temperature_2m) + "°<small>C</small>";
+      const mn = Math.round(t.daily.temperature_2m_min[0]), mx = Math.round(t.daily.temperature_2m_max[0]), ch = t.daily.precipitation_probability_max[0];
+      $("tempoTxt").innerHTML = `${cid} · <span>${mn}°/${mx}°</span>` + (ch >= 30 ? ` · chuva ${ch}%` : "");
+      $("tempo").hidden = false;
+    }).catch(() => {});
+}
+
+function trocarBanner(){
+  const imgs = [...$("banner").querySelectorAll("img")], pts = [...$("pontos").children];
+  if (imgs.length < 2) return;
+  bannerI = (bannerI + 1) % imgs.length;
+  imgs.forEach((im, i) => im.classList.toggle("on", i === bannerI));
+  pts.forEach((p, i) => p.classList.toggle("on", i === bannerI));
+}
+
+function mostrarParceiros(){
+  const lista = tpl.parceiros || [];
+  const ini = (parcI * POR_VEZ) % Math.max(lista.length, 1);
+  const grupo = lista.length <= POR_VEZ ? lista : [...lista, ...lista].slice(ini, ini + POR_VEZ);
+  $("logos").replaceChildren(...grupo.map(f => Object.assign(new Image(), {src: urlMidia("template/parceiros/" + f), alt: ""})));
+}
+function trocarParceiros(){
+  if ((tpl.parceiros || []).length <= POR_VEZ) return;
+  $("logos").classList.add("troca");
+  setTimeout(() => { parcI++; mostrarParceiros(); $("logos").classList.remove("troca"); }, 650);
+}
+
+function aplicarTemplate(t){
+  const j = JSON.stringify(t);
+  if (j === tplJson) return;
+  tplJson = j; tpl = t;
+  clearInterval(tBanner); clearInterval(tParc); clearInterval(tClima);
+  const area = $("area");
+  if (!t.ativo){
+    document.body.classList.remove("tpl");
+    if (area.parentNode !== document.body) document.body.insertBefore(area, $("musica"));
+    return;
+  }
+  document.body.classList.add("tpl");
+  if (area.parentNode !== $("palco")) $("palco").replaceChild(area, $("lugarVideo"));
+  escalar(); relogio();
+  $("marca").replaceChildren(t.logo
+    ? Object.assign(new Image(), {src: urlMidia("template/" + t.logo), alt: "OXFITNESS"})
+    : Object.assign(document.createElement("b"), {textContent: "OXFITNESS"}));
+  bannerI = 0;
+  const bs = (t.banners || []).map((f, i) => Object.assign(new Image(), {src: urlMidia("template/banners/" + f), alt: "", className: i === 0 ? "on" : ""}));
+  $("banner").replaceChildren(...bs, $("pontos"));
+  $("pontos").replaceChildren(...(bs.length > 1 ? bs.map((_, i) => Object.assign(document.createElement("i"), {className: i === 0 ? "on" : ""})) : []));
+  $("banner").style.visibility = bs.length ? "" : "hidden";
+  parcI = 0; mostrarParceiros();
+  $("faixa").style.visibility = (t.parceiros || []).length ? "" : "hidden";
+  tBanner = setInterval(trocarBanner, Math.max(4, Math.min(120, +t.troca_banner || 12)) * 1000);
+  tParc = setInterval(trocarParceiros, 8000);
+  clima(); tClima = setInterval(clima, 15 * 60 * 1000);
+}
+
 // ---------------- canal com o OX Show (reconecta sozinho)
 let ultimoDado = Date.now();
 function conectar(){
@@ -106,6 +245,7 @@ function conectar(){
     ultimoDado = Date.now();
     $("aviso").style.display = "none";
     estado = JSON.parse(ev.data);
+    aplicarTemplate(estado.template || {});
     aplicarTelao(estado.telao);
     aplicarMusica(estado.musica);
     aplicarControle(estado.controle || {});

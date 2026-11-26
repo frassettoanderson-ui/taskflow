@@ -172,13 +172,18 @@
   .func .dia label.chk{justify-content:center;font-size:12px}
   .func .dia.fechado input[type=time]{opacity:.35}
   .func-vol{max-width:420px;margin:16px auto 0}
-  /* template (em breve) */
-  .tpl{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:center}
-  .tpl-tela{aspect-ratio:2816/976;display:grid;grid-template-columns:1fr 3.2fr 1fr;grid-template-rows:auto 1fr auto;gap:6px;padding:8px;border-radius:6px;
+  /* template: miniatura no mesmo desenho do telão (1920x1080: vídeo 1408x792, coluna, faixa de parceiros) */
+  .tpl{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px;align-items:center}
+  .tpl-tela{aspect-ratio:16/9;display:grid;grid-template-columns:1408fr 428fr;grid-template-rows:792fr 212fr;gap:6px;padding:8px;border-radius:6px;
     background:#050505;border:1px solid #000;box-shadow:0 0 0 3px #2c2d30, 0 0 0 4px #000;font:600 11px/1 var(--f-rot);letter-spacing:.14em;text-transform:uppercase;color:var(--tinta-3)}
   .tpl-tela>div{border:1px dashed #3a3a3e;border-radius:4px;display:flex;align-items:center;justify-content:center}
-  .tpl-topo{grid-column:1/-1;justify-content:space-between !important;padding:6px 10px}
+  .tpl-lado{flex-direction:column;gap:6px;border:0 !important;align-items:stretch !important}
+  .tpl-lado span{flex:1;border:1px dashed #3a3a3e;border-radius:4px;display:flex;align-items:center;justify-content:center}
   .tpl-logo{color:var(--ox-luz)}
+  .tpl-tela.off{opacity:.45}
+  .tpl-info .form{width:100%;margin:0}
+  .tpl-arqs{width:100%;text-align:left;font-size:13px;color:var(--tinta-2);display:grid;gap:4px}
+  .tpl-arqs b{color:var(--tinta-1,#e8e6e1);font-weight:600}
   .tpl-video{background:repeating-linear-gradient(135deg,rgba(255,176,32,.07) 0 10px,transparent 10px 20px);color:var(--ambar-2)}
   .tpl-rodape{grid-column:1/-1;justify-content:space-around !important;padding:6px}
   .tpl-info{text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
@@ -810,17 +815,16 @@
     <h2>Template</h2>
     <div class="sub">Moldura do telão com banners, relógio, previsão do tempo e patrocinadores, com o vídeo rodando dentro</div>
     <div class="tpl">
-      <div class="tpl-tela" aria-hidden="true">
-        <div class="tpl-topo"><span>09:41</span><span class="tpl-logo">OXFITNESS</span><span>24° Imbituba</span></div>
-        <div class="tpl-lado">Banner</div>
+      <div class="tpl-tela" id="tplTela" aria-hidden="true">
         <div class="tpl-video">Vídeo</div>
-        <div class="tpl-lado">Banner</div>
-        <div class="tpl-rodape"><span>Patrocinador</span><span>Patrocinador</span><span>Patrocinador</span><span>Patrocinador</span></div>
+        <div class="tpl-lado"><span class="tpl-logo">OXFITNESS</span><span>Hora e clima</span><span style="flex:2">Banner</span></div>
+        <div class="tpl-rodape"><span>Parceiros</span><span>Logo</span><span>Logo</span><span>Logo</span><span>Logo</span></div>
       </div>
       <div class="tpl-info">
-        <span class="tpl-selo">Em breve</span>
-        <p>Aqui vão ficar os templates do telão: você escolhe a moldura, sobe os banners e os patrocinadores, e o vídeo do momento roda dentro dela.</p>
-        <button disabled>Enviar template</button>
+        <span class="tpl-selo" id="tplSelo">Desligado</span>
+        <div class="form" id="tplForm"></div>
+        <div class="tpl-arqs" id="tplArqs"></div>
+        <button class="prim" id="tplSalvar">Salvar template</button>
       </div>
     </div>
   </section>
@@ -1477,6 +1481,18 @@ function renderDados(){
   if (P.modo === "site") partes.push(campo("Endereço", el("input", {type: "url", value: P.url || "", on: {change: e => P.url = e.target.value.trim()}})));
   f.replaceChildren(...partes);
 
+  const T = D.telao_template || (D.telao_template = {ativo: false, troca_banner: 12, cidade: "Tubarão", lat: -28.4667, lon: -49.0069});
+  $("tplSelo").textContent = T.ativo ? "Ligado no telão" : "Desligado";
+  $("tplTela").classList.toggle("off", !T.ativo);
+  $("tplForm").replaceChildren(
+    el("label", {class: "chk"}, el("input", {type: "checkbox", checked: !!T.ativo, on: {change: e => { T.ativo = e.target.checked; }}}), "Usar o template no telão"),
+    campo("Trocar banner a cada (segundos)", el("input", {type: "number", min: 4, max: 120, value: T.troca_banner || 12, on: {change: e => T.troca_banner = +e.target.value}})));
+  const nomes = l => l && l.length ? l.map(semExt).join(", ") : "nenhum";
+  $("tplArqs").replaceChildren(
+    el("div", {}, el("b", {}, `Banners (${(M.banners || []).length}): `), nomes(M.banners)),
+    el("div", {}, el("b", {}, `Parceiros (${(M.parceiros || []).length}): `), nomes(M.parceiros)),
+    el("div", {}, "Pastas midia\\template\\banners e midia\\template\\parceiros no PC do telão"));
+
   const trava = E && E.protegido;
   renderVideos();
   renderFuncionamento();
@@ -1590,6 +1606,7 @@ $("tlEnviar").onclick = async () => {
   D = await api("/api/dados"); await carregarMidia(); renderDados(); carregarVideos();
 };
 $("padraoSalvar").onclick = () => salvarColecao("telao_padrao", D.telao_padrao);
+$("tplSalvar").onclick = () => salvarColecao("telao_template", D.telao_template);
 $("muNova").onclick = () => { D.musica.programacao.push({inicio: "06:00", fim: "23:00", playlist: Object.keys(M.playlists)[0] || "", volume: 60, dias: [0,1,2,3,4,5,6]}); renderDados(); };
 $("muSalvar").onclick = () => salvarColecao("musica", D.musica);
 $("tlAbrir").onclick = () => cmd("/api/telao/abrir", {}, "Abrindo telão");

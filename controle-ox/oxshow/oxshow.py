@@ -65,6 +65,7 @@ DADOS_LOCK = threading.Lock()
 DADOS = ler_json(DADOS_PATH, {})
 for _k, _v in (("cenas", []), ("eventos", []), ("agenda", []), ("musica", {"programacao": []}),
                ("telao_padrao", {"modo": "preto"}), ("videos", {}),
+               ("telao_template", {"ativo": False, "troca_banner": 12, "cidade": "Tubarão", "lat": -28.4667, "lon": -49.0069}),
                ("telao_config", {"funcionamento": {"0": ["05:00", "23:59"], "1": ["05:00", "23:59"], "2": ["05:00", "23:59"],
                                                    "3": ["05:00", "23:59"], "4": ["05:00", "23:59"], "5": ["08:00", "17:00"],
                                                    "6": ["08:00", "14:00"]},
@@ -100,7 +101,8 @@ class Estado:
             self.cond.notify_all()
 
     def foto(self):
-        return {"telao": self.telao_efetivo(), "musica": dict(self.musica), "controle": dict(self.controle)}
+        return {"telao": self.telao_efetivo(), "musica": dict(self.musica), "controle": dict(self.controle),
+                "template": template_atual()}
 
     def telao_efetivo(self):
         t = dict(self.telao)
@@ -220,6 +222,15 @@ def listar(sub, exts):
     return sorted(f for f in os.listdir(pasta) if os.path.splitext(f)[1].lower() in exts)
 
 
+def template_atual():
+    """Moldura do telão: vídeo dentro + relógio, clima, banners (midia/template/banners) e parceiros (midia/template/parceiros)."""
+    t = dict(DADOS.get("telao_template") or {})
+    t["banners"] = listar(os.path.join("template", "banners"), EXT_IMAGEM)
+    t["parceiros"] = listar(os.path.join("template", "parceiros"), EXT_IMAGEM)
+    t["logo"] = next((f for f in listar("template", EXT_IMAGEM) if f.lower().startswith("logo")), None)
+    return t
+
+
 def listar_midia():
     musicas = os.path.join(MIDIA, "musicas")
     playlists = {}
@@ -227,7 +238,9 @@ def listar_midia():
         for nome in sorted(os.listdir(musicas)):
             if os.path.isdir(os.path.join(musicas, nome)):
                 playlists[nome] = len(listar(os.path.join("musicas", nome), EXT_AUDIO))
-    return {"videos": listar("videos", EXT_VIDEO), "imagens": listar("imagens", EXT_IMAGEM), "playlists": playlists}
+    tpl = template_atual()
+    return {"videos": listar("videos", EXT_VIDEO), "imagens": listar("imagens", EXT_IMAGEM), "playlists": playlists,
+            "banners": tpl["banners"], "parceiros": tpl["parceiros"]}
 
 
 # ================================================================ música do dia
@@ -1816,7 +1829,7 @@ def janela_protegida():
 
 # ================================================================ HTTP
 
-COLECOES = {"cenas", "eventos", "agenda", "musica", "telao_padrao", "videos", "telao_config"}
+COLECOES = {"cenas", "eventos", "agenda", "musica", "telao_padrao", "videos", "telao_config", "telao_template"}
 
 
 def validar(colecao, valor):
@@ -1848,6 +1861,11 @@ def validar(colecao, valor):
                 raise ValueError(f"Tipo inválido em '{nome}'")
             if c.get("tipo") == "vezes" and not (1 <= int(c.get("vezes") or 0) <= 96):
                 raise ValueError(f"Número de vezes inválido em '{nome}' (1 a 96)")
+    elif colecao == "telao_template":
+        if not isinstance(valor, dict) or not isinstance(valor.get("ativo"), bool):
+            raise ValueError("Template inválido")
+        if not (4 <= int(valor.get("troca_banner") or 12) <= 120):
+            raise ValueError("Troca do banner: de 4 a 120 segundos")
     elif colecao == "telao_config":
         func = (valor or {}).get("funcionamento")
         if not isinstance(func, dict):
@@ -2164,7 +2182,7 @@ class Handler(BaseHTTPRequestHandler):
             gravar_json(DADOS_PATH, DADOS)
         if colecao == "musica":
             MUSICA.acao({"acao": "programacao"})
-        if colecao in ("telao_padrao", "videos"):
+        if colecao in ("telao_padrao", "videos", "telao_template"):
             ESTADO.publicar()
             atualizar_som_video()
         log.info("dados '%s' salvos pelo painel (%s)", colecao, self._origem())
@@ -2277,7 +2295,7 @@ def atender_nuvem(url, cab, p):
 
 
 def main():
-    for sub in ("videos", "imagens", "musicas"):
+    for sub in ("videos", "imagens", "musicas", os.path.join("template", "banners"), os.path.join("template", "parceiros")):
         os.makedirs(os.path.join(MIDIA, sub), exist_ok=True)
     porta = int(CFG.get("porta_painel", 8710))
     srv = ThreadingHTTPServer(("0.0.0.0", porta), Handler)
