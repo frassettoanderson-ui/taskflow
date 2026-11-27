@@ -101,8 +101,9 @@ class Estado:
             self.cond.notify_all()
 
     def foto(self):
-        return {"telao": self.telao_efetivo(), "musica": dict(self.musica), "controle": dict(self.controle),
-                "template": template_atual()}
+        t = self.telao_efetivo()
+        return {"telao": t, "musica": dict(self.musica), "controle": dict(self.controle),
+                "template": {"ativo": False} if t.get("tela_cheia") else template_atual()}
 
     def telao_efetivo(self):
         t = dict(self.telao)
@@ -156,21 +157,26 @@ def atualizar_som_video():
         if quer:
             def pausar():
                 try:
-                    midia_windows_comando("pausar")
+                    if vymber_aberto():
+                        vymber_comando({"tipo": "pausar"})
+                    else:
+                        midia_windows_comando("pausar")
                     DUCK["pausou_externa"] = True
                 except Exception as e:
                     log.info("vídeo com som: não pausei o rádio (%s)", e)
             threading.Thread(target=pausar, daemon=True).start()
         elif DUCK["pausou_externa"]:
             DUCK["pausou_externa"] = False
-            threading.Thread(target=lambda: midia_windows_comando("retomar"), daemon=True).start()
+            threading.Thread(target=lambda: vymber_comando({"tipo": "tocar"}) if vymber_aberto() else midia_windows_comando("retomar"),
+                             daemon=True).start()
 
 
 def telao_mostrar(passo):
     modo = passo.get("modo", "padrao")
     novo = {"modo": modo, "id": proximo_id()}
     if modo == "video":
-        novo.update(arquivo=passo["arquivo"], repetir=bool(passo.get("repetir")), mudo=bool(passo.get("mudo")))
+        novo.update(arquivo=passo["arquivo"], repetir=bool(passo.get("repetir")), mudo=bool(passo.get("mudo")),
+                    tela_cheia=bool(passo.get("tela_cheia")))
         if not os.path.isfile(caminho_midia("videos", passo["arquivo"])):
             raise FileNotFoundError(f"Vídeo não encontrado: {passo['arquivo']}")
     elif modo == "imagem":
@@ -422,6 +428,94 @@ def porta_com_existe():
         return False
 
 
+# ================================================================ MIDI timecode (luz do show das 21h)
+# O Lumikit roda a timeline do show presa ao timecode que chega pelo loopMIDI. Antes vinha do REAPER
+# (projeto RP OX: gerador de 94,5 s, 25 quadros/s, começando em 00:00:00:00). Aqui: quarter-frames F1 + full frame.
+
+MTC = {"t": None, "parar": threading.Event(), "estado": "parado"}
+
+
+def _midi_porta(trecho):
+    w = ctypes.windll.winmm
+
+    class CAPS(ctypes.Structure):
+        _fields_ = [("wMid", ctypes.c_ushort), ("wPid", ctypes.c_ushort), ("v", ctypes.c_uint), ("nome", ctypes.c_wchar * 32),
+                    ("t", ctypes.c_ushort), ("vo", ctypes.c_ushort), ("no", ctypes.c_ushort), ("cm", ctypes.c_ushort), ("sup", ctypes.c_uint)]
+    for i in range(w.midiOutGetNumDevs()):
+        c = CAPS()
+        w.midiOutGetDevCapsW(i, ctypes.byref(c), ctypes.sizeof(c))
+        if trecho.lower() in c.nome.lower():
+            return i, c.nome
+    raise ConnectionError(f"Porta MIDI '{trecho}' não encontrada (o loopMIDI está aberto?)")
+
+
+def _mtc_rodar(segundos, fps, porta):
+    w = ctypes.windll.winmm
+    idx, nome = _midi_porta(porta)
+    h = ctypes.c_void_p()
+    r = w.midiOutOpen(ctypes.byref(h), idx, None, None, 0)
+    if r:
+        raise ConnectionError(f"Não abri a porta MIDI {nome} (erro {r})")
+    taxa = {24: 0, 25: 1, 29: 2, 30: 3}.get(fps, 1)
+    w.timeBeginPeriod(1)
+    try:
+        # full frame 00:00:00:00 (posiciona o receptor)
+        sx = (ctypes.c_ubyte * 10)(0xF0, 0x7F, 0x7F, 0x01, 0x01, taxa << 5, 0, 0, 0, 0xF7)
+
+        class HDR(ctypes.Structure):
+            _fields_ = [("lpData", ctypes.c_void_p), ("len", ctypes.c_ulong), ("rec", ctypes.c_ulong), ("user", ctypes.c_void_p),
+                        ("flags", ctypes.c_ulong), ("next", ctypes.c_void_p), ("res", ctypes.c_void_p), ("off", ctypes.c_ulong),
+                        ("resv", ctypes.c_void_p * 8)]
+        hd = HDR(ctypes.cast(sx, ctypes.c_void_p), 10)
+        if not w.midiOutPrepareHeader(h, ctypes.byref(hd), ctypes.sizeof(hd)):
+            w.midiOutLongMsg(h, ctypes.byref(hd), ctypes.sizeof(hd))
+            time.sleep(0.02)
+            w.midiOutUnprepareHeader(h, ctypes.byref(hd), ctypes.sizeof(hd))
+        dt = 1.0 / (fps * 4)
+        t0 = time.perf_counter()
+        k = 0
+        total = int(segundos * fps * 4)
+        MTC["estado"] = "tocando"
+        while k < total and not MTC["parar"].is_set():
+            espera = t0 + k * dt - time.perf_counter()
+            if espera > 0.002:
+                time.sleep(espera - 0.001)
+            while time.perf_counter() < t0 + k * dt:
+                pass
+            quadro = (k // 8) * 2
+            ff, ss = quadro % fps, (quadro // fps) % 60
+            mm, hh = (quadro // (fps * 60)) % 60, quadro // (fps * 3600)
+            peca = k % 8
+            val = [ff & 15, ff >> 4, ss & 15, ss >> 4, mm & 15, mm >> 4, hh & 15, (taxa << 1) | ((hh >> 4) & 1)][peca]
+            w.midiOutShortMsg(h, 0xF1 | (((peca << 4) | val) << 8))
+            k += 1
+        log.info("timecode: %.1f s enviados em %s", k * dt, nome)
+    finally:
+        w.timeEndPeriod(1)
+        w.midiOutReset(h)
+        w.midiOutClose(h)
+        MTC["estado"] = "parado"
+
+
+def mtc_iniciar(segundos, fps=25, porta="loopMIDI"):
+    if os.name != "nt":
+        raise ValueError("Timecode só no Windows")
+    t = MTC["t"]
+    if t and t.is_alive():
+        MTC["parar"].set()
+        t.join(2)
+    _midi_porta(porta)  # falha já aqui (aparece no registro) se o loopMIDI não estiver aberto
+    MTC["parar"] = threading.Event()
+
+    def rodar():
+        try:
+            _mtc_rodar(segundos, fps, porta)
+        except Exception:
+            log.exception("timecode")
+    MTC["t"] = threading.Thread(target=rodar, daemon=True, name="mtc")
+    MTC["t"].start()
+
+
 # ================================================================ passos, cenas e eventos
 
 def executar_passo(p, profundidade=0):
@@ -429,7 +523,10 @@ def executar_passo(p, profundidade=0):
     if tipo == "telao":
         telao_mostrar(p)
     elif tipo == "musica":
-        if not ESTADO.musica.get("faixa") and p.get("acao") in ("pausar", "retomar", "proxima", "anterior"):
+        if not ESTADO.musica.get("faixa") and p.get("acao") in ("pausar", "retomar") and vymber_aberto():
+            # música do dia = Vymber: pausa/retoma pelo próprio player (sem tecla de mídia do Windows)
+            vymber_comando({"tipo": "pausar" if p["acao"] == "pausar" else "tocar"})
+        elif not ESTADO.musica.get("faixa") and p.get("acao") in ("pausar", "retomar", "proxima", "anterior"):
             midia_windows_comando(p["acao"])  # música do dia ainda vem do rádio no navegador
         else:
             MUSICA.acao(p)
@@ -442,6 +539,8 @@ def executar_passo(p, profundidade=0):
             lumikit("timeline_stop")
         else:
             lumikit(f"timeline_play/{int(p.get('indice', 0))}")
+    elif tipo == "timecode":
+        mtc_iniciar(float(p.get("segundos", 94.5)), int(p.get("fps", 25)), p.get("porta") or "loopMIDI")
     elif tipo == "blackout":
         lumikit("main_set_blackout_" + ("on" if p.get("ligar", True) else "off"))
     elif tipo == "ambiente":
@@ -530,6 +629,7 @@ def iniciar_evento(iid, origem):
 
 
 def parar_evento():
+    MTC["parar"].set()
     atual = EXEC["atual"]
     if atual and atual.is_alive():
         atual.parar.set()
@@ -771,6 +871,30 @@ def abrir_vymber():
             break
         time.sleep(0.25)
     registrar("música", "Vymber aberto no OX Show", [])
+
+
+def laco_vymber_auto():
+    """vymber.abrir_automatico: ao ligar o PC (sem o OBS), o OX Show abre o Vymber e dá play; se a janela
+    fechar ou cair, abre de novo e volta a tocar. Pausa feita de propósito (painel, vídeo com som, YouTube) é respeitada."""
+    time.sleep(20)
+    while True:
+        try:
+            if (CFG.get("vymber") or {}).get("abrir_automatico") and not vymber_aberto() and not youtube_aberto():
+                abrir_vymber()
+                for _ in range(30):  # a página demora a montar o player
+                    time.sleep(2)
+                    try:
+                        e = vymber_estado()
+                        if e.get("tocando"):
+                            break
+                        if e.get("logado") and e.get("faixa"):
+                            vymber_comando({"tipo": "tocar"})
+                    except Exception:
+                        pass
+                registrar("música", "Vymber aberto e tocando (automático)", [])
+        except Exception:
+            log.exception("vymber automático")
+        time.sleep(30)
 
 
 def fechar_vymber():
@@ -2335,6 +2459,7 @@ def main():
     threading.Thread(target=laco_insercoes, daemon=True).start()
     threading.Thread(target=laco_vigia, daemon=True).start()
     threading.Thread(target=laco_ceder_21h, daemon=True).start()
+    threading.Thread(target=laco_vymber_auto, daemon=True).start()
     threading.Thread(target=laco_youtube, daemon=True).start()
     threading.Thread(target=laco_nuvem, daemon=True).start()
     if CFG["telao"].get("abrir_automatico"):
