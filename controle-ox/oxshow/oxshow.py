@@ -1324,7 +1324,7 @@ def laco_vigia():
     while True:
         time.sleep(5)
         try:
-            if not CFG["telao"].get("abrir_automatico"):
+            if not CFG["telao"].get("abrir_automatico") or em_janela_21h():
                 continue
             sem_contato = time.time() - ESTADO.ultimo_contato > 20
             if ESTADO.clientes == 0 and sem_contato:
@@ -1335,6 +1335,15 @@ def laco_vigia():
             log.exception("vigia do telão")
 
 
+def em_janela_21h():
+    """Seg-sex 20:57-21:03, enquanto o show das 21h ainda é do REAPER/OBS (telao.ceder_21h)."""
+    if not CFG["telao"].get("ceder_21h", True):
+        return False
+    agora = datetime.datetime.now()
+    m = agora.hour * 60 + agora.minute
+    return agora.weekday() < 5 and 20 * 60 + 57 <= m < 21 * 60 + 3
+
+
 def laco_ceder_21h():
     """Enquanto o show das 21h ainda é do REAPER/OBS: a janela do OX Show sai do LED das 20:57 às 21:03
     (seg-sex) para não tampar o vídeo do OBS, e volta depois se estava aberta. telao.ceder_21h=false desliga."""
@@ -1342,12 +1351,10 @@ def laco_ceder_21h():
     while True:
         time.sleep(10)
         try:
-            agora = datetime.datetime.now()
-            m = agora.hour * 60 + agora.minute
-            janela = agora.weekday() < 5 and 20 * 60 + 57 <= m < 21 * 60 + 3
+            janela = em_janela_21h()
             p = TELAO_PROC["p"]
             aberto = (p is not None and p.poll() is None) or ESTADO.clientes > 0
-            if CFG["telao"].get("ceder_21h", True) and janela and aberto:
+            if janela and aberto:
                 log.info("show das 21h: telão do OX Show sai do LED (OBS assume)")
                 fechar_telao()
                 cedido = True
