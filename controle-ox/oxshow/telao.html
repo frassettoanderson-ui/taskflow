@@ -209,6 +209,7 @@ function trocarParceiros(){
   setTimeout(() => { parcI++; mostrarParceiros(); $("logos").classList.remove("troca"); }, 650);
 }
 
+const LUGAR = $("lugarVideo");
 function aplicarTemplate(t){
   const j = JSON.stringify(t);
   if (j === tplJson) return;
@@ -217,11 +218,12 @@ function aplicarTemplate(t){
   const area = $("area");
   if (!t.ativo){
     document.body.classList.remove("tpl");
-    if (area.parentNode !== document.body) document.body.insertBefore(area, $("musica"));
+    // sai da moldura (tela cheia): deixa o marcador no lugar do vídeo para a moldura voltar inteira depois
+    if (area.parentNode !== document.body){ area.replaceWith(LUGAR); document.body.insertBefore(area, $("musica")); }
     return;
   }
   document.body.classList.add("tpl");
-  if (area.parentNode !== $("palco")) $("palco").replaceChild(area, $("lugarVideo"));
+  if (area.parentNode !== $("palco")) LUGAR.replaceWith(area);
   escalar(); relogio();
   $("marca").replaceChildren(t.logo
     ? Object.assign(new Image(), {src: urlMidia("template/" + t.logo), alt: "OXFITNESS"})
