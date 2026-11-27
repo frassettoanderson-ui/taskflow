@@ -1335,6 +1335,30 @@ def laco_vigia():
             log.exception("vigia do telão")
 
 
+def laco_ceder_21h():
+    """Enquanto o show das 21h ainda é do REAPER/OBS: a janela do OX Show sai do LED das 20:57 às 21:03
+    (seg-sex) para não tampar o vídeo do OBS, e volta depois se estava aberta. telao.ceder_21h=false desliga."""
+    cedido = False
+    while True:
+        time.sleep(10)
+        try:
+            agora = datetime.datetime.now()
+            m = agora.hour * 60 + agora.minute
+            janela = agora.weekday() < 5 and 20 * 60 + 57 <= m < 21 * 60 + 3
+            p = TELAO_PROC["p"]
+            aberto = (p is not None and p.poll() is None) or ESTADO.clientes > 0
+            if CFG["telao"].get("ceder_21h", True) and janela and aberto:
+                log.info("show das 21h: telão do OX Show sai do LED (OBS assume)")
+                fechar_telao()
+                cedido = True
+            elif cedido and not janela:
+                log.info("show das 21h acabou: telão do OX Show volta ao LED")
+                abrir_telao()
+                cedido = False
+        except Exception:
+            log.exception("ceder 21h")
+
+
 # ================================================================ prévia do telão (foto do monitor do LED + música)
 # O painel mostra quase ao vivo o que está no LED: uma foto pequena do monitor a cada ~1 s.
 # Funciona com o OBS ainda no comando (é foto da tela, não depende de quem desenha nela).
@@ -2303,6 +2327,7 @@ def main():
     threading.Thread(target=laco_agenda, daemon=True).start()
     threading.Thread(target=laco_insercoes, daemon=True).start()
     threading.Thread(target=laco_vigia, daemon=True).start()
+    threading.Thread(target=laco_ceder_21h, daemon=True).start()
     threading.Thread(target=laco_youtube, daemon=True).start()
     threading.Thread(target=laco_nuvem, daemon=True).start()
     if CFG["telao"].get("abrir_automatico"):
