@@ -73,7 +73,7 @@
   <video id="v1" class="camada" playsinline preload="auto"></video>
   <video id="v2" class="camada" playsinline preload="auto"></video>
   <img id="img" class="camada" alt="">
-  <iframe id="site" class="camada" allow="autoplay; fullscreen"></iframe>
+  <iframe id="site" class="camada" allow="autoplay; fullscreen; microphone; speaker-selection"></iframe>
 </div>
 <audio id="musica" preload="auto"></audio>
 <div id="aviso">Reconectando ao OX Show...</div>
@@ -120,7 +120,8 @@ function aplicarTelao(t){
     $("img").src = urlMidia("imagens/" + t.arquivo);
   } else if (t.modo === "site"){
     $("site").onload = () => { if ($("site").src !== "about:blank"){ mostrar($("site")); pararOutros($("site")); } };
-    $("site").src = t.url;
+    // sorteio: a página escolhe a própria saída de som (a mesa) pelo parâmetro "saida"
+    $("site").src = SAIDA && /\/sorteio/.test(t.url) ? t.url + (t.url.includes("?") ? "&" : "?") + "saida=" + encodeURIComponent(SAIDA) : t.url;
   } else {
     mostrar(null); pararOutros(null);
   }
@@ -236,6 +237,30 @@ function aplicarTemplate(t){
   tParc = setInterval(trocarParceiros, 8000);
   clima(); tClima = setInterval(clima, 15 * 60 * 1000);
 }
+
+// ---------------- saída de som: só o telão vai para a mesa (MBS16CH); o resto do PC segue no padrão do Windows
+const SAIDA = new URLSearchParams(location.search).get("saida") || "";
+let saidaId = null;
+async function ajustarSaida(){
+  if (!SAIDA || !HTMLMediaElement.prototype.setSinkId) return;
+  try {
+    if (!saidaId){
+      let ds = await navigator.mediaDevices.enumerateDevices();
+      if (!ds.some(d => d.label)){  // sem permissão os nomes vêm vazios (o OX Show abre o Edge aceitando sozinho)
+        const st = await navigator.mediaDevices.getUserMedia({audio: true});
+        st.getTracks().forEach(t => t.stop());
+        ds = await navigator.mediaDevices.enumerateDevices();
+      }
+      const d = ds.find(x => x.kind === "audiooutput" && x.deviceId !== "default" && x.deviceId !== "communications" && x.label.includes(SAIDA));
+      if (!d){ avisar("/telao/erro", {msg: "saída de som não encontrada: " + SAIDA}); return; }
+      saidaId = d.deviceId;
+      avisar("/telao/erro", {msg: "saída de som ok: " + d.label});  // só registro (não é erro)
+    }
+    for (const e of [...videos, audio]) if (e.sinkId !== saidaId) await e.setSinkId(saidaId);
+  } catch (e){ saidaId = null; avisar("/telao/erro", {msg: "saída de som: " + e.message}); }
+}
+ajustarSaida();
+setInterval(ajustarSaida, 30000);
 
 // ---------------- canal com o OX Show (reconecta sozinho)
 let ultimoDado = Date.now();

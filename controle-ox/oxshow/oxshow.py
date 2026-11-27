@@ -800,8 +800,10 @@ def abrir_telao():
     if not nav:
         raise RuntimeError("Não achei o Edge nem o Chrome")
     m = monitor_do_telao() or {"x": 0, "y": 0}
-    url = f"http://127.0.0.1:{CFG.get('porta_painel', 8710)}/telao"
+    saida = CFG["telao"].get("saida_som", "MBS16CH")
+    url = f"http://127.0.0.1:{CFG.get('porta_painel', 8710)}/telao" + (f"?saida={quote(saida)}" if saida else "")
     args = [nav, f"--kiosk", url, "--edge-kiosk-type=fullscreen", "--no-first-run", "--no-default-browser-check",
+            "--use-fake-ui-for-media-stream",
             "--autoplay-policy=no-user-gesture-required", "--disable-features=Translate,TranslateUI",
             "--noerrdialogs", "--disable-session-crashed-bubble", "--disable-infobars",
             f"--user-data-dir={os.path.join(BASE, 'navegador')}", f"--window-position={m['x']},{m['y']}"]
@@ -1281,6 +1283,44 @@ def _yt_saida():
   for (const e of m) if (e.sinkId !== d.deviceId) await e.setSinkId(d.deviceId);
   return 'ok';
 })()""" % json.dumps(nome))
+
+
+def _vy_saida():
+    """Sem o OBS: o som do Vymber vai direto para a mesa (vymber.saida, ex. "MBS16CH"), e só ele;
+    o resto do PC continua no padrão do Windows. Vazio = não mexe (fase em que o OBS ainda captura o Vymber)."""
+    nome = (CFG.get("vymber") or {}).get("saida")
+    if not nome or not vymber_aberto():
+        return None
+    for perm in ("audioCapture", "speakerSelection"):
+        try:
+            cdp("Browser.grantPermissions", {"origin": "/".join(vymber_cfg()["url"].split("/")[:3]), "permissions": [perm]})
+        except Exception:
+            pass
+    r = cdp("Runtime.evaluate", {"returnByValue": True, "awaitPromise": True, "expression": """(async () => {
+  let ds = await navigator.mediaDevices.enumerateDevices();
+  if (!ds.some(x => x.label)) { try { const st = await navigator.mediaDevices.getUserMedia({audio: true}); st.getTracks().forEach(t => t.stop()); } catch (e) {} ds = await navigator.mediaDevices.enumerateDevices(); }
+  const d = ds.find(x => x.kind == 'audiooutput' && x.deviceId != 'default' && x.deviceId != 'communications' && x.label.includes(%s));
+  if (!d) return 'sem saída';
+  const m = [...document.querySelectorAll('video, audio')];
+  if (!m.length) return 'sem player';
+  for (const e of m) if (e.sinkId !== d.deviceId) await e.setSinkId(d.deviceId);
+  return 'ok';
+})()""" % json.dumps(nome)})
+    return (r.get("result") or {}).get("value")
+
+
+def laco_saida_som():
+    """Confere a cada 10 s que o Vymber continua saindo na mesa (a página pode recarregar e perder a escolha)."""
+    ultimo = None
+    while True:
+        time.sleep(10)
+        try:
+            r = _vy_saida()
+        except Exception as e:
+            r = f"erro: {e}"
+        if r != ultimo and r is not None:
+            log.info("saída de som do Vymber: %s", r)
+        ultimo = r
 
 
 def _yt_garantir_saida():
@@ -2460,6 +2500,7 @@ def main():
     threading.Thread(target=laco_vigia, daemon=True).start()
     threading.Thread(target=laco_ceder_21h, daemon=True).start()
     threading.Thread(target=laco_vymber_auto, daemon=True).start()
+    threading.Thread(target=laco_saida_som, daemon=True).start()
     threading.Thread(target=laco_youtube, daemon=True).start()
     threading.Thread(target=laco_nuvem, daemon=True).start()
     if CFG["telao"].get("abrir_automatico"):

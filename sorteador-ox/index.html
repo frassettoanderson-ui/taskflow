@@ -247,8 +247,21 @@ function initAudio(){
   ac=new(window.AudioContext||window.webkitAudioContext)();
   const comp=ac.createDynamicsCompressor();master=ac.createGain();master.gain.value=muted?0:.85;
   master.connect(comp);comp.connect(ac.destination);
+  saidaSom();
   noiseBuf=ac.createBuffer(1,ac.sampleRate*2,ac.sampleRate);
   const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+}
+/* Telão do OX Show (?saida=MBS16CH): o som do sorteio vai direto para a mesa, sem mudar o padrão do Windows */
+async function saidaSom(){
+  const nome=new URLSearchParams(location.search).get('saida');
+  if(!nome||!ac||!ac.setSinkId)return;
+  try{
+    let ds=await navigator.mediaDevices.enumerateDevices();
+    if(!ds.some(d=>d.label)){const st=await navigator.mediaDevices.getUserMedia({audio:true});st.getTracks().forEach(t=>t.stop());ds=await navigator.mediaDevices.enumerateDevices()}
+    const d=ds.find(x=>x.kind==='audiooutput'&&x.deviceId!=='default'&&x.deviceId!=='communications'&&x.label.includes(nome));
+    if(d&&ac.sinkId!==d.deviceId)await ac.setSinkId(d.deviceId);
+    diagVoz('saida',d?'ok':'nao-achou');
+  }catch(e){diagVoz('saida-erro',e&&e.message)}
 }
 function env(g,t,a,peak,d){g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(peak,t+a);g.gain.exponentialRampToValueAtTime(.0001,t+a+d)}
 function osc(type,f0,f1,t,dur,vol,lp){
