@@ -22,7 +22,10 @@ Substitui a corrente frágil OBS + REAPER + loopMIDI + scripts Python + Advanced
 ## Como funciona hoje
 Levantamento completo de 19/11/2026 em `levantamento-pc-telao-2026-11-19.md` (agenda do Lumikit, evento das 21h peça por peça, Sonvra pelo OBS, NovaStar, liga 04:30 BIOS / desliga 00:00).
 
-## Regra de ouro
+## Virada (27/11/2026): OX Show sozinho
+OBS e REAPER fora da inicialização (atalhos em `C:\OXShow\desativados`) e fechados. `virada.py fazer|desfazer` (backups `config.json-antes-virada`, `dados.json-antes-virada`). Show das 21h = evento `evento-21h` na agenda (ag-21h ativo): COM25 2 → aos 3,5 s Red Zone em tela cheia com som + timecode MIDI próprio (25 qps, 94,5 s, loopMIDI) → aos 97 s COM25 1. O cue "Timeline" das 21:00 segue na agenda do Lumikit. Som: só o OX Show vai para a mesa (setSinkId "MBS16CH" no telão, no Vymber via CDP e no sorteio via `?saida=`); o padrão do Windows continua HDMI (usuário quer usar o PC sem som vazar). Vymber abre e toca sozinho (`vymber.abrir_automatico`). Restart: `schtasks /end` nem sempre mata o pythonw → conferir `Get-Process pythonw` e o log.
+
+## Regra de ouro (até a virada)
 O **evento das 21h (seg-sex)** continua no REAPER até a migração. Por isso: agenda vem **desativada**, `telao.abrir_automatico=false`, e `janela_protegida` trava comandos manuais 20:58–21:03 em dias úteis. Migração = testar fora do horário → desligar REAPER/OBS do início do Windows (as tarefas `Mudar_Para_Cena_*` já não existem; ver levantamento) → ativar agenda e `abrir_automatico` → tirar `janela_protegida`.
 
 ## Pendências
