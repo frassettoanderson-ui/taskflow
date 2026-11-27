@@ -383,12 +383,25 @@ def luz_info(pagina):
         timelines = [nome_item(t) for t in (lumikit("timeline_get_names") or [])]
     except ConnectionError:
         timelines = []
+    # cues do Lumikit (página 1): os programas de luz da agenda dele ("4:30", "19:00", "Timeline", "Fim")
+    try:
+        g = (lumikit("cues_get_page_status/0") or [{}])[0]
+        cues = [{"indice": i, "nome": c.get("name", ""), "cor": c.get("color"), "ativo": str(c.get("active", "")).lower() == "true"}
+                for i, c in enumerate(g.get("items") or []) if c.get("name")]
+    except (ConnectionError, AttributeError, IndexError):
+        cues = []
+    try:
+        tl = (lumikit("timeline_get_status") or [{}])[0]
+    except ConnectionError:
+        tl = {}
     return {
         "ok": True, "pagina": int(pagina),
         "cenas": [{"nome": c.get("name", ""), "cor": c.get("color")} for c in cenas],
         "ativa": {"pagina": int(ativa.get("activePage", -1)), "cena": int(ativa.get("activeScene", -1))},
         "blackout": str(blackout).lower() == "true",
         "timelines": timelines,
+        "cues": cues,
+        "timeline": {"tocando": tl.get("status") == "playing", "nome": tl.get("name"), "posicao": tl.get("position")},
     }
 
 
@@ -533,7 +546,15 @@ def executar_passo(p, profundidade=0):
     elif tipo == "telao_controle":
         telao_controle(p)
     elif tipo == "luz":
+        if p.get("soltar_cues"):
+            lumikit("cues_release_all")  # um cue ativo (ex. "4:30" em repetição) rodaria por cima da cena
         lumikit(f"edmx_change_scene/{int(p.get('pagina', 0))}/{int(p['cena'])}")
+    elif tipo == "luz_cue":
+        if p.get("acao") == "soltar_todos":
+            lumikit("cues_release_all")
+        else:
+            acao = "release" if p.get("acao") == "soltar" else "press"
+            lumikit(f"cues_{acao}/{int(p.get('pagina', 0))}/{int(p['indice'])}")
     elif tipo == "luz_timeline":
         if p.get("acao") == "parar":
             lumikit("timeline_stop")

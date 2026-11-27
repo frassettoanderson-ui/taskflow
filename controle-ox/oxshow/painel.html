@@ -981,6 +981,12 @@
     <div class="acoes"><button class="prim" data-novo="cenas">Nova cena</button></div>
   </section>
   <section>
+    <h2>Programas de luz</h2>
+    <div class="sub" id="agCuesSub">Os programas do Lumikit (a agenda dele liga o "4:30" de manhã, o "19:00" à noite e o "Timeline" às 21h). Só um fica ligado por vez e ele manda na luz enquanto estiver ligado.</div>
+    <div class="grade luz" id="agCues"></div>
+    <div class="acoes"><button class="peq" id="agCuesSoltar">Desligar programa</button></div>
+  </section>
+  <section>
     <h2>Luz do palco</h2>
     <div class="sub" id="agLuzSub"></div>
     <div class="acoes" style="margin:0 0 14px">
@@ -1113,6 +1119,8 @@ function descPasso(p){
     case "luz": return `Luz: página ${(+p.pagina || 0) + 1}, botão ${TECLAS[p.cena] || p.cena}` + (p.rotulo ? ` (${p.rotulo})` : "");
     case "luz_timeline": return p.acao === "parar" ? "Luz: parar timeline" : `Luz: tocar timeline ${p.rotulo || (+p.indice + 1)}`;
     case "blackout": return p.ligar ? "Luz: blackout ligado" : "Luz: blackout desligado";
+    case "luz_cue": return p.acao === "soltar_todos" ? "Luz: desligar programa" : (p.acao === "soltar" ? "Luz: desligar programa " : "Luz: ligar programa ") + (p.rotulo || (+p.indice + 1));
+    case "timecode": return `Luz: timecode para o Lumikit (${String(p.segundos).replace(".", ",")} s)`;
     case "ambiente": return "Ambiente: " + ((E && E.ambiente.cenas.find(c => String(c.id) === String(p.cena))) || {nome: "cena " + p.cena}).nome;
     case "espera": return `Esperar ${p.segundos}s`;
     case "cena": return "Rodar cena " + nomeCena(p.id);
@@ -1241,17 +1249,29 @@ function renderLuz(){
   $("agBlackout").textContent = L.blackout ? "Desligar blackout" : "Blackout";
   $("agBlackout").classList.toggle("prim", L.blackout);
   $("agLuz").replaceChildren(...L.cenas.map((c, i) => {
-    const b = el("button", {disabled: trava, on: {click: () => cmd("/api/passo", {tipo: "luz", pagina: luzPag, cena: i}, "Luz: " + (c.nome || TECLAS[i])).then(carregarLuz)}},
+    const b = el("button", {disabled: trava, on: {click: () => cmd("/api/passo", {tipo: "luz", pagina: luzPag, cena: i, soltar_cues: true}, "Luz: " + (c.nome || TECLAS[i])).then(carregarLuz)}},
       el("span", {class: "tecla"}, TECLAS[i] || i + 1), el("span", {class: "nome"}, c.nome || "Vazia"));
     if (c.cor){ b.style.background = `rgb(${c.cor.r},${c.cor.g},${c.cor.b})`; b.style.color = corTexto(c.cor); }
     if (L.ativa.pagina === luzPag && L.ativa.cena === i) b.classList.add("atual");
     return b;
   }));
+  const cues = L.cues || [];
+  $("agCues").replaceChildren(...(cues.length ? cues.map(c => {
+    const b = el("button", {disabled: trava, on: {click: () => cmd("/api/passo", {tipo: "luz_cue", indice: c.indice, acao: c.ativo ? "soltar" : "ligar"}, (c.ativo ? "Programa desligado: " : "Programa ligado: ") + c.nome).then(carregarLuz)}},
+      el("span", {class: "tecla"}, c.ativo ? "LIGADO" : " "), el("span", {class: "nome"}, c.nome));
+    if (c.cor){ b.style.background = `rgb(${c.cor.r},${c.cor.g},${c.cor.b})`; b.style.color = corTexto(c.cor); }
+    if (c.ativo) b.classList.add("atual");
+    return b;
+  }) : [el("div", {class: "vazio"}, "Nenhum programa no Lumikit")]));
+  $("agCuesSoltar").disabled = trava || !cues.some(c => c.ativo);
+  const tl = L.timeline || {};
+  if (tl.tocando) $("agLuzSub").textContent = `Timeline ${tl.nome || ""} tocando (${(tl.posicao || "").slice(3, 8)})`;
   $("agTimelines").replaceChildren(...L.timelines.map((t, i) => btn("Timeline: " + t, () => cmd("/api/passo", {tipo: "luz_timeline", indice: i}, "Timeline " + t), "peq")),
     L.timelines.length ? btn("Parar timeline", () => cmd("/api/passo", {tipo: "luz_timeline", acao: "parar"}, "Timeline parada"), "peq") : null);
 }
 $("pagMenos").onclick = () => { luzPag = luzPag <= 0 ? 99 : luzPag - 1; carregarLuz(); };
 $("pagMais").onclick = () => { luzPag = luzPag >= 99 ? 0 : luzPag + 1; carregarLuz(); };
+$("agCuesSoltar").onclick = () => cmd("/api/passo", {tipo: "luz_cue", acao: "soltar_todos"}, "Programa de luz desligado").then(carregarLuz);
 $("agBlackout").onclick = () => cmd("/api/passo", {tipo: "blackout", ligar: !(luzInfo && luzInfo.blackout)}, "Blackout").then(carregarLuz);
 $("evParar").onclick = () => { if (confirm("Parar o evento agora?")) cmd("/api/parar", {}, "Evento parado"); };
 $("agPausar").onclick = () => cmd("/api/passo", {tipo: "musica", acao: E.musica.tocando ? "pausar" : "retomar"});
